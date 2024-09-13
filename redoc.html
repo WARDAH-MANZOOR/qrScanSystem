@@ -1,0 +1,14 @@
+<!-- src/redoc.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>API Documentation</title>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </head>
+  <body>
+    <redoc spec-url="/swagger.json"></redoc>
+    <script>
+      Redoc.init('/swagger.json', {}, document.querySelector('redoc'));
+    </script>
+  </body>
+</html>

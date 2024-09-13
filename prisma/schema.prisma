@@ -1,0 +1,53 @@
+// schema.prisma
+
+datasource db {
+  provider = "postgresql" // Assuming PostgreSQL
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum TransactionStatus {
+  completed
+  pending
+  failed
+}
+
+enum TransactionType {
+  purchase
+  refund
+  chargeback
+}
+
+model Transaction {
+  transaction_id Int       @id @default(autoincrement()) @unique
+  date_time      DateTime
+  amount         Decimal   @db.Decimal(10, 2)
+  issuer_id      Int
+  issuer         Issuer    @relation(fields: [issuer_id], references: [issuer_id])
+  status         TransactionStatus // Enum for status
+  type           TransactionType   // Enum for type
+  response_message String?
+  settlement     Boolean   @default(false)
+  pan_details    PANDetails?
+}
+
+model PANDetails {
+  pan_details_id Int         @id @default(autoincrement()) // Primary key
+  transaction_id Int         @unique// Foreign key reference to Transaction
+  transaction    Transaction @relation(fields: [transaction_id], references: [transaction_id]) // One-to-One relation
+  pan            String      // Equivalent to CharField(max_length=19)
+  stan           String      // Equivalent to CharField(max_length=12)
+
+  @@map("pan_details") // Custom table name if needed
+}
+
+model Issuer {
+  issuer_id   Int           @id @default(autoincrement()) // Primary key with auto-increment
+  issuer_name String        // Equivalent to CharField(max_length=255)
+  transactions Transaction[] // One-to-many relation with Transaction (issuer-related transactions)
+
+  @@map("issuer") // Custom table name if needed
+}
