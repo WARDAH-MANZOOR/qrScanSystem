@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../../prisma/client.js';  // Assuming Prisma client is set up
-import { parseISO, subDays } from 'date-fns';
+import { parse, subDays } from 'date-fns';
 const router = Router();
 
 /**
@@ -308,8 +308,8 @@ router.get('/datewise', async (req: Request, res: Response) => {
   } else if (start_date && end_date) {
       filter = {
           date_time: {
-              gte: parseISO(start_date as string),
-              lte: parseISO(end_date as string),
+              gte: parse(start_date as string,),
+              lte: parse(end_date as string),
           },
       };
   }
@@ -319,7 +319,8 @@ router.get('/datewise', async (req: Request, res: Response) => {
           where: filter,
       });
 
-      const totalAmount = transactions.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+      const totalAmount = transactions.reduce((acc, curr) => acc + parseFloat(curr.amount.toString()), 0);
+
 
       res.json({
           transactions,
