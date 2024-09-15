@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../../prisma/client.js';  // Assuming Prisma client is set up
-import { parse, subDays } from 'date-fns';
+import { parseISO, subDays } from 'date-fns';
 const router = Router();
 
 /**
@@ -72,6 +72,7 @@ const router = Router();
  * /transaction_api/transactions:
  *   get:
  *     summary: Get the list of all transactions
+ *     tags: [Transactions]
  *     responses:
  *       200:
  *         description: List of transactions
@@ -96,6 +97,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
  * /transaction_api/transactions/search:
  *   get:
  *     summary: Search for transactions with filters
+ *     tags: [Transactions]
  *     parameters:
  *       - name: transaction_id
  *         in: query
@@ -154,6 +156,7 @@ router.get('/transactions/search', async (req: Request, res: Response) => {
  * /transaction_api/transactions/daywise:
  *   get:
  *     summary: Get the total transaction amount grouped by day
+ *     tags: [Transactions]
  *     responses:
  *       200:
  *         description: Daywise transaction amount
@@ -190,6 +193,7 @@ router.get('/transactions/daywise', async (req: Request, res: Response) => {
  * /transaction_api/transactions/status_count:
  *   get:
  *     summary: Get the count of transactions grouped by status
+ *     tags: [Transactions]
  *     responses:
  *       200:
  *         description: Count of transactions by status
@@ -218,6 +222,7 @@ router.get('/transactions/status_count', async (req: Request, res: Response) => 
  * /transaction_api/status/{transaction_id}:
  *   get:
  *     summary: Get a transaction by ID
+ *     tags: [Transactions]
  *     parameters:
  *       - in: path
  *         name: transaction_id
@@ -253,6 +258,7 @@ router.get('/status/:transaction_id', async (req: Request, res: Response) => {
  * /transaction_api/datewise:
  *   get:
  *     summary: Get transactions filtered by date or period
+ *     tags: [Transactions]
  *     parameters:
  *       - in: query
  *         name: start_date
@@ -308,8 +314,8 @@ router.get('/datewise', async (req: Request, res: Response) => {
   } else if (start_date && end_date) {
       filter = {
           date_time: {
-              gte: parse(start_date as string,),
-              lte: parse(end_date as string),
+              gte: parseISO(start_date as string),
+              lte: parseISO(end_date as string),
           },
       };
   }
@@ -330,4 +336,192 @@ router.get('/datewise', async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Server error' });
   }
 });
+
+/**
+ * @swagger
+ * /transaction_api/transactions/current-month:
+ *   get:
+ *     summary: Get all transactions for the current month
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: List of transactions for the current month
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Transaction'
+ */
+router.get("/transactions/current-month", async (req: Request, res: Response) => {
+  const currentDate = new Date();
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      date_time: {
+        gte: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+        lt: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+      },
+    },
+  });
+  res.json(transactions);
+})
+
+/**
+ * @swagger
+ * /transaction_api/transactions/today-count:
+ *   get:
+ *     summary: Get the count of today's transactions
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Total count of today's transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total_count:
+ *                   type: integer
+ *                   example: 15
+ */
+router.get("/transactions/today-count",async (req: Request, res: Response) => {
+  const currentDate = new Date();
+  
+  const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day as Date object
+  const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day as Date object
+
+  const count = await prisma.transaction.count({
+    where: {
+      date_time: {
+        gte: startOfDay,  // Use Date object
+        lt: endOfDay,      // Use Date object
+      },
+    },
+  });
+  res.json({ total_count: count });
+})
+
+/**
+ * @swagger
+ * /transaction_api/transactions/last-30-days-count:
+ *   get:
+ *     summary: Get the count of transactions in the last 30 days
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Total count of transactions in the last 30 days
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total_count:
+ *                   type: integer
+ *                   example: 120
+ */
+router.get("/transactions/last-30-days-count",async (req: Request, res: Response) => {
+  const currentDate = new Date();
+  const count = await prisma.transaction.count({
+    where: {
+      date_time: {
+        gte: subDays(currentDate, 30),
+      },
+    },
+  });
+  res.json({ total_count: count });
+});
+
+/**
+ * @swagger
+ * /transaction_api/transactions/count:
+ *   get:
+ *     summary: Get the total count of transactions
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Total count of all transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total_count:
+ *                   type: integer
+ *                   example: 5000
+ */
+router.get("/transactions/count",async (req: Request, res: Response) => {
+  const count = await prisma.transaction.count();
+  res.json({ total_count: count });
+})
+
+/**
+ * @swagger
+ * /transaction_api/transactions/today-sum:
+ *   get:
+ *     summary: Get the sum of today's transactions
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Total sum of today's transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total_amount:
+ *                   type: number
+ *                   example: 1000.00
+ */
+router.get("/transactions/today-sum", async (req: Request, res: Response) => {
+  const currentDate = new Date();
+  const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day as Date object
+  const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day as Date object
+  const totalAmount = await prisma.transaction.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: {
+      date_time: {
+        gte: startOfDay,
+        lt: endOfDay,
+      },
+      status: 'completed',
+    },
+  });
+  res.json({ total_amount: totalAmount._sum.amount || 0 });
+})
+
+/**
+ * @swagger
+ * /transaction_api/transactions/current-year-sum:
+ *   get:
+ *     summary: Get the sum of transactions for the current year
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Total sum of transactions for the current year
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total_amount:
+ *                   type: number
+ *                   example: 50000.00
+ */
+router.get("/transactions/current-year-sum",async (req: Request, res: Response) => {
+  const currentDate = new Date();
+  const totalAmount = await prisma.transaction.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: {
+      date_time: {
+        gte: new Date(currentDate.getFullYear(), 0, 1),
+        lt: new Date(currentDate.getFullYear() + 1, 0, 1),
+      },
+    },
+  });
+  res.json({ total_amount: totalAmount._sum.amount || 0 });
+})
 export default router;
