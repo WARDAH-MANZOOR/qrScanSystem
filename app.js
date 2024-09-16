@@ -6,7 +6,7 @@ import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocs from './swagger.js'; // Import the Swagger configuration
-import transactionsRouter from "./routes/transaction/index.js";
+import transactionsRouter from "./routes/transaction/analytics.js";
 var app = express();
 // view engine setup
 app.set('views', "./views");
