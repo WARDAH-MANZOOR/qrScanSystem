@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/client": "^5.19.1",
     "@types/node": "^22.5.4",
+    "bcrypt": "^5.1.1",
     "cookie-parser": "~1.4.4",
     "date-fns": "^3.6.0",
     "debug": "~2.6.9",
@@ -18,6 +19,7 @@
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
     "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "~1.9.1",
     "pdf-creator-node": "^2.3.5",
     "redoc": "^2.1.5",
@@ -36,6 +38,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
     "@types/xlsx": "^0.0.35",
+    "nodemon": "^3.1.5",
     "prisma": "^5.19.1"
   }
 }

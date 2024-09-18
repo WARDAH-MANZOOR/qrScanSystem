@@ -1,12 +1,14 @@
 import createError from "http-errors";
 import express from 'express';
+import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocs from './swagger.js'; // Import the Swagger configuration
-import transactionsRouter from "./routes/transaction/analytics.js";
+import transactionAnalyticsRouter from "./routes/transaction/analytics.js";
+import transactionReportsRouter from "./routes/transaction/report.js";
 var app = express();
 // view engine setup
 app.set('views', "./views");
@@ -19,7 +21,8 @@ app.use(express.static("./public"));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-app.use('/transaction_api', transactionsRouter);
+app.use('/transaction_analytics', transactionAnalyticsRouter);
+app.use('/transaction_reports', transactionReportsRouter);
 // Redoc route
 // app.get('/redoc', (req, res) => {
 // res.sendFile('C://Users/musta/OneDrive/Desktop/spb/node_modules/redoc/bundles/redoc.standalone.js');
@@ -30,7 +33,7 @@ app.get('/swagger.json', (req, res) => {
 });
 // Serve Redoc UI
 app.get('/redoc', (req, res) => {
-    res.sendFile('C://Users/musta/OneDrive/Desktop/spb/redoc.html');
+    res.sendFile(path.join(import.meta.dirname, "redoc.html"));
 });
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

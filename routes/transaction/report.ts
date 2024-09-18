@@ -1,58 +1,24 @@
-import { Request, Response } from 'express';
+import { Request, Response, Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { format } from 'date-fns';
 import xlsx from 'xlsx';
 import { Parser } from 'json2csv';
-import { createPDF } from 'pdf-creator-node';
+import pkg from 'pdf-creator-node';
+const { create } = pkg;
 import path from 'path';
 import fs from "fs"
 
 const prisma = new PrismaClient();
+const router = Router();
 
-/**
- * @swagger
- * /transaction-report:
- *   get:
- *     summary: Get a report of transactions, with optional filters and export formats.
- *     parameters:
- *       - name: filter
- *         in: query
- *         description: Filter transactions by date range
- *         required: false
- *         schema:
- *           type: string
- *           enum: ['all', '7days', '1month', '3months', '6months', '1year']
- *       - name: export
- *         in: query
- *         description: Export format for the report
- *         required: false
- *         schema:
- *           type: string
- *           enum: ['csv', 'excel', 'pdf']
- *     responses:
- *       200:
- *         description: Returns a list of transactions with total amount
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 transactions:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Transaction'
- *                 total_amount:
- *                   type: number
- *                   description: Total sum of transaction amounts
- */
 export const transactionReport = async (req: Request, res: Response) => {
   const filterOption = req.query.filter || 'all';
   const exportFormat = req.query.export || null;
 
-  const transactions = await filterTransactions(filterOption);
+  const transactions = await filterTransactions(filterOption as string);
 
   // Calculate total amount
-  const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount.toNumber(), 0);
 
   // Handle export options
   if (exportFormat) {
@@ -140,20 +106,85 @@ const exportExcel = (res: Response, transactions: any[], totalAmount: number) =>
 
 // Export transactions to PDF
 const exportPDF = async (res: Response, transactions: any[], totalAmount: number) => {
-  const templatePath = path.join(__dirname, 'templates', 'transaction_report_template.html');
-  const htmlTemplate = await fs.promises.readFile(templatePath, 'utf8');
+  const templatePath = path.join(import.meta.dirname, "../../", 'templates', 'transaction_report_template.html');
+  let htmlTemplate = await fs.promises.readFile(templatePath, 'utf8');
+  // Replace template placeholders with data (if you're not using a template engine)
+  htmlTemplate = htmlTemplate
+    .replace('{{totalAmount}}', totalAmount.toFixed(2))
+    .replace('{{#each transactions}}', transactions.map(transaction => `
+      <tr>
+        <td>${transaction.transaction_id}</td>
+        <td>${new Date(transaction.date_time).toLocaleString()}</td>
+        <td>${transaction.amount.toFixed(2)}</td>
+        <td>${transaction.status}</td>
+      </tr>
+    `).join(''))
+    .replace('{{/each}}', '');
 
-  const html = htmlTemplate
-    .replace('{{transactions}}', JSON.stringify(transactions, null, 2))
-    .replace('{{totalAmount}}', totalAmount.toString());
+  // Options for PDF generation
+  const pdfOptions = {
+    format: 'A4',
+    orientation: 'portrait',
+    border: '10mm'
+  };
 
-  const pdfBuffer = await createPDF({
-    html,
-    data: { transactions, totalAmount },
-    path: './transaction_report.pdf',
-  });
+  // Generate PDF
+  const document = {
+    html: htmlTemplate,
+    data: {},
+    type: 'buffer', // Use 'buffer' to send the PDF as a response
+  };
 
-  res.header('Content-Type', 'application/pdf');
-  res.attachment('transaction_report.pdf');
-  res.send(pdfBuffer);
+  // Create PDF
+  create(document, pdfOptions)
+    .then((pdfBuffer: any) => {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="transaction_report.pdf"');
+      res.send(pdfBuffer);
+    })
+    .catch((error:any) => {
+      console.error('Error generating PDF:', error);
+      res.status(500).send('Error generating PDF');
+    });
 };
+
+/**
+ * @swagger
+ * /transaction_reports/transaction-report:
+ *   get:
+ *     summary: Get a report of transactions, with optional filters and export formats.
+ *     tags: [Transactions]
+ *     parameters:
+ *       - name: filter
+ *         in: query
+ *         description: Filter transactions by date range
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['all', '7days', '1month', '3months', '6months', '1year']
+ *       - name: export
+ *         in: query
+ *         description: Export format for the report
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['csv', 'excel', 'pdf']
+ *     responses:
+ *       200:
+ *         description: Returns a list of transactions with total amount
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 transactions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Transaction'
+ *                 total_amount:
+ *                   type: number
+ *                   description: Total sum of transaction amounts
+ */
+router.get("/transaction-report",transactionReport);
+
+export default router;

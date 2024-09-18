@@ -69,7 +69,7 @@ const router = Router();
 
 /**
  * @swagger
- * /transaction_api/transactions:
+ * /transaction_analytics/transactions:
  *   get:
  *     summary: Get the list of all transactions
  *     tags: [Transactions]
@@ -94,7 +94,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/search:
+ * /transaction_analytics/transactions/search:
  *   get:
  *     summary: Search for transactions with filters
  *     tags: [Transactions]
@@ -153,7 +153,7 @@ router.get('/transactions/search', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/daywise:
+ * /transaction_analytics/transactions/daywise:
  *   get:
  *     summary: Get the total transaction amount grouped by day
  *     tags: [Transactions]
@@ -190,7 +190,7 @@ router.get('/transactions/daywise', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/status_count:
+ * /transaction_analytics/transactions/status_count:
  *   get:
  *     summary: Get the count of transactions grouped by status
  *     tags: [Transactions]
@@ -219,7 +219,7 @@ router.get('/transactions/status_count', async (req: Request, res: Response) => 
 
 /**
  * @swagger
- * /transaction_api/status/{transaction_id}:
+ * /transaction_analytics/status/{transaction_id}:
  *   get:
  *     summary: Get a transaction by ID
  *     tags: [Transactions]
@@ -255,7 +255,7 @@ router.get('/status/:transaction_id', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/datewise:
+ * /transaction_analytics/datewise:
  *   get:
  *     summary: Get transactions filtered by date or period
  *     tags: [Transactions]
@@ -339,7 +339,7 @@ router.get('/datewise', async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/current-month:
+ * /transaction_analytics/transactions/current-month:
  *   get:
  *     summary: Get all transactions for the current month
  *     tags: [Transactions]
@@ -368,7 +368,7 @@ router.get("/transactions/current-month", async (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /transaction_api/transactions/today-count:
+ * /transaction_analytics/transactions/today-count:
  *   get:
  *     summary: Get the count of today's transactions
  *     tags: [Transactions]
@@ -403,7 +403,7 @@ router.get("/transactions/today-count",async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/last-30-days-count:
+ * /transaction_analytics/transactions/last-30-days-count:
  *   get:
  *     summary: Get the count of transactions in the last 30 days
  *     tags: [Transactions]
@@ -433,7 +433,7 @@ router.get("/transactions/last-30-days-count",async (req: Request, res: Response
 
 /**
  * @swagger
- * /transaction_api/transactions/count:
+ * /transaction_analytics/transactions/count:
  *   get:
  *     summary: Get the total count of transactions
  *     tags: [Transactions]
@@ -456,7 +456,7 @@ router.get("/transactions/count",async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/today-sum:
+ * /transaction_analytics/transactions/today-sum:
  *   get:
  *     summary: Get the sum of today's transactions
  *     tags: [Transactions]
@@ -493,7 +493,7 @@ router.get("/transactions/today-sum", async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /transaction_api/transactions/current-year-sum:
+ * /transaction_analytics/transactions/current-year-sum:
  *   get:
  *     summary: Get the sum of transactions for the current year
  *     tags: [Transactions]
