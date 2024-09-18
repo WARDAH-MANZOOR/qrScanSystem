@@ -51,3 +51,12 @@ model Issuer {
 
   @@map("issuer") // Custom table name if needed
 }
+
+model User {
+  id        Int     @id @default(autoincrement()) // Primary key
+  username  String
+  email     String  @unique                      // Assuming email should be unique
+  password  String
+  age       Int?
+}
+

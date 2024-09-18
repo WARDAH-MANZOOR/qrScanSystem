@@ -11,6 +11,44 @@ import fs from "fs"
 const prisma = new PrismaClient();
 const router = Router();
 
+
+/**
+ * @swagger
+ * /transaction-report:
+ *   get:
+ *     summary: Get a report of transactions, with optional filters and export formats.
+ *     tags: [Transactions]
+ *     parameters:
+ *       - name: filter
+ *         in: query
+ *         description: Filter transactions by date range
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['all', '7days', '1month', '3months', '6months', '1year']
+ *       - name: export
+ *         in: query
+ *         description: Export format for the report
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['csv', 'excel', 'pdf']
+ *     responses:
+ *       200:
+ *         description: Returns a list of transactions with total amount
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 transactions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Transaction'
+ *                 total_amount:
+ *                   type: number
+ *                   description: Total sum of transaction amounts
+ */
 export const transactionReport = async (req: Request, res: Response) => {
   const filterOption = req.query.filter || 'all';
   const exportFormat = req.query.export || null;
