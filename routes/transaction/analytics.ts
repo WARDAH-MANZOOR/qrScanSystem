@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../../prisma/client.js';  // Assuming Prisma client is set up
 import { parseISO, subDays } from 'date-fns';
+import { isLoggedIn } from '../../utils/middleware.js';
 const router = Router();
 
 /**
@@ -83,7 +84,7 @@ const router = Router();
  *               items:
  *                 $ref: '#/components/schemas/Transaction'
  */
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get('/transactions', isLoggedIn, async (req: Request, res: Response) => {
   try {
     const transactions = await prisma.transaction.findMany();
     res.status(200).json(transactions);

@@ -58,5 +58,6 @@ model User {
   email     String  @unique                      // Assuming email should be unique
   password  String
   age       Int?
+  role      String  @default("user")              // Role property with default value 'user'
 }
 
