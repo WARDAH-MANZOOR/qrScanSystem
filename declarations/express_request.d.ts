@@ -1,6 +1,5 @@
 import { JwtPayload } from "jsonwebtoken";
 import { Request } from "express";
-declare module "pdf-creator-node";
 
 // Extend the Request interface
 declare global {

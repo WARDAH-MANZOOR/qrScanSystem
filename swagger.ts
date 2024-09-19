@@ -9,9 +9,9 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'API Information',
       contact: {
-        name: 'Developer',
+        name: 'Developer', 
       },
-      servers: [{ url: 'http://localhost:3001' }],
+      servers: [{ url: 'http://localhost:3001' }], 
     },
   },
   apis: ['routes/**/*.js'], // Path to your API route files
