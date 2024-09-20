@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import prisma from '../../prisma/client.js'; // Assuming Prisma client is set up
 import { parseISO, subDays } from 'date-fns';
-import { isLoggedIn, restrict } from '../../utils/middleware.js';
+import { isLoggedIn, restrictMultiple } from '../../utils/middleware.js';
 const router = Router();
 /**
  * @swagger
@@ -82,7 +82,9 @@ const router = Router();
  *               items:
  *                 $ref: '#/components/schemas/Transaction'
  */
-router.get('/transactions', isLoggedIn, restrict('admin'), async (req, res) => {
+router.get('/transactions', isLoggedIn, 
+// restrict('admin'),
+restrictMultiple('test1'), async (req, res) => {
     try {
         const transactions = await prisma.transaction.findMany();
         res.status(200).json(transactions);

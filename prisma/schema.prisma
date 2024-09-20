@@ -53,11 +53,42 @@ model Issuer {
 }
 
 model User {
-  id        Int     @id @default(autoincrement()) // Primary key
+  id        Int      @id @default(autoincrement())
   username  String
-  email     String  @unique                      // Assuming email should be unique
+  email     String   @unique
   password  String
   age       Int?
-  role      String  @default("user")              // Role property with default value 'user'
+  groups    UserGroup[]
+}
+
+model Group {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  permissions GroupPermission[]
+  users       UserGroup[]
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  groups      GroupPermission[]
+}
+
+model UserGroup {
+  userId     Int
+  groupId    Int
+  user       User     @relation(fields: [userId], references: [id])
+  group      Group    @relation(fields: [groupId], references: [id])
+
+  @@id([userId, groupId])
+}
+
+model GroupPermission {
+  groupId     Int
+  permissionId Int
+  group       Group      @relation(fields: [groupId], references: [id])
+  permission  Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([groupId, permissionId])
 }
 

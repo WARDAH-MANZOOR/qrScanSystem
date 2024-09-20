@@ -157,7 +157,7 @@ router.post("/login", async (req, res) => {
             return res.status(401).send("Invalid email or password");
         }
         // Generate JWT token
-        const token = jwt.sign({ email: user.email }, "shhhhhhhhhhhhhh", { expiresIn: "1h" });
+        const token = jwt.sign({ email: user.email, role: user.role }, "shhhhhhhhhhhhhh", { expiresIn: "1h" });
         // Set token in cookies
         res.cookie("token", token, {
             httpOnly: true,
