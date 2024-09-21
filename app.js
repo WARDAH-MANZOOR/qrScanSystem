@@ -10,6 +10,7 @@ import swaggerDocs from './swagger.js'; // Import the Swagger configuration
 import transactionAnalyticsRouter from "./routes/transaction/analytics.js";
 import transactionReportsRouter from "./routes/transaction/report.js";
 import userRouter from "./routes/user/index.js";
+import authRouter from "./routes/authentication/index.js";
 import { errorHandler } from "./utils/middleware.js";
 var app = express();
 // view engine setup
@@ -26,6 +27,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_analytics', transactionAnalyticsRouter);
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/user_api', userRouter);
+app.use('/auth_api', authRouter);
 app.use(errorHandler);
 // Redoc route
 // app.get('/redoc', (req, res) => {

@@ -37,15 +37,38 @@ const router = Router();
  *           type: integer
  *           description: The age of the user.
  *           example: 25
- *         role:
+ *         groupId:
+ *           type: integer
+ *           description: group being assigned to user
+ *           example: 1
+ *     GroupCreateRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *         - permissions
+ *       properties:
+ *         name:
  *           type: string
- *           description: role being assigned to user
- *           example: user
- */
+ *           description: The name of the group.
+ *         permissions:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: An array of permission IDs to be assigned to the group.
+ *     PermissionCreateRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: The name of the permission. 
+ 
+*/
 
 /**
  * @swagger
- * /user_api/create:
+ * /user_api/create-user:
  *   post:
  *     summary: Create a new user
  *     tags: 
@@ -65,125 +88,120 @@ const router = Router();
  *               $ref: '#/components/schemas/User'
  */
 
-router.post("/create", (req: Request, res: Response) => {
-    const { username, email, password, age, role } = req.body;
+router.post("/create-user", (req: Request, res: Response) => {
+    const { username, email, password, age, groupId } = req.body;
 
-    bcrypt.genSalt(10, (err, salt) => {
-        bcrypt.hash(password, salt, async (err, hash) => {
-            const user = await prisma.user.create({
-                data: {
-                    username,
-                    email,
-                    password: hash,
-                    age,
-                    role
-                }
-            });
-            let token = jwt.sign({email},"shhhhhhhhhhhhhh");
-            res.cookie("token",token,{
-                httpOnly: true
-            });
-            res.send(user);
+    try {
+        bcrypt.genSalt(10, (err, salt) => {
+            bcrypt.hash(password, salt, async (err, hash) => {
+                const user = await prisma.user.create({
+                    data: {
+                        username,
+                        email,
+                        password: hash,
+                        age,
+                        groups: {
+                            create: {
+                                group: {
+                                    connect: { id: groupId }
+                                }
+                            }
+                        }
+                    }
+                });
+                let token = jwt.sign({ email }, "shhhhhhhhhhhhhh");
+                res.cookie("token", token, {
+                    httpOnly: true
+                });
+                res.status(201).send(user);
+            })
         })
-    })
+    }
+    catch (err) {
+        res.status(500).send("An error occurred while creating the user.");
+    }
 
 })
 
 /**
  * @swagger
- * /user_api/logout:
- *   get:
- *     summary: Logs out the user by clearing the authentication token.
- *     tags:
- *       - Authentication
- *     responses:
- *       200:
- *         description: User logged out successfully. The authentication token is cleared.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Logged out Successfully"
- */
-router.get("/logout", async (req: Request, res: Response) => {
-    res.cookie("token","",{
-        httpOnly: true,
-        expires: new Date(0)
-    });
-    res.status(200).send({message: "Logged out Successfully"})
-})
-
-
-/**
- * @swagger
- * /user_api/login:
+ * /user_api/create-group:
  *   post:
- *     summary: User login
- *     tags: [Authentication]
+ *     summary: Create a new user group
+ *     description: Creates a user group with specified permissions.
+ *     tags: [Users]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/User'
- *           example:
- *             email: johndoe@example.com
- *             password: password123
+ *             $ref: '#/components/schemas/GroupCreateRequest'
  *     responses:
  *       200:
- *         description: Login success
+ *         description: The created user group.
  *         content:
  *           application/json:
  *             schema:
- *               type: string
- *               example: "Yes! You can login"
- *       401:
- *         description: Unauthorized - Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               type: string
- *               example: "Invalid email or password"
- *       500:
- *         description: Internal server error
+ *               $ref: '#/components/schemas/GroupCreateRequest'
+ *       400:
+ *         description: Invalid input data.
  */
-router.post("/login", async (req: Request, res: Response) => {
-    try {
-        const { email, password } = req.body;
 
-        // Fetch user by email
-        const user = await prisma.user.findUnique({
-            where: { email },
-        });
+// Create a new group
+router.post('/create-group', async (req: Request, res: Response) => {
+    const { name, permissions } = req.body;
+    const group = await prisma.group.create({
+        data: {
+            name,
+            permissions: {
+                create: permissions.map((permissionId: number) => ({ permissionId })),
+            },
+        },
+    });
+    res.json(group);
+});
 
-        if (!user) {
-            return res.status(401).send("Invalid email or password");
-        }
+/**
+ * @swagger
+ * /user_api/create-permission:
+ *   post:
+ *     summary: Create a new permission
+ *     description: Creates a new permission for user groups.
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PermissionCreateRequest'
+ *     responses:
+ *       200:
+ *         description: The created permission.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PermissionCreateRequest'
+ *       400:
+ *         description: Invalid input data.
+ */
+// Create a new permission
+router.post('/create-permission', async (req: Request, res: Response) => {
+    const { name } = req.body;
+    const permission = await prisma.permission.create({
+        data: { name },
+    });
+    res.json(permission);
+});
 
-        // Compare passwords
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).send("Invalid email or password");
-        }
-
-        // Generate JWT token
-        const token = jwt.sign({ email: user.email, role: user.role }, "shhhhhhhhhhhhhh", { expiresIn: "1h" });
-
-        // Set token in cookies
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Secure cookie in production
-            sameSite: "strict", // Better security
-        });
-
-        return res.status(200).send("Yes! You can login");
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send("Something went wrong!");
-    }
+router.post('/assign', async (req, res) => {
+    const { userId, groupId } = req.body;
+    const userGroup = await prisma.userGroup.create({
+        data: {
+            userId,
+            groupId,
+        },
+    });
+    res.json(userGroup);
 });
 
 export default router;
