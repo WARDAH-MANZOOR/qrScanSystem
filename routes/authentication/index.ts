@@ -96,7 +96,7 @@ router.post("/login", async (req: Request, res: Response) => {
         const role = userGroup ? userGroup.group.name : "user"; // Default role if no group found
         
         // Generate JWT token
-        const token = jwt.sign({ email: user.email, role }, "shhhhhhhhhhhhhh", { expiresIn: "1h" });
+        const token = jwt.sign({ email: user.email, role, id:user.id }, "shhhhhhhhhhhhhh", { expiresIn: "1h" });
 
         // Set token in cookies
         res.cookie("token", token, {

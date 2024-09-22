@@ -2,6 +2,7 @@ import { Router } from "express";
 import prisma from "../../prisma/client.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { authorize, isLoggedIn } from "../../utils/middleware.js";
 const router = Router();
 /**
  * @swagger
@@ -97,7 +98,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.post("/create-user", (req, res) => {
+router.post("/create-user", isLoggedIn, authorize("Create portal user"), (req, res) => {
     const { username, email, password, age, groupId } = req.body;
     try {
         bcrypt.genSalt(10, (err, salt) => {
@@ -117,7 +118,7 @@ router.post("/create-user", (req, res) => {
                         }
                     }
                 });
-                let token = jwt.sign({ email }, "shhhhhhhhhhhhhh");
+                let token = jwt.sign({ email, id: user.id }, "shhhhhhhhhhhhhh");
                 res.cookie("token", token, {
                     httpOnly: true
                 });
@@ -153,7 +154,7 @@ router.post("/create-user", (req, res) => {
  *         description: Invalid input data.
  */
 // Create a new group
-router.post('/create-group', async (req, res) => {
+router.post('/create-group', isLoggedIn, authorize("Create user group"), async (req, res) => {
     const { name, permissions } = req.body;
     const group = await prisma.group.create({
         data: {
@@ -189,7 +190,7 @@ router.post('/create-group', async (req, res) => {
  *         description: Invalid input data.
  */
 // Create a new permission
-router.post('/create-permission', async (req, res) => {
+router.post('/create-permission', isLoggedIn, async (req, res) => {
     const { name } = req.body;
     const permission = await prisma.permission.create({
         data: { name },
@@ -198,7 +199,7 @@ router.post('/create-permission', async (req, res) => {
 });
 /**
  * @swagger
- * /assign:
+ * /user_api/assign:
  *   post:
  *     summary: Assign a user to a group
  *     description: Assigns a user to a specific group, allowing them to inherit the group's permissions.
@@ -248,7 +249,7 @@ router.post('/create-permission', async (req, res) => {
  *                   type: string
  *                   example: "Something went wrong, please try again later"
  */
-router.post("/assign", async (req, res) => {
+router.post("/assign", isLoggedIn, authorize("Update user group"), async (req, res) => {
     const { userId, groupId } = req.body;
     try {
         // Logic to assign user to group

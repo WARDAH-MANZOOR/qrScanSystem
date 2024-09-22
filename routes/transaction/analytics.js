@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import prisma from '../../prisma/client.js'; // Assuming Prisma client is set up
 import { parseISO, subDays } from 'date-fns';
-import { isLoggedIn, restrictMultiple } from '../../utils/middleware.js';
+import { authorize, isLoggedIn } from '../../utils/middleware.js';
 const router = Router();
 /**
  * @swagger
@@ -82,9 +82,7 @@ const router = Router();
  *               items:
  *                 $ref: '#/components/schemas/Transaction'
  */
-router.get('/transactions', isLoggedIn, 
-// restrict('admin'),
-restrictMultiple('test1'), async (req, res) => {
+router.get('/transactions', isLoggedIn, async (req, res) => {
     try {
         const transactions = await prisma.transaction.findMany();
         res.status(200).json(transactions);
@@ -130,7 +128,7 @@ restrictMultiple('test1'), async (req, res) => {
  *               items:
  *                 $ref: '#/components/schemas/Transaction'
  */
-router.get('/transactions/search', async (req, res) => {
+router.get('/transactions/search', isLoggedIn, authorize('Transactions List'), async (req, res) => {
     const { transaction_id, amount, status, issuer } = req.query;
     if (status !== 'completed' && status !== 'pending' && status !== 'failed') {
         // send error response, log, return from function, etc.
@@ -173,7 +171,7 @@ router.get('/transactions/search', async (req, res) => {
  *                   total_amount:
  *                     type: number
  */
-router.get('/transactions/daywise', async (req, res) => {
+router.get('/transactions/daywise', isLoggedIn, async (req, res) => {
     try {
         const transactions = await prisma.transaction.groupBy({
             by: ['date_time'],
@@ -201,7 +199,7 @@ router.get('/transactions/daywise', async (req, res) => {
  *             schema:
  *               type: object
  */
-router.get('/transactions/status_count', async (req, res) => {
+router.get('/transactions/status_count', isLoggedIn, async (req, res) => {
     try {
         const statusCounts = await prisma.transaction.groupBy({
             by: ['status'],
@@ -234,7 +232,7 @@ router.get('/transactions/status_count', async (req, res) => {
  *       404:
  *         description: Transaction not found
  */
-router.get('/status/:transaction_id', async (req, res) => {
+router.get('/status/:transaction_id', isLoggedIn, async (req, res) => {
     const { transaction_id } = req.params;
     try {
         const transaction = await prisma.transaction.findUnique({
@@ -277,7 +275,7 @@ router.get('/status/:transaction_id', async (req, res) => {
  *       200:
  *         description: A list of transactions with amounts
  */
-router.get('/datewise', async (req, res) => {
+router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req, res) => {
     const { start_date, end_date, filter_type } = req.query;
     let filter = {};
     const today = new Date();
@@ -344,7 +342,7 @@ router.get('/datewise', async (req, res) => {
  *               items:
  *                 $ref: '#/components/schemas/Transaction'
  */
-router.get("/transactions/current-month", async (req, res) => {
+router.get("/transactions/current-month", isLoggedIn, authorize("Transactions List"), async (req, res) => {
     const currentDate = new Date();
     const transactions = await prisma.transaction.findMany({
         where: {
@@ -374,7 +372,7 @@ router.get("/transactions/current-month", async (req, res) => {
  *                   type: integer
  *                   example: 15
  */
-router.get("/transactions/today-count", async (req, res) => {
+router.get("/transactions/today-count", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
     const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day as Date object
     const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day as Date object
@@ -406,7 +404,7 @@ router.get("/transactions/today-count", async (req, res) => {
  *                   type: integer
  *                   example: 120
  */
-router.get("/transactions/last-30-days-count", async (req, res) => {
+router.get("/transactions/last-30-days-count", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
     const count = await prisma.transaction.count({
         where: {
@@ -435,7 +433,7 @@ router.get("/transactions/last-30-days-count", async (req, res) => {
  *                   type: integer
  *                   example: 5000
  */
-router.get("/transactions/count", async (req, res) => {
+router.get("/transactions/count", isLoggedIn, async (req, res) => {
     const count = await prisma.transaction.count();
     res.json({ total_count: count });
 });
@@ -457,7 +455,7 @@ router.get("/transactions/count", async (req, res) => {
  *                   type: number
  *                   example: 1000.00
  */
-router.get("/transactions/today-sum", async (req, res) => {
+router.get("/transactions/today-sum", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
     const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day as Date object
     const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day as Date object
@@ -493,7 +491,7 @@ router.get("/transactions/today-sum", async (req, res) => {
  *                   type: number
  *                   example: 50000.00
  */
-router.get("/transactions/current-year-sum", async (req, res) => {
+router.get("/transactions/current-year-sum", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
     const totalAmount = await prisma.transaction.aggregate({
         _sum: {

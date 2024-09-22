@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import CustomError from "./custom_error.js";
+import prisma from "../prisma/client.js";
 
 const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -64,4 +65,29 @@ const errorHandler = (err: CustomError, req: Request, res: Response, next: NextF
     });
 };
 
-export {isLoggedIn, restrict, errorHandler, restrictMultiple};
+const authorize = (permissionName: string) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        const userId = (req.user as JwtPayload)?.id; // Assume user ID is set in req.user
+
+        const userGroups = await prisma.userGroup.findMany({
+            where: { userId },
+            include: { group: { include: { permissions: true } } },
+        });
+
+        const permission =await  prisma.permission.findFirst({
+            where: {name: permissionName},
+        })
+
+        const hasPermission = userGroups.some(group =>
+            group.group.permissions.some(permission2 => permission2.permissionId === permission?.id)
+        );
+
+        if (!hasPermission) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        next();
+    };
+};
+
+export {isLoggedIn, restrict, errorHandler, restrictMultiple, authorize};

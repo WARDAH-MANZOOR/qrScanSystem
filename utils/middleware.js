@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import CustomError from "./custom_error.js";
+import prisma from "../prisma/client.js";
 const isLoggedIn = async (req, res, next) => {
     try {
         // Check if the token exists
@@ -55,4 +56,21 @@ const errorHandler = (err, req, res, next) => {
         message: 'Something went wrong'
     });
 };
-export { isLoggedIn, restrict, errorHandler, restrictMultiple };
+const authorize = (permissionName) => {
+    return async (req, res, next) => {
+        const userId = req.user?.id; // Assume user ID is set in req.user
+        const userGroups = await prisma.userGroup.findMany({
+            where: { userId },
+            include: { group: { include: { permissions: true } } },
+        });
+        const permission = await prisma.permission.findFirst({
+            where: { name: permissionName },
+        });
+        const hasPermission = userGroups.some(group => group.group.permissions.some(permission2 => permission2.permissionId === permission?.id));
+        if (!hasPermission) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        next();
+    };
+};
+export { isLoggedIn, restrict, errorHandler, restrictMultiple, authorize };
