@@ -61,7 +61,20 @@ const router = Router();
  *         name:
  *           type: string
  *           description: The name of the permission.
- 
+ *     AssignUserToGroup:
+ *       type: object
+ *       required:
+ *         - userId
+ *         - groupId
+ *       properties:
+ *         userId:
+ *           type: integer
+ *           example: 1
+ *           description: ID of the user to be assigned
+ *         groupId:
+ *           type: integer
+ *           example: 2
+ *           description: ID of the group to which the user will be assigned
 */
 /**
  * @swagger
@@ -183,14 +196,79 @@ router.post('/create-permission', async (req, res) => {
     });
     res.json(permission);
 });
-router.post('/assign', async (req, res) => {
+/**
+ * @swagger
+ * /assign:
+ *   post:
+ *     summary: Assign a user to a group
+ *     description: Assigns a user to a specific group, allowing them to inherit the group's permissions.
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AssignUserToGroup'
+ *     responses:
+ *       200:
+ *         description: User successfully assigned to the group
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AssignUserToGroup'
+ *       400:
+ *         description: Bad Request - Invalid data or missing fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid userId or groupId"
+ *       404:
+ *         description: User or Group not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "User or Group not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Something went wrong, please try again later"
+ */
+router.post("/assign", async (req, res) => {
     const { userId, groupId } = req.body;
-    const userGroup = await prisma.userGroup.create({
-        data: {
+    try {
+        // Logic to assign user to group
+        const user = await prisma.userGroup.create({
+            data: {
+                userId,
+                groupId
+            }
+        });
+        res.status(200).json({
+            message: "User successfully assigned to group",
             userId,
-            groupId,
-        },
-    });
-    res.json(userGroup);
+            groupId
+        });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: "Something went wrong, please try again later"
+        });
+    }
 });
 export default router;
