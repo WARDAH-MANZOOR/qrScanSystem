@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import cron from "node-cron";
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
 import swaggerUi from 'swagger-ui-express';
@@ -12,7 +13,9 @@ import transactionReportsRouter from "./routes/transaction/report.js";
 import userRouter from "./routes/user/index.js";
 import authRouter from "./routes/authentication/index.js";
 import { errorHandler } from "./utils/middleware.js";
+import task from "./utils/task_queue.js";
 var app = express();
+cron.schedule("* * * * *", task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');

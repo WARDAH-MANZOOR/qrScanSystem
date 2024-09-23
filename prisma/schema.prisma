@@ -92,3 +92,10 @@ model GroupPermission {
   @@id([groupId, permissionId])
 }
 
+model ScheduledTask {
+  id            Int       @id @default(autoincrement())
+  transactionId Int?
+  status        String    @db.VarChar(50)
+  scheduledAt   DateTime? @db.Timestamptz
+  executedAt    DateTime? @db.Timestamptz
+}

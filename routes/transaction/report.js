@@ -6,6 +6,7 @@ import pkg from 'pdf-creator-node';
 const { create } = pkg;
 import path from 'path';
 import fs from "fs";
+import { authorize, isLoggedIn } from '../../utils/middleware.js';
 const prisma = new PrismaClient();
 const router = Router();
 /**
@@ -203,5 +204,5 @@ const exportPDF = async (res, transactions, totalAmount) => {
  *                   type: number
  *                   description: Total sum of transaction amounts
  */
-router.get("/transaction-report", transactionReport);
+router.get("/transaction-report", isLoggedIn, authorize('Reports'), transactionReport);
 export default router;
