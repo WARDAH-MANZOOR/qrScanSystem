@@ -3,6 +3,7 @@ import prisma from "../../prisma/client.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { authorize, isLoggedIn } from "../../utils/middleware.js";
+import CustomError from "../../utils/custom_error.js";
 const router = Router();
 /**
  * @swagger
@@ -98,7 +99,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.post("/create-user", isLoggedIn, authorize("Create portal user"), (req, res) => {
+router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (req, res) => {
     const { username, email, password, age, groupId } = req.body;
     try {
         bcrypt.genSalt(10, (err, salt) => {
@@ -252,6 +253,31 @@ router.post('/create-permission', isLoggedIn, async (req, res) => {
 router.post("/assign", isLoggedIn, authorize("Update user group"), async (req, res) => {
     const { userId, groupId } = req.body;
     try {
+        // Validate input
+        if (!userId || !groupId || !Number.isInteger(userId) || !Number.isInteger(groupId)) {
+            return res.status(400).json({
+                error: "Invalid userId or groupId",
+            });
+        }
+        // Check if user exists
+        const userExists = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!userExists) {
+            const error = new CustomError("User not found", 404);
+            return res.status(404).json({
+                error: "User not found",
+            });
+        }
+        // Check if group exists
+        const groupExists = await prisma.group.findUnique({
+            where: { id: groupId },
+        });
+        if (!groupExists) {
+            return res.status(404).json({
+                error: "Group not found",
+            });
+        }
         // Logic to assign user to group
         const user = await prisma.userGroup.create({
             data: {
@@ -266,10 +292,8 @@ router.post("/assign", isLoggedIn, authorize("Update user group"), async (req, r
         });
     }
     catch (error) {
-        console.error(error);
-        res.status(500).json({
-            error: "Something went wrong, please try again later"
-        });
+        error = new CustomError("Something went wrong, please try again later", 500);
+        res.status(500).json(error);
     }
 });
 export default router;

@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 const router = Router();
 /**
  * @swagger
@@ -77,12 +78,14 @@ router.post("/login", async (req, res) => {
             },
         });
         if (!user) {
-            return res.status(401).send("Invalid email or password");
+            const error = new CustomError("Invalid email or password", 401);
+            return res.status(401).send(error);
         }
         // Compare passwords
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).send("Invalid email or password");
+            const error = new CustomError("Invalid email or password", 401);
+            return res.status(401).send(error);
         }
         // Extract the group name (role) from the user's groups
         const userGroup = user.groups[0]; // Assuming one group per user for simplicity
@@ -98,7 +101,7 @@ router.post("/login", async (req, res) => {
         return res.status(200).send("Yes! You can login");
     }
     catch (error) {
-        console.error(error);
+        error = new CustomError("Something went wrong!", 500);
         return res.status(500).send("Something went wrong!");
     }
 });
