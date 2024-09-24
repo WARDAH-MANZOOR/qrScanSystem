@@ -4,6 +4,9 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cron from "node-cron";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 // import indexRouter from './routes/index.js';
 // import usersRouter from './routes/users.js';
@@ -57,6 +60,9 @@ app.use((req, res, next) => {
 });
 
 app.use(errorHandler)
+app.listen(process.env.PORT || 3001, () => {
+  console.log(`Server is running on port ${process.env.PORT || 3001}`);
+});
 
 
 export default app;
