@@ -104,36 +104,75 @@ const router = Router();
  */
 
 router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (req: Request, res: Response) => {
-    const { username, email, password, age, groupId } = req.body;
-
+    const { username, email, password, age } = req.body;
+    let error;
     try {
+        // Validate input data
+        if (!username || typeof username !== 'string' || username.trim().length === 0) {
+            error = new CustomError("Invalid input data. 'username' must be a non-empty string.", 400);
+            return res.status(400).json(error);
+        }
+
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+            error = new CustomError("Invalid input data. 'email' must be a valid email address.", 400);
+            return res.status(400).json(error);
+        }
+
+        if (!password || typeof password !== 'string' || password.length < 6) {
+            error = new CustomError("Invalid input data. 'password' must be at least 6 characters long.", 400);
+            return res.status(400).json(error);
+        }
+
+        if (age && typeof age !== 'number') {
+            error = new CustomError("Invalid input data. 'age' must be a number.", 400);
+            return res.status(400).json(error);
+        }
+
+        // Check if the email already exists
+        const existingUser = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (existingUser) {
+            error = new CustomError("Email already in use. Please choose another one.", 400);
+            return res.status(400).json(error);
+        }
         bcrypt.genSalt(10, (err, salt) => {
+            if (err) {
+                error = new CustomError("An error occurred while generating the salt", 500);
+                return res.status(500).json(error);
+
+            }
             bcrypt.hash(password, salt, async (err, hash) => {
-                const user = await prisma.user.create({
-                    data: {
-                        username,
-                        email,
-                        password: hash,
-                        age,
-                        groups: {
-                            create: {
-                                group: {
-                                    connect: { id: groupId }
-                                }
-                            }
+                if (err) {
+                    error = new CustomError("An error occurred while hashing the password", 500);
+                    return res.status(500).json(error);
+                }
+                try {
+                    const user = await prisma.user.create({
+                        data: {
+                            username,
+                            email,
+                            password: hash,
+                            age
                         }
-                    }
-                });
-                let token = jwt.sign({ email, id: user.id }, "shhhhhhhhhhhhhh");
-                res.cookie("token", token, {
-                    httpOnly: true
-                });
-                res.status(201).send(user);
+                    });
+                    let token = jwt.sign({ email, id: user.id }, "shhhhhhhhhhhhhh");
+                    res.cookie("token", token, {
+                        httpOnly: true
+                    });
+                    res.status(201).send(user);
+                }
+                catch (err) {
+                    error = new CustomError("An error occurred while creating the user.", 500);
+                    res.status(500).send(error);
+                }
             })
         })
     }
     catch (err) {
-        res.status(500).send("An error occurred while creating the user.");
+        error = new CustomError("An error occurred. Please try again", 500);
+        res.status(500).send(error);
     }
 
 })
@@ -165,15 +204,46 @@ router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (
 // Create a new group
 router.post('/create-group', isLoggedIn, authorize("Create user group"), async (req: Request, res: Response) => {
     const { name, permissions } = req.body;
-    const group = await prisma.group.create({
-        data: {
-            name,
-            permissions: {
-                create: permissions.map((permissionId: number) => ({ permissionId })),
+    let error;
+    try {
+        if (!name || typeof name !== 'string' || name.trim().length === 0) {
+            error = new CustomError("Invalid input data. 'name' must be a non-empty string.", 400);
+            return res.status(400).json(error);
+        }
+
+        if (!permissions || !Array.isArray(permissions) || permissions.some((id: any) => typeof id !== 'number')) {
+            error = new CustomError("Invalid input data. 'permissions' must be an array of permission IDs (numbers).", 400);
+            return res.status(400).json(error);
+        }
+
+        // Check if all permission IDs exist in the Permission table
+        const existingPermissions = await prisma.permission.findMany({
+            where: {
+                id: {
+                    in: permissions, // Find all permissions that match the provided IDs
+                },
             },
-        },
-    });
-    res.json(group);
+        });
+
+        if (existingPermissions.length !== permissions.length) {
+            error = new CustomError("One or more permissions provided do not exist.", 400);
+            return res.status(400).json(error);
+        }
+
+        const group = await prisma.group.create({
+            data: {
+                name,
+                permissions: {
+                    create: permissions.map((permissionId: number) => ({ permissionId })),
+                },
+            },
+        });
+        res.json(group);
+    }
+    catch (err) {
+        error = new CustomError("Something went wrong, please try again later.", 500);
+        return res.status(500).json(error);
+    }
 });
 
 /**
@@ -202,10 +272,22 @@ router.post('/create-group', isLoggedIn, authorize("Create user group"), async (
 // Create a new permission
 router.post('/create-permission', isLoggedIn, async (req: Request, res: Response) => {
     const { name } = req.body;
-    const permission = await prisma.permission.create({
-        data: { name },
-    });
-    res.json(permission);
+    let error;
+    try {
+        // Validate input
+        if (!name || typeof name !== 'string' || name.trim().length === 0) {
+            error = new CustomError("Invalid input data. 'name' must be a non-empty string.", 400);
+            return res.status(400).json(error);
+        }
+        const permission = await prisma.permission.create({
+            data: { name },
+        });
+        res.json(permission);
+    }
+    catch (err) {
+        error = new CustomError("Something went wrong, please try again later.", 500);
+        return res.status(500).json(error);
+    }
 });
 
 /**
@@ -264,11 +346,11 @@ router.post("/assign", isLoggedIn, authorize("Update user group"), async (req: R
     const { userId, groupId } = req.body;
 
     try {
+        let error;
         // Validate input
         if (!userId || !groupId || !Number.isInteger(userId) || !Number.isInteger(groupId)) {
-            return res.status(400).json({
-                error: "Invalid userId or groupId",
-            });
+            error = new CustomError("Invalid userId or groupId", 400);
+            return res.status(400).json(error);
         }
 
         // Check if user exists
@@ -277,10 +359,8 @@ router.post("/assign", isLoggedIn, authorize("Update user group"), async (req: R
         });
 
         if (!userExists) {
-            const error = new CustomError("User not found",404);
-            return res.status(404).json({
-                error: "User not found",
-            });
+            error = new CustomError("User not found", 404);
+            return res.status(404).json(error);
         }
 
         // Check if group exists
@@ -289,9 +369,8 @@ router.post("/assign", isLoggedIn, authorize("Update user group"), async (req: R
         });
 
         if (!groupExists) {
-            return res.status(404).json({
-                error: "Group not found",
-            });
+            error = new CustomError("Group Not Found", 404);
+            return res.status(404).json(error);
         }
 
         // Logic to assign user to group
@@ -308,7 +387,7 @@ router.post("/assign", isLoggedIn, authorize("Update user group"), async (req: R
             groupId
         });
     } catch (error) {
-        error = new CustomError("Something went wrong, please try again later",500);
+        error = new CustomError("Something went wrong, please try again later", 500);
         res.status(500).json(error);
     }
 });
