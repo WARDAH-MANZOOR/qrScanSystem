@@ -37,10 +37,6 @@ const router = Router();
  *           type: integer
  *           description: The age of the user.
  *           example: 25
- *         groupId:
- *           type: integer
- *           description: group being assigned to user
- *           example: 1
  *     GroupCreateRequest:
  *       type: object
  *       required:
@@ -189,7 +185,9 @@ router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (
  *         description: Invalid input data.
  */
 // Create a new group
-router.post('/create-group', isLoggedIn, authorize("Create user group"), async (req, res) => {
+router.post('/create-group', isLoggedIn, 
+// authorize("Create user group"), 
+async (req, res) => {
     const { name, permissions } = req.body;
     let error;
     try {
@@ -323,7 +321,9 @@ router.post('/create-permission', isLoggedIn, async (req, res) => {
  *                   type: string
  *                   example: "Something went wrong, please try again later"
  */
-router.post("/assign", isLoggedIn, authorize("Update user group"), async (req, res) => {
+router.post("/assign", isLoggedIn, 
+// authorize("Update user group"), 
+async (req, res) => {
     const { userId, groupId } = req.body;
     try {
         let error;
@@ -362,6 +362,7 @@ router.post("/assign", isLoggedIn, authorize("Update user group"), async (req, r
         });
     }
     catch (error) {
+        console.log(error);
         error = new CustomError("Something went wrong, please try again later", 500);
         res.status(500).json(error);
     }

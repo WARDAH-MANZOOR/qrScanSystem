@@ -32,10 +32,6 @@ export const transactionReport = async (req: Request, res: Response) => {
       } else if (exportFormat === 'pdf') {
         return exportPDF(res, transactions, totalAmount);
       }
-      else {
-        error = new CustomError("Invalid export format specified. Valid formats are: csv, excel, pdf", 400)
-        return res.status(400).json(error);
-      }
     }
 
     // Default JSON response
@@ -172,8 +168,8 @@ const exportPDF = async (res: Response, transactions: any[], totalAmount: number
       res.send(pdfBuffer);
     })
     .catch((error: any) => {
-      console.error('Error generating PDF:', error);
-      res.status(500).send('Error generating PDF');
+      error = new CustomError("An error ocurred while creating PDF", 500);
+      res.status(500).send(error);
     });
 };
 

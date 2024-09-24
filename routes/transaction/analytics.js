@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../../prisma/client.js'; // Assuming Prisma client is set up
 import { parseISO, subDays } from 'date-fns';
 import { authorize, isLoggedIn } from '../../utils/middleware.js';
+import CustomError from '../../utils/custom_error.js';
 const router = Router();
 /**
  * @swagger
@@ -88,7 +89,8 @@ router.get('/transactions', isLoggedIn, async (req, res) => {
         res.status(200).json(transactions);
     }
     catch (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
+        error = new CustomError("Internal Server Error", 500);
+        res.status(500).json(error);
     }
 });
 /**
@@ -113,6 +115,7 @@ router.get('/transactions', isLoggedIn, async (req, res) => {
  *         schema:
  *           type: string
  *         description: Filter by transaction status
+ *         required: true
  *       - name: issuer
  *         in: query
  *         schema:
@@ -132,7 +135,8 @@ router.get('/transactions/search', isLoggedIn, authorize('Transactions List'), a
     const { transaction_id, amount, status, issuer } = req.query;
     if (status !== 'completed' && status !== 'pending' && status !== 'failed') {
         // send error response, log, return from function, etc.
-        return;
+        let error = new CustomError("Status should be completed pending or failed", 500);
+        return res.status(500).json(error);
     }
     try {
         const transactions = await prisma.transaction.findMany({
@@ -146,7 +150,8 @@ router.get('/transactions/search', isLoggedIn, authorize('Transactions List'), a
         res.status(200).json(transactions);
     }
     catch (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
+        error = new CustomError("Internal Server Error", 500);
+        res.status(500).json(error);
     }
 });
 /**
@@ -182,7 +187,8 @@ router.get('/transactions/daywise', isLoggedIn, async (req, res) => {
         res.status(200).json(transactions);
     }
     catch (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
+        error = new CustomError("Internal Server Error", 500);
+        res.status(500).json(error);
     }
 });
 /**
@@ -210,7 +216,8 @@ router.get('/transactions/status_count', isLoggedIn, async (req, res) => {
         res.status(200).json(statusCounts);
     }
     catch (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
+        error = new CustomError("Internal Server Error", 500);
+        res.status(500).json(error);
     }
 });
 /**
@@ -234,17 +241,24 @@ router.get('/transactions/status_count', isLoggedIn, async (req, res) => {
  */
 router.get('/status/:transaction_id', isLoggedIn, async (req, res) => {
     const { transaction_id } = req.params;
+    let error;
     try {
+        if (!transaction_id && !Number.isInteger(transaction_id)) {
+            error = new CustomError("Transaction id is not valid", 400);
+            return res.status(400).json(error);
+        }
         const transaction = await prisma.transaction.findUnique({
             where: { transaction_id: parseInt(transaction_id) },
         });
         if (!transaction) {
-            return res.status(404).json({ error: 'Transaction not found' });
+            error = new CustomError("Transaction not found", 404);
+            return res.status(404).json(error);
         }
         return res.status(200).json(transaction);
     }
     catch (error) {
-        return res.status(500).json({ error: 'Server error' });
+        error = new CustomError("Internal Server Error", 500);
+        res.status(500).json(error);
     }
 });
 /**
@@ -312,6 +326,11 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req, 
             },
         };
     }
+    let error;
+    if (Object.keys(filter).length == 0) {
+        error = new CustomError("Date filter or range not provided", 400);
+        return res.status(400).json(error);
+    }
     try {
         const transactions = await prisma.transaction.findMany({
             where: filter,
@@ -323,7 +342,8 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req, 
         });
     }
     catch (error) {
-        res.status(500).json({ error: 'Server error' });
+        error = new CustomError("Server Error", 500);
+        return res.status(500).json(error);
     }
 });
 /**
@@ -344,15 +364,21 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req, 
  */
 router.get("/transactions/current-month", isLoggedIn, authorize("Transactions List"), async (req, res) => {
     const currentDate = new Date();
-    const transactions = await prisma.transaction.findMany({
-        where: {
-            date_time: {
-                gte: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
-                lt: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+    try {
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                date_time: {
+                    gte: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+                    lt: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+                },
             },
-        },
-    });
-    res.json(transactions);
+        });
+        res.json(transactions);
+    }
+    catch (err) {
+        err = new CustomError("Server Error", 500);
+        return res.status(500).json(err);
+    }
 });
 /**
  * @swagger
@@ -376,15 +402,21 @@ router.get("/transactions/today-count", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
     const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day as Date object
     const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day as Date object
-    const count = await prisma.transaction.count({
-        where: {
-            date_time: {
-                gte: startOfDay, // Use Date object
-                lt: endOfDay, // Use Date object
+    try {
+        const count = await prisma.transaction.count({
+            where: {
+                date_time: {
+                    gte: startOfDay, // Use Date object
+                    lt: endOfDay, // Use Date object
+                },
             },
-        },
-    });
-    res.json({ total_count: count });
+        });
+        res.json({ total_count: count });
+    }
+    catch (err) {
+        err = new CustomError("Server Error", 404);
+        return res.status(500).json(err);
+    }
 });
 /**
  * @swagger
@@ -406,14 +438,20 @@ router.get("/transactions/today-count", isLoggedIn, async (req, res) => {
  */
 router.get("/transactions/last-30-days-count", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
-    const count = await prisma.transaction.count({
-        where: {
-            date_time: {
-                gte: subDays(currentDate, 30),
+    try {
+        const count = await prisma.transaction.count({
+            where: {
+                date_time: {
+                    gte: subDays(currentDate, 30),
+                },
             },
-        },
-    });
-    res.json({ total_count: count });
+        });
+        res.json({ total_count: count });
+    }
+    catch (err) {
+        err = new CustomError("Server Error", 404);
+        return res.status(500).json(err);
+    }
 });
 /**
  * @swagger
@@ -434,8 +472,14 @@ router.get("/transactions/last-30-days-count", isLoggedIn, async (req, res) => {
  *                   example: 5000
  */
 router.get("/transactions/count", isLoggedIn, async (req, res) => {
-    const count = await prisma.transaction.count();
-    res.json({ total_count: count });
+    try {
+        const count = await prisma.transaction.count();
+        res.json({ total_count: count });
+    }
+    catch (err) {
+        err = new CustomError("Server Error", 404);
+        return res.status(500).json(err);
+    }
 });
 /**
  * @swagger
@@ -459,19 +503,25 @@ router.get("/transactions/today-sum", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
     const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day as Date object
     const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day as Date object
-    const totalAmount = await prisma.transaction.aggregate({
-        _sum: {
-            amount: true,
-        },
-        where: {
-            date_time: {
-                gte: startOfDay,
-                lt: endOfDay,
+    try {
+        const totalAmount = await prisma.transaction.aggregate({
+            _sum: {
+                amount: true,
             },
-            status: 'completed',
-        },
-    });
-    res.json({ total_amount: totalAmount._sum.amount || 0 });
+            where: {
+                date_time: {
+                    gte: startOfDay,
+                    lt: endOfDay,
+                },
+                status: 'completed',
+            },
+        });
+        res.json({ total_amount: totalAmount._sum.amount || 0 });
+    }
+    catch (err) {
+        err = new CustomError("Server Error", 404);
+        return res.status(500).json(err);
+    }
 });
 /**
  * @swagger
@@ -493,17 +543,23 @@ router.get("/transactions/today-sum", isLoggedIn, async (req, res) => {
  */
 router.get("/transactions/current-year-sum", isLoggedIn, async (req, res) => {
     const currentDate = new Date();
-    const totalAmount = await prisma.transaction.aggregate({
-        _sum: {
-            amount: true,
-        },
-        where: {
-            date_time: {
-                gte: new Date(currentDate.getFullYear(), 0, 1),
-                lt: new Date(currentDate.getFullYear() + 1, 0, 1),
+    try {
+        const totalAmount = await prisma.transaction.aggregate({
+            _sum: {
+                amount: true,
             },
-        },
-    });
-    res.json({ total_amount: totalAmount._sum.amount || 0 });
+            where: {
+                date_time: {
+                    gte: new Date(currentDate.getFullYear(), 0, 1),
+                    lt: new Date(currentDate.getFullYear() + 1, 0, 1),
+                },
+            },
+        });
+        res.json({ total_amount: totalAmount._sum.amount || 0 });
+    }
+    catch (err) {
+        err = new CustomError("Server Error", 404);
+        return res.status(500).json(err);
+    }
 });
 export default router;
