@@ -16,14 +16,14 @@ const task = async () => {
         const transaction = await prisma.transaction.findUnique({
           where: {transaction_id: task.id}
         })
-        if (transaction?.amount == undefined) {
+        if (transaction?.original_amount == undefined) {
           return;
         }
-        let amount = +transaction?.amount * 0.90;
+        let amount = +transaction?.original_amount * 0.90;
 
         await prisma.transaction.update({
           data: {
-            amount: amount, settlement: true
+            settled_amount: amount, settlement: true
           },
           where: {transaction_id: task.id}
         })

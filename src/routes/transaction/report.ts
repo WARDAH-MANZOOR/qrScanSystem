@@ -22,7 +22,7 @@ export const transactionReport = async (req: Request, res: Response) => {
     const transactions = await filterTransactions(filterOption as string);
 
     // Calculate total amount
-    const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount.toNumber(), 0);
+    const totalAmount = transactions.reduce((sum, transaction) => sum + (transaction.settled_amount?.toNumber() ?? 0), 0);
     // Handle export options
     if (exportFormat) {
       if (exportFormat === 'csv') {
@@ -131,46 +131,52 @@ const exportExcel = (res: Response, transactions: any[], totalAmount: number) =>
 
 // Export transactions to PDF
 const exportPDF = async (res: Response, transactions: any[], totalAmount: number) => {
-  const templatePath = path.join(import.meta.dirname, "../../", 'templates', 'transaction_report_template.html');
-  let htmlTemplate = await fs.promises.readFile(templatePath, 'utf8');
-  // Replace template placeholders with data (if you're not using a template engine)
-  htmlTemplate = htmlTemplate
-    .replace('{{totalAmount}}', totalAmount.toFixed(2))
-    .replace('{{#each transactions}}', transactions.map(transaction => `
+  try {
+    const templatePath = path.join(import.meta.dirname, "../../", 'templates', 'transaction_report_template.html');
+    let htmlTemplate = await fs.promises.readFile(templatePath, 'utf8');
+    // Replace template placeholders with data (if you're not using a template engine)
+    htmlTemplate = htmlTemplate
+      .replace('{{totalAmount}}', totalAmount.toFixed(2))
+      .replace('{{#each transactions}}', transactions.map(transaction => `
       <tr>
         <td>${transaction.transaction_id}</td>
         <td>${new Date(transaction.date_time).toLocaleString()}</td>
-        <td>${transaction.amount.toFixed(2)}</td>
+        <td>${transaction.settled_amount.toFixed(2)}</td>
         <td>${transaction.status}</td>
       </tr>
     `).join(''))
-    .replace('{{/each}}', '');
+      .replace('{{/each}}', '');
 
-  // Options for PDF generation
-  const pdfOptions = {
-    format: 'A4',
-    orientation: 'portrait',
-    border: '10mm'
-  };
+    // Options for PDF generation
+    const pdfOptions = {
+      format: 'A4',
+      orientation: 'portrait',
+      border: '10mm'
+    };
 
-  // Generate PDF
-  const document = {
-    html: htmlTemplate,
-    data: {},
-    type: 'buffer', // Use 'buffer' to send the PDF as a response
-  };
+    // Generate PDF
+    const document = {
+      html: htmlTemplate,
+      data: {},
+      type: 'buffer', // Use 'buffer' to send the PDF as a response
+    };
 
-  // Create PDF
-  create(document, pdfOptions)
-    .then((pdfBuffer: any) => {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="transaction_report.pdf"');
-      res.send(pdfBuffer);
-    })
-    .catch((error: any) => {
-      error = new CustomError("An error ocurred while creating PDF", 500);
-      res.status(500).send(error);
-    });
+    // Create PDF
+    create(document, pdfOptions)
+      .then((pdfBuffer: any) => {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="transaction_report.pdf"');
+        res.send(pdfBuffer);
+      })
+      .catch((error: any) => {
+        error = new CustomError("An error ocurred while creating PDF", 500);
+        res.status(500).send(error);
+      });
+  }
+  catch (err) {
+    err = new CustomError("An error ocurred while creating PDF", 500);
+    res.status(500).send(err);
+  }
 };
 
 /**

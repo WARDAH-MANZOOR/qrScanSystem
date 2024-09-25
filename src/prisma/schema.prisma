@@ -24,13 +24,14 @@ enum TransactionType {
 model Transaction {
   transaction_id Int       @id @default(autoincrement()) @unique
   date_time      DateTime
-  amount         Decimal   @db.Decimal(10, 2)
+  original_amount         Decimal?   @db.Decimal(10, 2)
   issuer_id      Int
   issuer         Issuer    @relation(fields: [issuer_id], references: [issuer_id])
   status         TransactionStatus // Enum for status
   type           TransactionType   // Enum for type
   response_message String?
   settlement     Boolean   @default(false)
+  settled_amount         Decimal?   @db.Decimal(10, 2)
   pan_details    PANDetails?
 }
 

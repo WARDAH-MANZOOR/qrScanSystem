@@ -148,7 +148,7 @@ router.get('/transactions/search', isLoggedIn,
       const transactions = await prisma.transaction.findMany({
         where: {
           transaction_id: transaction_id ? Number(transaction_id) : undefined,
-          amount: amount ? Number(amount) : undefined,
+          settled_amount: amount ? Number(amount) : undefined,
           status: status ? status : undefined,
           issuer_id: issuer ? Number(issuer) : undefined,
         },
@@ -187,7 +187,7 @@ router.get('/transactions/daywise', isLoggedIn, async (req: Request, res: Respon
     const transactions = await prisma.transaction.groupBy({
       by: ['date_time'],
       _sum: {
-        amount: true,
+        settled_amount: true,
       },
     });
 
@@ -347,7 +347,7 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req: 
       where: filter,
     });
 
-    const totalAmount = transactions.reduce((acc, curr) => acc + parseFloat(curr.amount.toString()), 0);
+    const totalAmount = transactions.reduce((acc, curr) => acc + parseFloat(curr.settled_amount?.toString() as string), 0);
 
 
     res.json({
@@ -526,7 +526,7 @@ router.get("/transactions/today-sum", isLoggedIn, async (req: Request, res: Resp
   try {
     const totalAmount = await prisma.transaction.aggregate({
       _sum: {
-        amount: true,
+        settled_amount: true,
       },
       where: {
         date_time: {
@@ -536,7 +536,7 @@ router.get("/transactions/today-sum", isLoggedIn, async (req: Request, res: Resp
         status: 'completed',
       },
     });
-    res.json({ total_amount: totalAmount._sum.amount || 0 });
+    res.json({ total_amount: totalAmount._sum?.settled_amount || 0 });
   }
   catch (err) {
     err = new CustomError("Server Error", 404);
@@ -567,7 +567,7 @@ router.get("/transactions/current-year-sum", isLoggedIn, async (req: Request, re
   try {
     const totalAmount = await prisma.transaction.aggregate({
       _sum: {
-        amount: true,
+        settled_amount: true,
       },
       where: {
         date_time: {
@@ -576,7 +576,7 @@ router.get("/transactions/current-year-sum", isLoggedIn, async (req: Request, re
         },
       },
     });
-    res.json({ total_amount: totalAmount._sum.amount || 0 });
+    res.json({ total_amount: totalAmount._sum?.settled_amount || 0 });
   }
   catch (err) {
     err = new CustomError("Server Error", 404);

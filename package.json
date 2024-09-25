@@ -6,8 +6,9 @@
   "scripts": {
     "start": "nodemon ./bin/www",
     "dev": "npx tsc && nodemon ./bin/www",
-    "seed": "node prisma/seed.js",
-    "build": "npx tsc"
+    "seed": "node dist/prisma/seed.js",
+    "build": "npx tsc",
+    "migrate": "npx prisma migrate dev --schema src/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
