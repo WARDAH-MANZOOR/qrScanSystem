@@ -108,7 +108,11 @@ router.post("/login", async (req: Request, res: Response) => {
             sameSite: "strict", // Better security
         });
 
-        return res.status(200).send("Yes! You can login");
+        return res.status(200).send({
+            message: "Login successfull.",
+            token: token,
+            role: role,
+        });
     } catch (error) {
         error = new CustomError("Something went wrong!",500);
         return res.status(500).send("Something went wrong!");

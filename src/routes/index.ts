@@ -1,21 +1,6 @@
-import  express from 'express';
-var router = express.Router();
+import jazzCash from "./paymentGateway/jazzCash.js";
+import express from "express";
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: Renders the home page
- *     responses:
- *       200:
- *         description: Successfully renders the home page
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
-
-export default router;
+export default function (app: express.Application) {
+  app.use("/payment", jazzCash);
+}
