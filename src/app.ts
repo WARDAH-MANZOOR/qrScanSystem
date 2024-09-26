@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cron from "node-cron";
 import dotenv from "dotenv";
+import routes from './routes/index.js';
+
 dotenv.config();
 
 
@@ -32,11 +34,15 @@ app.use(cookieParser());
 app.use(express.static("./public"));
 
 
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_analytics', transactionAnalyticsRouter);
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
+
+// Import all routes from routes/index
+routes(app);
 
 // Redoc route
 // app.get('/redoc', (req, res) => {

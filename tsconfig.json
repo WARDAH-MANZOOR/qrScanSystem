@@ -7,7 +7,11 @@
     "strict": true,            // Enable all strict type-checking options
     "esModuleInterop": true,   // Ensure compatibility with CommonJS modules
     "skipLibCheck": true,      // Skip type checking of declaration files
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./src",               // Set the base URL to your source directory
+    "paths": {
+      "*": ["*"]                      // Allow all paths to resolve from baseUrl
+    },
   },
   "include": ["src"],          // Include the "src" folder for TypeScript compilation
   "exclude": ["node_modules"]  // Exclude node_modules from compilation
