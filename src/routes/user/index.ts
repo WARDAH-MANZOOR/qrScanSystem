@@ -99,7 +99,7 @@ const router = Router();
  *               $ref: '#/components/schemas/User'
  */
 
-router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (req: Request, res: Response) => {
+router.post("/create-user", async (req: Request, res: Response) => {
     const { username, email, password, age } = req.body;
     let error;
     try {
