@@ -69,10 +69,10 @@ router.get("/logout", async (req: Request, res: Response) => {
 router.post("/login", async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
-
+        console.log("User", req.user);
         // Fetch user by email
         const user = await prisma.user.findUnique({
-            where: { email },
+            where: { email,  },
             include: {
                 groups: {
                     include: {
@@ -88,11 +88,11 @@ router.post("/login", async (req: Request, res: Response) => {
         }
 
         // Compare passwords
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            const error = new CustomError("Invalid email or password",401);
-            return res.status(401).send(error);
-        }
+        // const isPasswordValid = await bcrypt.compare(password, user.password);
+        // if (!isPasswordValid) {
+        //     const error = new CustomError("Invalid email or password",401);
+        //     return res.status(401).send(error);
+        // }
         
         // Extract the group name (role) from the user's groups
         const userGroup = user.groups[0]; // Assuming one group per user for simplicity

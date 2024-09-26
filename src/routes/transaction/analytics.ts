@@ -3,6 +3,7 @@ import prisma from '../../prisma/client.js';  // Assuming Prisma client is set u
 import { parseISO, subDays } from 'date-fns';
 import { authorize, isLoggedIn, restrict, restrictMultiple } from '../../utils/middleware.js';
 import CustomError from '../../utils/custom_error.js';
+import { JwtPayload } from 'jsonwebtoken';
 const router = Router();
 
 /**
@@ -88,7 +89,12 @@ const router = Router();
 router.get('/transactions', isLoggedIn,
   async (req: Request, res: Response) => {
     try {
-      const transactions = await prisma.transaction.findMany();
+      console.log((req.user as JwtPayload)?.id)
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          merchant_id: (req.user as JwtPayload)?.id
+        }
+      });
       res.status(200).json(transactions);
     } catch (error) {
       error = new CustomError("Internal Server Error", 500)
@@ -151,6 +157,7 @@ router.get('/transactions/search', isLoggedIn,
           settled_amount: amount ? Number(amount) : undefined,
           status: status ? status : undefined,
           issuer_id: issuer ? Number(issuer) : undefined,
+          merchant_id: (req.user as JwtPayload)?.id,
         },
       });
       res.status(200).json(transactions);
@@ -304,7 +311,7 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req: 
 
   let filter = {};
   const today = new Date();
-
+  console.log(today);
   if (filter_type) {
     switch (filter_type) {
       case 'today':

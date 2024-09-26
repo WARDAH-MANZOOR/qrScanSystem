@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import prisma from "../../prisma/client.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { authorize, isLoggedIn } from "../../utils/middleware.js";
 import CustomError from "../../utils/custom_error.js";
 
@@ -99,8 +99,8 @@ const router = Router();
  *               $ref: '#/components/schemas/User'
  */
 
-router.post("/create-user", async (req: Request, res: Response) => {
-    const { username, email, password, age } = req.body;
+router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (req: Request, res: Response) => {
+    const { username, email, password, age, merchant } = req.body;
     let error;
     try {
         // Validate input data
@@ -150,7 +150,8 @@ router.post("/create-user", async (req: Request, res: Response) => {
                             username,
                             email,
                             password: hash,
-                            age
+                            age,
+                            merchant_id: merchant
                         }
                     });
                     let token = jwt.sign({ email, id: user.id }, "shhhhhhhhhhhhhh");
@@ -377,7 +378,8 @@ router.post("/assign", isLoggedIn,
         const user = await prisma.userGroup.create({
             data: {
                 userId,
-                groupId
+                groupId,
+                merchantId: (req.user as JwtPayload)?.id
             }
         });
 

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { faker } from '@faker-js/faker';
 const prisma = new PrismaClient();
 
 const permissions = [
@@ -13,51 +14,123 @@ const permissions = [
 
   // Back Office Permissions
   { name: "Transactions List" },
-  // { name: "Reset API secured key" },
-  // { name: "Manage stores and outlets" },
   { name: "Profile" },
   { name: "Reports" },
   { name: "Capture/Void Transactions" },
   { name: "Refund Purchase Transactions" },
-  // { name: "Change secret word" },
   { name: "View/Manage Hold Transactions" },
-  // { name: "View merchant domain" },
   { name: "Invoice Transactions" },
-
-  // Raast Permissions
-  // { name: "View Raast QR" },
-  // { name: "View Raast QR Payments" },
-  // { name: "View Raast Return Requests" },
 ];
-async function main() {
-  // await prisma.issuer.create({
-  //   data: {
-  //     issuer_name: 'Bank A',
-  //   },
-  // });
 
-  // await prisma.transaction.create({
-  //   data: {
-  //     date_time: new Date(),
-  //     amount: 100.00,
-  //     issuer_id: 1,
-  //     status: 'completed',
-  //     type: 'purchase',
-  //     response_message: 'Success',
-  //     settlement: true,
-  //   },
-  // });
-  console.log('Start seeding permissions...');
-  for (const p of permissions) {
-    await prisma.permission.create({
-      data: p,
+async function seed() {
+  try {
+    console.log('Start seeding permissions...');
+
+    // Seed merchants
+    const merchants = [];
+    for (let i = 0; i < 5; i++) {
+      merchants.push(
+        await prisma.merchant.create({
+          data: {
+            full_name: faker.company.name(),
+            phone_number: faker.phone.number(),
+            email: faker.internet.email(),
+            company_name: faker.company.name(),
+            company_url: faker.internet.url(),
+            city: faker.location.city(),
+            payment_volume: parseFloat(faker.finance.amount({ min: 1000, max: 50000, dec: 2 })),
+          },
+        })
+      );
+    }
+
+    // Seed users and associate with merchants
+    const users = [];
+    for (let i = 0; i < 10; i++) {
+      const merchant = merchants[i % merchants.length];
+      users.push(
+        await prisma.user.create({
+          data: {
+            username: faker.internet.userName(),
+            email: faker.internet.email(),
+            password: faker.internet.password(),
+            age: faker.number.int({ min: 18, max: 60 }),
+            merchant: {
+              connect: { merchant_id: merchant.merchant_id },
+            },
+          },
+        })
+      );
+    }
+
+    // Seed groups and associate users with groups
+    const group = await prisma.group.create({
+      data: {
+        name: 'Admin',
+        users: {
+          create: users.map((user) => ({
+            user: { connect: { id: user.id } },
+            merchant: { connect: { merchant_id: user.merchant_id } }
+          })),
+        },
+        
+      },
     });
+
+    // Seed transactions
+    const transactions = [];
+    for (let i = 0; i < 20; i++) {
+      const merchant = merchants[i % merchants.length];
+      const user = users[i % users.length];
+      transactions.push(
+        await prisma.transaction.create({
+          data: {
+            date_time: faker.date.recent(),
+            original_amount: parseFloat(faker.finance.amount({ min: 1000, max: 50000, dec: 2 })),
+            issuer: {
+              create: {
+                issuer_name: faker.company.name(),
+              },
+            },
+            status: 'completed',
+            type: 'purchase',
+            response_message: faker.lorem.sentence(),
+            settlement: faker.datatype.boolean(),
+            settled_amount: parseFloat(faker.finance.amount({ min: 1000, max: 50000, dec: 2 })),
+            merchant: {
+              connect: { merchant_id: merchant.merchant_id },
+            },
+            pan_details: {
+              create: {
+                pan: faker.finance.creditCardNumber(),
+                stan: faker.finance.transactionType(),
+              },
+            },
+          },
+        })
+      );
+    }
+
+    // Seed scheduled tasks
+    for (let i = 0; i < 5; i++) {
+      await prisma.scheduledTask.create({
+        data: {
+          transactionId: transactions[i].transaction_id,
+          status: 'pending',
+          scheduledAt: faker.date.soon(),
+          executedAt: faker.date.future(),
+        },
+      });
+    }
+    for (const p of permissions) {
+      await prisma.permission.create({
+        data: p,
+      });
+    }
+    console.log('Seed completed!');
+  } catch (error) {
+    console.error('Error while seeding:', error);
   }
-  console.log('Seeding finished.');
 }
 
-main()
-  .catch(e => console.error(e))
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+seed()

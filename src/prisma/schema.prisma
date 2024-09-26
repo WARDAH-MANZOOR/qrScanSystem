@@ -22,73 +22,94 @@ enum TransactionType {
 }
 
 model Transaction {
-  transaction_id Int       @id @default(autoincrement()) @unique
-  date_time      DateTime
-  original_amount         Decimal?   @db.Decimal(10, 2)
-  issuer_id      Int
-  issuer         Issuer    @relation(fields: [issuer_id], references: [issuer_id])
-  status         TransactionStatus // Enum for status
-  type           TransactionType   // Enum for type
+  transaction_id   Int               @id @unique @default(autoincrement())
+  date_time        DateTime
+  original_amount  Decimal?          @db.Decimal(10, 2)
+  issuer_id        Int
+  issuer           Issuer            @relation(fields: [issuer_id], references: [issuer_id])
+  status           TransactionStatus
+  type             TransactionType
   response_message String?
-  settlement     Boolean   @default(false)
-  settled_amount         Decimal?   @db.Decimal(10, 2)
-  pan_details    PANDetails?
+  settlement       Boolean           @default(false)
+  settled_amount   Decimal?          @db.Decimal(10, 2)
+  pan_details      PANDetails?
+  merchant_id      Int               
+  merchant         Merchant          @relation(fields: [merchant_id], references: [merchant_id])
 }
 
 model PANDetails {
-  pan_details_id Int         @id @default(autoincrement()) // Primary key
-  transaction_id Int         @unique// Foreign key reference to Transaction
-  transaction    Transaction @relation(fields: [transaction_id], references: [transaction_id]) // One-to-One relation
-  pan            String      // Equivalent to CharField(max_length=19)
-  stan           String      // Equivalent to CharField(max_length=12)
+  pan_details_id Int         @id @default(autoincrement())
+  transaction_id Int         @unique
+  transaction    Transaction @relation(fields: [transaction_id], references: [transaction_id])
+  pan            String
+  stan           String
 
-  @@map("pan_details") // Custom table name if needed
+  @@map("pan_details")
 }
 
 model Issuer {
-  issuer_id   Int           @id @default(autoincrement()) // Primary key with auto-increment
-  issuer_name String        // Equivalent to CharField(max_length=255)
-  transactions Transaction[] // One-to-many relation with Transaction (issuer-related transactions)
+  issuer_id    Int           @id @default(autoincrement())
+  issuer_name  String
+  transactions Transaction[]
 
-  @@map("issuer") // Custom table name if needed
+  @@map("issuer")
+}
+
+model Merchant {
+  merchant_id    Int           @id @default(autoincrement())
+  full_name      String
+  phone_number   String
+  email          String
+  company_name   String
+  company_url    String?
+  city           String
+  payment_volume Decimal?      @db.Decimal(10, 2)
+  transactions   Transaction[]
+  user_groups    UserGroup[] // Associate UserGroups with Merchant
+  users           User[]
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String
-  email     String   @unique
-  password  String
-  age       Int?
-  groups    UserGroup[]
+  id       Int         @id @default(autoincrement())
+  username String
+  email    String      @unique
+  password String
+  age      Int?
+  groups   UserGroup[]
+  merchant_id  Int         // merchant association
+  merchant Merchant   @relation(fields: [merchant_id], references: [merchant_id]) // Optionally associate a user with a merchant
+  @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
 }
 
 model Group {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
   permissions GroupPermission[]
   users       UserGroup[]
 }
 
 model Permission {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  groups      GroupPermission[]
+  id     Int               @id @default(autoincrement())
+  name   String            @unique
+  groups GroupPermission[]
 }
 
 model UserGroup {
   userId     Int
   groupId    Int
-  user       User     @relation(fields: [userId], references: [id])
-  group      Group    @relation(fields: [groupId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  group      Group     @relation(fields: [groupId], references: [id])
+  merchantId Int  // merchant association
+  merchant   Merchant @relation(fields: [merchantId], references: [merchant_id])
 
   @@id([userId, groupId])
 }
 
 model GroupPermission {
-  groupId     Int
+  groupId      Int
   permissionId Int
-  group       Group      @relation(fields: [groupId], references: [id])
-  permission  Permission @relation(fields: [permissionId], references: [id])
+  group        Group      @relation(fields: [groupId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
 
   @@id([groupId, permissionId])
 }
