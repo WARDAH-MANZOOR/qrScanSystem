@@ -51,7 +51,8 @@ const errorHandler = (err: CustomError, req: Request, res: Response, next: NextF
     if (err.isOperational) {
         console.log(err.statusCode)
         return res.status(err.statusCode).json({
-            status: err.statusText,
+            statusText: err.statusText,
+            status: err.statusCode,
             message: err.message
         });
     }
