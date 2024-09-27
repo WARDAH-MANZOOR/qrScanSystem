@@ -20,6 +20,8 @@ const permissions = [
   { name: "Refund Purchase Transactions" },
   { name: "View/Manage Hold Transactions" },
   { name: "Invoice Transactions" },
+  { name: "View Available Balance" },
+  { name: "Disbursement" }
 ];
 
 async function seed() {
