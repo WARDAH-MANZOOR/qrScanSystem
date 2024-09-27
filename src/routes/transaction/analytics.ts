@@ -125,11 +125,6 @@ router.get('/transactions', isLoggedIn,
  *           type: string
  *         description: Filter by transaction status
  *         required: true
- *       - name: issuer
- *         in: query
- *         schema:
- *           type: string
- *         description: Filter by transaction issuer
  *     responses:
  *       200:
  *         description: List of transactions
@@ -156,7 +151,6 @@ router.get('/transactions/search', isLoggedIn,
           transaction_id: transaction_id ? Number(transaction_id) : undefined,
           settled_amount: amount ? Number(amount) : undefined,
           status: status ? status : undefined,
-          issuer_id: issuer ? Number(issuer) : undefined,
           merchant_id: (req.user as JwtPayload)?.id,
         },
       });
@@ -482,6 +476,7 @@ router.get("/transactions/today-count", isLoggedIn, async (req: Request, res: Re
           gte: startOfDay,  // Use Date object
           lt: endOfDay,      // Use Date object
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_count: count });
@@ -518,6 +513,7 @@ router.get("/transactions/last-30-days-count", isLoggedIn, async (req: Request, 
         date_time: {
           gte: subDays(currentDate, 30),
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_count: count });
@@ -548,7 +544,7 @@ router.get("/transactions/last-30-days-count", isLoggedIn, async (req: Request, 
  */
 router.get("/transactions/count", isLoggedIn, async (req: Request, res: Response) => {
   try {
-    const count = await prisma.transaction.count();
+    const count = await prisma.transaction.count({where: {merchant_id: (req.user as JwtPayload)?.id}});
     res.json({ total_count: count });
   }
   catch (err) {
@@ -590,6 +586,7 @@ router.get("/transactions/today-sum", isLoggedIn, async (req: Request, res: Resp
           lt: endOfDay,
         },
         status: 'completed',
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_amount: totalAmount._sum?.settled_amount || 0 });
@@ -630,6 +627,7 @@ router.get("/transactions/current-year-sum", isLoggedIn, async (req: Request, re
           gte: new Date(currentDate.getFullYear(), 0, 1),
           lt: new Date(currentDate.getFullYear() + 1, 0, 1),
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_amount: totalAmount._sum?.settled_amount || 0 });

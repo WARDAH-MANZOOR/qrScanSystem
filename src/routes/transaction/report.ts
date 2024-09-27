@@ -9,6 +9,7 @@ import path from 'path';
 import fs from "fs"
 import { authorize, isLoggedIn } from '../../utils/middleware.js';
 import CustomError from '../../utils/custom_error.js';
+import { JwtPayload } from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -19,7 +20,7 @@ export const transactionReport = async (req: Request, res: Response) => {
   let error;
 
   try {
-    const transactions = await filterTransactions(filterOption as string);
+    const transactions = await filterTransactions(filterOption as string,(req.user as JwtPayload)?.id);
 
     // Calculate total amount
     const totalAmount = transactions.reduce((sum, transaction) => sum + (transaction.settled_amount?.toNumber() ?? 0), 0);
@@ -47,7 +48,7 @@ export const transactionReport = async (req: Request, res: Response) => {
 };
 
 // Filter transactions based on the given filter option
-const filterTransactions = async (filterOption: string) => {
+const filterTransactions = async (filterOption: string,userId: number) => {
   const currentDate = new Date();
   let startDate: Date | null = null;
   let error;
@@ -82,11 +83,12 @@ const filterTransactions = async (filterOption: string) => {
             gte: startDate,
             lt: currentDate,
           },
+          merchant_id: userId
         },
       });
     }
 
-    return await prisma.transaction.findMany();
+    return await prisma.transaction.findMany({where: {merchant_id: userId}});
   }
   catch (err) {
     throw new Error("Error filtering transactions")

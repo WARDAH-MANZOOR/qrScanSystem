@@ -1,4 +1,3 @@
-
 class ApiResponse {
     static success<T>(data: T, message: string = 'Operation successful', statusCode: number = 200) {
         return {
