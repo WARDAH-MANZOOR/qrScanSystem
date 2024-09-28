@@ -14,7 +14,7 @@ const task = async () => {
       for (const task of tasks) {
         // Your business logic to shift transaction amount
         const transaction = await prisma.transaction.findUnique({
-          where: {transaction_id: task.id}
+          where: {transaction_id: task.transactionId as string}
         })
         if (transaction?.original_amount == undefined) {
           return;
@@ -25,7 +25,7 @@ const task = async () => {
           data: {
             settled_amount: amount, settlement: true
           },
-          where: {transaction_id: task.id}
+          where: {transaction_id: task.transactionId as string}
         })
         // await shiftTransactionAmount(task.transaction_id);
     

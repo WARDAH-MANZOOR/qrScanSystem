@@ -4,6 +4,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { isLoggedIn } from "utils/middleware.js";
 
 interface TransactionRequest {
+  id: string;
     date_time: string;
     original_amount: string;
     type: string;
@@ -16,8 +17,8 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
 
   // Validate date_time
-  if (!data.date_time || isNaN(Date.parse(data.date_time))) {
-    errors.push({ msg: "Invalid date format", param: "date_time" });
+  if (!data.id || !data.id.startsWith("T")){
+    errors.push({ msg: "Invalid Transaction Id", param: "id" });
   }
 
   // Validate original_amount
@@ -36,7 +37,7 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
 
 // Transaction Request Creation API
 export const createTransactionRequest = async (req: Request, res: Response) => {
-  const { original_amount, issuer_id, type } = req.body;
+  const { id, original_amount, type } = req.body;
 
   // Validate data
   const validationErrors = isValidTransactionRequest(req.body);
@@ -48,6 +49,7 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
       data: {
+        transaction_id: id,
         date_time: new Date(),
         original_amount: parseFloat(original_amount),
         status: 'pending', // Initially, the transaction is pending
@@ -74,6 +76,11 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
  *     TransactionRequest:
  *       type: object
  *       properties:
+ *         id:
+ *           type: string
+ *           format: T*
+ *           description: Transaction id starting with T and then whole date time in integers
+ *           example: T20240928 
  *         original_amount:
  *           type: number
  *           format: float

@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import prisma from "../../prisma/client.js";
 import { isLoggedIn } from "utils/middleware.js";
 import { JwtPayload } from "jsonwebtoken";
+import { addWeekdays } from "utils/date_method.js";
 
 interface Provider {
     name: string;
@@ -20,8 +21,8 @@ const isValidTransactionCompletion = (data: CompleteRequest) => {
     const errors = [];
 
     // Validate transaction_id
-    if (!data.transaction_id || isNaN(parseInt(data.transaction_id, 10))) {
-        errors.push({ msg: "Transaction ID must be an integer", param: "transaction_id" });
+    if (!data.transaction_id || !data.transaction_id.startsWith("T")) {
+        errors.push({ msg: "Transaction ID must be a string", param: "transaction_id" });
     }
 
     // Validate status
@@ -60,7 +61,7 @@ export const completeTransaction = async (req: Request, res: Response) => {
     try {
         const transaction = await prisma.transaction.findUnique({
             where: {
-                transaction_id: parseInt(transaction_id, 10),
+                transaction_id: transaction_id,
                 merchant_id: (req.user as JwtPayload)?.id,
                 status: 'pending'
             }
@@ -68,13 +69,14 @@ export const completeTransaction = async (req: Request, res: Response) => {
 
         if (transaction) {
             // Update the transaction as completed or failed
+            let date = new Date();
             const updatedTransaction = await prisma.transaction.update({
                 where: {
-                    transaction_id: parseInt(transaction_id, 10),
+                    transaction_id: transaction_id,
                     merchant_id: (req.user as JwtPayload)?.id
                 },
                 data: {
-                    date_time: new Date(),
+                    date_time: date,
                     status: status,
                     response_message: response_message || null,
                     Provider: provider ? {
@@ -110,8 +112,21 @@ export const completeTransaction = async (req: Request, res: Response) => {
                 }
             });
 
+            const scheduledAt = addWeekdays(date, 2);  // Call the function to get the next 2 weekdays
+
+            // Create the scheduled task in the database
+            const scheduledTask = await prisma.scheduledTask.create({
+              data: {
+                transactionId: transaction_id,
+                status: 'pending',
+                scheduledAt: scheduledAt,  // Assign the calculated weekday date
+                executedAt: null,  // Assume executedAt is null when scheduling
+              }
+            });
+        
+
             // Send the response with the updated transaction
-            return res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction });
+            return res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask });
         }
         else {
             return res.status(404).json({message: "Transaction not found"});
@@ -146,9 +161,10 @@ export const completeTransaction = async (req: Request, res: Response) => {
  *       type: object
  *       properties:
  *         transaction_id:
- *           type: integer
+ *           type: string
+ *           format: T*
  *           description: The unique ID of the transaction to complete.
- *           example: 1
+ *           example: T20240928
  *         status:
  *           type: string
  *           description: The status of the transaction (e.g., completed, failed).
@@ -209,9 +225,10 @@ export const completeTransaction = async (req: Request, res: Response) => {
  *           description: The updated transaction object.
  *           properties:
  *             transaction_id:
- *               type: integer
+ *               type: string
+ *               format: T*
  *               description: The unique ID of the transaction.
- *               example: 1
+ *               example: T20240928
  *             status:
  *               type: string
  *               description: The updated status of the transaction.
@@ -255,7 +272,7 @@ export const completeTransaction = async (req: Request, res: Response) => {
  *                   example: "customValue5"
  *
  * /transaction_complete/:
- *   post:
+ *   put:
  *     summary: Complete a transaction
  *     tags: [Transactions]
  *     requestBody:
@@ -303,5 +320,5 @@ export const completeTransaction = async (req: Request, res: Response) => {
  *                   example: "Internal server error"
  */
 
-router.post("/", isLoggedIn, completeTransaction);
+router.put("/", isLoggedIn, completeTransaction);
 export default router;
