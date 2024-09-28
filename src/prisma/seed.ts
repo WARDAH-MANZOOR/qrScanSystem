@@ -20,6 +20,8 @@ const permissions = [
   { name: "Refund Purchase Transactions" },
   { name: "View/Manage Hold Transactions" },
   { name: "Invoice Transactions" },
+  { name: "View Available Balance" },
+  { name: "Disbursement" }
 ];
 
 async function seed() {
@@ -87,24 +89,13 @@ async function seed() {
           data: {
             date_time: faker.date.recent(),
             original_amount: parseFloat(faker.finance.amount({ min: 1000, max: 50000, dec: 2 })),
-            issuer: {
-              create: {
-                issuer_name: faker.company.name(),
-              },
-            },
             status: 'completed',
-            type: 'purchase',
+            type: 'wallet',
             response_message: faker.lorem.sentence(),
             settlement: faker.datatype.boolean(),
             settled_amount: parseFloat(faker.finance.amount({ min: 1000, max: 50000, dec: 2 })),
             merchant: {
-              connect: { merchant_id: merchant.merchant_id },
-            },
-            pan_details: {
-              create: {
-                pan: faker.finance.creditCardNumber(),
-                stan: faker.finance.transactionType(),
-              },
+              connect: { id: merchant.merchant_id },
             },
           },
         })

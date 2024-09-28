@@ -86,7 +86,7 @@ router.post("/login", async (req: Request, res: Response) => {
             const error = new CustomError("Invalid email or password",401);
             return res.status(401).send(error);
         }
-
+        console.log("User: ",user);
         // Compare passwords
         // const isPasswordValid = await bcrypt.compare(password, user.password);
         // if (!isPasswordValid) {
@@ -107,12 +107,16 @@ router.post("/login", async (req: Request, res: Response) => {
             secure: process.env.NODE_ENV === "production", // Secure cookie in production
             sameSite: "strict", // Better security
         });
-
+        //all user details, merchantId
         return res.status(200).send({
             message: "Login successfull.",
             token: token,
             role: role,
-        });
+            username: user.username,
+            email: user.email,
+            id: user.id,
+            merchantId: user.merchant_id
+        }); 
     } catch (error) {
         error = new CustomError("Something went wrong!",500);
         return res.status(500).send("Something went wrong!");

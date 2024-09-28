@@ -18,6 +18,8 @@ import transactionAnalyticsRouter from "./routes/transaction/analytics.js"
 import transactionReportsRouter from "./routes/transaction/report.js"
 import userRouter from "./routes/user/index.js"
 import authRouter from "./routes/authentication/index.js"
+import createTransactionRouter from "./routes/transaction/create.js"
+import completeTransactionRouter from "./routes/transaction/complete.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
  
@@ -38,6 +40,8 @@ app.use(express.static("./public"));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_analytics', transactionAnalyticsRouter);
 app.use('/transaction_reports', transactionReportsRouter);
+app.use('/transaction_create', createTransactionRouter);
+app.use('/transaction_complete', completeTransactionRouter);
 app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
 

@@ -125,11 +125,6 @@ router.get('/transactions', isLoggedIn,
  *           type: string
  *         description: Filter by transaction status
  *         required: true
- *       - name: issuer
- *         in: query
- *         schema:
- *           type: string
- *         description: Filter by transaction issuer
  *     responses:
  *       200:
  *         description: List of transactions
@@ -156,7 +151,6 @@ router.get('/transactions/search', isLoggedIn,
           transaction_id: transaction_id ? Number(transaction_id) : undefined,
           settled_amount: amount ? Number(amount) : undefined,
           status: status ? status : undefined,
-          issuer_id: issuer ? Number(issuer) : undefined,
           merchant_id: (req.user as JwtPayload)?.id,
         },
       });
@@ -191,19 +185,29 @@ router.get('/transactions/search', isLoggedIn,
  */
 router.get('/transactions/daywise', isLoggedIn, async (req: Request, res: Response) => {
   try {
-    const transactions = await prisma.transaction.groupBy({
-      by: ['date_time'],
-      _sum: {
-        settled_amount: true,
-      },
-    });
+    const merchantId = (req.user as JwtPayload)?.id;
+
+    const transactions = await prisma.$queryRaw`
+      SELECT 
+        DATE_TRUNC('day', "date_time") as transaction_date, 
+        SUM("settled_amount") as total_settled_amount
+      FROM 
+        "Transaction"
+      WHERE 
+        "merchant_id" = ${merchantId}
+      GROUP BY 
+        transaction_date
+      ORDER BY 
+        transaction_date ASC;
+    `;
 
     res.status(200).json(transactions);
   } catch (error) {
-    error = new CustomError("Internal Server Error", 500)
+    error = new CustomError("Internal Server Error", 500);
     res.status(500).json(error);
   }
 });
+
 
 /**
  * @swagger
@@ -221,7 +225,8 @@ router.get('/transactions/daywise', isLoggedIn, async (req: Request, res: Respon
  */
 router.get('/transactions/status_count', isLoggedIn, async (req: Request, res: Response) => {
   try {
-    const statusCounts = await prisma.transaction.groupBy({
+    const statusCounts = await prisma.transaction.groupBy({ 
+      where: {merchant_id: (req.user as JwtPayload)?.id},
       by: ['status'],
       _count: {
         status: true,
@@ -263,7 +268,7 @@ router.get('/status/:transaction_id', isLoggedIn, async (req: Request, res: Resp
       return res.status(400).json(error);
     }
     const transaction = await prisma.transaction.findUnique({
-      where: { transaction_id: parseInt(transaction_id) },
+      where: { transaction_id: parseInt(transaction_id),merchant_id: (req.user as JwtPayload)?.id },
     });
 
     if (!transaction) {
@@ -311,30 +316,61 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req: 
 
   let filter = {};
   const today = new Date();
-  console.log(today);
+
+  // Helper to reset time portion of a date object
+  const resetTime = (date: Date) => {
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
+  // Calculate date range based on filter type
   if (filter_type) {
     switch (filter_type) {
-      case 'today':
-        filter = { date_time: { gte: today } };
+      case 'today': {
+        const startOfDay = resetTime(new Date());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setHours(23, 59, 59, 999);
+        console.log(startOfDay);
+        console.log(endOfDay);
+        filter = { date_time: { gte: startOfDay, lte: endOfDay } };
         break;
-      case 'last_1_week':
-        filter = { date_time: { gte: subDays(today, 7) } };
+      }
+      case 'last_1_week': {
+        const startOfWeek = resetTime(subDays(today, 7));
+        const endOfDay = resetTime(new Date());
+        filter = { date_time: { gte: startOfWeek, lte: endOfDay } };
         break;
-      case 'last_15_days':
-        filter = { date_time: { gte: subDays(today, 15) } };
+      }
+      case 'last_15_days': {
+        const startOf15Days = resetTime(subDays(today, 15));
+        const endOfDay = resetTime(new Date());
+        filter = { date_time: { gte: startOf15Days, lte: endOfDay } };
         break;
-      case 'last_1_month':
-        filter = { date_time: { gte: subDays(today, 30) } };
+      }
+      case 'last_1_month': {
+        const startOfMonth = resetTime(subDays(today, 30));
+        const endOfDay = resetTime(new Date());
+        filter = { date_time: { gte: startOfMonth, lte: endOfDay } };
         break;
-      case 'last_3_months':
-        filter = { date_time: { gte: subDays(today, 90) } };
+      }
+      case 'last_3_months': {
+        const startOf3Months = resetTime(subDays(today, 90));
+        const endOfDay = resetTime(new Date());
+        filter = { date_time: { gte: startOf3Months, lte: endOfDay } };
         break;
-      case 'last_6_months':
-        filter = { date_time: { gte: subDays(today, 180) } };
+      }
+      case 'last_6_months': {
+        const startOf6Months = resetTime(subDays(today, 180));
+        const endOfDay = resetTime(new Date());
+        filter = { date_time: { gte: startOf6Months, lte: endOfDay } };
         break;
-      case 'last_1_year':
-        filter = { date_time: { gte: subDays(today, 365) } };
+      }
+      case 'last_1_year': {
+        const startOfYear = resetTime(subDays(today, 365));
+        const endOfDay = resetTime(new Date());
+        filter = { date_time: { gte: startOfYear, lte: endOfDay } };
         break;
+      }
     }
   } else if (start_date && end_date) {
     filter = {
@@ -344,18 +380,24 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req: 
       },
     };
   }
+
+  // Handle missing filter case
   let error;
-  if (Object.keys(filter).length == 0) {
+  if (Object.keys(filter).length === 0) {
     error = new CustomError("Date filter or range not provided", 400);
     return res.status(400).json(error);
   }
+
+  // Fetch transactions and calculate total settled amount
   try {
     const transactions = await prisma.transaction.findMany({
-      where: filter,
+      where: {...filter, merchant_id: (req.user as JwtPayload)?.id},
     });
 
-    const totalAmount = transactions.reduce((acc, curr) => acc + parseFloat(curr.settled_amount?.toString() as string), 0);
-
+    const totalAmount = transactions.reduce(
+      (acc, curr) => acc + parseFloat(curr.settled_amount?.toString() as string), 
+      0
+    );
 
     res.json({
       transactions,
@@ -392,6 +434,7 @@ router.get("/transactions/current-month", isLoggedIn, authorize("Transactions Li
           gte: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
           lt: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json(transactions);
@@ -433,6 +476,7 @@ router.get("/transactions/today-count", isLoggedIn, async (req: Request, res: Re
           gte: startOfDay,  // Use Date object
           lt: endOfDay,      // Use Date object
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_count: count });
@@ -469,6 +513,7 @@ router.get("/transactions/last-30-days-count", isLoggedIn, async (req: Request, 
         date_time: {
           gte: subDays(currentDate, 30),
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_count: count });
@@ -499,7 +544,7 @@ router.get("/transactions/last-30-days-count", isLoggedIn, async (req: Request, 
  */
 router.get("/transactions/count", isLoggedIn, async (req: Request, res: Response) => {
   try {
-    const count = await prisma.transaction.count();
+    const count = await prisma.transaction.count({where: {merchant_id: (req.user as JwtPayload)?.id}});
     res.json({ total_count: count });
   }
   catch (err) {
@@ -541,6 +586,7 @@ router.get("/transactions/today-sum", isLoggedIn, async (req: Request, res: Resp
           lt: endOfDay,
         },
         status: 'completed',
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_amount: totalAmount._sum?.settled_amount || 0 });
@@ -581,6 +627,7 @@ router.get("/transactions/current-year-sum", isLoggedIn, async (req: Request, re
           gte: new Date(currentDate.getFullYear(), 0, 1),
           lt: new Date(currentDate.getFullYear() + 1, 0, 1),
         },
+        merchant_id: (req.user as JwtPayload)?.id
       },
     });
     res.json({ total_amount: totalAmount._sum?.settled_amount || 0 });

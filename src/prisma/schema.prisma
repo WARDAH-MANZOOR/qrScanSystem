@@ -16,68 +16,22 @@ enum TransactionStatus {
 }
 
 enum TransactionType {
-  purchase
-  refund
-  chargeback
-}
-
-model Transaction {
-  transaction_id   Int               @id @unique @default(autoincrement())
-  date_time        DateTime
-  original_amount  Decimal?          @db.Decimal(10, 2)
-  issuer_id        Int
-  issuer           Issuer            @relation(fields: [issuer_id], references: [issuer_id])
-  status           TransactionStatus
-  type             TransactionType
-  response_message String?
-  settlement       Boolean           @default(false)
-  settled_amount   Decimal?          @db.Decimal(10, 2)
-  pan_details      PANDetails?
-  merchant_id      Int               
-  merchant         Merchant          @relation(fields: [merchant_id], references: [merchant_id])
-}
-
-model PANDetails {
-  pan_details_id Int         @id @default(autoincrement())
-  transaction_id Int         @unique
-  transaction    Transaction @relation(fields: [transaction_id], references: [transaction_id])
-  pan            String
-  stan           String
-
-  @@map("pan_details")
-}
-
-model Issuer {
-  issuer_id    Int           @id @default(autoincrement())
-  issuer_name  String
-  transactions Transaction[]
-
-  @@map("issuer")
-}
-
-model Merchant {
-  merchant_id    Int           @id @default(autoincrement())
-  full_name      String
-  phone_number   String
-  email          String
-  company_name   String
-  company_url    String?
-  city           String
-  payment_volume Decimal?      @db.Decimal(10, 2)
-  transactions   Transaction[]
-  user_groups    UserGroup[] // Associate UserGroups with Merchant
-  users           User[]
+  wallet
+  card
+  bank
 }
 
 model User {
-  id       Int         @id @default(autoincrement())
-  username String
-  email    String      @unique
-  password String
-  age      Int?
-  groups   UserGroup[]
-  merchant_id  Int         // merchant association
-  merchant Merchant   @relation(fields: [merchant_id], references: [merchant_id]) // Optionally associate a user with a merchant
+  id          Int           @id @default(autoincrement())
+  username    String
+  email       String        @unique
+  password    String
+  age         Int?
+  groups      UserGroup[]
+  merchant_id Int
+  merchant    Merchant      @relation(fields: [merchant_id], references: [merchant_id])
+  Transaction Transaction[]
+
   @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
 }
 
@@ -97,9 +51,9 @@ model Permission {
 model UserGroup {
   userId     Int
   groupId    Int
-  user       User      @relation(fields: [userId], references: [id])
-  group      Group     @relation(fields: [groupId], references: [id])
-  merchantId Int  // merchant association
+  user       User     @relation(fields: [userId], references: [id])
+  group      Group    @relation(fields: [groupId], references: [id])
+  merchantId Int // merchant association
   merchant   Merchant @relation(fields: [merchantId], references: [merchant_id])
 
   @@id([userId, groupId])
@@ -112,6 +66,61 @@ model GroupPermission {
   permission   Permission @relation(fields: [permissionId], references: [id])
 
   @@id([groupId, permissionId])
+}
+
+model Merchant {
+  merchant_id    Int         @id @default(autoincrement())
+  full_name      String
+  phone_number   String
+  email          String
+  company_name   String
+  company_url    String?
+  city           String
+  payment_volume Decimal?    @db.Decimal(10, 2)
+  //transactions   Transaction[]
+  user_groups    UserGroup[] // Associate UserGroups with Merchant
+  users          User[]
+}
+
+model Transaction {
+  transaction_id   Int               @id @unique @default(autoincrement())
+  date_time        DateTime
+  original_amount  Decimal?          @db.Decimal(10, 2)
+  status           TransactionStatus
+  type             TransactionType
+  response_message String?
+  settlement       Boolean           @default(false)
+  settled_amount   Decimal?          @db.Decimal(10, 2)
+  merchant_id      Int
+  merchant         User              @relation(fields: [merchant_id], references: [id])
+  AdditionalInfo   AdditionalInfo?   @relation(fields: [additionalInfoId], references: [id])
+  additionalInfoId Int?
+  Provider         Provider?         @relation(fields: [providerId], references: [id])
+  providerId       Int?
+}
+
+model AdditionalInfo {
+  id                Int           @id @default(autoincrement())
+  bank_id           String? // Bank ID for JazzCash
+  bill_reference    String? // Bill reference number
+  retrieval_ref     String? // Retrieval reference number
+  sub_merchant_id   String? // Optional sub-merchant ID
+  settlement_expiry String? // Optional settlement expiry time
+  custom_field_1    String? // Optional custom field
+  custom_field_2    String?
+  custom_field_3    String?
+  custom_field_4    String?
+  custom_field_5    String?
+  transactions      Transaction[] // One-to-many relation to transactions
+}
+
+model Provider {
+  id           Int           @id @default(autoincrement())
+  name         String // e.g., JazzCash, Easypaisa
+  txn_type     String? // Transaction type (MWALLET, etc.)
+  version      String? // API version
+  transactions Transaction[] // One-to-many relationship with transactions
+  @@unique([name, txn_type, version])  // Composite unique index
 }
 
 model ScheduledTask {
