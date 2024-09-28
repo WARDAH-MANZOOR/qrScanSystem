@@ -4,30 +4,34 @@ const prisma = new PrismaClient();
 
 const permissions = [
   // User Management Permissions
-  { name: "Portal users list" },
-  { name: "Create portal user" },
-  { name: "Update portal user" },
-  { name: "Create user group" },
-  { name: "Update user group" },
-  { name: "View all user groups" },
-  { name: "View Group List" },
+  { id: 1,name: "Portal users list" },
+  { id: 2,name: "Create portal user" },
+  { id: 3,name: "Update portal user" },
+  { id: 4,name: "Create user group" },
+  { id: 5,name: "Update user group" },
+  { id: 6,name: "View all user groups" },
+  { id: 7,name: "View Group List" },
 
   // Back Office Permissions
-  { name: "Transactions List" },
-  { name: "Profile" },
-  { name: "Reports" },
-  { name: "Capture/Void Transactions" },
-  { name: "Refund Purchase Transactions" },
-  { name: "View/Manage Hold Transactions" },
-  { name: "Invoice Transactions" },
-  { name: "View Available Balance" },
-  { name: "Disbursement" }
+  { id: 8,name: "Transactions List" },
+  { id: 9,name: "Profile" },
+  { id: 10,name: "Reports" },
+  { id: 11,name: "Capture/Void Transactions" },
+  { id: 12,name: "Refund Purchase Transactions" },
+  { id: 13,name: "View/Manage Hold Transactions" },
+  { id: 14,name: "Invoice Transactions" },
+  { id: 15,name: "View Available Balance" },
+  { id: 16,name: "Disbursement" }
 ];
 
 async function seed() {
   try {
     console.log('Start seeding permissions...');
-
+    for (const p of permissions) {
+      await prisma.permission.create({
+        data: p,
+      });
+    }
     // Seed merchants
     const merchants = [];
     for (let i = 0; i < 5; i++) {
@@ -66,8 +70,9 @@ async function seed() {
     }
 
     // Seed groups and associate users with groups
-    const group = await prisma.group.create({
-      data: {
+    const admin = await prisma.group.create({
+      data:
+      {
         name: 'Admin',
         users: {
           create: users.map((user) => ({
@@ -75,8 +80,57 @@ async function seed() {
             merchant: { connect: { merchant_id: user.merchant_id } }
           })),
         },
-        
-      },
+      }
+    });
+
+    const merchant = await prisma.group.create({
+      data:
+      {
+        name: 'Merchant',
+        users: {
+          create: users.map((user) => ({
+            user: { connect: { id: user.id } },
+            merchant: { connect: { merchant_id: user.merchant_id } }
+          })),
+        },
+      }
+    });
+
+    const groupPermissions = [
+      { groupId: admin.id, permissionId: 1 },
+      { groupId: admin.id, permissionId: 2 },
+      { groupId: admin.id, permissionId: 3 },
+      { groupId: admin.id, permissionId: 4 },
+      { groupId: admin.id, permissionId: 5 },
+      { groupId: admin.id, permissionId: 6 },
+      { groupId: admin.id, permissionId: 7 },
+      { groupId: admin.id, permissionId: 8 },
+      { groupId: admin.id, permissionId: 9 },
+      { groupId: admin.id, permissionId: 10 },
+      { groupId: admin.id, permissionId: 11 },
+      { groupId: admin.id, permissionId: 12 },
+      { groupId: admin.id, permissionId: 13 },
+      { groupId: admin.id, permissionId: 14 },
+      { groupId: merchant.id, permissionId: 1 },
+      { groupId: merchant.id, permissionId: 2 },
+      { groupId: merchant.id, permissionId: 3 },
+      { groupId: merchant.id, permissionId: 4 },
+      { groupId: merchant.id, permissionId: 5 },
+      { groupId: merchant.id, permissionId: 6 },
+      { groupId: merchant.id, permissionId: 7 },
+      { groupId: merchant.id, permissionId: 8 },
+      { groupId: merchant.id, permissionId: 9 },
+      { groupId: merchant.id, permissionId: 10 },
+      { groupId: merchant.id, permissionId: 11 },
+      { groupId: merchant.id, permissionId: 12 },
+      { groupId: merchant.id, permissionId: 13 },
+      { groupId: merchant.id, permissionId: 14 },
+    ];
+  
+    // Seed the group-permission relationships
+    await prisma.groupPermission.createMany({
+      data: groupPermissions,
+      skipDuplicates: true, // Skip if the relation already exists
     });
 
     // Seed transactions
@@ -87,6 +141,7 @@ async function seed() {
       transactions.push(
         await prisma.transaction.create({
           data: {
+            transaction_id: "T"+faker.string.fromCharacters(['0','1','2','3','4','5','6','7','8','9'],8),
             date_time: faker.date.recent(),
             original_amount: parseFloat(faker.finance.amount({ min: 1000, max: 50000, dec: 2 })),
             status: 'completed',
@@ -111,11 +166,6 @@ async function seed() {
           scheduledAt: faker.date.soon(),
           executedAt: faker.date.future(),
         },
-      });
-    }
-    for (const p of permissions) {
-      await prisma.permission.create({
-        data: p,
       });
     }
     console.log('Seed completed!');
