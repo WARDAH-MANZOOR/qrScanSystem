@@ -39,6 +39,20 @@ const router = Router();
  *           type: integer
  *           description: The age of the user.
  *           example: 25
+ *     Merchant:
+ *       type: object
+ *       required:
+ *         - email
+ *         - password
+ *       properties:
+ *         email:
+ *           type: string
+ *           description: The email address of the user.
+ *           example: johndoe@example.com
+ *         password:
+ *           type: string
+ *           description: The hashed password of the user.
+ *           example: Password123!
  *     GroupCreateRequest:
  *       type: object
  *       required:
@@ -152,7 +166,7 @@ router.post("/create-user", async (req: Request, res: Response) => {
                             email,
                             password: hash,
                             age,
-                            merchant_id: merchant
+                            merchant_id: (req.user as JwtPayload)?.merchant_id
                         }
                     });
                     let token = jwt.sign({ email, id: user.id }, "shhhhhhhhhhhhhh");
@@ -176,6 +190,99 @@ router.post("/create-user", async (req: Request, res: Response) => {
 
 })
 
+/**
+ * @swagger
+ * /user_api/create-merchant:
+ *   post:
+ *     summary: Create a new merchant
+ *     tags: 
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Merchant'
+ *     responses:
+ *       200:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Merchant'
+ */
+router.post("/create-merchant", async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+    let error;
+    try {
+        // Validate input data
+
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+            error = new CustomError("Invalid input data. 'email' must be a valid email address.", 400);
+            return res.status(400).json(error);
+        }
+
+        if (!password || typeof password !== 'string' || password.length < 6) {
+            error = new CustomError("Invalid input data. 'password' must be at least 6 characters long.", 400);
+            return res.status(400).json(error);
+        }
+
+        // Check if the email already exists
+        const existingUser = await prisma.merchant.findMany({
+            where: { email },
+        });
+
+        if (existingUser.length > 0) {
+            error = new CustomError("Email already in use. Please choose another one.", 400);
+            return res.status(400).json(error);
+        }
+        bcrypt.genSalt(10, (err, salt) => {
+            if (err) {
+                error = new CustomError("An error occurred while generating the salt", 500);
+                return res.status(500).json(error);
+
+            }
+            bcrypt.hash(password, salt, async (err, hash) => {
+                if (err) {
+                    error = new CustomError("An error occurred while hashing the password", 500);
+                    return res.status(500).json(error);
+                }
+                try {
+                    const user = await prisma.merchant.create({
+                        data: {
+                            email,
+                            password: hash,
+                            company_name: "",
+                            city: "",
+                            full_name: "",
+                            phone_number: ""
+                        }
+                    });
+                    let token = jwt.sign({ email, id: user.merchant_id }, "shhhhhhhhhhhhhh");
+                    await prisma.userGroup.create({
+                        data: {
+                            userId: user.merchant_id,
+                            groupId: 2,
+                            merchantId: user.merchant_id
+                        }
+                    })
+                    res.cookie("token", token, {
+                        httpOnly: true
+                    });
+                    res.status(201).send(user);
+                }
+                catch (err) {
+                    error = new CustomError("An error occurred while creating the user.", 500);
+                    res.status(500).send(error);
+                }
+            })
+        })
+    }
+    catch (err) {
+        error = new CustomError("An error occurred. Please try again", 500);
+        res.status(500).send(error);
+    }
+})
 /**
  * @swagger
  * /user_api/create-group:
@@ -376,12 +483,13 @@ router.post("/assign", isLoggedIn,
             return res.status(404).json(error);
         }
 
+        console.log((req.user as JwtPayload)?.merchant_id)
         // Logic to assign user to group
         const user = await prisma.userGroup.create({
             data: {
                 userId,
                 groupId,
-                merchantId: (req.user as JwtPayload)?.id
+                merchantId: (req.user as JwtPayload)?.merchant_id
             }
         });
 
