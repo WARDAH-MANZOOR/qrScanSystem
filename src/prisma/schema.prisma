@@ -21,20 +21,6 @@ enum TransactionType {
   bank
 }
 
-model User {
-  id          Int           @id @default(autoincrement())
-  username    String
-  email       String        @unique
-  password    String
-  age         Int?
-  groups      UserGroup[]
-  merchant_id Int
-  merchant    Merchant      @relation(fields: [merchant_id], references: [merchant_id])
-  Transaction Transaction[]
-
-  @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
-}
-
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            @unique
@@ -53,8 +39,8 @@ model UserGroup {
   groupId    Int
   user       User     @relation(fields: [userId], references: [id])
   group      Group    @relation(fields: [groupId], references: [id])
-  merchantId Int // merchant association
-  merchant   Merchant @relation(fields: [merchantId], references: [merchant_id])
+  merchantId Int? // merchant association
+  merchant   Merchant? @relation(fields: [merchantId], references: [merchant_id])
 
   @@id([userId, groupId])
 }
@@ -72,17 +58,31 @@ model Merchant {
   merchant_id    Int         @id @default(autoincrement())
   full_name      String
   phone_number   String
-  email          String
-  password String?
   company_name   String
   company_url    String?
   city           String
   payment_volume Decimal?    @db.Decimal(10, 2)
-  //transactions   Transaction[]
+  user_id        Int
+  user           User        @relation("Owner", fields: [user_id], references: [id]) // Relation to owner User
   user_groups    UserGroup[] // Associate UserGroups with Merchant
-  users          User[]
-  @@unique(email)
+  users          User[]      @relation("AssociatedUsers") // List of associated Users for this Merchant
 }
+
+model User {
+  id          Int           @id @default(autoincrement())
+  username    String
+  email       String        @unique
+  password    String
+  groups      UserGroup[]
+  merchant_id Int?
+  merchant    Merchant?      @relation("AssociatedUsers", fields: [merchant_id], references: [merchant_id])
+
+  ownerOfMerchants Merchant[] @relation("Owner") // Opposite relation for owner User
+  Transaction Transaction[]
+
+  @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
+}
+
 
 model Transaction {
   transaction_id   String               @id @unique
