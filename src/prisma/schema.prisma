@@ -73,6 +73,7 @@ model Merchant {
   full_name      String
   phone_number   String
   email          String
+  password String?
   company_name   String
   company_url    String?
   city           String
@@ -80,6 +81,7 @@ model Merchant {
   //transactions   Transaction[]
   user_groups    UserGroup[] // Associate UserGroups with Merchant
   users          User[]
+  @@unique(email)
 }
 
 model Transaction {

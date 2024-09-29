@@ -15,10 +15,6 @@ const router = Router();
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
 
-  // Validate date_time
-  if (!data.date_time || isNaN(Date.parse(data.date_time))) {
-    errors.push({ msg: "Invalid date format", param: "date_time" });
-  }
 
   // Validate original_amount
   if (!data.original_amount || isNaN(parseFloat(data.original_amount)) || parseFloat(data.original_amount) <= 0) {
