@@ -224,7 +224,7 @@ router.post("/create-merchant", async (req: Request, res: Response) => {
             error = new CustomError("Invalid input data. 'password' must be at least 6 characters long.", 400);
             return res.status(400).json(error);
         }
-
+ //Added a comment
         // Check if the email already exists
         const existingUser = await prisma.merchant.findMany({
             where: { email },
