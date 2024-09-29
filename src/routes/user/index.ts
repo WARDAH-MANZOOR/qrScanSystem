@@ -99,7 +99,7 @@ const router = Router();
 router.post("/create-user", isLoggedIn,
     authorize("Create portal user"),
     async (req: Request, res: Response) => {
-        const { username, email, password, group, commission  } = req.body;
+        const { username, email, password, group, commission } = req.body;
         let error;
         try {
             if (!email || typeof email !== 'string' || !email.includes('@')) {
