@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { authorize, isLoggedIn } from "../../utils/middleware.js";
 import CustomError from "../../utils/custom_error.js";
+import updateMerchant from "controller/Marchant information update/index.js";
 
 const router = Router();
 
@@ -437,4 +438,55 @@ router.post("/assign", isLoggedIn,
         }
     });
 
+
+    /**
+ * @swagger
+ * /user_api/update-merchant/:
+ *   put:
+ *     summary: Update merchant details
+ *     tags: [Merchant]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The full name of the merchant
+ *                 example: John Doe
+ *               phone_number:
+ *                 type: string
+ *                 description: The phone number of the merchant
+ *                 example: +1234567890
+ *               company_name:
+ *                 type: string
+ *                 description: The name of the company
+ *                 example: Acme Inc
+ *               company_url:
+ *                 type: string
+ *                 description: The website of the company
+ *                 example: https://acme.com
+ *               city:
+ *                 type: string
+ *                 description: The city where the company is based
+ *                 example: New York
+ *               payment_volume:
+ *                 type: number
+ *                 description: Monthly payment volume
+ *                 example: 50000
+ *     responses:
+ *       200:
+ *         description: Merchant updated successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized - JWT token missing or invalid
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/update-merchant",isLoggedIn,updateMerchant)
 export default router;
