@@ -6,10 +6,9 @@ import { Decimal } from "@prisma/client/runtime/library";
 
 interface TransactionRequest {
   id: string;
-    date_time: string;
-    original_amount: string;
-    type: string;
-
+  date_time: string;
+  original_amount: string;
+  type: string;
 }
 
 const router = Router();
@@ -18,13 +17,20 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
 
   // Validate date_time
-  if (!data.id || !data.id.startsWith("T")){
+  if (!data.id || !data.id.startsWith("T")) {
     errors.push({ msg: "Invalid Transaction Id", param: "id" });
   }
 
   // Validate original_amount
-  if (!data.original_amount || isNaN(parseFloat(data.original_amount)) || parseFloat(data.original_amount) <= 0) {
-    errors.push({ msg: "Original amount must be a positive number", param: "original_amount" });
+  if (
+    !data.original_amount ||
+    isNaN(parseFloat(data.original_amount)) ||
+    parseFloat(data.original_amount) <= 0
+  ) {
+    errors.push({
+      msg: "Original amount must be a positive number",
+      param: "original_amount",
+    });
   }
 
   // Validate type
@@ -34,6 +40,43 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
   }
 
   return errors;
+};
+
+export const createTransactionRequestFromLib = async (obj: any) => {
+  const { id, original_amount, type } = obj;
+
+  // Validate data
+  const validationErrors = isValidTransactionRequest(obj);
+  if (validationErrors.length > 0) {
+    return { errors: validationErrors, success: false };
+  }
+  let merchant_id = (obj.user as JwtPayload)?.id;
+  try {
+    // Create a new transaction request in the database
+    const transaction = await prisma.transaction.create({
+      data: {
+        transaction_id: id,
+        date_time: new Date(),
+        original_amount: parseFloat(original_amount),
+        status: "pending", // Initially, the transaction is pending
+        type: type,
+        merchant: {
+          connect: { id: merchant_id },
+        },
+        settled_amount: parseFloat(original_amount),
+      },
+    });
+
+    // Send the response with the created transaction
+
+    return {
+      message: "Transaction request created successfully",
+      success: true,
+      transaction,
+    };
+  } catch (error) {
+    return { message: "Internal server error", success: false };
+  }
 };
 
 // Transaction Request Creation API
@@ -56,17 +99,20 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
         transaction_id: id,
         date_time: new Date(),
         original_amount: parseFloat(original_amount),
-        status: 'pending', // Initially, the transaction is pending
+        status: "pending", // Initially, the transaction is pending
         type: type,
         merchant: {
-          connect: {id: merchant_id}
+          connect: { id: merchant_id },
         },
         settled_amount: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number))
       }
     });
 
     // Send the response with the created transaction
-    return res.status(201).json({ message: "Transaction request created successfully", transaction });
+    return res.status(201).json({
+      message: "Transaction request created successfully",
+      transaction,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -84,7 +130,7 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
  *           type: string
  *           format: T*
  *           description: Transaction id starting with T and then whole date time in integers
- *           example: T20240928 
+ *           example: T20240928
  *         original_amount:
  *           type: number
  *           format: float
@@ -130,7 +176,7 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
  *               type: string
  *               description: The type of transaction.
  *               example: "purchase"
- * 
+ *
  * /transaction_create/:
  *   post:
  *     summary: Create a transaction request
@@ -180,5 +226,5 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
  *                   example: "Internal server error"
  */
 
-router.post("/",isLoggedIn,createTransactionRequest)
+router.post("/", isLoggedIn, createTransactionRequest);
 export default router;

@@ -124,6 +124,8 @@ const initiateJazzCashPayment = async (paymentData: any) => {
 
     if (r.pp_ResponseCode === "000") {
 
+      // Todo:
+      // add transaction code here to add response "r" in it.
 
 
       console.log("🚀 ~ initiateJazzCashPayment ~ r:", r)
