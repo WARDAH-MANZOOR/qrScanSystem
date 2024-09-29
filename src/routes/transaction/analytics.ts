@@ -112,7 +112,7 @@ router.get('/transactions', isLoggedIn,
  *       - name: transaction_id
  *         in: query
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Filter by transaction ID
  *       - name: amount
  *         in: query
@@ -138,7 +138,7 @@ router.get('/transactions', isLoggedIn,
 router.get('/transactions/search', isLoggedIn,
   authorize('Transactions List')
   , async (req: Request, res: Response) => {
-    const { transaction_id, amount, status, issuer } = req.query;
+    const { transaction_id, amount, status } = req.query;
     if (status !== 'completed' && status !== 'pending' && status !== 'failed') {
       // send error response, log, return from function, etc.
       let error = new CustomError("Status should be completed pending or failed", 500)
@@ -148,7 +148,7 @@ router.get('/transactions/search', isLoggedIn,
 
       const transactions = await prisma.transaction.findMany({
         where: {
-          transaction_id: transaction_id ? Number(transaction_id) : undefined,
+          transaction_id: transaction_id ? transaction_id as string : undefined,
           settled_amount: amount ? Number(amount) : undefined,
           status: status ? status : undefined,
           merchant_id: (req.user as JwtPayload)?.id,
@@ -250,7 +250,7 @@ router.get('/transactions/status_count', isLoggedIn, async (req: Request, res: R
  *       - in: path
  *         name: transaction_id
  *         schema:
- *           type: integer
+ *           type: string
  *         required: true
  *         description: ID of the transaction
  *     responses:
@@ -268,7 +268,7 @@ router.get('/status/:transaction_id', isLoggedIn, async (req: Request, res: Resp
       return res.status(400).json(error);
     }
     const transaction = await prisma.transaction.findUnique({
-      where: { transaction_id: parseInt(transaction_id),merchant_id: (req.user as JwtPayload)?.id },
+      where: { transaction_id: transaction_id as string,merchant_id: (req.user as JwtPayload)?.id },
     });
 
     if (!transaction) {

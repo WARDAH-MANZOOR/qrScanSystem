@@ -85,7 +85,7 @@ model Merchant {
 }
 
 model Transaction {
-  transaction_id   Int               @id @unique @default(autoincrement())
+  transaction_id   String               @id @unique
   date_time        DateTime
   original_amount  Decimal?          @db.Decimal(10, 2)
   status           TransactionStatus
@@ -127,7 +127,7 @@ model Provider {
 
 model ScheduledTask {
   id            Int       @id @default(autoincrement())
-  transactionId Int?
+  transactionId String?
   status        String    @db.VarChar(50)
   scheduledAt   DateTime? @db.Timestamptz
   executedAt    DateTime? @db.Timestamptz
