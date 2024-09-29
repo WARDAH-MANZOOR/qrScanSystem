@@ -8,7 +8,8 @@
     "dev": "npx tsc && nodemon ./bin/www",
     "seed": "node dist/prisma/seed.js",
     "build": "npx tsc",
-    "migrate": "npx prisma migrate dev --schema src/prisma/schema.prisma"
+    "migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
+    "generate": "prisma generate --sql --schema src/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",

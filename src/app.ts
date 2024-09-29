@@ -20,6 +20,7 @@ import userRouter from "./routes/user/index.js"
 import authRouter from "./routes/authentication/index.js"
 import createTransactionRouter from "./routes/transaction/create.js"
 import completeTransactionRouter from "./routes/transaction/complete.js"
+import adminTransactionRouter from "./routes/transaction/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
  
@@ -42,8 +43,10 @@ app.use('/transaction_analytics', transactionAnalyticsRouter);
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
+app.use('/admin', adminTransactionRouter);
 app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
+
 
 // Import all routes from routes/index
 routes(app);
