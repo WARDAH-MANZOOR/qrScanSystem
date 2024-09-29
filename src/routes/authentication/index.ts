@@ -88,11 +88,11 @@ router.post("/login", async (req: Request, res: Response) => {
         }
         console.log("User: ",user);
         // Compare passwords
-        // const isPasswordValid = await bcrypt.compare(password, user.password);
-        // if (!isPasswordValid) {
-        //     const error = new CustomError("Invalid email or password",401);
-        //     return res.status(401).send(error);
-        // }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            const error = new CustomError("Invalid email or password",401);
+            return res.status(401).send(error);
+        }
         
         // Extract the group name (role) from the user's groups
         const userGroup = user.groups[0]; // Assuming one group per user for simplicity
@@ -115,88 +115,6 @@ router.post("/login", async (req: Request, res: Response) => {
             username: user.username,
             email: user.email,
             id: user.id,
-            merchantId: user.merchant_id
-        }); 
-    } catch (error) {
-        error = new CustomError("Something went wrong!",500);
-        return res.status(500).send("Something went wrong!");
-    }
-});
-
-/**
- * @swagger
- * /auth_api/login-merchant:
- *   post:
- *     summary: User login
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Merchant'
- *           example:
- *             email: johndoe@example.com
- *             password: password123
- *     responses:
- *       200:
- *         description: Login success
- *         content:
- *           application/json:
- *             schema:
- *               type: string
- *               example: "Yes! You can login"
- *       401:
- *         description: Unauthorized - Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               type: string
- *               example: "Invalid email or password"
- *       500:
- *         description: Internal server error
- */
-router.post("/login-merchant", async (req: Request, res: Response) => {
-    try {
-        const { email, password } = req.body;
-        console.log("User", req.user);
-        // Fetch user by email
-        const user = await prisma.merchant.findUnique({
-            where: { email,  },
-        });
-
-        if (!user) {
-            const error = new CustomError("Invalid email or password",401);
-            return res.status(401).send(error);
-        }
-        console.log("User: ",user);
-        // Compare passwords
-        const isPasswordValid = await bcrypt.compare(password, user.password as string);
-        if (!isPasswordValid) {
-            const error = new CustomError("Invalid email or password",401);
-            return res.status(401).send(error);
-        }
-        
-        // Extract the group name (role) from the user's groups
-        // const userGroup = user.groups[0]; // Assuming one group per user for simplicity
-        // const role = userGroup ? userGroup.group.name : "user"; // Default role if no group found
-        
-        // Generate JWT token
-        const token = jwt.sign({ email: user.email, role: "Merchant", id:user.merchant_id, merchant_id: user.merchant_id }, "shhhhhhhhhhhhhh", { expiresIn: "1h" });
-
-        // Set token in cookies
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Secure cookie in production
-            sameSite: "strict", // Better security
-        });
-        //all user details, merchantId
-        return res.status(200).send({
-            message: "Login successfull.",
-            token: token,
-            role: "Merchant",
-            email: user.email,
-            id: user.merchant_id,
             merchantId: user.merchant_id
         }); 
     } catch (error) {
