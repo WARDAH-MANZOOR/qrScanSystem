@@ -7,6 +7,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["typedSql"]
 }
 
 enum TransactionStatus {
@@ -63,6 +64,7 @@ model Merchant {
   city           String
   payment_volume Decimal?    @db.Decimal(10, 2)
   user_id        Int
+  commission     Decimal?    @db.Decimal(10,2)
   user           User        @relation("Owner", fields: [user_id], references: [id]) // Relation to owner User
   user_groups    UserGroup[] // Associate UserGroups with Merchant
   users          User[]      @relation("AssociatedUsers") // List of associated Users for this Merchant

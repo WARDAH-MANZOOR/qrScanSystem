@@ -98,9 +98,8 @@ const router = Router();
 router.post("/create-user", isLoggedIn,
     authorize("Create portal user"),
     async (req: Request, res: Response) => {
-        const { username, email, password, group } = req.body;
+        const { username, email, password, group, commission  } = req.body;
         let error;
-
         try {
             if (!email || typeof email !== 'string' || !email.includes('@')) {
                 error = new CustomError("Invalid input data. 'email' must be a valid email address.", 400);
@@ -140,6 +139,11 @@ router.post("/create-user", isLoggedIn,
                             error = new CustomError("Merchant ID is required if the group ID is not 1 or 2.", 400);
                             return res.status(400).json(error);
                         }
+                        console.log("Role:",(req.user as JwtPayload)?.role);
+                        if ((group == 1 || group == 2) && (req.user as JwtPayload)?.role != "Admin") {
+                            error = new CustomError("Forbidden" ,403);
+                            return res.status(403).json(error);
+                        }
 
                         // Create the user
                         const user = await prisma.user.create({
@@ -159,7 +163,8 @@ router.post("/create-user", isLoggedIn,
                                     phone_number: "",
                                     company_name: "",
                                     city: "",
-                                    user_id: user.id          
+                                    user_id: user.id,
+                                    commission: commission          
                                 }
                             })
                             await prisma.user.update({
@@ -168,7 +173,6 @@ router.post("/create-user", isLoggedIn,
                                     merchant_id: user.id
                                 }
                             })
-                            
                         };
 
                         // Check group and assign user to the correct group
@@ -183,7 +187,7 @@ router.post("/create-user", isLoggedIn,
                         }
 
                         // Generate token and respond
-                        let token = jwt.sign({ email, id: user.id, merchant_id: user.merchant_id }, "shhhhhhhhhhhhhh");
+                        let token = jwt.sign({ email, id: user.id, merchant_id: user.merchant_id, role: group == 1 ? "Admin": group == 2 ? "Merchant": "User", }, "shhhhhhhhhhhhhh");
                         res.cookie("token", token, {
                             httpOnly: true
                         });

@@ -19,11 +19,10 @@ const task = async () => {
         if (transaction?.original_amount == undefined) {
           return;
         }
-        let amount = +transaction?.original_amount * 0.90;
 
         await prisma.transaction.update({
           data: {
-            settled_amount: amount, settlement: true
+            settlement: true
           },
           where: {transaction_id: task.transactionId as string}
         })
