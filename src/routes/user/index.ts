@@ -99,7 +99,8 @@ const router = Router();
  *               $ref: '#/components/schemas/User'
  */
 
-router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (req: Request, res: Response) => {
+// Todo: Not able to create user, its giving error cause merchant needs to be created first then user can be created. So where is merchant creation api?
+router.post("/create-user", async (req: Request, res: Response) => {
     const { username, email, password, age, merchant } = req.body;
     let error;
     try {
@@ -161,6 +162,7 @@ router.post("/create-user", isLoggedIn, authorize("Create portal user"), async (
                     res.status(201).send(user);
                 }
                 catch (err) {
+                    console.log("🚀 ~ bcrypt.hash ~ err:", err)
                     error = new CustomError("An error occurred while creating the user.", 500);
                     res.status(500).send(error);
                 }

@@ -6,6 +6,7 @@ import logger from 'morgan';
 import cron from "node-cron";
 import dotenv from "dotenv";
 import routes from './routes/index.js';
+import cors from 'cors';
 
 dotenv.config();
 
@@ -28,6 +29,9 @@ cron.schedule("* * * * *",task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
+
+// Allow all origins
+app.use(cors());
 
 app.use(logger('dev'));
 app.use(express.json());
