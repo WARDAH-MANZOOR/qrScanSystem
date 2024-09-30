@@ -82,7 +82,7 @@ const initiateJazzCashPayment = async (paymentData: any) => {
       pp_SubMerchantID: "",
       pp_Password: PASSWORD,
       pp_TxnRefNo: txnRefNo,
-      pp_Amount: amount,
+      pp_Amount: amount * 100,
       pp_DiscountedAmount: "",
       pp_TxnCurrency: "PKR",
       pp_TxnDateTime: txnDateTime,
@@ -124,7 +124,7 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     );
     let status = "completed";
     console.log(response.data.status);
-    if (response.data.status !== 200) {
+    if (response.data.pp_ResponseCode != "000") {
       status = "failed";
     }
 
