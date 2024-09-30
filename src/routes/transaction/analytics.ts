@@ -4,6 +4,7 @@ import { parseISO, subDays } from 'date-fns';
 import { authorize, isLoggedIn, restrict, restrictMultiple } from '../../utils/middleware.js';
 import CustomError from '../../utils/custom_error.js';
 import { JwtPayload } from 'jsonwebtoken';
+import { getTransactionsDaywise } from '@prisma/client/sql';
 const router = Router();
 
 /**
@@ -187,19 +188,7 @@ router.get('/transactions/daywise', isLoggedIn, async (req: Request, res: Respon
   try {
     const merchantId = (req.user as JwtPayload)?.id;
 
-    const transactions = await prisma.$queryRaw`
-      SELECT 
-        DATE_TRUNC('day', "date_time") as transaction_date, 
-        SUM("settled_amount") as total_settled_amount
-      FROM 
-        "Transaction"
-      WHERE 
-        "merchant_id" = ${merchantId}
-      GROUP BY 
-        transaction_date
-      ORDER BY 
-        transaction_date ASC;
-    `;
+    const transactions = await prisma.$queryRawTyped(getTransactionsDaywise(merchantId));
 
     res.status(200).json(transactions);
   } catch (error) {

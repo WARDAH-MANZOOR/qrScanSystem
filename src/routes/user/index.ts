@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { authorize, isLoggedIn } from "../../utils/middleware.js";
 import CustomError from "../../utils/custom_error.js";
+import updateMerchant from "controller/Marchant information update/index.js";
 
 const router = Router();
 
@@ -97,9 +98,8 @@ const router = Router();
 
 router.post("/create-user",
     async (req: Request, res: Response) => {
-        const { username, email, password, group } = req.body;
+        const { username, email, password, group, commission } = req.body;
         let error;
-
         try {
             if (!email || typeof email !== 'string' || !email.includes('@')) {
                 error = new CustomError("Invalid input data. 'email' must be a valid email address.", 400);
@@ -139,7 +139,16 @@ router.post("/create-user",
                             error = new CustomError("Merchant ID is required if the group ID is not 1 or 2.", 400);
                             return res.status(400).json(error);
                         }
+                        console.log("Role:",(req.user as JwtPayload)?.role);
+                        if ((group == 1 || group == 2) && (req.user as JwtPayload)?.role != "Admin") {
+                            error = new CustomError("Forbidden" ,403);
+                            return res.status(403).json(error);
+                        }
 
+                        if (group == 2 && (!commission || isNaN(parseFloat(commission)))) {
+                            error = new CustomError("Commission not given" ,400);
+                            return res.status(400).json(error);
+                        }
                         // Create the user
                         const user = await prisma.user.create({
                             data: {
@@ -158,7 +167,8 @@ router.post("/create-user",
                                     phone_number: "",
                                     company_name: "",
                                     city: "",
-                                    user_id: user.id          
+                                    user_id: user.id,
+                                    commission: commission          
                                 }
                             })
                             await prisma.user.update({
@@ -167,7 +177,6 @@ router.post("/create-user",
                                     merchant_id: user.id
                                 }
                             })
-                            
                         };
 
                         // Check group and assign user to the correct group
@@ -182,7 +191,7 @@ router.post("/create-user",
                         }
 
                         // Generate token and respond
-                        let token = jwt.sign({ email, id: user.id, merchant_id: user.merchant_id }, "shhhhhhhhhhhhhh");
+                        let token = jwt.sign({ email, id: user.id, merchant_id: user.merchant_id, role: group == 1 ? "Admin": group == 2 ? "Merchant": "User", }, "shhhhhhhhhhhhhh");
                         res.cookie("token", token, {
                             httpOnly: true
                         });
@@ -432,4 +441,55 @@ router.post("/assign", isLoggedIn,
         }
     });
 
+
+    /**
+ * @swagger
+ * /user_api/update-merchant/:
+ *   put:
+ *     summary: Update merchant details
+ *     tags: [Merchant]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The full name of the merchant
+ *                 example: John Doe
+ *               phone_number:
+ *                 type: string
+ *                 description: The phone number of the merchant
+ *                 example: +1234567890
+ *               company_name:
+ *                 type: string
+ *                 description: The name of the company
+ *                 example: Acme Inc
+ *               company_url:
+ *                 type: string
+ *                 description: The website of the company
+ *                 example: https://acme.com
+ *               city:
+ *                 type: string
+ *                 description: The city where the company is based
+ *                 example: New York
+ *               payment_volume:
+ *                 type: number
+ *                 description: Monthly payment volume
+ *                 example: 50000
+ *     responses:
+ *       200:
+ *         description: Merchant updated successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized - JWT token missing or invalid
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/update-merchant",isLoggedIn,updateMerchant)
 export default router;

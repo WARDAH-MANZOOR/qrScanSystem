@@ -94,4 +94,8 @@ const authorize = (permissionName: string) => {
     };
 };
 
-export {isLoggedIn, restrict, errorHandler, restrictMultiple, authorize};
+const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+    return (req.user as JwtPayload)?.role == "Admin" ? next() : res.status(403).json({message: "Forbidden"})
+}
+
+export {isLoggedIn, restrict, errorHandler, restrictMultiple, authorize, isAdmin};
