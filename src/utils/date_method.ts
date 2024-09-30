@@ -1,3 +1,5 @@
+import CustomError from "./custom_error.js";
+
 const addWeekdays = (date: Date, days: number) => {
     let result = new Date(date);
     let addedDays = 0;
@@ -15,4 +17,24 @@ const addWeekdays = (date: Date, days: number) => {
     return result;
 };
 
-export {addWeekdays};
+const getDateRange = (range: string, startDate?: string, endDate?: string) => {
+    const currentDate = new Date();
+    let fromDate: Date, toDate: Date;
+  
+    if (range === 'daily') {
+      fromDate = new Date(currentDate.setHours(0, 0, 0, 0)); // start of today
+      toDate = new Date();
+    } else if (range === 'weekly') {
+      fromDate = new Date(currentDate.setDate(currentDate.getDate() - 7)); // 7 days ago
+      toDate = new Date();
+    } else if (range === 'custom' && startDate && endDate) {
+      fromDate = new Date(startDate);
+      toDate = new Date(endDate);
+    } else {
+      throw new CustomError('Invalid range or missing date parameters', 400);
+    }
+  
+    return { fromDate, toDate };
+  };
+
+export {addWeekdays, getDateRange};

@@ -1,5 +1,5 @@
 import { getAllTransactions } from "@prisma/client/sql";
-import {getTransactionOfMerchant, searchTransactions } from "controller/transaction/admin_only.js";
+import {getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions } from "controller/transaction/admin_only.js";
 import { Request, Response, Router } from "express";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
@@ -210,4 +210,181 @@ router.get("/merchant-transactions/:merchantId",isLoggedIn,isAdmin,getTransactio
  */
 
 router.get("/search-transactions",isLoggedIn,isAdmin,searchTransactions);
+
+/**
+ * @swagger
+ * /admin_api/profits-balances/:
+ *   get:
+ *     summary: Retrieve the balance and profit for all merchants within a specific date range
+ *     tags:
+ *       - [AdminOnly]
+ *     description: >
+ *       Fetches the total balance and calculated profit for all merchants over a specified time range, 
+ *       including daily, weekly, or custom date ranges. The profit is calculated as a percentage of the 
+ *       settled amount based on the merchant's commission rate.
+ *     parameters:
+ *       - in: query
+ *         name: range
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [daily, weekly, custom]
+ *         description: The date range for which to fetch the balance and profit (daily, weekly, or custom).
+ *       - in: query
+ *         name: startDate
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The start date for custom range (required if range is custom).
+ *       - in: query
+ *         name: endDate
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The end date for custom range (required if range is custom).
+ *     responses:
+ *       200:
+ *         description: A list of merchants with their balance and profit
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   merchant_id:
+ *                     type: integer
+ *                     description: The unique ID of the merchant.
+ *                     example: 123
+ *                   full_name:
+ *                     type: string
+ *                     description: The full name of the merchant.
+ *                     example: John Doe
+ *                   company_name:
+ *                     type: string
+ *                     description: The name of the merchant's company.
+ *                     example: Example Corp
+ *                   total_balance:
+ *                     type: string
+ *                     format: decimal
+ *                     description: The total settled balance of the merchant within the specified date range.
+ *                     example: "1500.50"
+ *                   profit:
+ *                     type: string
+ *                     format: decimal
+ *                     description: The calculated profit for the merchant within the specified date range.
+ *                     example: "150.05"
+ *       400:
+ *         description: Invalid input parameters (e.g., missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message explaining the invalid request.
+ *                   example: "Range is required"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message explaining the server error.
+ *                   example: "Internal Server Error"
+ */
+router.get("/profits-balances",isLoggedIn,isAdmin,getAllProfitAndBalance);
+
+/**
+ * @swagger
+ * /admin_api/profit-balance/{merchantId}/:
+ *   get:
+ *     summary: Retrieve the balance and profit for a specific merchant within a given date range
+ *     tags:
+ *       - [AdminOnly]
+ *     description: >
+ *       Fetches the total balance and calculated profit for a specific merchant over a specified time range. 
+ *       The profit is calculated as a percentage of the settled amount based on the merchant's commission rate.
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the merchant to retrieve the balance and profit for.
+ *         example: 123
+ *       - in: query
+ *         name: range
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [daily, weekly, custom]
+ *         description: The date range for which to fetch the balance and profit (daily, weekly, or custom).
+ *       - in: query
+ *         name: startDate
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The start date for custom range (required if range is custom).
+ *       - in: query
+ *         name: endDate
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The end date for custom range (required if range is custom).
+ *     responses:
+ *       200:
+ *         description: Balance and profit details for the specified merchant
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 merchant_id:
+ *                   type: integer
+ *                   description: The unique ID of the merchant.
+ *                   example: 123
+ *                 total_balance:
+ *                   type: string
+ *                   format: decimal
+ *                   description: The total settled balance of the merchant within the specified date range.
+ *                   example: "1500.50"
+ *                 profit:
+ *                   type: string
+ *                   format: decimal
+ *                   description: The calculated profit for the merchant within the specified date range.
+ *                   example: "150.05"
+ *       400:
+ *         description: Invalid input parameters (e.g., missing required fields or invalid merchantId)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message explaining the invalid request.
+ *                   example: "Range or merchant id is required"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message explaining the server error.
+ *                   example: "Internal Server Error"
+ */
+
+router.get("/profit-balance/:merchantId",isLoggedIn,isAdmin,getProfitAndBalanceByMerchant)
 export default router;
