@@ -146,6 +146,10 @@ router.post("/create-user", isLoggedIn,
                             return res.status(403).json(error);
                         }
 
+                        if (group == 2 && (!commission || isNaN(parseFloat(commission)))) {
+                            error = new CustomError("Commission not given" ,400);
+                            return res.status(400).json(error);
+                        }
                         // Create the user
                         const user = await prisma.user.create({
                             data: {

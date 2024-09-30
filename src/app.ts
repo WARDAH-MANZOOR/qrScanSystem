@@ -47,7 +47,7 @@ app.use('/transaction_analytics', transactionAnalyticsRouter);
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
-app.use('/admin', adminTransactionRouter);
+app.use('/admin_api', adminTransactionRouter);
 app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
 
