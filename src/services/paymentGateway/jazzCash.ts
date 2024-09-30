@@ -55,7 +55,7 @@ const getSecureHash = (data: any, salt: string): string => {
   return ppSecureHash;
 };
 
-const initiateJazzCashPayment = async (paymentData: any) => {
+const initiateJazzCashPayment = async (paymentData: any, merchantId: any) => {
   try {
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
 
@@ -122,11 +122,13 @@ const initiateJazzCashPayment = async (paymentData: any) => {
 
     const r = response.data;
 
-    transactionService.createTransaction({
-      id: r.txnRefNo,
-      amount: r.pp_Amount,
+
+
+    await transactionService.createTransaction({
+      id: txnRefNo,
+      original_amount: sendData.pp_Amount,
       type: "wallet",
-      merchant_id: MERCHANT_ID,
+      merchant_id: merchantId,
     });
 
     if (!r) {
@@ -143,6 +145,7 @@ const initiateJazzCashPayment = async (paymentData: any) => {
       );
     }
   } catch (error: any) {
+    console.log(error);
     throw new CustomError(error?.error, error?.statusCode);
   }
 };

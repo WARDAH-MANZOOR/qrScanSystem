@@ -37,13 +37,13 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
 };
 
 const createTransaction = async (obj: any) => {
-  const { id, original_amount, type } = obj;
+  console.log("Called");
+  const { id, original_amount, type,merchant_id } = obj;
   const validationErrors = isValidTransactionRequest(obj);
   if (validationErrors.length > 0) {
     return { errors: validationErrors, success: false };
   }
   
-  let merchant_id = (obj.user as JwtPayload)?.id;
   try {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
@@ -59,7 +59,7 @@ const createTransaction = async (obj: any) => {
         settled_amount: parseFloat(original_amount),
       },
     });
-
+    console.log("Created");
     // Send the response with the created transaction
 
     return {
@@ -68,6 +68,7 @@ const createTransaction = async (obj: any) => {
       transaction,
     };
   } catch (error: any) {
+    console.log(error);
     throw new CustomError(error?.error, error?.statusCode);
   }
 };
