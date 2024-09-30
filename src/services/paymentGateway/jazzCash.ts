@@ -103,6 +103,13 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     // Generate the secure hash
     sendData.pp_SecureHash = getSecureHash(sendData, INTEGRITY_SALT);
 
+    await transactionService.createTransaction({
+      id: txnRefNo,
+      original_amount: sendData.pp_Amount,
+      type: "wallet",
+      merchant_id: parseInt(paymentData.merchantId),
+    });
+
     // Send the request to JazzCash
     const paymentUrl =
       "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
@@ -115,18 +122,23 @@ const initiateJazzCashPayment = async (paymentData: any) => {
       new URLSearchParams(sendData).toString(),
       { headers }
     );
-
-    if (response.status !== 200) {
-      throw new CustomError("Payment timeout", 500);
+    let status = "completed";
+    console.log(response.data.status);
+    if (response.data.status !== 200) {
+      status = "failed";
     }
 
+    let info = {
+
+    };
+    let provider = {
+      name: "JazzCash",
+      type: "MWALLET",
+      version: "1.1"
+    }
+    await transactionService.completeTransaction({ transaction_id:txnRefNo, status, response_message: response.data.pp_ResponseMessage, info, provider, merchant_id: parseInt(paymentData.merchantId) })
+
     const r = response.data;
-    await transactionService.createTransaction({
-      id: txnRefNo,
-      original_amount: sendData.pp_Amount,
-      type: "wallet",
-      merchant_id: paymentData.merchantId,
-    });
 
     if (!r) {
       throw new CustomError(response.statusText, 500);

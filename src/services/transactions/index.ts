@@ -6,6 +6,7 @@ import prisma from "../../prisma/client.js";
 import { JwtPayload } from "jsonwebtoken";
 
 import type { TransactionRequest, CompleteRequest } from "types/transaction.d.ts";
+import { addWeekdays } from "utils/date_method.js";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -104,19 +105,19 @@ const createTransaction = async (obj: any) => {
 };
 
 const completeTransaction = async (obj: any) => {
-    const { transaction_id, status, response_message, info, provider } = obj;
+    const { transaction_id, status, response_message, info, provider, merchant_id } = obj;
 
     // Validate data
     const validationErrors = isValidTransactionCompletion(obj);
     if (validationErrors.length > 0) {
-        return res.status(400).json({ errors: validationErrors });
+        return { errors: validationErrors, success: false };
     }
 
     try {
         const transaction = await prisma.transaction.findUnique({
             where: {
                 transaction_id: transaction_id,
-                merchant_id: (req.user as JwtPayload)?.id,
+                merchant_id,
                 status: 'pending'
             }
         });
@@ -127,7 +128,7 @@ const completeTransaction = async (obj: any) => {
             const updatedTransaction = await prisma.transaction.update({
                 where: {
                     transaction_id: transaction_id,
-                    merchant_id: (req.user as JwtPayload)?.id
+                    merchant_id
                 },
                 data: {
                     date_time: date,
@@ -180,18 +181,19 @@ const completeTransaction = async (obj: any) => {
         
 
             // Send the response with the updated transaction
-            return res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask });
+            return { message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask };
         }
         else {
-            return res.status(404).json({message: "Transaction not found"});
+            return {message: "Transaction not found"};
         }
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return { message: "Internal server error" };
     }
 };
 
 export default {
   createTransaction,
+  completeTransaction
 };

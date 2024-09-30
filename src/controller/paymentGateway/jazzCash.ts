@@ -11,8 +11,7 @@ const initiateJazzCash = async (
 ) => {
   try {
     const paymentData = req.body;
-    let merchantId = (req.user as JwtPayload)?.id;
-    const result = await jazzCashService.initiateJazzCashPayment(paymentData,merchantId);
+    const result = await jazzCashService.initiateJazzCashPayment(paymentData);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
