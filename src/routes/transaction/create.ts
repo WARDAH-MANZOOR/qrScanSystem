@@ -49,8 +49,12 @@ export const createTransactionRequestFromLib = async (obj: any) => {
   const validationErrors = isValidTransactionRequest(obj);
   if (validationErrors.length > 0) {
     return { errors: validationErrors, success: false };
+    
   }
   let merchant_id = (obj.user as JwtPayload)?.id;
+  let commission = await prisma.merchant.findUnique({
+    where: {merchant_id},
+  })
   try {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
@@ -63,7 +67,7 @@ export const createTransactionRequestFromLib = async (obj: any) => {
         merchant: {
           connect: { id: merchant_id },
         },
-        settled_amount: parseFloat(original_amount),
+        settled_amount: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number)),
       },
     });
 
