@@ -30,8 +30,11 @@ cron.schedule("* * * * *",task);
 app.set('views', "./views");
 app.set('view engine', 'jade');
 
-// Allow all origins
-app.use(cors());
+// Allow only specific origins
+app.use(cors({
+  origin: ['http://localhost:3000', '*'],
+  credentials: true,
+}));
 
 app.use(logger('dev'));
 app.use(express.json());

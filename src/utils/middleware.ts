@@ -10,6 +10,9 @@ const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
             return res.status(401).send("You must be logged in");
         }
 
+        console.log(req.cookies.token);
+        
+
         // Verify the JWT token
         const data = jwt.verify(req.cookies.token, 'shhhhhhhhhhhhhh') as JwtPayload;
         

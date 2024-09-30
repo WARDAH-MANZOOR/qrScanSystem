@@ -2,6 +2,7 @@ import CustomError from "../../utils/custom_error.js";
 import crypto from "crypto";
 import { format } from "date-fns";
 import axios from "axios";
+import { transactionService } from "services/index.js";
 
 const MERCHANT_ID = "12478544";
 const PASSWORD = "uczu5269d1";
@@ -57,7 +58,7 @@ const getSecureHash = (data: any, salt: string): string => {
 const initiateJazzCashPayment = async (paymentData: any) => {
   try {
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
-    
+
     // Get the fractional milliseconds part of the current timestamp
     const currentTime = Date.now();
     const fractionalMilliseconds = Math.floor(
@@ -65,7 +66,9 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     );
 
     // Create the transaction reference number
-    const txnRefNo = `T${txnDateTime}${fractionalMilliseconds.toString().padStart(5, "0")}`;
+    const txnRefNo = `T${txnDateTime}${fractionalMilliseconds
+      .toString()
+      .padStart(5, "0")}`;
 
     const amount = paymentData.amount;
     const phone = paymentData.phone;
@@ -118,17 +121,20 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     }
 
     const r = response.data;
+
+    transactionService.createTransaction({
+      id: r.txnRefNo,
+      amount: r.pp_Amount,
+      type: "wallet",
+      merchant_id: MERCHANT_ID,
+    });
+
     if (!r) {
       throw new CustomError(response.statusText, 500);
     }
 
     if (r.pp_ResponseCode === "000") {
-
-      // Todo:
-      // add transaction code here to add response "r" in it.
-
-
-      console.log("🚀 ~ initiateJazzCashPayment ~ r:", r)
+      console.log("🚀 ~ initiateJazzCashPayment ~ r:", r);
       return "Redirecting to thank you page...";
     } else {
       throw new CustomError(
