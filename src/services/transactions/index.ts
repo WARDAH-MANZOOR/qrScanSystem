@@ -5,7 +5,7 @@ import axios from "axios";
 import prisma from "../../prisma/client.js";
 import { JwtPayload } from "jsonwebtoken";
 
-import type { TransactionRequest } from "types/transaction.d.ts";
+import type { TransactionRequest, CompleteRequest } from "types/transaction.d.ts";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -31,6 +31,36 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
   const validTypes = ["wallet", "card", "bank"];
   if (!data.type || !validTypes.includes(data.type)) {
     errors.push({ msg: "Invalid transaction type", param: "type" });
+  }
+
+  return errors;
+};
+
+const isValidTransactionCompletion = (data: CompleteRequest) => {
+  const errors = [];
+
+  // Validate transaction_id
+  if (!data.transaction_id || !data.transaction_id.startsWith("T")) {
+      errors.push({ msg: "Transaction ID must be a string", param: "transaction_id" });
+  }
+
+  // Validate status
+  const validStatuses = ["completed", "failed"];
+  if (!data.status || !validStatuses.includes(data.status)) {
+      errors.push({ msg: "Invalid transaction status", param: "status" });
+  }
+
+  // Validate provider object if present
+  if (data.provider) {
+      if (!data.provider.name || typeof data.provider.name !== 'string') {
+          errors.push({ msg: "Provider name must be a string", param: "provider.name" });
+      }
+      if (!data.provider.type || typeof data.provider.type !== 'string') {
+          errors.push({ msg: "Provider transaction type must be a string", param: "provider.type" });
+      }
+      if (!data.provider.version || typeof data.provider.version !== 'string') {
+          errors.push({ msg: "Provider version must be a string", param: "provider.version" });
+      }
   }
 
   return errors;
@@ -71,6 +101,95 @@ const createTransaction = async (obj: any) => {
     console.log(error);
     throw new CustomError(error?.error, error?.statusCode);
   }
+};
+
+const completeTransaction = async (obj: any) => {
+    const { transaction_id, status, response_message, info, provider } = obj;
+
+    // Validate data
+    const validationErrors = isValidTransactionCompletion(obj);
+    if (validationErrors.length > 0) {
+        return res.status(400).json({ errors: validationErrors });
+    }
+
+    try {
+        const transaction = await prisma.transaction.findUnique({
+            where: {
+                transaction_id: transaction_id,
+                merchant_id: (req.user as JwtPayload)?.id,
+                status: 'pending'
+            }
+        });
+
+        if (transaction) {
+            // Update the transaction as completed or failed
+            let date = new Date();
+            const updatedTransaction = await prisma.transaction.update({
+                where: {
+                    transaction_id: transaction_id,
+                    merchant_id: (req.user as JwtPayload)?.id
+                },
+                data: {
+                    date_time: date,
+                    status: status,
+                    response_message: response_message || null,
+                    Provider: provider ? {
+                        connectOrCreate: {
+                            where: {
+                                name_txn_type_version: {
+                                    name: provider.name,
+                                    txn_type: provider.type,
+                                    version: provider.version
+                                }
+                            },
+                            create: {
+                                name: provider.name,
+                                txn_type: provider.type,
+                                version: provider.version
+                            }
+                        }
+                    } : undefined,
+                    AdditionalInfo: info ? {
+                        create: {
+                            bank_id: info.bank_id || null,
+                            bill_reference: info.bill_reference || null,
+                            retrieval_ref: info.retrieval_ref || null,
+                            sub_merchant_id: info.sub_merchant_id || null,
+                            settlement_expiry: info.settlement_expiry || null,
+                            custom_field_1: info.custom_field_1 || null,
+                            custom_field_2: info.custom_field_2 || null,
+                            custom_field_3: info.custom_field_3 || null,
+                            custom_field_4: info.custom_field_4 || null,
+                            custom_field_5: info.custom_field_5 || null,
+                        }
+                    } : undefined
+                }
+            });
+
+            const scheduledAt = addWeekdays(date, 2);  // Call the function to get the next 2 weekdays
+
+            // Create the scheduled task in the database
+            const scheduledTask = await prisma.scheduledTask.create({
+              data: {
+                transactionId: transaction_id,
+                status: 'pending',
+                scheduledAt: scheduledAt,  // Assign the calculated weekday date
+                executedAt: null,  // Assume executedAt is null when scheduling
+              }
+            });
+        
+
+            // Send the response with the updated transaction
+            return res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask });
+        }
+        else {
+            return res.status(404).json({message: "Transaction not found"});
+        }
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
 };
 
 export default {
