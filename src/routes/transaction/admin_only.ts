@@ -1,5 +1,5 @@
 import { getAllTransactions } from "@prisma/client/sql";
-import {getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions, getMerchants } from "controller/transactions/admin_only.js";
+import { getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions, getMerchants } from "controller/transactions/admin_only.js";
 import { Request, Response, Router } from "express";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
@@ -44,7 +44,13 @@ let router = Router();
 *        commission:
 *          type: string
 *          example: "0.01"
- */
+*    Error:
+*      type: object
+*      properties:
+*        message:
+*          type: string
+*          example: Internal Server Error 
+*/
 /**
  * @swagger
  * /admin_api/transactions/:
@@ -107,7 +113,7 @@ router.get("/transactions", isLoggedIn, isAdmin, async (req: Request, res: Respo
         res.status(200).json(transactions);
     } catch (error) {
         console.error(error);
-        error = new CustomError("An error occurred while fetching transactions.",500);
+        error = new CustomError("An error occurred while fetching transactions.", 500);
         res.status(500).json(error);
     }
 });
@@ -179,7 +185,7 @@ router.get("/transactions", isLoggedIn, isAdmin, async (req: Request, res: Respo
  *                   description: Error message
  *                   example: "Internal Server Error"
  */
-router.get("/merchant-transactions/:merchantId",isLoggedIn,isAdmin,getTransactionOfMerchant)
+router.get("/merchant-transactions/:merchantId", isLoggedIn, isAdmin, getTransactionOfMerchant)
 
 /**
  * @swagger
@@ -247,7 +253,7 @@ router.get("/merchant-transactions/:merchantId",isLoggedIn,isAdmin,getTransactio
  *                   example: "Internal Server Error"
  */
 
-router.get("/search-transactions",isLoggedIn,isAdmin,searchTransactions);
+router.get("/search-transactions", isLoggedIn, isAdmin, searchTransactions);
 
 /**
  * @swagger
@@ -337,7 +343,7 @@ router.get("/search-transactions",isLoggedIn,isAdmin,searchTransactions);
  *                   description: Error message explaining the server error.
  *                   example: "Internal Server Error"
  */
-router.get("/profits-balances",isLoggedIn,isAdmin,getAllProfitAndBalance);
+router.get("/profits-balances", isLoggedIn, isAdmin, getAllProfitAndBalance);
 
 /**
  * @swagger
@@ -424,7 +430,7 @@ router.get("/profits-balances",isLoggedIn,isAdmin,getAllProfitAndBalance);
  *                   example: "Internal Server Error"
  */
 
-router.get("/profit-balance/:merchantId",isLoggedIn,isAdmin,getProfitAndBalanceByMerchant)
+router.get("/profit-balance/:merchantId", isLoggedIn, isAdmin, getProfitAndBalanceByMerchant)
 
 /**
  * @swagger
@@ -450,5 +456,5 @@ router.get("/profit-balance/:merchantId",isLoggedIn,isAdmin,getProfitAndBalanceB
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/merchants",isLoggedIn,isAdmin,getMerchants);
+router.get("/merchants", isLoggedIn, isAdmin, getMerchants);
 export default router;
