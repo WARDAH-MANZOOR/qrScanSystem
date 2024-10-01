@@ -108,10 +108,10 @@ const getTransactions = async (req: Request, res: Response) => {
 
 const getProAndBal = async (req: Request, res: Response) => {
     try {
-        const { merchantId, startDate, endDate } = req.query;
+        const { merchantId, startDate, endDate, range } = req.query;
 
         // Get date range based on the query parameters (defaulting to the full range if not provided)
-        const { fromDate, toDate } = getDateRange('custom', startDate as string, endDate as string);
+        const { fromDate, toDate } = getDateRange(range as string, startDate as string, endDate as string);
 
         // Raw SQL query based on whether `merchantId` is provided or not
         const profitAndBalanceQuery = merchantId
@@ -122,6 +122,7 @@ const getProAndBal = async (req: Request, res: Response) => {
 
         res.status(200).json(merchantsBalanceProfit);
     } catch (err) {
+        console.log(err);
         const error = new CustomError("Internal Server Error", 500);
         res.status(500).send(error);
     }

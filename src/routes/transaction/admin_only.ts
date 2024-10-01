@@ -50,6 +50,15 @@ let router = Router();
 *        message:
 *          type: string
 *          example: Internal Server Error 
+*    MerchantProfitBalance:
+*      type: object
+*      properties:
+*        merchant_id:
+*          type: integer
+*        profit:
+*          type: number
+*        balance:
+*          type: number
 */
 
 /**
@@ -93,73 +102,57 @@ let router = Router();
  */
 router.get("/transactions", isLoggedIn, isAdmin, getTransactions);
 
-// /**
-//  * @swagger
-//  * /admin_api/merchant-transactions/{merchantId}:
-//  *   get:
-//  *     summary: Get transactions for a specific merchant
-//  *     description: Retrieve all transactions related to the given merchant ID. If the merchant ID is invalid or not found, a 404 error is returned.
-//  *     tags:
-//  *       - [AdminOnly]
-//  *     parameters:
-//  *       - in: path
-//  *         name: merchantId
-//  *         required: true
-//  *         description: ID of the merchant
-//  *         schema:
-//  *           type: integer
-//  *           example: 123
-//  *     responses:
-//  *       200:
-//  *         description: Successful response with a list of transactions for the merchant
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: array
-//  *               items:
-//  *                 type: object
-//  *                 properties:
-//  *                   transaction_id:
-//  *                     type: integer
-//  *                     description: Unique identifier of the transaction
-//  *                   original_amount:
-//  *                     type: number
-//  *                     format: float
-//  *                     description: Original transaction amount
-//  *                   settled_amount:
-//  *                     type: number
-//  *                     format: float
-//  *                     description: Amount settled after deductions
-//  *                   profit:
-//  *                     type: number
-//  *                     format: float
-//  *                     description: Calculated profit (original_amount - settled_amount)
-//  *                   merchant_name:
-//  *                     type: string
-//  *                     description: Name of the merchant
-//  *       404:
-//  *         description: Merchant not found or invalid ID
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 error:
-//  *                   type: string
-//  *                   description: Error message
-//  *                   example: "Merchant Not Found"
-//  *       500:
-//  *         description: Internal server error
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 error:
-//  *                   type: string
-//  *                   description: Error message
-//  *                   example: "Internal Server Error"
-//  */
+/**
+ * @swagger
+ * /admin_api/profit-balance/:
+ *   get:
+ *     summary: Retrieve balance and profit information for merchants
+ *     description: Retrieve balance and profit for a specific merchant or all merchants. Optionally filter by date range.
+ *     tags:
+ *       - [AdminOnly]
+ *     parameters:
+ *       - in: query
+ *         name: merchantId
+ *         schema:
+ *           type: integer
+ *         description: Retrieve balance and profit for a specific merchant
+ *         required: false
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter profits and balances from this date with this format YYYY-MM-DD)
+ *         required: false
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter profits and balances up to this date with this format YYYY-MM-DD
+ *         required: false
+ *       - in: query
+ *         name: range
+ *         schema:
+ *           type: string
+ *           enum: [daily, weekly, custom]
+ *         description: Filters transactions according to the given range
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: A list of merchants with balance and profit details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/MerchantProfitBalance'
+ *       400:
+ *         description: Bad Request
+ *       500:
+ *         description: Internal Server Error
+ */
+
 router.get("/profit-balance", isLoggedIn, isAdmin, getProAndBal)
 
 // /**
