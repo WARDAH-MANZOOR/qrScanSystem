@@ -4,7 +4,6 @@ import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { authorize, isLoggedIn } from "../../utils/middleware.js";
 import CustomError from "../../utils/custom_error.js";
-import updateMerchant from "controller/merchant/index.js";
 
 const router = Router();
 
