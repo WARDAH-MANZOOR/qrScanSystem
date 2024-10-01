@@ -7,6 +7,9 @@ import { JwtPayload } from 'jsonwebtoken';
 import { getTransactionsDaywise } from '@prisma/client/sql';
 const router = Router();
 
+interface Transaction {
+  settled_amount: number | null;
+}
 /**
  * @swagger
  * components:
@@ -94,10 +97,19 @@ router.get('/transactions', isLoggedIn,
       const transactions = await prisma.transaction.findMany({
         where: {
           merchant_id: (req.user as JwtPayload)?.id
+        },
+        select: {
+          original_amount: false,
+          date_time: true,
+          settled_amount: true,
+          status: true,
+          response_message: true,
+          transaction_id:true
         }
       });
       res.status(200).json(transactions);
     } catch (error) {
+      console.log(error)
       error = new CustomError("Internal Server Error", 500)
       res.status(500).json(error);
     }
@@ -154,6 +166,14 @@ router.get('/transactions/search', isLoggedIn,
           status: status ? status : undefined,
           merchant_id: (req.user as JwtPayload)?.id,
         },
+        select: {
+          original_amount: false,
+          date_time: true,
+          settled_amount: true,
+          status: true,
+          response_message: true,
+          transaction_id:true
+        }
       });
       res.status(200).json(transactions);
     } catch (error) {
@@ -258,6 +278,14 @@ router.get('/status/:transaction_id', isLoggedIn, async (req: Request, res: Resp
     }
     const transaction = await prisma.transaction.findUnique({
       where: { transaction_id: transaction_id as string,merchant_id: (req.user as JwtPayload)?.id },
+      select: {
+        original_amount: false,
+        date_time: true,
+          settled_amount: true,
+          status: true,
+          response_message: true,
+          transaction_id:true
+      }
     });
 
     if (!transaction) {
@@ -381,6 +409,11 @@ router.get('/datewise', isLoggedIn, authorize('Transactions List'), async (req: 
   try {
     const transactions = await prisma.transaction.findMany({
       where: {...filter, merchant_id: (req.user as JwtPayload)?.id},
+      select: {original_amount: false, date_time: true,
+        settled_amount: true,
+        status: true,
+        response_message: true,
+        transaction_id:true}
     });
 
     const totalAmount = transactions.reduce(
@@ -425,6 +458,14 @@ router.get("/transactions/current-month", isLoggedIn, authorize("Transactions Li
         },
         merchant_id: (req.user as JwtPayload)?.id
       },
+      select: {
+        original_amount: false,
+        date_time: true,
+          settled_amount: true,
+          status: true,
+          response_message: true,
+          transaction_id:true
+      }
     });
     res.json(transactions);
   }
