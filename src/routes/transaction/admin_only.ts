@@ -1,5 +1,5 @@
 import { getAllTransactions } from "@prisma/client/sql";
-import { getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions, getMerchants } from "controller/transactions/admin_only.js";
+import { getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions } from "controller/transactions/admin_only.js";
 import { Request, Response, Router } from "express";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
@@ -431,30 +431,4 @@ router.get("/profits-balances", isLoggedIn, isAdmin, getAllProfitAndBalance);
  */
 
 router.get("/profit-balance/:merchantId", isLoggedIn, isAdmin, getProfitAndBalanceByMerchant)
-
-/**
- * @swagger
- * /admin_api/merchants/:
- *   get:
- *     summary: Retrieve a list of merchants
- *     description: Fetches all merchants from the database.
- *     tags:
- *       - [AdminOnly]
- *     responses:
- *       200:
- *         description: A list of merchants
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Merchant'
- *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get("/merchants", isLoggedIn, isAdmin, getMerchants);
 export default router;
