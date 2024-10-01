@@ -82,4 +82,5 @@ const getProfitAndBalanceByMerchant = async (req: Request, res: Response) => {
     }
 
 }
+
 export { getTransactionOfMerchant, searchTransactions, getAllProfitAndBalance, getProfitAndBalanceByMerchant };
