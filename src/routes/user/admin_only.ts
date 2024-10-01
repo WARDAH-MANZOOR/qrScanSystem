@@ -56,7 +56,7 @@ import { isAdmin, isLoggedIn } from "utils/middleware.js";
 //  *       500:
 //  *         description: Internal server error
 //  */
-router.put("/update-merchant",isLoggedIn,isAdmin,updateMerchant);
+// router.put("/update-merchant",isLoggedIn,isAdmin,updateMerchant);
 
 /**
  * @swagger
@@ -82,5 +82,5 @@ router.put("/update-merchant",isLoggedIn,isAdmin,updateMerchant);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/merchants", isLoggedIn, isAdmin, getMerchants);
+// router.get("/merchants", isLoggedIn, isAdmin, getMerchants);
 export default router;
