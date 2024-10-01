@@ -1,6 +1,5 @@
-import {updateMerchant,getMerchants} from "controller/merchant/index.js";
 import router from "routes/transaction/admin_only.js";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
+
 
 // /**
 //  * @swagger
