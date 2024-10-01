@@ -33,7 +33,7 @@ app.set('view engine', 'jade');
 
 // Allow only specific origins
 app.use(cors({
-  origin: ['http://localhost:3000', '*'],
+  origin: ['http://localhost:3005', '*'],
   credentials: true,
 }));
 
