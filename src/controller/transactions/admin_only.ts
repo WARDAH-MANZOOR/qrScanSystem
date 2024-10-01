@@ -83,15 +83,4 @@ const getProfitAndBalanceByMerchant = async (req: Request, res: Response) => {
 
 }
 
-const getMerchants = async (req: Request, res: Response) => {
-    try {
-        let merchants = await prisma.merchant.findMany();
-        res.status(200).json(merchants);
-    }
-    catch(err) {
-        const error = new CustomError("Internal Server Error",500);
-        res.status(500).send(error);
-    }
-}
-
-export { getTransactionOfMerchant, searchTransactions, getAllProfitAndBalance, getProfitAndBalanceByMerchant, getMerchants };
+export { getTransactionOfMerchant, searchTransactions, getAllProfitAndBalance, getProfitAndBalanceByMerchant };
