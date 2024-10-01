@@ -1,5 +1,5 @@
 import { getAllTransactions } from "@prisma/client/sql";
-import {getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions } from "controller/transaction/admin_only.js";
+import {getAllProfitAndBalance, getProfitAndBalanceByMerchant, getTransactionOfMerchant, searchTransactions, getMerchants } from "controller/transactions/admin_only.js";
 import { Request, Response, Router } from "express";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
@@ -7,6 +7,44 @@ import { isAdmin, isLoggedIn } from "utils/middleware.js";
 
 let router = Router();
 
+/**
+* @swagger
+* components:
+*  schemas:
+*    Merchant:
+*      type: object
+*      properties:
+*        merchant_id:
+*          type: integer
+*          example: 3
+*        full_name:
+*          type: string
+*          example: "John Doe"
+*        phone_number:
+*          type: string
+*          example: "+1234567890"
+*        company_name:
+*          type: string
+*          example: "Example Company"
+*        company_url:
+*          type: string
+*          nullable: true
+*          example: null
+*        city:
+*          type: string
+*          example: "New York"
+*        payment_volume:
+*          type: number
+*          format: float
+*          nullable: true
+*          example: null
+*        user_id:
+*          type: integer
+*          example: 3
+*        commission:
+*          type: string
+*          example: "0.01"
+ */
 /**
  * @swagger
  * /admin_api/transactions/:
@@ -387,4 +425,30 @@ router.get("/profits-balances",isLoggedIn,isAdmin,getAllProfitAndBalance);
  */
 
 router.get("/profit-balance/:merchantId",isLoggedIn,isAdmin,getProfitAndBalanceByMerchant)
+
+/**
+ * @swagger
+ * /admin_api/merchants/:
+ *   get:
+ *     summary: Retrieve a list of merchants
+ *     description: Fetches all merchants from the database.
+ *     tags:
+ *       - [AdminOnly]
+ *     responses:
+ *       200:
+ *         description: A list of merchants
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Merchant'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/merchants",isLoggedIn,isAdmin,getMerchants);
 export default router;
