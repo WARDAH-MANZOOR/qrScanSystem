@@ -56,30 +56,4 @@ import router from "routes/transaction/admin_only.js";
 //  *         description: Internal server error
 //  */
 // router.put("/update-merchant",isLoggedIn,isAdmin,updateMerchant);
-
-/**
- * @swagger
- * /admin_api/merchants/:
- *   get:
- *     summary: Retrieve a list of merchants
- *     description: Fetches all merchants from the database.
- *     tags:
- *       - [AdminOnly]
- *     responses:
- *       200:
- *         description: A list of merchants
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Merchant'
- *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-// router.get("/merchants", isLoggedIn, isAdmin, getMerchants);
 export default router;

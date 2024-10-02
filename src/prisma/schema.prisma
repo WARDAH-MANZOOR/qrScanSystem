@@ -101,6 +101,7 @@ model Transaction {
   additionalInfoId Int?
   Provider         Provider?         @relation(fields: [providerId], references: [id])
   providerId       Int?
+  disbursed        Boolean           @default(false)
 }
 
 model AdditionalInfo {

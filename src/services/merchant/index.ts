@@ -28,6 +28,7 @@ const updateMerchant = async (payload: Merchant) => {
     });
     return "Merchant updated successfully";
   } catch (error: any) {
+    console.log(error)
     throw new CustomError(error?.error, error?.statusCode);
   }
 };

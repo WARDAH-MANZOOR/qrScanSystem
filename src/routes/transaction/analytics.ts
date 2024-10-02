@@ -5,7 +5,7 @@ import { authorize, isLoggedIn, restrict, restrictMultiple } from '../../utils/m
 import CustomError from '../../utils/custom_error.js';
 import { JwtPayload } from 'jsonwebtoken';
 import { getTransactionsDaywise } from '@prisma/client/sql';
-import { filterTransactions, getSummary, getTransactionStatusCount } from 'controller/transactions/analytics.js';
+import { filterTransactions } from 'controller/transactions/analytics.js';
 const router = Router();
 
 /**
@@ -121,77 +121,5 @@ const router = Router();
  */
 router.get('/transactions', isLoggedIn, authorize('Transactions List'), filterTransactions)
 
-/**
- * @swagger
- * /transaction_analytics/transactions/summary:
- *   get:
- *     summary: Retrieve transaction summaries such as counts, sums, or aggregated metrics.
- *     tags: [Transactions]
- *     parameters:
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [currentMonth, todayCount, last30Days, totalCount, todaySum, currentYearSum]
- *         required: true
- *         description: The type of summary to retrieve.
- *     responses:
- *       200:
- *         description: Summary of transactions based on the specified type.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total_amount:
- *                   type: number
- *                   example: 10000.50
- *                 total_count:
- *                   type: integer
- *                   example: 150
- *       400:
- *         description: Bad request, invalid query parameter.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/transactions/summary', isLoggedIn, getSummary)
-
-/**
- * @swagger
- * /transaction_analytics/transactions/status_summary:
- *   get:
- *     summary: Retrieve transaction status summaries.
- *     tags: [Transactions]
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [completed, pending, failed]
- *         description: Filter transactions by status.
- *     responses:
- *       200:
- *         description: Summary of transactions grouped by status.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/StatusSummary'
- *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/transactions/status_summary', isLoggedIn, getTransactionStatusCount) 
+ 
 export default router;
