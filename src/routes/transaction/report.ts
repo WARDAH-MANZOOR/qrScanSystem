@@ -115,6 +115,8 @@ const exportCSV = (res: Response, transactions: any[], totalAmount: number) => {
 // Export transactions to Excel
 const exportExcel = (res: Response, transactions: any[], totalAmount: number) => {
   try {
+    transactions = transactions.map((transaction) => {transaction["original_amount"] = JSON.stringify(transaction["original_amount"]); transaction["settled_amount"] = JSON.stringify(transaction["settled_amount"]); return transaction})
+
     const worksheet = xlsx.utils.json_to_sheet(transactions);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Transactions');
@@ -126,6 +128,7 @@ const exportExcel = (res: Response, transactions: any[], totalAmount: number) =>
     res.send(buffer);
   }
   catch (err) {
+    console.log(err);
     let error = new CustomError("Something went wrong. Please try again!", 500);
     res.status(500).send(error);
   }

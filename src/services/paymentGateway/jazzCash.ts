@@ -128,15 +128,20 @@ const initiateJazzCashPayment = async (paymentData: any) => {
       status = "failed";
     }
 
-    let info = {
-
-    };
+    let info = {};
     let provider = {
       name: "JazzCash",
       type: "MWALLET",
-      version: "1.1"
-    }
-    await transactionService.completeTransaction({ transaction_id:txnRefNo, status, response_message: response.data.pp_ResponseMessage, info, provider, merchant_id: parseInt(paymentData.merchantId) })
+      version: "1.1",
+    };
+    await transactionService.completeTransaction({
+      transaction_id: txnRefNo,
+      status,
+      response_message: response.data.pp_ResponseMessage,
+      info,
+      provider,
+      merchant_id: parseInt(paymentData.merchantId),
+    });
 
     const r = response.data;
 
@@ -145,7 +150,6 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     }
 
     if (r.pp_ResponseCode === "000") {
-      // console.log("🚀 ~ initiateJazzCashPayment ~ r:", r);
       return "Redirecting to thank you page...";
     } else {
       throw new CustomError(
