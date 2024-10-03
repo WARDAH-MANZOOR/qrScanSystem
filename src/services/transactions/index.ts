@@ -1,9 +1,6 @@
 import CustomError from "../../utils/custom_error.js";
-import crypto from "crypto";
-import { format } from "date-fns";
-import axios from "axios";
 import prisma from "../../prisma/client.js";
-import { JwtPayload } from "jsonwebtoken";
+import analyticsService from "./analytics.js";
 
 import type { TransactionRequest, CompleteRequest } from "types/transaction.d.ts";
 import { addWeekdays } from "utils/date_method.js";
@@ -195,5 +192,6 @@ const completeTransaction = async (obj: any) => {
 
 export default {
   createTransaction,
-  completeTransaction
+  completeTransaction,
+  ...analyticsService,
 };

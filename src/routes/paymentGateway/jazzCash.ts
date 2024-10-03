@@ -1,4 +1,3 @@
-// src/routes/paymentRoutes.ts
 import { Router } from 'express';
 import { jazzCashController } from 'controller/index.js';
 import { isLoggedIn } from 'utils/middleware.js';

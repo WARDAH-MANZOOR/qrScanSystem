@@ -1,154 +1,26 @@
-import { getTransactionsDaywise } from "@prisma/client/sql";
-import { parseISO, subDays } from "date-fns";
-import { Request, Response } from "express";
-import { JwtPayload } from "jsonwebtoken";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import { Request, Response, NextFunction } from "express";
+import { transactionService } from "services/index.js";
+import ApiResponse from "utils/ApiResponse.js";
 
-const filterTransactions = async (req: Request, res: Response) => {
-    const { transactionId, date, startDate, endDate, status, groupByDay } = req.query;
-
-    let filter: any = { merchant_id: (req.user as JwtPayload)?.id };
-
-    if (transactionId) filter.transaction_id = transactionId as string;
-    if (date) filter.date_time = { gte: parseISO(date as string), lte: parseISO(date as string) };
-    if (startDate && endDate) filter.date_time = { gte: parseISO(startDate as string), lte: parseISO(endDate as string) };
-    if (status) filter.status = status as string;
-
+const filterTransactions = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        if (groupByDay === 'true') {
-            // Group by day
-            const transactions = await prisma.$queryRawTyped(getTransactionsDaywise((req.user as JwtPayload)?.id));
-            return res.status(200).json(transactions);
-        }
+        const queryParameters = req.query;
+        const user = req.user;
+        const result = await transactionService.filterTransactions(queryParameters, user);
+        return res.status(200).json(ApiResponse.success(result));
+      } catch (error) {
+        next(error);
+      }
+}
 
-        const transactions = await prisma.transaction.findMany({
-            where: filter,
-            select: {
-                date_time: true,
-                settled_amount: true,
-                status: true,
-                response_message: true,
-                transaction_id: true
-            }
-        });
-
-        res.status(200).json(transactions);
-    } catch (error) {
-        return res.status(500).json(new CustomError("Internal Server Error", 500));
-    }
-};
-
-const getDashboardSummary = async (merchantId: number) => {
-
-    const currentDate = new Date();
-    let filters: {merchant_id: number;} = { merchant_id: merchantId };
-
+const getDashboardSummary = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const todayStart = new Date().setHours(0, 0, 0, 0);
-        const todayEnd = new Date().setHours(23, 59, 59, 999);
+        const queryParameters = req.query;
+        const result = await transactionService.getDashboardSummary(queryParameters);
+        return res.status(200).json(ApiResponse.success(result));
+      } catch (error) {
+        next(error);
+      }
+}
 
-        const fetchAggregates = [];
-
-        // Fetch today's transaction count
-        fetchAggregates.push(
-            prisma.transaction.count({
-                where: {
-                    date_time: {
-                        gte: new Date(todayStart),
-                        lt: new Date(todayEnd),
-                    },
-                    merchant_id: merchantId,
-                },
-            }) // Return type is a Promise<number>
-        );
-
-        // Fetch last 30 days transaction count
-        fetchAggregates.push(
-            prisma.transaction.count({
-                where: {
-                    date_time: {
-                        gte: subDays(currentDate, 30),
-                    },
-                    merchant_id: merchantId,
-                },
-            }) // Return type is a Promise<number>
-        );
-
-        // Fetch total transaction count
-        fetchAggregates.push(
-            prisma.transaction.count({
-                where: {
-                    merchant_id: merchantId,
-                },
-            }) // Return type is a Promise<number>
-        );
-
-        // Fetch today's transaction sum
-        fetchAggregates.push(
-            prisma.transaction.aggregate({
-                _sum: { settled_amount: true },
-                where: {
-                    date_time: {
-                        gte: new Date(todayStart),
-                        lt: new Date(todayEnd),
-                    },
-                    merchant_id: merchantId,
-                },
-            }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
-        );
-
-        // Fetch current year's transaction sum
-        fetchAggregates.push(
-            prisma.transaction.aggregate({
-                _sum: { settled_amount: true },
-                where: {
-                    date_time: {
-                        gte: new Date(currentDate.getFullYear(), 0, 1),
-                        lt: new Date(currentDate.getFullYear() + 1, 0, 1),
-                    },
-                    merchant_id: merchantId,
-                },
-            }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
-        );
-
-        // Fetch transaction status count
-        fetchAggregates.push(
-            prisma.transaction.groupBy({
-                where: {merchant_id: merchantId},
-                by: ['status'],
-                _count: { status: true },
-                orderBy: {
-                    status: 'asc', // Ensure the result is ordered by status or any other field
-                },
-            }) // Properly type the groupBy query
-        );
-
-        // Execute all queries in parallel
-        const [
-            todayCount,
-            last30DaysCount,
-            totalCount,
-            todaySum,
-            currentYearSum,
-            statusCounts
-        ] = await Promise.all(fetchAggregates);
-
-        // Build and return the full dashboard summary
-        const dashboardSummary = {
-            todayCount: todayCount as number,  // Ensure correct type
-            last30DaysCount: last30DaysCount as number,  // Ensure correct type
-            totalCount: totalCount as number,  // Ensure correct type
-            todaySum: (todaySum as { _sum: { settled_amount: number | null } })._sum?.settled_amount || 0,
-            currentYearSum: (currentYearSum as { _sum: { settled_amount: number | null } })._sum?.settled_amount || 0,
-            statusCounts: statusCounts || []
-        };
-
-        return dashboardSummary;
-    } catch (error) {
-        console.error(error);
-        return error;
-    }
-};
-
-export { filterTransactions, getDashboardSummary }
+export default { filterTransactions, getDashboardSummary };
