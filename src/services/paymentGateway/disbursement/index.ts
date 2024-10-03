@@ -20,7 +20,7 @@ const calculateWalletBalance = async (merchantId: number): Promise<number> => {
             merchant_id: merchantId,
         },
     });
-
+    console.log(result);
     const walletBalance = result._sum.settled_amount || new Decimal(0);
     return walletBalance.toNumber();
 };

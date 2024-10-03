@@ -25,7 +25,7 @@ import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
  
 var app = express();
-cron.schedule("0 0 * * 1-5",task); 
+cron.schedule("* * * * *",task); 
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');

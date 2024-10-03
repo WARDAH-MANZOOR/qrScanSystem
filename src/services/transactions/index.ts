@@ -77,7 +77,7 @@ const createTransaction = async (obj: any) => {
     const transaction = await prisma.transaction.create({
       data: {
         transaction_id: id,
-        date_time: new Date(),
+        date_time: new Date(new Date().toLocaleString()),
         original_amount: parseFloat(original_amount),
         status: "pending", // Initially, the transaction is pending
         type: type,
@@ -121,7 +121,7 @@ const completeTransaction = async (obj: any) => {
 
         if (transaction) {
             // Update the transaction as completed or failed
-            let date = new Date();
+            let date = new Date(new Date().toLocaleDateString());
             const updatedTransaction = await prisma.transaction.update({
                 where: {
                     transaction_id: transaction_id,
@@ -164,7 +164,7 @@ const completeTransaction = async (obj: any) => {
                 }
             });
 
-            const scheduledAt = addWeekdays(date, 2);  // Call the function to get the next 2 weekdays
+            const scheduledAt = addWeekdays(new Date(), 2);  // Call the function to get the next 2 weekdays
 
             // Create the scheduled task in the database
             const scheduledTask = await prisma.scheduledTask.create({
@@ -175,8 +175,7 @@ const completeTransaction = async (obj: any) => {
                 executedAt: null,  // Assume executedAt is null when scheduling
               }
             });
-        
-
+  
             // Send the response with the updated transaction
             return { message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask };
         }

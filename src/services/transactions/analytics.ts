@@ -74,7 +74,7 @@ const getDashboardSummary = async (params: any) => {
             gte: new Date(todayStart),
             lt: new Date(todayEnd),
           },
-          merchant_id: merchantId,
+          merchant_id: +merchantId,
         },
       }) // Return type is a Promise<number>
     );
@@ -86,7 +86,7 @@ const getDashboardSummary = async (params: any) => {
           date_time: {
             gte: subDays(currentDate, 30),
           },
-          merchant_id: merchantId,
+          merchant_id: +merchantId,
         },
       }) // Return type is a Promise<number>
     );
@@ -95,7 +95,7 @@ const getDashboardSummary = async (params: any) => {
     fetchAggregates.push(
       prisma.transaction.count({
         where: {
-          merchant_id: merchantId,
+          merchant_id: +merchantId,
         },
       }) // Return type is a Promise<number>
     );
@@ -109,7 +109,7 @@ const getDashboardSummary = async (params: any) => {
             gte: new Date(todayStart),
             lt: new Date(todayEnd),
           },
-          merchant_id: merchantId,
+          merchant_id: +merchantId,
         },
       }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
     );
@@ -123,7 +123,7 @@ const getDashboardSummary = async (params: any) => {
             gte: new Date(currentDate.getFullYear(), 0, 1),
             lt: new Date(currentDate.getFullYear() + 1, 0, 1),
           },
-          merchant_id: merchantId,
+          merchant_id: +merchantId,
         },
       }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
     );
@@ -131,7 +131,7 @@ const getDashboardSummary = async (params: any) => {
     // Fetch transaction status count
     fetchAggregates.push(
       prisma.transaction.groupBy({
-        where: { merchant_id: merchantId },
+        where: { merchant_id: +merchantId },
         by: ["status"],
         _count: { status: true },
         orderBy: {
