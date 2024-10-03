@@ -1,7 +1,6 @@
-import { getDashboardSummary } from "controller/transactions/analytics.js";
 import { Request, Response, NextFunction } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { merchantService } from "services/index.js";
+import { getDashboardSummary, merchantService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
 const merchantDashboardDetails = async (
