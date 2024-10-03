@@ -1,5 +1,5 @@
 import { getAllTransactions } from "@prisma/client/sql";
-import { getTransactions,getProAndBal } from "controller/transactions/admin_only.js";
+// import { getTransactions,getProAndBal } from "controller/transactions/admin_only.js";
 import { Request, Response, Router } from "express";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
@@ -99,7 +99,7 @@ let router = Router();
  *       500:
  *         description: Internal Server Error
  */
-router.get("/transactions", isLoggedIn, isAdmin, getTransactions);
+// router.get("/transactions", isLoggedIn, isAdmin, getTransactions);
 
 /**
  * @swagger
@@ -151,7 +151,7 @@ router.get("/transactions", isLoggedIn, isAdmin, getTransactions);
  *         description: Internal Server Error
  */
 
-router.get("/profit-balance", isLoggedIn, isAdmin, getProAndBal)
+// router.get("/profit-balance", isLoggedIn, isAdmin, getProAndBal)
 
 // /**
 //  * @swagger
