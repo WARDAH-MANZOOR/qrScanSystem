@@ -85,7 +85,6 @@ model User {
   @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
 }
 
-
 model Transaction {
   transaction_id   String               @id @unique
   date_time        DateTime

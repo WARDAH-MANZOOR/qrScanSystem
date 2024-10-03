@@ -14,8 +14,7 @@ const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
         
 
         // Verify the JWT token
-        const data = jwt.verify(req.cookies.token, 'shhhhhhhhhhhhhh') as JwtPayload;
-        
+        const data = jwt.verify(req.cookies.token, process.env.JWT_SECRET as string) as JwtPayload;
         // Attach the user data to req.user
         req.user = data;
         console.log(data);

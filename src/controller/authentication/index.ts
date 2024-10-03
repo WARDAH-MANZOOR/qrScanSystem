@@ -39,7 +39,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         if (!isPasswordValid) {
             const error = new CustomError("Invalid email or password", 401);
             next(error)
-        }
+        } 
 
         // Extract the group name (role) from the user's groups
         const userGroup = user?.groups[0]; // Assuming one group per user
@@ -57,7 +57,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         setTokenCookie(res, token);
 
         // Return user details
-        return res.status(200).json(ApiResponse.success({
+        res.status(200).json(ApiResponse.success({
             message: "Login successful.",
             token: token,
             role: role,
