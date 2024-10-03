@@ -23,7 +23,8 @@ export const transactionReport = async (req: Request, res: Response) => {
     const transactions = await filterTransactions(filterOption as string,(req.user as JwtPayload)?.id);
 
     // Calculate total amount
-    const totalAmount = transactions.reduce((sum, transaction) => sum + (transaction.settled_amount?.toNumber() ?? 0), 0);
+    const completedTransactions = transactions.filter((transaction) => transaction.status == "completed")
+    const totalAmount = completedTransactions.reduce((sum, transaction) => sum + (transaction.settled_amount?.toNumber() ?? 0), 0);
     // Handle export options
     if (exportFormat) {
       if (exportFormat === 'csv') {
@@ -98,7 +99,7 @@ const filterTransactions = async (filterOption: string,userId: number) => {
 // Export transactions to CSV
 const exportCSV = (res: Response, transactions: any[], totalAmount: number) => {
   try {
-    const fields = ['transaction_id', 'date_time', 'amount', 'status'];
+    const fields = ['transaction_id', 'date_time', 'original_amount','settled_amount', 'status'];
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(transactions);
 
@@ -115,7 +116,7 @@ const exportCSV = (res: Response, transactions: any[], totalAmount: number) => {
 // Export transactions to Excel
 const exportExcel = (res: Response, transactions: any[], totalAmount: number) => {
   try {
-    transactions = transactions.map((transaction) => {transaction["original_amount"] = JSON.stringify(transaction["original_amount"]); transaction["settled_amount"] = JSON.stringify(transaction["settled_amount"]); return transaction})
+    transactions = transactions.map((transaction) => {transaction["original_amount"] = transaction["original_amount"].toString(); transaction["settled_amount"] = transaction["settled_amount"].toString(); return transaction})
 
     const worksheet = xlsx.utils.json_to_sheet(transactions);
     const workbook = xlsx.utils.book_new();

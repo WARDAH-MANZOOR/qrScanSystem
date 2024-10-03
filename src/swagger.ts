@@ -14,8 +14,8 @@ const swaggerOptions = {
       contact: {
         name: "Developer",
       },
-      servers: [{ url: `http://localhost:${process.env.PORT || 3001}` }],
     },
+    servers: [{ url: `http://localhost:${process.env.PORT || 3001}` }],
   },
   apis: ["src/routes/**/*.ts"], // Path to your API route files
 };

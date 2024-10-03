@@ -67,8 +67,7 @@ let router = Router();
  *   get:
  *     summary: Retrieve all transactions
  *     description: Retrieve all transactions, optionally filter by merchant or search by transaction ID.
- *     tags:
- *       - [AdminOnly]
+ *     tags: [AdminOnly]
  *     parameters:
  *       - in: query
  *         name: merchantId
@@ -108,8 +107,7 @@ router.get("/transactions", isLoggedIn, isAdmin, getTransactions);
  *   get:
  *     summary: Retrieve balance and profit information for merchants
  *     description: Retrieve balance and profit for a specific merchant or all merchants. Optionally filter by date range.
- *     tags:
- *       - [AdminOnly]
+ *     tags: [AdminOnly]
  *     parameters:
  *       - in: query
  *         name: merchantId

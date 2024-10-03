@@ -11,8 +11,7 @@ const router = Router();
  *   get:
  *     summary: Retrieve a list of merchants
  *     description: Fetches all merchants from the database.
- *     tags:
- *       - [AdminOnly]
+ *     tags: [AdminOnly]
  *     responses:
  *       200:
  *         description: A list of merchants
@@ -36,8 +35,7 @@ router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
  * /merchant/:
  *    put:
  *      summary: Update merchant details
- *      tags: 
- *       - [AdminOnly] 
+ *      tags: [AdminOnly] 
  *      security:
  *       - bearerAuth: []
  *      requestBody:

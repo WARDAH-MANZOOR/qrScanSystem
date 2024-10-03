@@ -1,0 +1,1368 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Documentation",
+        "version": "1.0.0",
+        "description": "API Information",
+        "contact": {
+            "name": "Developer"
+        },
+        "servers": [
+            {
+                "url": "http://localhost:3001"
+            }
+        ]
+    },
+    "paths": {
+        "/auth_api/logout": {
+            "get": {
+                "summary": "Logs out the user by clearing the authentication token.",
+                "tags": [
+                    "Authentication"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User logged out successfully. The authentication token is cleared.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out Successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth_api/login": {
+            "post": {
+                "summary": "User login",
+                "tags": [
+                    "Authentication"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/User"
+                            },
+                            "example": {
+                                "email": "johndoe@example.com",
+                                "password": "password123"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Yes! You can login"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Invalid email or password"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/dashboard/merchant/": {
+            "get": {
+                "summary": "Retrieve the dashboard summary for the authenticated merchant.",
+                "description": "Returns various transaction aggregates such as counts and sums for displaying on the dashboard.",
+                "tags": [
+                    "Dashboard"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response containing the dashboard summary.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "todayCount": {
+                                            "type": "integer",
+                                            "description": "Number of transactions made today.",
+                                            "example": 15
+                                        },
+                                        "last30DaysCount": {
+                                            "type": "integer",
+                                            "description": "Number of transactions in the last 30 days.",
+                                            "example": 450
+                                        },
+                                        "totalCount": {
+                                            "type": "integer",
+                                            "description": "Total number of transactions.",
+                                            "example": 1200
+                                        },
+                                        "todaySum": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "description": "Total settled amount for today.",
+                                            "example": 1500.75
+                                        },
+                                        "currentYearSum": {
+                                            "type": "number",
+                                            "format": "float",
+                                            "description": "Total settled amount for the current year.",
+                                            "example": 50000
+                                        },
+                                        "statusCounts": {
+                                            "type": "array",
+                                            "description": "Array of transaction counts grouped by status.",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "status": {
+                                                        "type": "string",
+                                                        "description": "Transaction status.",
+                                                        "example": "COMPLETED"
+                                                    },
+                                                    "_count": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "status": {
+                                                                "type": "integer",
+                                                                "description": "Count of transactions with this status.",
+                                                                "example": 300
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid or missing authentication token."
+                    },
+                    "500": {
+                        "description": "Internal server error."
+                    }
+                }
+            }
+        },
+        "/merchant/": {
+            "get": {
+                "summary": "Retrieve a list of merchants",
+                "description": "Fetches all merchants from the database.",
+                "tags": [
+                    [
+                        "AdminOnly"
+                    ]
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A list of merchants",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Merchant"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update merchant details",
+                "tags": [
+                    [
+                        "AdminOnly"
+                    ]
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "description": "The full name of the merchant",
+                                        "example": "John Doe"
+                                    },
+                                    "phone_number": {
+                                        "type": "string",
+                                        "description": "The phone number of the merchant",
+                                        "example": 1234567890
+                                    },
+                                    "company_name": {
+                                        "type": "string",
+                                        "description": "The name of the company",
+                                        "example": "Acme Inc"
+                                    },
+                                    "company_url": {
+                                        "type": "string",
+                                        "description": "The website of the company",
+                                        "example": "https://acme.com"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "description": "The city where the company is based",
+                                        "example": "New York"
+                                    },
+                                    "payment_volume": {
+                                        "type": "number",
+                                        "description": "Monthly payment volume",
+                                        "example": 50000
+                                    },
+                                    "commission": {
+                                        "type": "number",
+                                        "description": "Monthly payment volume",
+                                        "example": 0.01
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Merchant updated successfully"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized - JWT token missing or invalid"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/admin_api/transactions": {
+            "get": {
+                "summary": "Retrieve all transactions",
+                "description": "Retrieve all transactions, optionally filter by merchant or search by transaction ID.",
+                "tags": [
+                    [
+                        "AdminOnly"
+                    ]
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "merchantId",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Filter transactions by a specific merchant",
+                        "required": false
+                    },
+                    {
+                        "in": "query",
+                        "name": "transactionId",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search by transaction ID",
+                        "required": false
+                    },
+                    {
+                        "in": "query",
+                        "name": "merchantName",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Search by merchant name",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A list of transactions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Transaction"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/admin_api/profit-balance/": {
+            "get": {
+                "summary": "Retrieve balance and profit information for merchants",
+                "description": "Retrieve balance and profit for a specific merchant or all merchants. Optionally filter by date range.",
+                "tags": [
+                    [
+                        "AdminOnly"
+                    ]
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "merchantId",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Retrieve balance and profit for a specific merchant",
+                        "required": false
+                    },
+                    {
+                        "in": "query",
+                        "name": "startDate",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter profits and balances from this date with this format YYYY-MM-DD)",
+                        "required": false
+                    },
+                    {
+                        "in": "query",
+                        "name": "endDate",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter profits and balances up to this date with this format YYYY-MM-DD",
+                        "required": false
+                    },
+                    {
+                        "in": "query",
+                        "name": "range",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "daily",
+                                "weekly",
+                                "custom"
+                            ]
+                        },
+                        "description": "Filters transactions according to the given range",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A list of merchants with balance and profit details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MerchantProfitBalance"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/transaction_analytics/transactions": {
+            "get": {
+                "summary": "Retrieve a list of transactions or perform a search based on various filters.",
+                "tags": [
+                    "Transactions"
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "transactionId",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Get a specific transaction by ID."
+                    },
+                    {
+                        "in": "query",
+                        "name": "date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter transactions by a specific date."
+                    },
+                    {
+                        "in": "query",
+                        "name": "startDate",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter transactions from this date (for date range filtering)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "endDate",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Filter transactions up to this date (for date range filtering)."
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "completed",
+                                "pending",
+                                "failed"
+                            ]
+                        },
+                        "description": "Filter transactions by status."
+                    },
+                    {
+                        "in": "query",
+                        "name": "groupByDay",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "If true, group transactions by day (for daywise summaries)."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of transactions matching the search filters.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Transaction"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transaction_complete/": {
+            "put": {
+                "summary": "Complete a transaction",
+                "tags": [
+                    "Transactions"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransactionCompletionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transaction completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransactionCompletionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errors": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "msg": {
+                                                        "type": "string",
+                                                        "description": "Error message",
+                                                        "example": "Invalid transaction_id"
+                                                    },
+                                                    "param": {
+                                                        "type": "string",
+                                                        "description": "Parameter that caused the validation error",
+                                                        "example": "transaction_id"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transaction_create/": {
+            "post": {
+                "summary": "Create a transaction request",
+                "tags": [
+                    "Transactions"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransactionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Transaction request created successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransactionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request due to validation errors.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errors": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "msg": {
+                                                        "type": "string",
+                                                        "description": "The error message.",
+                                                        "example": "Invalid date format"
+                                                    },
+                                                    "param": {
+                                                        "type": "string",
+                                                        "description": "The parameter that caused the validation error.",
+                                                        "example": "date_time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transaction_reports/transaction-report": {
+            "get": {
+                "summary": "Get a report of transactions, with optional filters and export formats.",
+                "tags": [
+                    "Transactions"
+                ],
+                "parameters": [
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "description": "Filter transactions by date range",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "all",
+                                "7days",
+                                "1month",
+                                "3months",
+                                "6months",
+                                "1year"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "export",
+                        "in": "query",
+                        "description": "Export format for the report",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "csv",
+                                "excel",
+                                "pdf"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns a list of transactions with total amount",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "transactions": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Transaction"
+                                            }
+                                        },
+                                        "total_amount": {
+                                            "type": "number",
+                                            "description": "Total sum of transaction amounts"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user_api/create-user": {
+            "post": {
+                "summary": "Create a new user",
+                "tags": [
+                    "Users"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/User"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user_api/create-group": {
+            "post": {
+                "summary": "Create a new user group",
+                "description": "Creates a user group with specified permissions.",
+                "tags": [
+                    "Users"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GroupCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The created user group.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GroupCreateRequest"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input data."
+                    }
+                }
+            }
+        },
+        "/user_api/create-permission": {
+            "post": {
+                "summary": "Create a new permission",
+                "description": "Creates a new permission for user groups.",
+                "tags": [
+                    "Users"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PermissionCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The created permission.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PermissionCreateRequest"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input data."
+                    }
+                }
+            }
+        },
+        "/user_api/assign": {
+            "post": {
+                "summary": "Assign a user to a group",
+                "description": "Assigns a user to a specific group, allowing them to inherit the group's permissions.",
+                "tags": [
+                    "Users"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignUserToGroup"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User successfully assigned to the group",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AssignUserToGroup"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid data or missing fields",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Invalid userId or groupId"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User or Group not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "User or Group not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Something went wrong, please try again later"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Merchant": {
+                "type": "object",
+                "properties": {
+                    "merchant_id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "full_name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "phone_number": {
+                        "type": "string",
+                        "example": "+1234567890"
+                    },
+                    "company_name": {
+                        "type": "string",
+                        "example": "Example Company"
+                    },
+                    "company_url": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    },
+                    "city": {
+                        "type": "string",
+                        "example": "New York"
+                    },
+                    "payment_volume": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true,
+                        "example": null
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "commission": {
+                        "type": "string",
+                        "example": "0.01"
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Internal Server Error",
+                        "description": "Error message."
+                    },
+                    "statusCode": {
+                        "type": "integer",
+                        "description": "HTTP status code.",
+                        "example": 500
+                    }
+                }
+            },
+            "MerchantProfitBalance": {
+                "type": "object",
+                "properties": {
+                    "merchant_id": {
+                        "type": "integer"
+                    },
+                    "profit": {
+                        "type": "number"
+                    },
+                    "balance": {
+                        "type": "number"
+                    }
+                }
+            },
+            "Transaction": {
+                "type": "object",
+                "properties": {
+                    "transaction_id": {
+                        "type": "string",
+                        "description": "Unique transaction ID.",
+                        "example": "txn_1234567890"
+                    },
+                    "date_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Transaction date and time.",
+                        "example": "2024-10-01T12:34:56Z"
+                    },
+                    "settled_amount": {
+                        "type": "number",
+                        "description": "The settled amount of the transaction.",
+                        "example": 150.75
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status of the transaction.",
+                        "enum": [
+                            "completed",
+                            "pending",
+                            "failed"
+                        ],
+                        "example": "completed"
+                    },
+                    "response_message": {
+                        "type": "string",
+                        "description": "Message associated with the transaction response.",
+                        "example": "Transaction successful"
+                    }
+                }
+            },
+            "StatusSummary": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "description": "Transaction status.",
+                        "enum": [
+                            "completed",
+                            "pending",
+                            "failed"
+                        ],
+                        "example": "completed"
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": "Number of transactions with this status.",
+                        "example": 50
+                    }
+                }
+            },
+            "Provider": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The provider's name (e.g., JazzCash, Easypaisa).",
+                        "example": "JazzCash"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "The type of the transaction by the provider (e.g., MWALLET).",
+                        "example": "MWALLET"
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": "The version of the provider's transaction system.",
+                        "example": "1.1"
+                    }
+                }
+            },
+            "TransactionCompletionRequest": {
+                "type": "object",
+                "properties": {
+                    "transaction_id": {
+                        "type": "string",
+                        "format": "T*",
+                        "description": "The unique ID of the transaction to complete.",
+                        "example": "T20240928"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "The status of the transaction (e.g., completed, failed).",
+                        "example": "completed"
+                    },
+                    "response_message": {
+                        "type": "string",
+                        "description": "Optional response message from the transaction.",
+                        "example": "Transaction completed successfully"
+                    },
+                    "info": {
+                        "type": "object",
+                        "description": "Additional transaction information.",
+                        "properties": {
+                            "bank_id": {
+                                "type": "string",
+                                "description": "The bank ID involved in the transaction.",
+                                "example": "1234"
+                            },
+                            "bill_reference": {
+                                "type": "string",
+                                "description": "The reference number of the bill.",
+                                "example": "billRef123"
+                            },
+                            "retrieval_ref": {
+                                "type": "string",
+                                "description": "The retrieval reference number.",
+                                "example": "409266770834"
+                            },
+                            "sub_merchant_id": {
+                                "type": "string",
+                                "description": "The sub-merchant ID.",
+                                "example": "subMerchant123"
+                            },
+                            "settlement_expiry": {
+                                "type": "string",
+                                "description": "The expiry date for settlement.",
+                                "example": "2024-12-31"
+                            },
+                            "custom_field_1": {
+                                "type": "string",
+                                "example": "customValue1"
+                            },
+                            "custom_field_2": {
+                                "type": "string",
+                                "example": "customValue2"
+                            },
+                            "custom_field_3": {
+                                "type": "string",
+                                "example": "customValue3"
+                            },
+                            "custom_field_4": {
+                                "type": "string",
+                                "example": "customValue4"
+                            },
+                            "custom_field_5": {
+                                "type": "string",
+                                "example": "customValue5"
+                            }
+                        }
+                    },
+                    "provider": {
+                        "$ref": "#/components/schemas/Provider"
+                    }
+                }
+            },
+            "TransactionCompletionResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Transaction completed successfully"
+                    },
+                    "transaction": {
+                        "type": "object",
+                        "description": "The updated transaction object.",
+                        "properties": {
+                            "transaction_id": {
+                                "type": "string",
+                                "format": "T*",
+                                "description": "The unique ID of the transaction.",
+                                "example": "T20240928"
+                            },
+                            "status": {
+                                "type": "string",
+                                "description": "The updated status of the transaction.",
+                                "example": "completed"
+                            },
+                            "response_message": {
+                                "type": "string",
+                                "example": "Transaction completed successfully"
+                            },
+                            "AdditionalInfo": {
+                                "type": "object",
+                                "description": "Additional information related to the transaction.",
+                                "properties": {
+                                    "bank_id": {
+                                        "type": "string",
+                                        "example": "1234"
+                                    },
+                                    "bill_reference": {
+                                        "type": "string",
+                                        "example": "billRef123"
+                                    },
+                                    "retrieval_ref": {
+                                        "type": "string",
+                                        "example": "409266770834"
+                                    },
+                                    "sub_merchant_id": {
+                                        "type": "string",
+                                        "example": "subMerchant123"
+                                    },
+                                    "settlement_expiry": {
+                                        "type": "string",
+                                        "example": "2024-12-31"
+                                    },
+                                    "custom_field_1": {
+                                        "type": "string",
+                                        "example": "customValue1"
+                                    },
+                                    "custom_field_2": {
+                                        "type": "string",
+                                        "example": "customValue2"
+                                    },
+                                    "custom_field_3": {
+                                        "type": "string",
+                                        "example": "customValue3"
+                                    },
+                                    "custom_field_4": {
+                                        "type": "string",
+                                        "example": "customValue4"
+                                    },
+                                    "custom_field_5": {
+                                        "type": "string",
+                                        "example": "customValue5"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "TransactionRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "T*",
+                        "description": "Transaction id starting with T and then whole date time in integers",
+                        "example": "T20240928"
+                    },
+                    "original_amount": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "The original amount of the transaction.",
+                        "example": 100
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "purchase",
+                            "refund",
+                            "chargeback"
+                        ],
+                        "description": "The type of transaction.",
+                        "example": "purchase"
+                    }
+                }
+            },
+            "TransactionResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Transaction request created successfully"
+                    },
+                    "transaction": {
+                        "type": "object",
+                        "properties": {
+                            "transaction_id": {
+                                "type": "integer",
+                                "description": "The unique ID of the transaction.",
+                                "example": 1
+                            },
+                            "date_time": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "The date and time of the transaction.",
+                                "example": "2024-09-26T23:42:00Z"
+                            },
+                            "original_amount": {
+                                "type": "number",
+                                "format": "float",
+                                "description": "The original amount of the transaction.",
+                                "example": 100
+                            },
+                            "merchant_id": {
+                                "type": "integer",
+                                "description": "The ID of the merchant.",
+                                "example": 2
+                            },
+                            "status": {
+                                "type": "string",
+                                "description": "The status of the transaction.",
+                                "example": "pending"
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "The type of transaction.",
+                                "example": "purchase"
+                            }
+                        }
+                    }
+                }
+            },
+            "User": {
+                "type": "object",
+                "required": [
+                    "username",
+                    "email",
+                    "password",
+                    "age"
+                ],
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "description": "The username of the user.",
+                        "example": "john_doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "The email address of the user.",
+                        "example": "johndoe@example.com"
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "The hashed password of the user.",
+                        "example": "Password123!"
+                    },
+                    "group": {
+                        "type": "number",
+                        "description": "Group id 1 for admin 2 for merchant",
+                        "example": 1
+                    }
+                }
+            },
+            "GroupCreateRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "permissions"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the group."
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "An array of permission IDs to be assigned to the group."
+                    }
+                }
+            },
+            "PermissionCreateRequest": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the permission."
+                    }
+                }
+            },
+            "AssignUserToGroup": {
+                "type": "object",
+                "required": [
+                    "userId",
+                    "groupId"
+                ],
+                "properties": {
+                    "userId": {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "ID of the user to be assigned"
+                    },
+                    "groupId": {
+                        "type": "integer",
+                        "example": 2,
+                        "description": "ID of the group to which the user will be assigned"
+                    }
+                }
+            }
+        }
+    },
+    "tags": []
+}
