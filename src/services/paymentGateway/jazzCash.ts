@@ -105,7 +105,7 @@ const initiateJazzCashPayment = async (paymentData: any) => {
 
     await transactionService.createTransaction({
       id: txnRefNo,
-      original_amount: sendData.pp_Amount,
+      original_amount: sendData.pp_Amount / 100,
       type: "wallet",
       merchant_id: parseInt(paymentData.merchantId),
     });

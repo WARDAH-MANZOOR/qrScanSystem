@@ -9,6 +9,31 @@ const checkMerchantExists = async (merchantId: number): Promise<boolean> => {
     return Boolean(merchant);
 };
 
+const getEligibleTransactions = async (merchantId: number) => {
+    // Check if merchant exists
+    const merchantExists = await checkMerchantExists(merchantId);
+    if (!merchantExists) {
+        throw new CustomError('Merchant not found', 404);
+    }
+    return prisma.transaction.findMany({
+        where: {
+            settlement: true,
+            merchant_id: merchantId,
+            balance: { gt: new Decimal(0) },
+        },
+        orderBy: {
+            date_time: 'asc', // Oldest transactions first
+            balance: 'desc'
+        },
+        select: {
+            transaction_id: true,
+            settled_amount: true,
+            balance: true,
+        },
+    });
+};
+
+
 const calculateWalletBalance = async (merchantId: number): Promise<number> => {
     const result = await prisma.transaction.aggregate({
         _sum: {
@@ -16,7 +41,7 @@ const calculateWalletBalance = async (merchantId: number): Promise<number> => {
         },
         where: {
             settlement: true,
-            balance: {gt: new Decimal(0)},
+            balance: { gt: new Decimal(0) },
             merchant_id: merchantId,
         },
     });
@@ -46,4 +71,63 @@ const getWalletBalance = async (merchantId: number): Promise<number> => {
     }
 };
 
-export default getWalletBalance;
+const calculateDisbursement = (
+    transactions: TransactionData[],
+    amount: Decimal
+): { updates: TransactionUpdate[]; totalDisbursed: Decimal } => {
+    const updates: TransactionUpdate[] = [];
+    let totalDisbursed = new Decimal(0);
+
+    for (const transaction of transactions) {
+        if (totalDisbursed.greaterThanOrEqualTo(amount)) {
+            break;
+        }
+
+        const availableAmount = transaction.balance;
+
+        let disburseAmount = new Decimal(0);
+
+        if (totalDisbursed.plus(availableAmount).lessThanOrEqualTo(amount)) {
+            // Disburse the full available amount
+            disburseAmount = availableAmount;
+            totalDisbursed = totalDisbursed.plus(disburseAmount);
+            updates.push({
+                transaction_id: transaction.transaction_id,
+                disbursed: true,
+                balance: new Decimal(0),
+            });
+        } else {
+            // Partially disburse the transaction
+            disburseAmount = amount.minus(totalDisbursed);
+            totalDisbursed = totalDisbursed.plus(disburseAmount);
+            const remainingBalance = availableAmount.minus(disburseAmount);
+            updates.push({
+                transaction_id: transaction.transaction_id,
+                disbursed: false,
+                balance: remainingBalance,
+            });
+            break; // We've fulfilled the requested amount
+        }
+    }
+
+    if (totalDisbursed.lessThan(amount)) {
+        throw new CustomError('Insufficient funds to disburse the requested amount', 400);
+    }
+
+    return { updates, totalDisbursed };
+};
+
+const updateTransactions = async (updates: TransactionUpdate[]) => {
+    const updatePromises = updates.map((update) =>
+        prisma.transaction.update({
+            where: {
+                transaction_id: update.transaction_id,
+            },
+            data: {
+                balance: update.balance,
+            },
+        })
+    );
+    await Promise.all(updatePromises);
+};
+export { getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions };
