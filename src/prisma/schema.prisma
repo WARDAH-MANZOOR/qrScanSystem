@@ -100,7 +100,7 @@ model Transaction {
   additionalInfoId Int?
   Provider         Provider?         @relation(fields: [providerId], references: [id])
   providerId       Int?
-  disbursed        Boolean           @default(false)
+  balance          Decimal           @db.Decimal(10,2) @default(0)
 }
 
 model AdditionalInfo {
