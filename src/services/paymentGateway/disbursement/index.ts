@@ -16,7 +16,7 @@ const calculateWalletBalance = async (merchantId: number): Promise<number> => {
         },
         where: {
             settlement: true,
-            disbursed: false,
+            balance: {gt: new Decimal(0)},
             merchant_id: merchantId,
         },
     });
