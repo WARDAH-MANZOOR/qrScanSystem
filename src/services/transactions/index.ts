@@ -156,7 +156,6 @@ const completeTransaction = async (obj: any) => {
                             bill_reference: info.bill_reference || null,
                             retrieval_ref: info.retrieval_ref || null,
                             sub_merchant_id: info.sub_merchant_id || null,
-                            settlement_expiry: info.settlement_expiry || null,
                             custom_field_1: info.custom_field_1 || null,
                             custom_field_2: info.custom_field_2 || null,
                             custom_field_3: info.custom_field_3 || null,

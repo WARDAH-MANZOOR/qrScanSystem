@@ -22,8 +22,7 @@ const getEligibleTransactions = async (merchantId: number) => {
             balance: { gt: new Decimal(0) },
         },
         orderBy: {
-            date_time: 'asc', // Oldest transactions first
-            balance: 'desc'
+            date_time: 'asc',
         },
         select: {
             transaction_id: true,
@@ -37,7 +36,7 @@ const getEligibleTransactions = async (merchantId: number) => {
 const calculateWalletBalance = async (merchantId: number): Promise<number> => {
     const result = await prisma.transaction.aggregate({
         _sum: {
-            settled_amount: true,
+            balance: true,
         },
         where: {
             settlement: true,
@@ -46,7 +45,7 @@ const calculateWalletBalance = async (merchantId: number): Promise<number> => {
         },
     });
     console.log(result);
-    const walletBalance = result._sum.settled_amount || new Decimal(0);
+    const walletBalance = result._sum.balance || new Decimal(0);
     return walletBalance.toNumber();
 };
 
