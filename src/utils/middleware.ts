@@ -11,8 +11,6 @@ const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(401).send("You must be logged in");
     }
 
-    console.log(req.cookies.token);
-
     // Verify the JWT token
     const data = jwt.verify(
       req.cookies.token,
@@ -20,12 +18,11 @@ const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
     ) as JwtPayload;
     // Attach the user data to req.user
     req.user = data;
-    console.log(data);
+
     // Proceed to the next middleware
     return next();
   } catch (error) {
-    console.log(error);
-    return res.status(401).send("something went wrong");
+    return res.status(401).json(ApiResponse.error("You must be logged in", 401));
   }
 };
 

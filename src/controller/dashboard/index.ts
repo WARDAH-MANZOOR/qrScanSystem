@@ -17,8 +17,8 @@ const merchantDashboardDetails = async (
       user
     );
     return res.status(200).json(ApiResponse.success(result));
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
   }
 };
 
@@ -33,8 +33,8 @@ const adminDashboardDetails = async (
       queryParameters
     );
     return res.status(200).json(ApiResponse.success(result));
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
   }
 };
 

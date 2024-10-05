@@ -152,16 +152,20 @@ const adminDashboardDetails = async (params: any) => {
 
     // Fetch sum of original_amount from today's transactions
     fetchAggregates.push(
-      prisma.transaction.aggregate({
-        _sum: { original_amount: true },
-        where: {
-          status: "completed",
-          date_time: {
-            gte: new Date(todayStart),
-            lt: new Date(todayEnd),
+      prisma.transaction
+        .aggregate({
+          _sum: { original_amount: true },
+          where: {
+            status: "completed",
+            date_time: {
+              gte: new Date(todayStart),
+              lt: new Date(todayEnd),
+            },
           },
-        },
-      }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+        })
+        .catch((error: any) => {
+          throw new CustomError(error?.message, 500);
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
     );
 
     // bring latest 5 transactions
@@ -175,29 +179,24 @@ const adminDashboardDetails = async (params: any) => {
     );
 
     // Execute all queries in parallel
-    const [
-      totalMerchants,
-      totalOriginalAmount,
-      todayOriginalAmount,
-      latestTransactions,
-    ] = await Promise.all(fetchAggregates);
+    const [totalMerchants, totalIncome, todayIncome, latestTransactions] =
+      await Promise.all(fetchAggregates);
 
     // Build and return the full dashboard summary
     const dashboardSummary = {
       totalMerchants: totalMerchants as number, // Ensure correct type
-      totalOriginalAmount:
-        (totalOriginalAmount as { _sum: { original_amount: number | null } })
-          ._sum?.original_amount || 0,
-      todayOriginalAmount:
-        (todayOriginalAmount as { _sum: { original_amount: number | null } })
-          ._sum?.original_amount || 0,
+      totalIncome:
+        (totalIncome as { _sum: { original_amount: number | null } })._sum
+          ?.original_amount || 0,
+      todayIncome:
+        (todayIncome as { _sum: { original_amount: number | null } })._sum
+          ?.original_amount || 0,
       latestTransactions: latestTransactions as any,
     };
 
     return dashboardSummary;
-  } catch (error) {
-    console.error(error);
-    return error;
+  } catch (error: any) {
+    throw new CustomError(error?.error, error?.statusCode);
   }
 };
 
