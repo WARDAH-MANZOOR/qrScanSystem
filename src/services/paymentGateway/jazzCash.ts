@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { format } from "date-fns";
 import axios from "axios";
 import { transactionService } from "services/index.js";
+import { ja } from "@faker-js/faker";
 
 const MERCHANT_ID = "12478544";
 const PASSWORD = "uczu5269d1";
@@ -59,6 +60,22 @@ const initiateJazzCashPayment = async (paymentData: any) => {
   try {
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
 
+    if (!paymentData.amount || !paymentData.phone) {
+      throw new CustomError("Amount and phone are required", 400);
+    }
+
+    // type check
+    if (!paymentData.type) {
+      throw new CustomError("Payment type is required", 400);
+    }
+
+    const paymentType = paymentData.type?.toUpperCase();
+
+    const jazzCashCredentials = {
+      pp_MerchantID: MERCHANT_ID,
+      pp_Password: PASSWORD,
+    };
+
     // Get the fractional milliseconds part of the current timestamp
     const currentTime = Date.now();
     const fractionalMilliseconds = Math.floor(
@@ -103,59 +120,81 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     // Generate the secure hash
     sendData.pp_SecureHash = getSecureHash(sendData, INTEGRITY_SALT);
 
-    await transactionService.createTransaction({
-      id: txnRefNo,
-      original_amount: sendData.pp_Amount,
-      type: "wallet",
-      merchant_id: parseInt(paymentData.merchantId),
-    });
+    if (paymentType === "CARD") {
+      let payload = {
+        pp_Version: "2.0",
+        pp_IsRegisteredCustomer: "Yes",
+        pp_ShouldTokenizeCardNumber: "Yes",
+        pp_TxnType: "MPAY",
+        pp_TxnRefNo: "T20221125153218",
+        pp_Amount: "20000",
+        pp_TxnCurrency: "PKR",
+        pp_TxnDateTime: "20221125153215",
+        pp_TxnExpiryDateTime: "20221202153215",
+        pp_BillReference: "billRef",
+        pp_Description: "Description of transaction",
+        pp_CustomerCardNumber: "5123456789012346",
+        pp_UsageMode: "API",
+        pp_SecureHash: "",
+        ...jazzCashCredentials,
+      };
 
-    // Send the request to JazzCash
-    const paymentUrl =
-      "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
-    const headers = {
-      "Content-Type": "application/x-www-form-urlencoded",
-    };
+      return payload;
+    } else if (paymentType === "WALLET") {
+      await transactionService.createTransaction({
+        id: txnRefNo,
+        original_amount: sendData.pp_Amount,
+        type: "wallet",
+        merchant_id: parseInt(paymentData.merchantId),
+      });
 
-    const response = await axios.post(
-      paymentUrl,
-      new URLSearchParams(sendData).toString(),
-      { headers }
-    );
-    let status = "completed";
-    console.log(response.data.status);
-    if (response.data.pp_ResponseCode != "000") {
-      status = "failed";
-    }
+      // Send the request to JazzCash
+      const paymentUrl =
+        "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
+      const headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+      };
 
-    let info = {};
-    let provider = {
-      name: "JazzCash",
-      type: "MWALLET",
-      version: "1.1",
-    };
-    await transactionService.completeTransaction({
-      transaction_id: txnRefNo,
-      status,
-      response_message: response.data.pp_ResponseMessage,
-      info,
-      provider,
-      merchant_id: parseInt(paymentData.merchantId),
-    });
-
-    const r = response.data;
-
-    if (!r) {
-      throw new CustomError(response.statusText, 500);
-    }
-
-    if (r.pp_ResponseCode === "000") {
-      return "Redirecting to thank you page...";
-    } else {
-      throw new CustomError(
-        `The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`,
-        400
+      const response = await axios.post(
+        paymentUrl,
+        new URLSearchParams(sendData).toString(),
+        { headers }
       );
+      let status = "completed";
+      console.log(response.data.status);
+      if (response.data.pp_ResponseCode != "000") {
+        status = "failed";
+      }
+
+      let info = {};
+      let provider = {
+        name: "JazzCash",
+        type: "MWALLET",
+        version: "1.1",
+      };
+      await transactionService.completeTransaction({
+        transaction_id: txnRefNo,
+        status,
+        response_message: response.data.pp_ResponseMessage,
+        info,
+        provider,
+        merchant_id: parseInt(paymentData.merchantId),
+      });
+
+      const r = response.data;
+
+      if (!r) {
+        throw new CustomError(response.statusText, 500);
+      }
+
+      if (r.pp_ResponseCode === "000") {
+        return "Redirecting to thank you page...";
+      } else {
+        throw new CustomError(
+          `The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`,
+          400
+        );
+      }
     }
   } catch (error: any) {
     console.log(error);

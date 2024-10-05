@@ -13,8 +13,8 @@ const merchantDashboardDetails = async (
     const queryParameters = req.query;
     const user = req.user as JwtPayload;
     const result = await dashboardService.merchantDashboardDetails(
-      user,
-      queryParameters
+      queryParameters,
+      user
     );
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
@@ -29,6 +29,10 @@ const adminDashboardDetails = async (
 ) => {
   try {
     const queryParameters = req.query;
+    const result = await dashboardService.adminDashboardDetails(
+      queryParameters
+    );
+    return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }

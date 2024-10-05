@@ -68,7 +68,7 @@ const router = Router();
  *         description: Internal server error.
  */
 router.get("/merchant",  dashboardController.merchantDashboardDetails);
-router.get("/admin", [isAdmin],dashboardController.adminDashboardDetails);
+router.get("/admin", [isLoggedIn, isAdmin], dashboardController.adminDashboardDetails);
 
 // Globally apply middleware to all routes
 router.use(isLoggedIn);

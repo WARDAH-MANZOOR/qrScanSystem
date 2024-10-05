@@ -2,7 +2,12 @@ import { Router } from "express";
 import { merchantController } from "controller/index.js";
 import { isLoggedIn, isAdmin } from "utils/middleware.js";
 
+
 const router = Router();
+
+router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
+router.put("/", [isLoggedIn, isAdmin], merchantController.updateMerchant);
+
 
 // Define routes using arrow functions
 /**
@@ -28,7 +33,6 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
 
 /**
  * @swagger
@@ -83,6 +87,4 @@ router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
  *       500:
  *         description: Internal server error 
  */
-router.put("/", [isLoggedIn, isAdmin], merchantController.updateMerchant);
-
 export default router;
