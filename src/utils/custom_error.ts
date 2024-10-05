@@ -3,10 +3,12 @@ class CustomError extends Error {
     statusText: string; // Changed to statusText
     isOperational: boolean;
     error: string;
+    success: boolean;    // Added this line
 
     constructor(message: string, statusCode: number) {
         super(message);
-        this.error = message;
+        this.error = message || 'Internal server error';
+        this.success = false;    // Added this line
         this.statusCode = statusCode;
         this.statusText = statusCode >= 400 && statusCode < 500 ? 'fail' : 'error'; // Renamed to statusText
         this.isOperational = true;
@@ -17,5 +19,3 @@ class CustomError extends Error {
 
 
 export default CustomError;
-
-//const error = new CustomError('some error message', 404)

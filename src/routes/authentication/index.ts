@@ -7,27 +7,11 @@ import { login, logout } from "controller/authentication/index.js";
 import { validateLoginData } from "services/authentication/index.js";
 
 const router = Router();
-/**
- * @swagger
- * /auth_api/logout:
- *   get:
- *     summary: Logs out the user by clearing the authentication token.
- *     tags:
- *       - Authentication
- *     responses:
- *       200:
- *         description: User logged out successfully. The authentication token is cleared.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Logged out Successfully"
- */
-router.get("/logout", logout)
 
+router.get("/logout", logout)
+router.post("/login", validateLoginData, login);
+
+export default router;
 
 /**
  * @swagger
@@ -62,6 +46,23 @@ router.get("/logout", logout)
  *       500:
  *         description: Internal server error
  */
-router.post("/login", validateLoginData, login);
 
-export default router;
+/**
+ * @swagger
+ * /auth_api/logout:
+ *   get:
+ *     summary: Logs out the user by clearing the authentication token.
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       200:
+ *         description: User logged out successfully. The authentication token is cleared.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logged out Successfully"
+ */
