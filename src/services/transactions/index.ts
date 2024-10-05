@@ -2,7 +2,7 @@ import CustomError from "../../utils/custom_error.js";
 import prisma from "../../prisma/client.js";
 import analyticsService from "./analytics.js";
 
-import type { TransactionRequest, CompleteRequest } from "types/transaction.d.ts";
+import type { TransactionRequest, CompleteRequest } from "types/transaction_request.js";
 import { addWeekdays } from "utils/date_method.js";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
@@ -71,7 +71,9 @@ const createTransaction = async (obj: any) => {
   if (validationErrors.length > 0) {
     return { errors: validationErrors, success: false };
   }
-  
+  let commission = await prisma.merchant.findUnique({
+    where: {merchant_id},
+  })
   try {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
@@ -84,7 +86,8 @@ const createTransaction = async (obj: any) => {
         merchant: {
           connect: { id: merchant_id },
         },
-        settled_amount: parseFloat(original_amount),
+        settled_amount: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number)),
+        balance: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number))
       },
     });
     console.log("Created");
@@ -153,7 +156,6 @@ const completeTransaction = async (obj: any) => {
                             bill_reference: info.bill_reference || null,
                             retrieval_ref: info.retrieval_ref || null,
                             sub_merchant_id: info.sub_merchant_id || null,
-                            settlement_expiry: info.settlement_expiry || null,
                             custom_field_1: info.custom_field_1 || null,
                             custom_field_2: info.custom_field_2 || null,
                             custom_field_3: info.custom_field_3 || null,

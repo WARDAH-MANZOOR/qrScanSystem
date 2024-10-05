@@ -4,6 +4,14 @@ import { isLoggedIn } from 'utils/middleware.js';
 
 const router = Router();
 
+router.post('/', transactionController.filterTransactions);
+router.get('/', transactionController.getTransactions);
+router.get('/summary', transactionController.getDashboardSummary);
+router.get('/balance', transactionController.getProAndBal);
+
+export default router;
+
+
 /**
  * @swagger
  * /transactions:
@@ -115,10 +123,3 @@ const router = Router();
  *           description: HTTP status code.
  *           example: 500
  */
-router.post('/', transactionController.filterTransactions);
-router.get('/', transactionController.getTransactions);
-router.get('/summary', transactionController.getDashboardSummary);
-router.get('/balance', transactionController.getProAndBal);
-
-
-export default router;
