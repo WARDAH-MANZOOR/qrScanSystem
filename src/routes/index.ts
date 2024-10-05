@@ -3,6 +3,7 @@ import merchant from "./merchant/index.js";
 import dashboard from "./dashboard/index.js";
 import transaction from "./transaction/index.js";
 import disbursement from "./paymentGateway/disbursement/index.js"
+import auth from "./authentication/index.js";
 import express from "express";
 
 export default function (app: express.Application) {
@@ -11,4 +12,5 @@ export default function (app: express.Application) {
   app.use("/dashboard", dashboard);
   app.use("/transactions", transaction);
   app.use("/disbursement", disbursement);
+  app.use("/auth", auth);
 }

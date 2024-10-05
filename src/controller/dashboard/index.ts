@@ -13,12 +13,12 @@ const merchantDashboardDetails = async (
     const queryParameters = req.query;
     const user = req.user as JwtPayload;
     const result = await dashboardService.merchantDashboardDetails(
-      user,
-      queryParameters
+      queryParameters,
+      user
     );
     return res.status(200).json(ApiResponse.success(result));
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
   }
 };
 
@@ -29,8 +29,12 @@ const adminDashboardDetails = async (
 ) => {
   try {
     const queryParameters = req.query;
-  } catch (error) {
-    next(error);
+    const result = await dashboardService.adminDashboardDetails(
+      queryParameters
+    );
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error: any) {
+    return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
   }
 };
 

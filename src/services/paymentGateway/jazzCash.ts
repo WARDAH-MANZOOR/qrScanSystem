@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { format } from "date-fns";
 import axios from "axios";
 import { transactionService } from "services/index.js";
+import { ja } from "@faker-js/faker";
 
 const MERCHANT_ID = "12478544";
 const PASSWORD = "uczu5269d1";
