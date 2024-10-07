@@ -1,4 +1,4 @@
-import { parseISO, subDays } from "date-fns";
+import { parseISO, subDays, parse } from "date-fns";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 
@@ -14,15 +14,22 @@ const merchantDashboardDetails = async (params: any, user: any) => {
     let filters: { merchant_id: number } = { merchant_id: merchantId };
 
     try {
-      const todayStart = params.start;
-      const todayEnd = params.end;
+      const startDate = params?.start?.replace(" ", "+");
+      const endDate = params?.end?.replace(" ", "+");
 
       const customWhere = {} as any;
 
-      if (todayStart && todayEnd) {
+      if (startDate && endDate) {
+        const todayStart = parse(
+          startDate,
+          "yyyy-MM-dd'T'HH:mm:ssXXX",
+          new Date()
+        );
+        const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
         customWhere["date_time"] = {
-          gte: new Date(todayStart),
-          lt: new Date(todayEnd),
+          gte: todayStart,
+          lt: todayEnd,
         };
       }
 
@@ -125,7 +132,9 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         totalIncome:
           (totalIncome as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
-        todayIncome: (todayIncome as { _sum: { settled_amount: number | null } })._sum?.settled_amount || 0,
+        todayIncome:
+          (todayIncome as { _sum: { settled_amount: number | null } })._sum
+            ?.settled_amount || 0,
         statusCounts: (statusCounts as any[]) || [],
         latestTransactions: latestTransactions as any,
         availableBalance: 0,
@@ -162,8 +171,24 @@ const merchantDashboardDetails = async (params: any, user: any) => {
 const adminDashboardDetails = async (params: any) => {
   try {
     const currentDate = new Date();
-    const todayStart = params.start;
-    const todayEnd = params.end;
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+
+    const customWhere = {} as any;
+
+    if (startDate && endDate) {
+      const todayStart = parse(
+        startDate,
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        new Date()
+      );
+      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
+      customWhere["date_time"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
 
     const fetchAggregates = [];
 
@@ -178,6 +203,7 @@ const adminDashboardDetails = async (params: any) => {
         _sum: { original_amount: true },
         where: {
           status: "completed",
+          ...customWhere,
         },
       }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
     );
@@ -189,10 +215,7 @@ const adminDashboardDetails = async (params: any) => {
           _sum: { original_amount: true },
           where: {
             status: "completed",
-            date_time: {
-              gte: new Date(todayStart),
-              lt: new Date(todayEnd),
-            },
+            ...customWhere,
           },
         })
         .catch((error: any) => {
@@ -207,6 +230,9 @@ const adminDashboardDetails = async (params: any) => {
         orderBy: {
           date_time: "desc",
         },
+        where: {
+          ...customWhere,
+        }
       })
     );
 
@@ -220,7 +246,9 @@ const adminDashboardDetails = async (params: any) => {
       totalIncome:
         (totalIncome as { _sum: { original_amount: number | null } })._sum
           ?.original_amount || 0,
-      todayIncome: (todayIncome as { _sum: { original_amount: number | null } }),
+      todayIncome:
+        (todayIncome as { _sum: { original_amount: number | null } })._sum
+          ?.original_amount || 0,
       latestTransactions: latestTransactions as any,
     };
 
