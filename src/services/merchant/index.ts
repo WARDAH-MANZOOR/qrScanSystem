@@ -84,6 +84,13 @@ const addMerchant = async (payload: any) => {
         merchant_id: user.id
       }
     })
+    await prisma.userGroup.create({
+      data: {
+          userId: user.id,
+          groupId: 2,
+          merchantId: user.id // Group ID 1 or 2
+      }
+  });
     return "Merchant created successfully";
   } catch (error: any) {
     console.log(error)
