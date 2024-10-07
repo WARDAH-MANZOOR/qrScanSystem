@@ -14,53 +14,57 @@ const merchantDashboardDetails = async (params: any, user: any) => {
     let filters: { merchant_id: number } = { merchant_id: merchantId };
 
     try {
-      const todayStart = new Date().setHours(0, 0, 0, 0);
-      const todayEnd = new Date().setHours(23, 59, 59, 999);
+      const todayStart = params.start;
+      const todayEnd = params.end;
+
+      const customWhere = {} as any;
+
+      if (todayStart && todayEnd) {
+        customWhere["date_time"] = {
+          gte: new Date(todayStart),
+          lt: new Date(todayEnd),
+        };
+      }
 
       const fetchAggregates = [];
-
-      // Fetch today's transaction count
-      fetchAggregates.push(
-        prisma.transaction.count({
-          where: {
-            date_time: {
-              gte: new Date(todayStart),
-              lt: new Date(todayEnd),
-            },
-            merchant_id: +merchantId,
-          },
-        }) // Return type is a Promise<number>
-      );
-
-      // Fetch last 30 days transaction count
-      fetchAggregates.push(
-        prisma.transaction.count({
-          where: {
-            date_time: {
-              gte: subDays(currentDate, 30),
-            },
-            merchant_id: +merchantId,
-          },
-        }) // Return type is a Promise<number>
-      );
 
       // Fetch total transaction count
       fetchAggregates.push(
         prisma.transaction.count({
           where: {
             merchant_id: +merchantId,
+            ...customWhere,
           },
         }) // Return type is a Promise<number>
       );
 
-      // Fetch today's transaction sum
+      // fetch sum of original amount from transactions
+      fetchAggregates.push(
+        prisma.transaction
+          .aggregate({
+            _sum: { original_amount: true },
+            where: {
+              status: "completed",
+              merchant_id: +merchantId,
+              ...customWhere,
+            },
+          })
+          .catch((error: any) => {
+            throw new CustomError(error?.message, 500);
+          }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+      );
+      // // Fetch today's transaction sum
+
+      const servertodayStart = new Date().setHours(0, 0, 0, 0);
+      const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { settled_amount: true },
           where: {
             date_time: {
-              gte: new Date(todayStart),
-              lt: new Date(todayEnd),
+              gte: new Date(servertodayStart),
+              lt: new Date(servertodayEnd),
             },
             merchant_id: +merchantId,
           },
@@ -68,23 +72,23 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       );
 
       // Fetch current year's transaction sum
-      fetchAggregates.push(
-        prisma.transaction.aggregate({
-          _sum: { settled_amount: true },
-          where: {
-            date_time: {
-              gte: new Date(currentDate.getFullYear(), 0, 1),
-              lt: new Date(currentDate.getFullYear() + 1, 0, 1),
-            },
-            merchant_id: +merchantId,
-          },
-        }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
-      );
+      // fetchAggregates.push(
+      //   prisma.transaction.aggregate({
+      //     _sum: { settled_amount: true },
+      //     where: {
+      //       date_time: {
+      //         gte: new Date(currentDate.getFullYear(), 0, 1),
+      //         lt: new Date(currentDate.getFullYear() + 1, 0, 1),
+      //       },
+      //       merchant_id: +merchantId,
+      //     },
+      //   }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
+      // );
 
       // Fetch transaction status count
       fetchAggregates.push(
         prisma.transaction.groupBy({
-          where: { merchant_id: +merchantId },
+          where: { merchant_id: +merchantId, ...customWhere },
           by: ["status"],
           _count: { status: true },
           orderBy: {
@@ -93,29 +97,57 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         }) // Properly type the groupBy query
       );
 
+      fetchAggregates.push(
+        prisma.transaction.findMany({
+          take: 5,
+          orderBy: {
+            date_time: "desc",
+          },
+          where: {
+            merchant_id: +merchantId,
+            ...customWhere,
+          },
+        })
+      );
+
       // Execute all queries in parallel
       const [
-        todayCount,
-        last30DaysCount,
-        totalCount,
-        todaySum,
-        currentYearSum,
+        totalTransactions,
+        totalIncome,
+        todayIncome,
         statusCounts,
+        latestTransactions,
       ] = await Promise.all(fetchAggregates);
 
       // Build and return the full dashboard summary
       const dashboardSummary = {
-        todayCount: todayCount as number, // Ensure correct type
-        last30DaysCount: last30DaysCount as number, // Ensure correct type
-        totalCount: totalCount as number, // Ensure correct type
-        todaySum:
-          (todaySum as { _sum: { settled_amount: number | null } })._sum
-            ?.settled_amount || 0,
-        currentYearSum:
-          (currentYearSum as { _sum: { settled_amount: number | null } })._sum
-            ?.settled_amount || 0,
-        statusCounts: statusCounts || [],
+        totalTransactions: totalTransactions as number, // Ensure correct type
+        totalIncome:
+          (totalIncome as { _sum: { original_amount: number | null } })._sum
+            ?.original_amount || 0,
+        todayIncome: (todayIncome as { _sum: { settled_amount: number | null } })._sum?.settled_amount || 0,
+        statusCounts: (statusCounts as any[]) || [],
+        latestTransactions: latestTransactions as any,
+        availableBalance: 0,
+        transactionSuccessRate: 0,
       };
+
+      // Calculate the transaction success rate
+      dashboardSummary.transactionSuccessRate =
+        await getTransactionsSuccessRate(statusCounts);
+
+      // make sure we sending three status always in response completed, failed, pending
+      const statusTypes = ["completed", "pending", "failed"];
+      // @ts-ignore
+      const statusCountsMap = statusCounts.reduce((acc: any, item: any) => {
+        acc[item.status] = item._count.status;
+        return acc;
+      }, {});
+
+      dashboardSummary.statusCounts = statusTypes.map((status) => ({
+        status,
+        count: statusCountsMap[status] || 0,
+      }));
 
       return dashboardSummary;
     } catch (error) {
@@ -175,7 +207,7 @@ const adminDashboardDetails = async (params: any) => {
         orderBy: {
           date_time: "desc",
         },
-      }) // Properly type the findMany
+      })
     );
 
     // Execute all queries in parallel
@@ -188,9 +220,7 @@ const adminDashboardDetails = async (params: any) => {
       totalIncome:
         (totalIncome as { _sum: { original_amount: number | null } })._sum
           ?.original_amount || 0,
-      todayIncome:
-        (todayIncome as { _sum: { original_amount: number | null } })._sum
-          ?.original_amount || 0,
+      todayIncome: (todayIncome as { _sum: { original_amount: number | null } }),
       latestTransactions: latestTransactions as any,
     };
 
@@ -198,6 +228,26 @@ const adminDashboardDetails = async (params: any) => {
   } catch (error: any) {
     throw new CustomError(error?.error, error?.statusCode);
   }
+};
+
+const getTransactionsSuccessRate = async (statusCounts: any) => {
+  // On Basis of statusCounts generate a transaction success rate
+  // 1. Find the total number of transactions
+  const totalTransactions = statusCounts.reduce(
+    (acc: number, item: any) => acc + item._count.status,
+    0
+  );
+
+  // 2. Find the number of successful transactions
+  const successfulTransactions = statusCounts.find(
+    (item: any) => item.status === "completed"
+  )?._count.status;
+
+  // 3. Calculate the success rate
+
+  return totalTransactions
+    ? ((successfulTransactions || 0) / totalTransactions) * 100
+    : 0;
 };
 
 export default {
