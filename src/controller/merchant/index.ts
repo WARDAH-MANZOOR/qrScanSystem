@@ -29,4 +29,16 @@ const getMerchants = async (
     next(error);
   }
 };
-export default { updateMerchant, getMerchants };
+
+const addMerchant = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const payload = req.body;
+    const result = await merchantService.addMerchant(payload);
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error: any) {
+    return res
+      .status(400)
+      .json(ApiResponse.error(error?.message, error?.statusCode));
+  }
+};
+export default { updateMerchant, getMerchants, addMerchant };

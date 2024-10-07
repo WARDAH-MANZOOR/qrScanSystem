@@ -41,4 +41,7 @@ const getMerchants = async (params: any) => {
     throw new CustomError(err?.error, err?.statusCode);
   }
 };
-export default { updateMerchant, getMerchants };
+
+const addMerchant = async (payload: Merchant) => {
+};
+export default { updateMerchant, getMerchants, addMerchant };
