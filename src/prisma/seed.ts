@@ -21,7 +21,8 @@ const permissions = [
   { id: 13, name: "View/Manage Hold Transactions" },
   { id: 14, name: "Invoice Transactions" },
   { id: 15, name: "View Available Balance" },
-  { id: 16, name: "Disbursement" }
+  { id: 16, name: "Disbursement" },
+  {id: 17, name: "Pay"},
 ];
 
 async function seed() {
@@ -46,6 +47,11 @@ async function seed() {
         name: 'Merchant',
       }
     });
+    const customer = await prisma.group.create({
+      data: {
+        name: "Customer"
+      }
+    })
 
     const groupPermissions = [
       { groupId: admin.id, permissionId: 1 },
@@ -76,6 +82,7 @@ async function seed() {
       { groupId: merchant.id, permissionId: 12 },
       { groupId: merchant.id, permissionId: 13 },
       { groupId: merchant.id, permissionId: 14 },
+      {groupId: customer.id, permissionId: 17}
     ];
 
     // Seed the group-permission relationships
