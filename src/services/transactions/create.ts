@@ -15,19 +15,26 @@ async function getMerchantCommission(merchantId: number): Promise<number | Decim
     return merchant.commission ?? 0;
 }
 
-async function findOrCreateCustomer(customerName: string, customerEmail: string) {
+async function findOrCreateCustomer(customerName: string, customerEmail: string, merchantId: number) {
     let customer = await prisma.user.findUnique({
-        where: { email: customerEmail },
+        where: { email: customerEmail, merchant_id: merchantId },
     });
-
     if (!customer) {
         customer = await prisma.user.create({
             data: {
                 username: customerName,
                 email: customerEmail,
                 password: '', // Handle password appropriately
+                merchant_id: merchantId
             },
         });
+        await prisma.userGroup.create({
+            data: {
+                userId: 6,
+                groupId: 3,
+                merchantId
+            }
+        })
     }
     return customer;
 }
@@ -91,7 +98,7 @@ async function generateTransactionLink(transactionId: string) {
 const createTransaction = async (obj: any) => {
     try {
         const commissionPercentage = await getMerchantCommission(obj.merchant_id);
-        const customer = await findOrCreateCustomer(obj.customerName, obj.customerEmail);
+        const customer = await findOrCreateCustomer(obj.customerName, obj.customerEmail,obj.merchant_id);
         const originalAmount = parseFloat(obj.original_amount);
         const settledAmount = calculateSettledAmount(originalAmount, commissionPercentage);
         // Create a new transaction request in the database

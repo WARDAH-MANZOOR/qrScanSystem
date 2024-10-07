@@ -7,6 +7,7 @@ const router = Router();
 
 router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
 router.put("/", [isLoggedIn, isAdmin], merchantController.updateMerchant);
+router.post("/", [isLoggedIn, isAdmin], merchantController.addMerchant)
 
 
 // Define routes using arrow functions

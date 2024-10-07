@@ -4,7 +4,7 @@ import CustomError from "utils/custom_error.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { validationResult } from "express-validator";
-import { comparePasswords, generateToken, getUserByEmail, setTokenCookie } from "services/authentication/index.js";
+import { comparePasswords, findUserByEmail, generateToken, getUserByEmail, hashPassword, setTokenCookie, updateUserPassword } from "services/authentication/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
 const logout = async (req: Request, res: Response) => {
@@ -31,19 +31,26 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
         if (!user) {
             const error = new CustomError("Invalid email or password", 401);
-            next(error);
+            res.status(401).json(ApiResponse.error(error.message))
+            return;
         }
 
+        if ((!user.password || user.password.trim() === '')) {
+            const error = new CustomError("Please sign up first with the given email", 400);
+            res.status(400).json(ApiResponse.error(error.message));
+            return;
+        }
         // Compare passwords
         const isPasswordValid = await comparePasswords(password, user?.password as string);
         if (!isPasswordValid) {
             const error = new CustomError("Invalid email or password", 401);
-            next(error)
-        } 
+            res.status(401).json(ApiResponse.error(error.message))
+            return;
+        }
 
         // Extract the group name (role) from the user's groups
         const userGroup = user?.groups[0]; // Assuming one group per user
-        const role = userGroup ? userGroup.group.name : "user"; // Default role if no group found
+        const role = userGroup ? userGroup.group.name : "User"; // Default role if no group found
 
         // Generate JWT token
         const token = generateToken({
@@ -73,4 +80,52 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-export {logout, login}
+const signup = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Step 1: Validate Request Data
+        validationResult(req);
+
+        // Step 2: Extract Data from Request
+        const { email, password } = req.body;
+
+        // Step 3: Check if User Exists with Customer Email
+        const user = await findUserByEmail(email);
+
+        if (!user) {
+            throw new CustomError('You are not registered. Please contact support.', 400);
+        }
+
+        // Step 4: Encrypt Password
+        const hashedPassword = await hashPassword(password);
+
+        // Step 5: Update User Record with Encrypted Password
+        await updateUserPassword(user.id, hashedPassword);
+
+        // Step 6: Generate JWT Token
+        const token = generateToken({
+            email: user.email,
+            id: user.id,
+            role: 'user', // Adjust role as necessary
+        });
+
+        // Step 7: Send Response
+        res.status(200).json({
+            message: 'Signup successful.',
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+            },
+        });
+    } catch (error) {
+        console.error('Error during signup:', error);
+
+        if (error instanceof CustomError) {
+            return res.status(error.statusCode).json({ message: error.message });
+        }
+
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export { logout, login, signup };
