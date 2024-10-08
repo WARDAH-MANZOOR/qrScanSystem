@@ -28,6 +28,7 @@ const getEligibleTransactions = async (merchantId: number) => {
             transaction_id: true,
             settled_amount: true,
             balance: true,
+            original_amount: true
         },
     });
 };

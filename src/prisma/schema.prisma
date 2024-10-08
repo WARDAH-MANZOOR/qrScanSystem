@@ -80,7 +80,11 @@ model User {
   merchant    Merchant?      @relation("AssociatedUsers", fields: [merchant_id], references: [merchant_id])
 
   ownerOfMerchants Merchant[] @relation("Owner") // Opposite relation for owner User
-  Transaction Transaction[]
+  // Transactions as Merchant
+  merchantTransactions Transaction[] @relation("MerchantTransactions")
+  
+  // Transactions as Customer
+  customerTransactions Transaction[] @relation("CustomerTransactions")
 
   @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
 }
@@ -88,20 +92,27 @@ model User {
 model Transaction {
   transaction_id   String               @id @unique
   date_time        DateTime
-  original_amount  Decimal?          @db.Decimal(10, 2)
+  original_amount  Decimal?             @db.Decimal(10, 2)
   status           TransactionStatus
   type             TransactionType
   response_message String?
-  settlement       Boolean           @default(false)
-  settled_amount   Decimal?          @db.Decimal(10, 2)
+  settlement       Boolean              @default(false)
+  settled_amount   Decimal?             @db.Decimal(10, 2)
+  balance          Decimal              @db.Decimal(10,2) @default(0)
+  
   merchant_id      Int
-  merchant         User              @relation(fields: [merchant_id], references: [id])
-  AdditionalInfo   AdditionalInfo?   @relation(fields: [additionalInfoId], references: [id])
+  merchant         User                 @relation("MerchantTransactions", fields: [merchant_id], references: [id])
+
+  customer_id      Int?
+  customer         User?                @relation("CustomerTransactions", fields: [customer_id], references: [id])
+
   additionalInfoId Int?
-  Provider         Provider?         @relation(fields: [providerId], references: [id])
+  AdditionalInfo   AdditionalInfo?      @relation(fields: [additionalInfoId], references: [id])
+
   providerId       Int?
-  balance          Decimal           @db.Decimal(10,2) @default(0)
+  Provider         Provider?            @relation(fields: [providerId], references: [id])
 }
+
 
 model AdditionalInfo {
   id                Int           @id @default(autoincrement())
