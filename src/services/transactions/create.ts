@@ -115,7 +115,6 @@ const createTransaction = async (obj: any) => {
             merchantId: obj.merchant_id,
             settledAmount: settledAmount,
             customerId
-            
         });
 
         const transactionLink = await generateTransactionLink(transaction?.transaction_id as string);

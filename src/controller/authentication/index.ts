@@ -95,9 +95,6 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
             throw new CustomError('You are not registered. Please contact support.', 400);
         }
 
-        if ((!user.password || user.password.trim() === '')) {
-            throw new CustomError("Please sign up first with the given email", 400);
-        }
         // Step 4: Encrypt Password
         const hashedPassword = await hashPassword(password);
 
@@ -111,6 +108,10 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
             role: 'user', // Adjust role as necessary
         });
 
+        res.cookie("token", token, {
+            httpOnly: true
+        });
+        
         // Step 7: Send Response
         res.status(200).json(ApiResponse.success({
             message: 'Signup successful.',

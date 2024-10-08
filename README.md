@@ -7,3 +7,4 @@ This is the repo for the our ongoing project backend. The steps to setup the bac
 5. Run **npm run migrate**, **npm run generate** and **npm run seed** in the terminal
 6. Open a terminal and run **npm run dev** in it.
 7. Access swagger docs at **localhost:3001/api-docs** while redoc docs at **localhost:3001/redoc** for getting started with apis and integrating them 
+Note: To generate the key for encryption, Run node -e **"console.log(require('crypto').randomBytes(32).toString('hex'))"** to get the key in cmd and paste it in .env file.
