@@ -7,10 +7,9 @@
     "start": "nodemon ./bin/www",
     "dev": "npx tsc && nodemon ./bin/www",
     "seed": "node dist/prisma/seed.js",
-    "build": "npx tsc",
+    "build": "npm run migrate && npm run generate && npx tsc",
     "migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
-    "generate": "prisma generate --sql --schema src/prisma/schema.prisma",
-    "deploy": "npm install && npm run migrate && npm run build"
+    "generate": "prisma generate --sql --schema src/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
