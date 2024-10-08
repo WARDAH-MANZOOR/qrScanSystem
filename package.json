@@ -9,7 +9,8 @@
     "seed": "node dist/prisma/seed.js",
     "build": "npx tsc",
     "migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
-    "generate": "prisma generate --sql --schema src/prisma/schema.prisma"
+    "generate": "prisma generate --sql --schema src/prisma/schema.prisma",
+    "deploy": "npm install && npm run build && npm run migrate"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
