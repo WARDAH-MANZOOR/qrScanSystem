@@ -49,12 +49,14 @@ async function createTransactionRecord({
     type,
     merchantId,
     settledAmount,
+    customerId,
 }: {
     id: string;
     originalAmount: number;
     type: string;
     merchantId: number;
     settledAmount: number;
+    customerId: number;
 }) {
     if (type != "wallet" && type != "card" && type != "bank") {
         return;
@@ -70,7 +72,10 @@ async function createTransactionRecord({
             balance: settledAmount,
             merchant: {
                 connect: { id: merchantId },
-            }
+            },
+            customer: {
+                connect: { id: customerId },
+              },
         },
     });
 
@@ -99,6 +104,7 @@ const createTransaction = async (obj: any) => {
     try {
         const commissionPercentage = await getMerchantCommission(obj.merchant_id);
         const customer = await findOrCreateCustomer(obj.customerName, obj.customerEmail,obj.merchant_id);
+        const customerId = customer.id;
         const originalAmount = parseFloat(obj.original_amount);
         const settledAmount = calculateSettledAmount(originalAmount, commissionPercentage);
         // Create a new transaction request in the database
@@ -107,7 +113,8 @@ const createTransaction = async (obj: any) => {
             originalAmount: originalAmount,
             type: obj.type,
             merchantId: obj.merchant_id,
-            settledAmount: settledAmount
+            settledAmount: settledAmount,
+            customerId
         });
 
         const transactionLink = await generateTransactionLink(transaction?.transaction_id as string);

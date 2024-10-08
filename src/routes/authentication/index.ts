@@ -3,13 +3,14 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
-import { login, logout } from "controller/authentication/index.js";
+import { login, logout, signup } from "controller/authentication/index.js";
 import { validateLoginData } from "services/authentication/index.js";
 
 const router = Router();
 
 router.get("/logout", logout)
 router.post("/login", validateLoginData, login);
+router.post("/signup", validateLoginData, signup)
 
 export default router;
 

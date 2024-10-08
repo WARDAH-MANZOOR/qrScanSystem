@@ -51,7 +51,22 @@ const filterTransactions = async (params: any, user: any) => {
 };
 
 const getDashboardSummary = async (params: any) => {
-  
+
 };
 
-export default { filterTransactions, getDashboardSummary };
+const getCustomerTransactions = async (params: any) => {
+  try {
+    console.log(params.id);
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        customer_id: params.id,
+      }
+    });
+    return transactions;
+  }
+  catch (err) {
+    throw new CustomError("Internal Server Error", 500);
+  }
+}
+
+export default { filterTransactions, getDashboardSummary, getCustomerTransactions };

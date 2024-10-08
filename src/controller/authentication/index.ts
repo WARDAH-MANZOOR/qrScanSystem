@@ -108,23 +108,27 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
             role: 'user', // Adjust role as necessary
         });
 
+        res.cookie("token", token, {
+            httpOnly: true
+        });
+        
         // Step 7: Send Response
-        res.status(200).json({
+        res.status(200).json(ApiResponse.success({
             message: 'Signup successful.',
             token,
             user: {
                 id: user.id,
                 email: user.email,
             },
-        });
+        }));
     } catch (error) {
         console.error('Error during signup:', error);
 
         if (error instanceof CustomError) {
-            return res.status(error.statusCode).json({ message: error.message });
+            return res.status(error.statusCode).json(ApiResponse.error(error.message));
         }
 
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json(ApiResponse.error('Internal server error'));
     }
 };
 

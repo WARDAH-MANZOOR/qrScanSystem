@@ -56,6 +56,8 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
                 transaction_id: t.transaction_id,
                 disbursed: true,
                 balance: new Decimal(0),
+                settled_amount: t.settled_amount,
+                original_amount: t.original_amount
             }));
             totalDisbursed = transactions.reduce(
                 (sum, t) => sum.plus(t.balance),
@@ -69,7 +71,7 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
         res.status(200).json(ApiResponse.success({
             message: 'Transactions disbursed successfully',
             totalDisbursed: totalDisbursed.toString(),
-            transactionsUpdated: updates.map((u) => u.transaction_id),
+            transactionsUpdated: updates,
         }));
     } catch (error) {
         if (error instanceof CustomError) {
