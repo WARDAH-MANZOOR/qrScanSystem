@@ -61,7 +61,6 @@ const merchantDashboardDetails = async (params: any, user: any) => {
           }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
       // // Fetch today's transaction sum
-
       const servertodayStart = new Date().setHours(0, 0, 0, 0);
       const servertodayEnd = new Date().setHours(23, 59, 59, 999);
 
@@ -77,20 +76,6 @@ const merchantDashboardDetails = async (params: any, user: any) => {
           },
         }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
       );
-
-      // Fetch current year's transaction sum
-      // fetchAggregates.push(
-      //   prisma.transaction.aggregate({
-      //     _sum: { settled_amount: true },
-      //     where: {
-      //       date_time: {
-      //         gte: new Date(currentDate.getFullYear(), 0, 1),
-      //         lt: new Date(currentDate.getFullYear() + 1, 0, 1),
-      //       },
-      //       merchant_id: +merchantId,
-      //     },
-      //   }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
-      // );
 
       // Fetch transaction status count
       fetchAggregates.push(

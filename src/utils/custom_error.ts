@@ -5,7 +5,7 @@ class CustomError extends Error {
     error: string;
     success: boolean;    // Added this line
 
-    constructor(message: string, statusCode: number) {
+    constructor(message: string, statusCode: number = 500) {
         super(message);
         this.error = message || 'Internal server error';
         this.success = false;    // Added this line

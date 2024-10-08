@@ -30,11 +30,7 @@ const getMerchants = async (
   }
 };
 
-const addMerchant = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const addMerchant = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const payload = req.body;
     const result = await merchantService.addMerchant(payload);
@@ -43,4 +39,4 @@ const addMerchant = async (
     next(error);
   }
 };
-export default { updateMerchant, getMerchants,addMerchant };
+export default { updateMerchant, getMerchants, addMerchant };

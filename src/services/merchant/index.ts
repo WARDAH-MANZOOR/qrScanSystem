@@ -29,7 +29,7 @@ const updateMerchant = async (payload: Merchant) => {
     });
     return "Merchant updated successfully";
   } catch (error: any) {
-    console.log(error)
+    console.log(error);
     throw new CustomError(error?.error, error?.statusCode);
   }
 };
@@ -62,9 +62,9 @@ const addMerchant = async (payload: any) => {
         email,
         password: pass,
         username,
-        merchant_id: undefined
-      }
-    })
+        merchant_id: undefined,
+      },
+    });
     await prisma.merchant.create({
       data: {
         merchant_id: user.id,
@@ -76,25 +76,24 @@ const addMerchant = async (payload: any) => {
         city,
         payment_volume,
         commission,
-      }
+      },
     });
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        merchant_id: user.id
-      }
-    })
+        merchant_id: user.id,
+      },
+    });
     await prisma.userGroup.create({
       data: {
-          userId: user.id,
-          groupId: 2,
-          merchantId: user.id // Group ID 1 or 2
-      }
-  });
+        userId: user.id,
+        groupId: 2,
+        merchantId: user.id, // Group ID 1 or 2
+      },
+    });
     return "Merchant created successfully";
   } catch (error: any) {
-    console.log(error)
-    throw new CustomError(error?.error, error?.statusCode);
+    throw new CustomError(error, error?.statusCode);
   }
-}
+};
 export default { updateMerchant, getMerchants, addMerchant };
