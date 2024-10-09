@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Encryption algorithm and key
-// console.log(process.env["JWT_SECRET"]);
 const algorithm = process.env.ENCRYPTION_ALGO as string;
 const key = Buffer.from(process.env.ENCRYPTION_KEY as string, 'hex'); // 32 bytes key for AES-256
 
