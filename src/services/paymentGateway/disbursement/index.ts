@@ -72,7 +72,7 @@ const calculateWalletBalance = async (merchantId: number): Promise<Object> => {
 };
 
 
-const getWalletBalance = async (merchantId: number): Promise<number> => {
+const getWalletBalance = async (merchantId: number): Promise<Object> => {
     try {
         // Check if the merchant exists
         const merchantExists = await checkMerchantExists(merchantId);
