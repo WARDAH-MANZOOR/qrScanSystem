@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "nodemon ./bin/www",
-    "dev": "npx tsc && nodemon ./bin/www",
+    "start": "nodemon ./src/bin/www",
+    "dev": "npx tsc && nodemon ./src/bin/www",
     "seed": "node dist/prisma/seed.js",
     "build": "npm run migrate && npm run generate && npx tsc",
     "migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
