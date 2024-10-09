@@ -10,7 +10,6 @@ const checkMerchantExists = async (merchantId: number): Promise<boolean> => {
 };
 
 const getEligibleTransactions = async (merchantId: number) => {
-    // Check if merchant exists
     const merchantExists = await checkMerchantExists(merchantId);
     if (!merchantExists) {
         throw new CustomError('Merchant not found', 404);
@@ -34,7 +33,7 @@ const getEligibleTransactions = async (merchantId: number) => {
 };
 
 
-const calculateWalletBalance = async (merchantId: number): Promise<number> => {
+const calculateWalletBalance = async (merchantId: number): Promise<Object> => {
     const result = await prisma.transaction.aggregate({
         _sum: {
             balance: true,
@@ -45,9 +44,31 @@ const calculateWalletBalance = async (merchantId: number): Promise<number> => {
             merchant_id: merchantId,
         },
     });
-    console.log(result);
+
+    // Find the todays transaction sum
+    const servertodayStart = new Date().setHours(0, 0, 0, 0);
+    const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+
+    const todayResult = await prisma.transaction.aggregate({
+        _sum: {
+            balance: true,
+        },
+        where: {
+            settlement: true,
+            balance: { gt: new Decimal(0) },
+            merchant_id: merchantId,
+            date_time: {
+                gte: new Date(servertodayStart),
+                lt: new Date(servertodayEnd),
+            },
+        },
+    });
     const walletBalance = result._sum.balance || new Decimal(0);
-    return walletBalance.toNumber();
+    const todayBalance = todayResult._sum.balance || new Decimal(0);
+    return {
+        walletBalance: walletBalance.toNumber(),
+        todayBalance: todayBalance.toNumber(),
+    };
 };
 
 
