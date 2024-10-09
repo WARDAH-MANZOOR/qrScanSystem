@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Encryption algorithm and key
 const algorithm = process.env.ENCRYPTION_ALGO as string;

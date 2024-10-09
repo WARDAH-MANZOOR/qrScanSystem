@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import axios from "axios";
 import { transactionService } from "services/index.js";
 import { ja } from "@faker-js/faker";
+import { encrypt } from "utils/enc_dec.js";
 
 const MERCHANT_ID = "12478544";
 const PASSWORD = "uczu5269d1";
@@ -169,11 +170,11 @@ const initiateJazzCashPayment = async (paymentData: any) => {
         bank_id: response.data.pp_BankID,
         bill_ref: response.data.pp_BillReference,
         retrieval_ref: response.data.pp_RetrievalReferenceNo,
-        sub_merchant_id: response.data.pp_SubMerchantID,
-        custom_field_1: response.data.ppmpf_1,
-        custom_field_2: response.data.ppmpf_2,
-        custom_field_3: response.data.ppmpf_3,
-        custom_field_4: response.data.ppmpf_4,
+        sub_merchant_id: encrypt(response.data.pp_SubMerchantID),
+        custom_field_1: encrypt(response.data.ppmpf_1),
+        custom_field_2: encrypt(response.data.pp_CustomerCardNumber),
+        custom_field_3: encrypt(response.data.pp_CustomerCardCVV),
+        custom_field_4: encrypt(response.data.pp_CustomerCardExpiry),
         custom_field_5: response.data.ppmpf_5,
       };
       let provider = {
