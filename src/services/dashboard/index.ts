@@ -179,7 +179,7 @@ const adminDashboardDetails = async (params: any) => {
 
     // Fetch total number of merchants
     fetchAggregates.push(
-      prisma.merchant.count() // Return type is a Promise<number>
+      prisma.merchant.count() 
     );
 
     // Fetch sum of original_amount from transactions
