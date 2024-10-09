@@ -32,7 +32,11 @@ app.set('view engine', 'jade');
 
 // Allow only specific origins
 app.use(cors({
-  origin: ['http://localhost:3005', '*'],
+  origin: [
+    'https://sahulatpay.com',
+    'http://localhost:3005',
+    'http://localhost:*',
+  ],
   credentials: true,
 }));
 
