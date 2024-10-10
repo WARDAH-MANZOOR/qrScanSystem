@@ -56,7 +56,7 @@ model GroupPermission {
 }
 
 model Merchant {
-  id             String?     @default(uuid())
+  uid             String?     @default(uuid())
   merchant_id    Int         @id @default(autoincrement())
   full_name      String
   phone_number   String

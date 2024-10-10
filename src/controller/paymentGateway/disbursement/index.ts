@@ -12,8 +12,8 @@ const getWalletBalanceController = async (req: Request, res: Response, next: Nex
         return res.status(401).json({ message: 'Unauthorized' });
     }
     try {
-        const balance = await getWalletBalance(merchantId);
-        res.status(200).json(ApiResponse.success({ balance }));
+        const balance: any = await getWalletBalance(merchantId);
+        res.status(200).json(ApiResponse.success({ ...balance }));
     } catch (error) {
         next(error); // Pass the error to the error handling middleware
     }
