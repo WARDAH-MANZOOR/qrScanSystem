@@ -98,7 +98,7 @@ const router = Router();
 router.post("/create-user",
     isLoggedIn,
     async (req: Request, res: Response) => {
-        const { username, email, password, group, commission } = req.body;
+        const { username, email, password, group, commission, commissionGST, commissionWithHoldingTax, disbursementRate, disbursementGST, disbursementWithHoldingTax, settlementDuration } = req.body;
         let error;
         try {
             if (!email || typeof email !== 'string' || !email.includes('@')) {
@@ -174,12 +174,12 @@ router.post("/create-user",
                             await prisma.merchantCommission.create({
                                 data: {
                                     commissionRate: commission,
-                                    commissionGST: 0,
-                                    commissionWithHoldingTax: 0,
-                                    disbursementGST: 0,
-                                    disbursementRate: 0,
-                                    disbursementWithHoldingTax: 0,
-                                    settlementDuration: 2,
+                                    commissionGST: commissionGST ?? 0,
+                                    commissionWithHoldingTax: commissionWithHoldingTax ?? 0,
+                                    disbursementGST: disbursementGST ?? 0,
+                                    disbursementRate: disbursementRate ?? 0,
+                                    disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
+                                    settlementDuration: settlementDuration ?? 2,
                                     merchant_id: user.id
                                 }
                             })

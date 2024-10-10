@@ -13,9 +13,15 @@ const updateMerchant = async (payload: Merchant) => {
     payment_volume,
     commission,
     merchantId,
+    commissionGST,
+    commissionWithHoldingTax,
+    disbursementGST,
+    disbursementRate,
+    disbursementWithHoldingTax,
+    settlementDuration
   } = payload;
   try {
-    await prisma.merchant.update({
+    const user = await prisma.merchant.update({
       data: {
         full_name: username,
         phone_number,
@@ -28,7 +34,13 @@ const updateMerchant = async (payload: Merchant) => {
     });
     await prisma.merchantCommission.update({
       data: {
-        commissionRate: commission
+        commissionRate: commission,
+        commissionGST: commissionGST,
+        commissionWithHoldingTax: commissionWithHoldingTax,
+        disbursementGST: disbursementGST,
+        disbursementRate: disbursementRate,
+        disbursementWithHoldingTax: disbursementWithHoldingTax,
+        settlementDuration: settlementDuration,
       },
       where: { merchant_id: merchantId }
     })
@@ -41,14 +53,20 @@ const updateMerchant = async (payload: Merchant) => {
 
 const getMerchants = async (params: any) => {
   try {
-    let merchants = await prisma.merchant.findMany();
+    let merchants = await prisma.merchant.findMany(
+      {
+        include: {
+          commissions: true
+        }
+      }
+    );
     return merchants;
   } catch (err: any) {
     throw new CustomError(err?.error, err?.statusCode);
   }
 };
 
-const addMerchant = async (payload: any) => {
+const addMerchant = async (payload: Merchant) => {
   const {
     username,
     email,
@@ -59,12 +77,21 @@ const addMerchant = async (payload: any) => {
     city,
     payment_volume,
     commission,
+    commissionGST,
+    commissionWithHoldingTax,
+    disbursementGST,
+    disbursementRate,
+    disbursementWithHoldingTax,
+    settlementDuration
   } = payload;
+  if (settlementDuration == undefined) {
+    return "Settlment Duration Required";
+  }
   try {
-    let pass = await hashPassword(password);
+    let pass = await hashPassword(password as string);
     let user = await prisma.user.create({
       data: {
-        email,
+        email: email as string,
         password: pass,
         username,
         merchant_id: undefined,
@@ -85,12 +112,12 @@ const addMerchant = async (payload: any) => {
     await prisma.merchantCommission.create({
       data: {
         commissionRate: commission,
-        commissionGST: 0,
-        commissionWithHoldingTax: 0,
-        disbursementGST: 0,
-        disbursementRate: 0,
-        disbursementWithHoldingTax: 0,
-        settlementDuration: 2,
+        commissionGST: commissionGST ?? 0,
+        commissionWithHoldingTax: commissionWithHoldingTax ?? 0,
+        disbursementGST: disbursementGST ?? 0,
+        disbursementRate: disbursementRate ?? 0,
+        disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
+        settlementDuration: settlementDuration ?? 2,
         merchant_id: user.id
       }
     })

@@ -2,6 +2,18 @@ import { Decimal } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 
+async function getMerchantRate(merchantId: number): Promise<number | Decimal> {
+    const merchant = await prisma.merchantCommission.findUnique({
+        where: { merchant_id: merchantId },
+    });
+
+    if (!merchant) {
+        throw new CustomError('Merchant not found', 404);
+    }
+
+    return +merchant.disbursementRate + +merchant.disbursementGST + +merchant.disbursementWithHoldingTax;
+}
+
 const checkMerchantExists = async (merchantId: number): Promise<boolean> => {
     const merchant = await prisma.user.findUnique({
         where: { id: merchantId },
@@ -151,4 +163,4 @@ const updateTransactions = async (updates: TransactionUpdate[]) => {
     );
     await Promise.all(updatePromises);
 };
-export { getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions };
+export { getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate };

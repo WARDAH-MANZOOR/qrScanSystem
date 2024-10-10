@@ -12,7 +12,7 @@ async function getMerchantCommission(merchantId: number): Promise<number | Decim
         throw new CustomError('Merchant not found', 404);
     }
 
-    return merchant.commissionRate ?? 0;
+    return +merchant.commissionRate + +merchant.commissionGST + +merchant.commissionWithHoldingTax;
 }
 
 async function findOrCreateCustomer(customerName: string, customerEmail: string, merchantId: number) {

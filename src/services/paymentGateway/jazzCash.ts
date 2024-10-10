@@ -170,11 +170,11 @@ const initiateJazzCashPayment = async (paymentData: any) => {
         bank_id: response.data.pp_BankID,
         bill_ref: response.data.pp_BillReference,
         retrieval_ref: response.data.pp_RetrievalReferenceNo,
-        sub_merchant_id: encrypt(response.data.pp_SubMerchantID),
+        sub_merchant_id: response.data.pp_SubMerchantID != undefined ? encrypt(response.data.pp_SubMerchantID): "",
         custom_field_1: encrypt(response.data.ppmpf_1),
-        custom_field_2: encrypt(response.data.pp_CustomerCardNumber),
-        custom_field_3: encrypt(response.data.pp_CustomerCardCVV),
-        custom_field_4: encrypt(response.data.pp_CustomerCardExpiry),
+        custom_field_2: response.data.pp_CustomerCardNumber != undefined ? encrypt(response.data.pp_CustomerCardNumber): "",
+        custom_field_3: response.data.pp_CustomerCardCVV != undefined ? encrypt(response.data.pp_CustomerCardCVV): "",
+        custom_field_4: response.data.pp_CustomerCardExpiry != undefined ? encrypt(response.data.pp_CustomerCardExpiry): "",
         custom_field_5: response.data.ppmpf_5,
       };
       let provider = {

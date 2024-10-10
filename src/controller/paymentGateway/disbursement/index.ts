@@ -2,7 +2,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import { calculateDisbursement, getEligibleTransactions, getWalletBalance, updateTransactions } from "services/paymentGateway/disbursement/index.js";
+import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, updateTransactions } from "services/paymentGateway/disbursement/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
 
@@ -28,8 +28,9 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
     }
 
     const merchantId = (req.user as JwtPayload)?.id;
-    const { amount } = req.body;
-
+    let { amount } = req.body;
+    let rate = await getMerchantRate(merchantId);
+    amount *= (1 - +rate);
     if (!merchantId) {
         return res.status(401).json({ message: 'Unauthorized' });
     }
