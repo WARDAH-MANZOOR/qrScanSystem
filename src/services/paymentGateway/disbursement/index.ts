@@ -3,7 +3,7 @@ import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 
 async function getMerchantRate(merchantId: number): Promise<number | Decimal> {
-    const merchant = await prisma.merchantCommission.findUnique({
+    const merchant = await prisma.merchantFinancialTerms.findUnique({
         where: { merchant_id: merchantId },
     });
 

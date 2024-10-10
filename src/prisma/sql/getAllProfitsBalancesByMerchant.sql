@@ -11,10 +11,10 @@ SELECT
       LEFT JOIN 
         "Transaction" t ON t.merchant_id = u.id
       LEFT JOIN
-        "MerchantCommission" mc on mc.merchant_id = m.merchant_id
+        "MerchantFinancialTerms" mft on mft.merchant_id = m.merchant_id
       WHERE
         t.date_time BETWEEN $1 AND $2
         AND t.status = 'completed'
         AND m.merchant_id=$3
       GROUP BY 
-        m.merchant_id, m.full_name, m.company_name, mc."commissionRate";
+        m.merchant_id, m.full_name, m.company_name, mft."commissionRate";

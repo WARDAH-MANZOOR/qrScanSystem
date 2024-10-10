@@ -71,7 +71,7 @@ const createTransaction = async (obj: any) => {
   if (validationErrors.length > 0) {
     return { errors: validationErrors, success: false };
   }
-  let commission = await prisma.merchantCommission.findUnique({
+  let commission = await prisma.merchantFinancialTerms.findUnique({
     where: { merchant_id },
   })
   let rate = commission?.commissionRate ?? 0;
@@ -169,7 +169,7 @@ const completeTransaction = async (obj: any) => {
         }
       });
 
-      const settlment = await prisma.merchantCommission.findUnique({
+      const settlment = await prisma.merchantFinancialTerms.findUnique({
         where: { merchant_id }
       })
       const scheduledAt = addWeekdays(date, settlment?.settlementDuration as number);  // Call the function to get the next 2 weekdays

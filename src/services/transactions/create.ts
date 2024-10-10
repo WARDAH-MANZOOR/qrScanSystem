@@ -4,7 +4,7 @@ import CustomError from "utils/custom_error.js";
 import jwt from "jsonwebtoken";
 
 async function getMerchantCommission(merchantId: number): Promise<number | Decimal> {
-    const merchant = await prisma.merchantCommission.findUnique({
+    const merchant = await prisma.merchantFinancialTerms.findUnique({
         where: { merchant_id: merchantId },
     });
 

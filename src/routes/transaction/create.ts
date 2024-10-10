@@ -53,7 +53,7 @@ export const createTransactionRequestFromLib = async (obj: any) => {
     
   }
   let merchant_id = (obj.user as JwtPayload)?.id;
-  let commission = await prisma.merchantCommission.findUnique({
+  let commission = await prisma.merchantFinancialTerms.findUnique({
     where: {merchant_id},
   })
   try {

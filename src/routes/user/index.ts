@@ -171,7 +171,7 @@ router.post("/create-user",
                                     // commission: commission          
                                 }
                             })
-                            await prisma.merchantCommission.create({
+                            await prisma.merchantFinancialTerms.create({
                                 data: {
                                     commissionRate: commission,
                                     commissionGST: commissionGST ?? 0,

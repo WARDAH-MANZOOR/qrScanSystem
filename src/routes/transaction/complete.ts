@@ -112,7 +112,7 @@ export const completeTransaction = async (req: Request, res: Response) => {
                 }
             });
             
-            const settlment = await prisma.merchantCommission.findUnique({
+            const settlment = await prisma.merchantFinancialTerms.findUnique({
                 where: {merchant_id: (req.user as JwtPayload)?.id}
             })
             const scheduledAt = addWeekdays(date, settlment?.settlementDuration as number);  // Call the function to get the next 2 weekdays

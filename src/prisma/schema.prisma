@@ -76,7 +76,7 @@ model Merchant {
   users          User[]      @relation("AssociatedUsers") // List of associated Users for this Merchant
 
   // New relation to MerchantCommission
-  commissions                MerchantCommission[]
+  commissions                MerchantFinancialTerms[]
   MerchantProviderCredential MerchantProviderCredential[]
 }
 
@@ -96,7 +96,7 @@ model MerchantProviderCredential {
   updatedAt DateTime @updatedAt
 }
 
-model MerchantCommission {
+model MerchantFinancialTerms {
   id          Int      @id @default(autoincrement())
   merchant_id Int      @unique
   merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id])

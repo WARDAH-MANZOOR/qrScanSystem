@@ -32,7 +32,7 @@ const updateMerchant = async (payload: Merchant) => {
       },
       where: { merchant_id: merchantId },
     });
-    await prisma.merchantCommission.update({
+    await prisma.merchantFinancialTerms.update({
       data: {
         commissionRate: commission,
         commissionGST: commissionGST,
@@ -109,7 +109,7 @@ const addMerchant = async (payload: Merchant) => {
         payment_volume,
       },
     });
-    await prisma.merchantCommission.create({
+    await prisma.merchantFinancialTerms.create({
       data: {
         commissionRate: commission,
         commissionGST: commissionGST ?? 0,
