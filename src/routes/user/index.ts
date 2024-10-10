@@ -168,7 +168,19 @@ router.post("/create-user",
                                     company_name: "",
                                     city: "",
                                     user_id: user.id,
-                                    commission: commission          
+                                    // commission: commission          
+                                }
+                            })
+                            await prisma.merchantCommission.create({
+                                data: {
+                                    commissionRate: commission,
+                                    commissionGST: 0,
+                                    commissionWithHoldingTax: 0,
+                                    disbursementGST: 0,
+                                    disbursementRate: 0,
+                                    disbursementWithHoldingTax: 0,
+                                    settlementDuration: 2,
+                                    merchant_id: user.id
                                 }
                             })
                             await prisma.user.update({

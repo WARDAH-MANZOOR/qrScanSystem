@@ -10,11 +10,13 @@ SELECT
         "User" u ON u.merchant_id = m.merchant_id
       LEFT JOIN 
         "Transaction" t ON t.merchant_id = u.id
+      LEFT JOIN
+        "MerchantCommission" mc on mc.merchant_id = m.merchant_id
       WHERE
         t.date_time BETWEEN $1 AND $2
         AND t.status = 'completed'
       GROUP BY 
-        m.merchant_id, m.full_name, m.company_name, m.commission;
+        m.merchant_id, m.full_name, m.company_name, mc."commissionRate";
 
         -- t.date_time BETWEEN ${fromDate} AND ${toDate}
         -- AND 

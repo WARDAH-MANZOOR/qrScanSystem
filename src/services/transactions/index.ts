@@ -71,9 +71,12 @@ const createTransaction = async (obj: any) => {
   if (validationErrors.length > 0) {
     return { errors: validationErrors, success: false };
   }
-  let commission = await prisma.merchant.findUnique({
+  let commission = await prisma.merchantCommission.findUnique({
     where: {merchant_id},
   })
+  let rate = commission?.commissionRate ?? 0;
+  let gst = commission?.commissionGST ?? 0;
+  let withTax = commission?.commissionWithHoldingTax ?? 0;
   try {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
@@ -86,8 +89,8 @@ const createTransaction = async (obj: any) => {
         merchant: {
           connect: { id: merchant_id },
         },
-        settled_amount: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number)),
-        balance: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number))
+        settled_amount: parseFloat(original_amount) * (1 - (+rate + +gst + +withTax) as unknown as number),
+        balance: parseFloat(original_amount) * (1 - (+rate + +gst + +withTax) as unknown as number)
       },
     });
     console.log("Created");

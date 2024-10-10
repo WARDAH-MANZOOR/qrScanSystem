@@ -53,7 +53,7 @@ export const createTransactionRequestFromLib = async (obj: any) => {
     
   }
   let merchant_id = (obj.user as JwtPayload)?.id;
-  let commission = await prisma.merchant.findUnique({
+  let commission = await prisma.merchantCommission.findUnique({
     where: {merchant_id},
   })
   try {
@@ -68,7 +68,7 @@ export const createTransactionRequestFromLib = async (obj: any) => {
         merchant: {
           connect: { id: merchant_id },
         },
-        settled_amount: parseFloat(original_amount) * (1 - (commission?.commission as unknown as number)),
+        settled_amount: parseFloat(original_amount) * (1 - (commission?.commissionRate as unknown as number)),
       },
     });
 

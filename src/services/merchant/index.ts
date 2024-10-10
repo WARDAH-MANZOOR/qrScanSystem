@@ -23,10 +23,15 @@ const updateMerchant = async (payload: Merchant) => {
         company_url,
         city,
         payment_volume,
-        commission,
       },
       where: { merchant_id: merchantId },
     });
+    await prisma.merchantCommission.update({
+      data: {
+        commissionRate: commission
+      },
+      where: { merchant_id: merchantId }
+    })
     return "Merchant updated successfully";
   } catch (error: any) {
     console.log(error);
@@ -75,9 +80,20 @@ const addMerchant = async (payload: any) => {
         company_url,
         city,
         payment_volume,
-        commission,
       },
     });
+    await prisma.merchantCommission.create({
+      data: {
+        commissionRate: commission,
+        commissionGST: 0,
+        commissionWithHoldingTax: 0,
+        disbursementGST: 0,
+        disbursementRate: 0,
+        disbursementWithHoldingTax: 0,
+        settlementDuration: 2,
+        merchant_id: user.id
+      }
+    })
     await prisma.user.update({
       where: { id: user.id },
       data: {

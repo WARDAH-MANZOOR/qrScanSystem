@@ -6,7 +6,7 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["typedSql"]
 }
 
@@ -20,6 +20,12 @@ enum TransactionType {
   wallet
   card
   bank
+}
+
+enum ProviderEnum {
+  JAZZCASH
+  EASYPAISA
+  // Add other providers as needed
 }
 
 model Group {
@@ -38,8 +44,8 @@ model Permission {
 model UserGroup {
   userId     Int
   groupId    Int
-  user       User     @relation(fields: [userId], references: [id])
-  group      Group    @relation(fields: [groupId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  group      Group     @relation(fields: [groupId], references: [id])
   merchantId Int? // merchant association
   merchant   Merchant? @relation(fields: [merchantId], references: [merchant_id])
 
@@ -56,7 +62,7 @@ model GroupPermission {
 }
 
 model Merchant {
-  uid             String?     @default(uuid())
+  uid            String?     @default(uuid())
   merchant_id    Int         @id @default(autoincrement())
   full_name      String
   phone_number   String
@@ -65,25 +71,61 @@ model Merchant {
   city           String
   payment_volume Decimal?    @db.Decimal(10, 2)
   user_id        Int
-  commission     Decimal?    @db.Decimal(10,2)
-  user           User        @relation("Owner", fields: [user_id], references: [id]) // Relation to owner User
+  user           User        @relation("Owner", fields: [user_id], references: [id])
   user_groups    UserGroup[] // Associate UserGroups with Merchant
   users          User[]      @relation("AssociatedUsers") // List of associated Users for this Merchant
+
+  // New relation to MerchantCommission
+  commissions                MerchantCommission[]
+  MerchantProviderCredential MerchantProviderCredential[]
+}
+
+model MerchantProviderCredential {
+  id          Int      @id @default(autoincrement())
+  merchant_id Int
+  merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id])
+
+  provider ProviderEnum // Enum for provider
+
+  // Credential Fields
+  merchantOrStoreId   String
+  passwordOrHashKey   String
+  returnOrPostBackUrl String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MerchantCommission {
+  id          Int      @id @default(autoincrement())
+  merchant_id Int      @unique
+  merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id])
+
+  commissionRate             Decimal @db.Decimal(10, 2)
+  commissionWithHoldingTax   Decimal @db.Decimal(10, 2)
+  commissionGST              Decimal @db.Decimal(10, 2)
+  disbursementRate           Decimal @db.Decimal(10, 2)
+  disbursementWithHoldingTax Decimal @db.Decimal(10, 2)
+  disbursementGST            Decimal @db.Decimal(10, 2)
+  settlementDuration         Int // Number of days for settlement
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model User {
-  id          Int           @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   username    String
-  email       String        @unique
+  email       String      @unique
   password    String
   groups      UserGroup[]
   merchant_id Int?
-  merchant    Merchant?      @relation("AssociatedUsers", fields: [merchant_id], references: [merchant_id])
+  merchant    Merchant?   @relation("AssociatedUsers", fields: [merchant_id], references: [merchant_id])
 
-  ownerOfMerchants Merchant[] @relation("Owner") // Opposite relation for owner User
+  ownerOfMerchants     Merchant[]    @relation("Owner") // Opposite relation for owner User
   // Transactions as Merchant
   merchantTransactions Transaction[] @relation("MerchantTransactions")
-  
+
   // Transactions as Customer
   customerTransactions Transaction[] @relation("CustomerTransactions")
 
@@ -91,29 +133,28 @@ model User {
 }
 
 model Transaction {
-  transaction_id   String               @id @unique
+  transaction_id   String            @id @unique
   date_time        DateTime
-  original_amount  Decimal?             @db.Decimal(10, 2)
+  original_amount  Decimal?          @db.Decimal(10, 2)
   status           TransactionStatus
   type             TransactionType
   response_message String?
-  settlement       Boolean              @default(false)
-  settled_amount   Decimal?             @db.Decimal(10, 2)
-  balance          Decimal              @db.Decimal(10,2) @default(0)
-  
-  merchant_id      Int
-  merchant         User                 @relation("MerchantTransactions", fields: [merchant_id], references: [id])
+  settlement       Boolean           @default(false)
+  settled_amount   Decimal?          @db.Decimal(10, 2)
+  balance          Decimal           @default(0) @db.Decimal(10, 2)
 
-  customer_id      Int?
-  customer         User?                @relation("CustomerTransactions", fields: [customer_id], references: [id])
+  merchant_id Int
+  merchant    User @relation("MerchantTransactions", fields: [merchant_id], references: [id])
+
+  customer_id Int?
+  customer    User? @relation("CustomerTransactions", fields: [customer_id], references: [id])
 
   additionalInfoId Int?
-  AdditionalInfo   AdditionalInfo?      @relation(fields: [additionalInfoId], references: [id])
+  AdditionalInfo   AdditionalInfo? @relation(fields: [additionalInfoId], references: [id])
 
-  providerId       Int?
-  Provider         Provider?            @relation(fields: [providerId], references: [id])
+  providerId Int?
+  Provider   Provider? @relation(fields: [providerId], references: [id])
 }
-
 
 model AdditionalInfo {
   id                Int           @id @default(autoincrement())
@@ -136,7 +177,8 @@ model Provider {
   txn_type     String? // Transaction type (MWALLET, etc.)
   version      String? // API version
   transactions Transaction[] // One-to-many relationship with transactions
-  @@unique([name, txn_type, version])  // Composite unique index
+
+  @@unique([name, txn_type, version]) // Composite unique index
 }
 
 model ScheduledTask {
