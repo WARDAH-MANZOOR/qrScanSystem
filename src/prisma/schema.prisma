@@ -1,5 +1,3 @@
-// schema.prisma
-
 datasource db {
   provider = "postgresql" // Assuming PostgreSQL
   url      = env("DATABASE_URL")
@@ -78,6 +76,7 @@ model Merchant {
   // New relation to MerchantCommission
   commissions                MerchantFinancialTerms[]
   MerchantProviderCredential MerchantProviderCredential[]
+  SettlementReport           SettlementReport[]
 }
 
 model MerchantProviderCredential {
@@ -94,6 +93,8 @@ model MerchantProviderCredential {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([merchant_id, provider])
 }
 
 model MerchantFinancialTerms {
@@ -111,6 +112,8 @@ model MerchantFinancialTerms {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([merchant_id])
 }
 
 model User {
@@ -149,11 +152,12 @@ model Transaction {
   customer_id Int?
   customer    User? @relation("CustomerTransactions", fields: [customer_id], references: [id])
 
-  additionalInfoId Int?
+  additionalInfoId Int? @unique
   AdditionalInfo   AdditionalInfo? @relation(fields: [additionalInfoId], references: [id])
 
   providerId Int?
   Provider   Provider? @relation(fields: [providerId], references: [id])
+  scheduledTasks   ScheduledTask[]
 }
 
 model AdditionalInfo {
@@ -168,7 +172,7 @@ model AdditionalInfo {
   custom_field_3    String?
   custom_field_4    String?
   custom_field_5    String?
-  transactions      Transaction[] // One-to-many relation to transactions
+  transaction       Transaction? // One-to-many relation to transactions
 }
 
 model Provider {
@@ -183,8 +187,26 @@ model Provider {
 
 model ScheduledTask {
   id            Int       @id @default(autoincrement())
-  transactionId String?
+  transactionId String    @unique
   status        String    @db.VarChar(50)
   scheduledAt   DateTime? @db.Timestamptz
   executedAt    DateTime? @db.Timestamptz
+  transaction   Transaction  @relation(fields: [transactionId], references: [transaction_id])
+}
+
+model SettlementReport {
+  id                Int      @id @default(autoincrement())
+  merchant_id       Int
+  merchant          Merchant @relation(fields: [merchant_id], references: [merchant_id])
+  settlementDate    DateTime
+  transactionCount  Int
+  transactionAmount Decimal  @db.Decimal(10, 2)
+  commission        Decimal  @db.Decimal(10, 2)
+  gst               Decimal  @db.Decimal(10, 2)
+  withholdingTax    Decimal  @db.Decimal(10, 2)
+  merchantAmount    Decimal  @db.Decimal(10, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([merchant_id, settlementDate]) // Prevent duplicate settlements for the same merchant and date
 }

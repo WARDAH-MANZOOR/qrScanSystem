@@ -57,6 +57,7 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
         return res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
     }
     let merchant_id = (req.user as JwtPayload)?.id;
+    
     if (!merchant_id) {
         return res.status(401).json(ApiResponse.error("Unauthorized"));
     }
