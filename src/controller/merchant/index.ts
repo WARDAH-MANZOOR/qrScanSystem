@@ -12,8 +12,8 @@ const updateMerchant = async (
     const payload = req.body;
     const result = await merchantService.updateMerchant(payload);
     return res.status(200).json(ApiResponse.success(result));
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    res.status(error.statusCode).send(ApiResponse.error(error.message))
   }
 };
 
@@ -39,8 +39,8 @@ const addMerchant = async (req: Request, res: Response, next: NextFunction) => {
       throw new CustomError(result,400)
     }
     return res.status(200).json(ApiResponse.success(result));
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    return res.status(error.statusCode).send(ApiResponse.error(error.message));
   }
 };
 export default { updateMerchant, getMerchants, addMerchant };

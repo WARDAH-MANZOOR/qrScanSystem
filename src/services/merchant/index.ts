@@ -21,33 +21,36 @@ const updateMerchant = async (payload: Merchant) => {
     settlementDuration
   } = payload;
   try {
-    const user = await prisma.merchant.update({
-      data: {
-        full_name: username,
-        phone_number,
-        company_name,
-        company_url,
-        city,
-        payment_volume,
-      },
-      where: { merchant_id: merchantId },
-    });
-    await prisma.merchantFinancialTerms.update({
-      data: {
-        commissionRate: commission,
-        commissionGST: commissionGST,
-        commissionWithHoldingTax: commissionWithHoldingTax,
-        disbursementGST: disbursementGST,
-        disbursementRate: disbursementRate,
-        disbursementWithHoldingTax: disbursementWithHoldingTax,
-        settlementDuration: settlementDuration,
-      },
-      where: { merchant_id: merchantId }
-    })
-    return "Merchant updated successfully";
+    let result = await prisma.$transaction((async (tx) => {
+      const user = await tx.merchant.update({
+        data: {
+          full_name: username,
+          phone_number,
+          company_name,
+          company_url,
+          city,
+          payment_volume,
+        },
+        where: { merchant_id: +merchantId },
+      });
+      await tx.merchantFinancialTerms.update({
+        data: {
+          commissionRate: commission,
+          commissionGST: commissionGST,
+          commissionWithHoldingTax: commissionWithHoldingTax,
+          disbursementGST: disbursementGST,
+          disbursementRate: disbursementRate,
+          disbursementWithHoldingTax: disbursementWithHoldingTax,
+          settlementDuration: +settlementDuration,
+        },
+        where: { merchant_id: +merchantId }
+      })
+      return "Merchant updated successfully";
+    }))
+    return result;
   } catch (error: any) {
     console.log(error);
-    throw new CustomError(error?.error, error?.statusCode);
+    throw new CustomError(error.error || "Internal Server Error", error.statusCode || 500);
   }
 };
 
@@ -82,61 +85,80 @@ const addMerchant = async (payload: Merchant) => {
     disbursementGST,
     disbursementRate,
     disbursementWithHoldingTax,
-    settlementDuration
+    settlementDuration,
   } = payload;
+
   if (settlementDuration == undefined) {
-    return "Settlment Duration Required";
+    throw new CustomError("Settlement Duration Required", 400);
   }
+
   try {
-    let pass = await hashPassword(password as string);
-    let user = await prisma.user.create({
-      data: {
-        email: email as string,
-        password: pass,
-        username,
-        merchant_id: undefined,
-      },
+    const hashedPassword = await hashPassword(password as string);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Create User
+      const user = await tx.user.create({
+        data: {
+          email: email as string,
+          password: hashedPassword,
+          username,
+          merchant_id: undefined,
+        },
+      });
+
+      // Create Merchant
+      const merchant = await tx.merchant.create({
+        data: {
+          merchant_id: user.id,
+          user_id: user.id,
+          full_name: username,
+          phone_number,
+          company_name,
+          company_url,
+          city,
+          payment_volume,
+        },
+      });
+
+      // Create Merchant Financial Terms
+      await tx.merchantFinancialTerms.create({
+        data: {
+          commissionRate: commission,
+          commissionGST: commissionGST ?? 0,
+          commissionWithHoldingTax: commissionWithHoldingTax ?? 0,
+          disbursementGST: disbursementGST ?? 0,
+          disbursementRate: disbursementRate ?? 0,
+          disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
+          settlementDuration: +settlementDuration,
+          merchant_id: user.id,
+        },
+      });
+
+      // Update User with merchant_id
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          merchant_id: user.id,
+        },
+      });
+
+      // Create UserGroup
+      await tx.userGroup.create({
+        data: {
+          userId: user.id,
+          groupId: 2, // Adjust group ID as necessary
+          merchantId: user.id,
+        },
+      });
+
+      return "Merchant created successfully";
     });
-    await prisma.merchant.create({
-      data: {
-        merchant_id: user.id,
-        user_id: user.id,
-        full_name: username,
-        phone_number,
-        company_name,
-        company_url,
-        city,
-        payment_volume,
-      },
-    });
-    await prisma.merchantFinancialTerms.create({
-      data: {
-        commissionRate: commission,
-        commissionGST: commissionGST ?? 0,
-        commissionWithHoldingTax: commissionWithHoldingTax ?? 0,
-        disbursementGST: disbursementGST ?? 0,
-        disbursementRate: disbursementRate ?? 0,
-        disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
-        settlementDuration: settlementDuration ?? 2,
-        merchant_id: user.id
-      }
-    })
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        merchant_id: user.id,
-      },
-    });
-    await prisma.userGroup.create({
-      data: {
-        userId: user.id,
-        groupId: 2,
-        merchantId: user.id, // Group ID 1 or 2
-      },
-    });
-    return "Merchant created successfully";
+
+    return result;
   } catch (error: any) {
-    throw new CustomError(error, error?.statusCode);
+    console.error("Error adding merchant:", error);
+    throw new CustomError(error.message || "Internal Server Error", error.statusCode || 500);
   }
 };
+
 export default { updateMerchant, getMerchants, addMerchant };
