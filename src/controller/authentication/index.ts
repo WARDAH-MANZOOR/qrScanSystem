@@ -88,6 +88,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         id: user?.id,
         merchantId: user?.merchant_id,
         uid: user?.merchant?.uid,
+        merchant: {...user?.merchant},
       })
     );
   } catch (error) {

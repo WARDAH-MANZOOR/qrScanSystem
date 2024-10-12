@@ -78,6 +78,9 @@ model Merchant {
   // New relation to MerchantCommission
   commissions                MerchantFinancialTerms[]
   MerchantProviderCredential MerchantProviderCredential[]
+
+  jazzCashMerchantId Int?
+  jazzCashMerchant   JazzCashMerchant? @relation(fields: [jazzCashMerchantId], references: [id])
 }
 
 model MerchantProviderCredential {
@@ -187,4 +190,15 @@ model ScheduledTask {
   status        String    @db.VarChar(50)
   scheduledAt   DateTime? @db.Timestamptz
   executedAt    DateTime? @db.Timestamptz
+}
+
+model JazzCashMerchant {
+  id            Int      @id @default(autoincrement())
+  jazzMerchantId    String
+  password      String
+  returnUrl     String
+  integritySalt String
+  metadata         Json     @default("{}")
+  merchantId    Int
+  merchant      Merchant[] // One-to-many relationship with Merchant
 }

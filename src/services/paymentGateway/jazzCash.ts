@@ -5,6 +5,7 @@ import axios from "axios";
 import { transactionService } from "services/index.js";
 import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
+import type { IjazzCashConfigParams } from "types/merchant.js";
 
 const MERCHANT_ID = "12478544";
 const PASSWORD = "uczu5269d1";
@@ -244,6 +245,76 @@ const initiateJazzCashPayment = async (
   }
 };
 
+const getJazzCashMerchant = async (params: IjazzCashConfigParams) => {
+  try {
+    const where: any = {}
+
+    if (params.merchantId) where["merchantId"] = parseInt(params.merchantId);
+
+    const jazzCashConfig = await prisma.jazzCashMerchant.findMany({
+      where,
+    });
+
+    if (!jazzCashConfig) {
+      throw new CustomError("JazzCash configuration not found", 404);
+    }
+
+    return jazzCashConfig;
+  } catch (error: any) {
+    throw new CustomError(error?.message || "An error occurred", 500);
+  }
+};
+
+const createJazzCashMerchant = async (merchantData: any) => {
+  try {
+    const jazzCashConfig = await prisma.$transaction(async (prisma) => {
+      const newMerchant = await prisma.jazzCashMerchant.create({
+        data: merchantData,
+      });
+      return newMerchant;
+    });
+
+    return jazzCashConfig;
+  } catch (error: any) {
+    throw new CustomError(error?.message || "An error occurred", 500);
+  }
+};
+
+const updateJazzCashMerchant = async (merchantId: number, updateData: any) => {
+  try {
+    const updatedMerchant = await prisma.$transaction(async (prisma) => {
+      const merchant = await prisma.jazzCashMerchant.update({
+        where: { id: merchantId },
+        data: updateData,
+      });
+      return merchant;
+    });
+
+    return updatedMerchant;
+  } catch (error: any) {
+    throw new CustomError(error?.message || "An error occurred", 500);
+  }
+};
+
+const deleteJazzCashMerchant = async (merchantId: number) => {
+  try {
+    const deletedMerchant = await prisma.$transaction(async (prisma) => {
+      const merchant = await prisma.jazzCashMerchant.delete({
+        where: { id: merchantId },
+      });
+      return merchant;
+    });
+
+    return deletedMerchant;
+  } catch (error: any) {
+    throw new CustomError(error?.message || "An error occurred", 500);
+  }
+};
+
 export default {
   initiateJazzCashPayment,
+  getJazzCashMerchant,
+  createJazzCashMerchant,
+  updateJazzCashMerchant,
+  deleteJazzCashMerchant,
 };

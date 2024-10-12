@@ -13,6 +13,10 @@ const getUserByEmail = async (email: string) => {
       merchant: {
         select: {
           uid: true,
+          full_name: true,
+          phone_number: true,
+          payment_volume: true,
+          commissions: true,
         },
       },
       groups: {
