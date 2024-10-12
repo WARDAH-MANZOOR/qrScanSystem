@@ -78,11 +78,12 @@ const createTransaction = async (obj: any) => {
   let gst = commission?.commissionGST ?? 0;
   let withTax = commission?.commissionWithHoldingTax ?? 0;
   try {
+    console.log(new Date().toLocaleDateString());
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
       data: {
         transaction_id: id,
-        date_time: new Date(new Date().toLocaleString()),
+        date_time: new Date(),
         original_amount: parseFloat(original_amount),
         status: "pending", // Initially, the transaction is pending
         type: type,
@@ -127,7 +128,7 @@ const completeTransaction = async (obj: any) => {
 
     if (transaction) {
       // Update the transaction as completed or failed
-      let date = new Date(new Date().toLocaleDateString());
+      let date = new Date();
       const updatedTransaction = await prisma.transaction.update({
         where: {
           transaction_id: transaction_id,
