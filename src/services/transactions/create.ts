@@ -17,7 +17,7 @@ async function getMerchantCommission(merchantId: number): Promise<number | Decim
 
 async function findOrCreateCustomer(customerName: string, customerEmail: string, merchantId: number) {
     let customer = await prisma.user.findUnique({
-        where: { email: customerEmail, merchant_id: merchantId },
+        where: { email: customerEmail },
     });
     if (!customer) {
         customer = await prisma.user.create({
@@ -25,7 +25,6 @@ async function findOrCreateCustomer(customerName: string, customerEmail: string,
                 username: customerName,
                 email: customerEmail,
                 password: '', // Handle password appropriately
-                merchant_id: merchantId
             },
         });
         await prisma.userGroup.create({

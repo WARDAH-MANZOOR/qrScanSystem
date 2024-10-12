@@ -40,6 +40,7 @@ model Permission {
 }
 
 model UserGroup {
+  id         Int       @id @default(autoincrement())
   userId     Int
   groupId    Int
   user       User      @relation(fields: [userId], references: [id])
@@ -47,7 +48,6 @@ model UserGroup {
   merchantId Int? // merchant association
   merchant   Merchant? @relation(fields: [merchantId], references: [merchant_id])
 
-  @@id([userId, groupId])
 }
 
 model GroupPermission {
@@ -69,9 +69,7 @@ model Merchant {
   city           String
   payment_volume Decimal?    @db.Decimal(10, 2)
   user_id        Int
-  user           User        @relation("Owner", fields: [user_id], references: [id])
   user_groups    UserGroup[] // Associate UserGroups with Merchant
-  users          User[]      @relation("AssociatedUsers") // List of associated Users for this Merchant
 
   // New relation to MerchantCommission
   commissions                MerchantFinancialTerms[]
@@ -119,20 +117,17 @@ model MerchantFinancialTerms {
 model User {
   id          Int         @id @default(autoincrement())
   username    String
-  email       String      @unique
+  email       String      @unique      
   password    String
   groups      UserGroup[]
-  merchant_id Int?
-  merchant    Merchant?   @relation("AssociatedUsers", fields: [merchant_id], references: [merchant_id])
 
-  ownerOfMerchants     Merchant[]    @relation("Owner") // Opposite relation for owner User
   // Transactions as Merchant
   merchantTransactions Transaction[] @relation("MerchantTransactions")
 
   // Transactions as Customer
   customerTransactions Transaction[] @relation("CustomerTransactions")
 
-  @@unique([email, merchant_id]) // Ensure unique combination of email and merchant
+  @@index([email])
 }
 
 model Transaction {

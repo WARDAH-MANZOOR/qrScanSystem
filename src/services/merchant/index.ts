@@ -102,7 +102,6 @@ const addMerchant = async (payload: Merchant) => {
           email: email as string,
           password: hashedPassword,
           username,
-          merchant_id: undefined,
         },
       });
 
@@ -130,14 +129,6 @@ const addMerchant = async (payload: Merchant) => {
           disbursementRate: disbursementRate ?? 0,
           disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
           settlementDuration: +settlementDuration,
-          merchant_id: user.id,
-        },
-      });
-
-      // Update User with merchant_id
-      await tx.user.update({
-        where: { id: user.id },
-        data: {
           merchant_id: user.id,
         },
       });

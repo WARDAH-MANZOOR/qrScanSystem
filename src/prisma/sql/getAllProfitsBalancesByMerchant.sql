@@ -7,7 +7,7 @@ SELECT
       FROM 
         "Merchant" m
       LEFT JOIN 
-        "User" u ON u.merchant_id = m.merchant_id
+        "User" u ON u.id = m.merchant_id
       LEFT JOIN 
         "Transaction" t ON t.merchant_id = u.id
       LEFT JOIN

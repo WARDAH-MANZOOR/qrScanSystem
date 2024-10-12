@@ -7,6 +7,6 @@ SELECT
 FROM 
     "Transaction" t
 JOIN 
-    "User" u ON t.merchant_id = u.merchant_id
+    "User" u ON t.merchant_id = u.id
 WHERE 
     t.merchant_id = $1;

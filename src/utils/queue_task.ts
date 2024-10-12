@@ -165,9 +165,9 @@ function calculateSettlementData(
   } = merchantFinancialTerms;
 
   // Calculate commission and taxes
-  const totalCommission = transactionAmount.mul(1 - +commissionRate).div(100);
-  const totalGST = totalCommission.mul(1 - +commissionGST).div(100);
-  const totalWithholdingTax = totalCommission.mul(1 - +commissionWithHoldingTax).div(100);
+  const totalCommission = transactionAmount.mul(commissionRate);
+  const totalGST = transactionAmount.mul(commissionGST);
+  const totalWithholdingTax = transactionAmount.mul(commissionWithHoldingTax);
 
   // Calculate merchant amount
   const merchantAmount = transactionAmount

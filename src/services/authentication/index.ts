@@ -10,11 +10,6 @@ const getUserByEmail = async (email: string) => {
     where: { email },
     include: {
       // Include merchant Uid only
-      merchant: {
-        select: {
-          uid: true,
-        },
-      },
       groups: {
         include: {
           group: true, // Fetch group details
