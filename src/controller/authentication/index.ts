@@ -65,13 +65,20 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     // Extract the group name (role) from the user's groups
     const userGroup = user?.groups[0]; // Assuming one group per user
     const role = userGroup ? userGroup.group.name : "User"; // Default role if no group found
-
+    const merchant = await prisma.userGroup.findMany({
+      where: {
+        userId: user?.id
+      },
+      include: {
+        merchant: true
+      }
+    })
     // Generate JWT token
     const token = generateToken({
       email: user?.email,
       role,
       id: user?.id,
-      merchant_id: user?.merchant_id,
+      merchant_id: merchant[0]?.merchantId,
     });
 
     // Set token in cookies

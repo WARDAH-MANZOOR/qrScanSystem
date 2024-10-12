@@ -155,7 +155,6 @@ router.post("/create-user",
                                 username,
                                 email,
                                 password: hash,
-                                merchant_id: undefined
                             }
                         });
 
@@ -183,12 +182,6 @@ router.post("/create-user",
                                     merchant_id: user.id
                                 }
                             })
-                            await prisma.user.update({
-                                where: { id: user.id },
-                                data: {
-                                    merchant_id: user.id
-                                }
-                            })
                         };
 
                         // Check group and assign user to the correct group
@@ -203,7 +196,7 @@ router.post("/create-user",
                         }
 
                         // Generate token and respond
-                        let token = jwt.sign({ email, id: user.id, merchant_id: user.merchant_id, role: group == 1 ? "Admin": group == 2 ? "Merchant": "User", }, "shhhhhhhhhhhhhh");
+                        let token = jwt.sign({ email, id: user.id, merchant_id: group == 2 ? user.id: null, role: group == 1 ? "Admin": group == 2 ? "Merchant": "User", }, "shhhhhhhhhhhhhh");
                         res.cookie("token", token, {
                             httpOnly: true
                         });
@@ -214,7 +207,7 @@ router.post("/create-user",
                             username: user.username,
                             email: user.email,
                             id: user.id,
-                            merchantId: user.merchant_id
+                            merchantId: group == 2 ? user.id : null
                         });
                     } catch (err) {
                         console.log(err);

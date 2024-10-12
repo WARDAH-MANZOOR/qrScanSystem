@@ -1,39 +1,212 @@
-import prisma from "../prisma/client.js";
- 
-const task = async () => {
-    console.log("Cron running");
-    const tasks = await prisma.scheduledTask.findMany({
-        where: {
-          status: 'pending',
-          scheduledAt: {
-            lte: new Date(),
-          },  
-        },
-      });
-    
-      for (const task of tasks) {
-        // Your business logic to shift transaction amount
-        const transaction = await prisma.transaction.findUnique({
-          where: {transaction_id: task.transactionId as string}
-        })
-        if (transaction?.original_amount == undefined) {
-          return;
-        }
+import { MerchantFinancialTerms, Prisma, PrismaClient, Transaction } from "@prisma/client";
+import { DefaultArgs } from "@prisma/client/runtime/library";
+import prisma from "prisma/client.js";
 
-        await prisma.transaction.update({
-          data: {
-            settlement: true
-          },
-          where: {transaction_id: task.transactionId as string}
-        })
-        // await shiftTransactionAmount(task.transaction_id);
-    
-        // Update task status
-        await prisma.scheduledTask.update({
-          where: { id: task.id },
-          data: { status: 'completed', executedAt: new Date() },
-        });
+const task = async () => {
+  console.log("Cron running");
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Fetch all pending scheduled tasks that are due
+      const tasks = await fetchPendingScheduledTasks(tx);
+
+      // 2. Group transactions by merchant_id
+      const {
+        transactionsByMerchant,
+        transactionIdToTaskIdMap,
+      } = groupTransactionsByMerchant(tasks);
+
+      // 3. Fetch financial terms for all merchants involved
+      const merchantFinancialTermsMap = await fetchMerchantFinancialTerms(
+        tx,
+        Array.from(transactionsByMerchant.keys())
+      );
+
+      // 4. Process settlements per merchant
+      for (const [merchant_id, transactions] of transactionsByMerchant.entries()) {
+        await processMerchantSettlement(
+          tx,
+          merchant_id,
+          transactions,
+          merchantFinancialTermsMap.get(merchant_id),
+          transactionIdToTaskIdMap
+        );
       }
+    });
+  } catch (error) {
+    console.error("Error during settlement process:", error);
+    // Handle error appropriately, possibly re-throw or log
+  }
+};
+
+// Function to fetch pending scheduled tasks that are due
+async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) {
+  return await prisma.scheduledTask.findMany({
+    where: {
+      status: 'pending',
+      scheduledAt: {
+        lte: new Date(),
+      },
+    },
+    include: {
+      transaction: {
+        include: {
+          merchant: true,
+        },
+      },
+    },
+  });
+}
+
+// Function to group transactions by merchant_id
+function groupTransactionsByMerchant(tasks: any[]) {
+  const transactionsByMerchant = new Map<number, Transaction[]>();
+  const transactionIdToTaskIdMap = new Map<string, number>();
+
+  for (const task of tasks) {
+    const transaction = task.transaction;
+
+    if (!transaction || transaction.original_amount === undefined) {
+      continue; // Skip if transaction is invalid
+    }
+
+    // Map transaction IDs to task IDs
+    transactionIdToTaskIdMap.set(transaction.transaction_id, task.id);
+
+    const merchant_id = transaction.merchant_id;
+
+    if (!transactionsByMerchant.has(merchant_id)) {
+      transactionsByMerchant.set(merchant_id, []);
+    }
+
+    transactionsByMerchant.get(merchant_id)?.push(transaction);
+  }
+
+  return { transactionsByMerchant, transactionIdToTaskIdMap };
+}
+
+// Function to fetch merchant financial terms
+async function fetchMerchantFinancialTerms(
+  prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+  merchantIds: number[]
+) {
+  const merchantFinancialTermsList = await prisma.merchantFinancialTerms.findMany({
+    where: {
+      merchant_id: { in: merchantIds },
+    },
+  });
+
+  // Map merchant IDs to their financial terms
+  const merchantFinancialTermsMap = new Map<number, MerchantFinancialTerms>();
+
+  for (const terms of merchantFinancialTermsList) {
+    if (!merchantFinancialTermsMap.has(terms.merchant_id)) {
+      merchantFinancialTermsMap.set(terms.merchant_id, terms);
+    }
+  }
+
+  return merchantFinancialTermsMap;
+}
+
+// Function to process settlement for a single merchant
+async function processMerchantSettlement(
+  tx: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+  merchant_id: number,
+  transactions: Transaction[],
+  merchantFinancialTerms: MerchantFinancialTerms | undefined,
+  transactionIdToTaskIdMap: Map<string, number>
+) {
+  if (!merchantFinancialTerms) {
+    console.error(`No financial terms found for merchant ${merchant_id}`);
+    return; // Skip this merchant
+  }
+
+  // Aggregate data
+  const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
+
+  // Create SettlementReport
+  await prisma.settlementReport.create({
+    data: {
+      merchant_id,
+      settlementDate: new Date(),
+      transactionCount: settlementData.transactionCount,
+      transactionAmount: settlementData.transactionAmount,
+      commission: settlementData.totalCommission,
+      gst: settlementData.totalGST,
+      withholdingTax: settlementData.totalWithholdingTax,
+      merchantAmount: settlementData.merchantAmount,
+    },
+  });
+
+  // Update transactions and tasks
+  await updateTransactionsAndTasks(
+    tx,
+    transactions,
+    transactionIdToTaskIdMap
+  );
+}
+
+// Function to calculate settlement data
+function calculateSettlementData(
+  transactions: Transaction[],
+  merchantFinancialTerms: MerchantFinancialTerms
+) {
+  const transactionCount = transactions.length;
+  const transactionAmount = transactions.reduce(
+    (sum, t) => sum.plus(t.original_amount || new Prisma.Decimal(0)),
+    new Prisma.Decimal(0)
+  );
+
+  // Extract financial terms
+  const {
+    commissionRate,
+    commissionWithHoldingTax,
+    commissionGST,
+  } = merchantFinancialTerms;
+
+  // Calculate commission and taxes
+  const totalCommission = transactionAmount.mul(commissionRate);
+  const totalGST = transactionAmount.mul(commissionGST);
+  const totalWithholdingTax = transactionAmount.mul(commissionWithHoldingTax);
+
+  // Calculate merchant amount
+  const merchantAmount = transactionAmount
+    .minus(totalCommission)
+    .minus(totalGST)
+    .minus(totalWithholdingTax);
+
+  return {
+    transactionCount,
+    transactionAmount,
+    totalCommission,
+    totalGST,
+    totalWithholdingTax,
+    merchantAmount,
+  };
+}
+
+// Function to update transactions and scheduled tasks
+async function updateTransactionsAndTasks(
+  prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+  transactions: Transaction[],
+  transactionIdToTaskIdMap: Map<string, number>
+) {
+  // Update transactions as settled
+  const transactionIds = transactions.map((t) => t.transaction_id);
+  await prisma.transaction.updateMany({
+    where: { transaction_id: { in: transactionIds } },
+    data: { settlement: true },
+  });
+
+  // Update scheduled tasks as completed
+  const taskIds = transactionIds
+    .map((tid) => transactionIdToTaskIdMap.get(tid))
+    .filter((id): id is number => id !== undefined);
+
+  await prisma.scheduledTask.updateMany({
+    where: { id: { in: taskIds }, status: 'pending' },
+    data: { status: 'completed', executedAt: new Date() },
+  });
 }
 
 export default task;
