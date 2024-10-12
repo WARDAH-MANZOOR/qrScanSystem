@@ -3,8 +3,8 @@ import crypto from "crypto";
 import { format } from "date-fns";
 import axios from "axios";
 import { transactionService } from "services/index.js";
-import { ja } from "@faker-js/faker";
 import { encrypt } from "utils/enc_dec.js";
+import prisma from "prisma/client.js";
 
 const MERCHANT_ID = "12478544";
 const PASSWORD = "uczu5269d1";
@@ -57,7 +57,10 @@ const getSecureHash = (data: any, salt: string): string => {
   return ppSecureHash;
 };
 
-const initiateJazzCashPayment = async (paymentData: any) => {
+const initiateJazzCashPayment = async (
+  paymentData: any,
+  merchant_uid?: string
+) => {
   try {
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
 
@@ -68,6 +71,23 @@ const initiateJazzCashPayment = async (paymentData: any) => {
     // type check
     if (!paymentData.type) {
       throw new CustomError("Payment type is required", 400);
+    }
+
+    let customWhere = {} as any;
+    if (merchant_uid) {
+      customWhere = { uid: merchant_uid };
+
+      // find uid from merchant id
+      const merchant = await prisma.merchant.findFirst({
+        where: {
+          ...customWhere,
+        },
+      });
+
+      if (!merchant) {
+        throw new CustomError("Merchant not found", 404);
+      }
+      paymentData.merchantId = merchant.merchant_id;
     }
 
     const paymentType = paymentData.type?.toUpperCase();
@@ -170,11 +190,23 @@ const initiateJazzCashPayment = async (paymentData: any) => {
         bank_id: response.data.pp_BankID,
         bill_ref: response.data.pp_BillReference,
         retrieval_ref: response.data.pp_RetrievalReferenceNo,
-        sub_merchant_id: response.data.pp_SubMerchantID != undefined ? encrypt(response.data.pp_SubMerchantID): "",
+        sub_merchant_id:
+          response.data.pp_SubMerchantID != undefined
+            ? encrypt(response.data.pp_SubMerchantID)
+            : "",
         custom_field_1: encrypt(response.data.ppmpf_1),
-        custom_field_2: response.data.pp_CustomerCardNumber != undefined ? encrypt(response.data.pp_CustomerCardNumber): "",
-        custom_field_3: response.data.pp_CustomerCardCVV != undefined ? encrypt(response.data.pp_CustomerCardCVV): "",
-        custom_field_4: response.data.pp_CustomerCardExpiry != undefined ? encrypt(response.data.pp_CustomerCardExpiry): "",
+        custom_field_2:
+          response.data.pp_CustomerCardNumber != undefined
+            ? encrypt(response.data.pp_CustomerCardNumber)
+            : "",
+        custom_field_3:
+          response.data.pp_CustomerCardCVV != undefined
+            ? encrypt(response.data.pp_CustomerCardCVV)
+            : "",
+        custom_field_4:
+          response.data.pp_CustomerCardExpiry != undefined
+            ? encrypt(response.data.pp_CustomerCardExpiry)
+            : "",
         custom_field_5: response.data.ppmpf_5,
       };
       let provider = {

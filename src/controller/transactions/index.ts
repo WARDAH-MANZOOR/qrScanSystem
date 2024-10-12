@@ -11,6 +11,7 @@ import {
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import { getDateRange } from "utils/date_method.js";
+import { parse } from "date-fns";
 
 import analytics from "./analytics.js";
 
@@ -33,6 +34,28 @@ const getTransactions = async (req: Request, res: Response) => {
   try {
     const { merchantId, transactionId, merchantName } = req.query;
 
+    let startDate = req.query?.start as string;
+    let endDate = req.query?.end as string;
+   
+    const customWhere = {} as any;
+
+    if (startDate && endDate) {
+      startDate = startDate.replace(" ", "+");
+      endDate = endDate.replace(" ", "+");
+
+      const todayStart = parse(
+        startDate,
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        new Date()
+      );
+      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
+      customWhere["date_time"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
+
     // Query based on provided parameters
     const transactions = await prisma.transaction.findMany({
       where: {
@@ -43,6 +66,7 @@ const getTransactions = async (req: Request, res: Response) => {
             username: merchantName as string,
           },
         }),
+        ...customWhere,
       },
     });
 
