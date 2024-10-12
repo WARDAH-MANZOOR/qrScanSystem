@@ -102,6 +102,43 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         })
       );
 
+      // count transaction of this week and last week
+      const lastWeekStart = subDays(currentDate, 7);
+      const lastWeekEnd = currentDate;
+      const thisWeekStart = currentDate;
+      const thisWeekEnd = new Date();
+      fetchAggregates.push(
+        prisma.transaction.groupBy({
+          where: {
+            date_time: {
+              gte: lastWeekStart,
+              lt: lastWeekEnd,
+            },
+          },
+          by: ["status"],
+          _count: { status: true },
+          orderBy: {
+            status: "asc", // Ensure the result is ordered by status or any other field
+          },
+        }) // Properly type the groupBy query
+      );
+
+      fetchAggregates.push(
+        prisma.transaction.groupBy({
+          where: {
+            date_time: {
+              gte: thisWeekStart,
+              lt: thisWeekEnd,
+            },
+          },
+          by: ["status"],
+          _count: { status: true },
+          orderBy: {
+            status: "asc", // Ensure the result is ordered by status or any other field
+          },
+        }) // Properly type the groupBy query
+      );
+
       // Execute all queries in parallel
       const [
         totalTransactions,
@@ -109,6 +146,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         todayIncome,
         statusCounts,
         latestTransactions,
+        lastWeek,
+        thisWeek,
       ] = await Promise.all(fetchAggregates);
 
       // Build and return the full dashboard summary
@@ -124,6 +163,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         latestTransactions: latestTransactions as any,
         availableBalance: 0,
         transactionSuccessRate: 0,
+        lastWeek: lastWeek as any,
+        thisWeek: thisWeek as any,
       };
 
       // Calculate the transaction success rate
@@ -178,9 +219,7 @@ const adminDashboardDetails = async (params: any) => {
     const fetchAggregates = [];
 
     // Fetch total number of merchants
-    fetchAggregates.push(
-      prisma.merchant.count() 
-    );
+    fetchAggregates.push(prisma.merchant.count());
 
     // Fetch sum of original_amount from transactions
     fetchAggregates.push(
@@ -217,10 +256,9 @@ const adminDashboardDetails = async (params: any) => {
         },
         where: {
           ...customWhere,
-        }
+        },
       })
     );
-
     // Execute all queries in parallel
     const [totalMerchants, totalIncome, todayIncome, latestTransactions] =
       await Promise.all(fetchAggregates);

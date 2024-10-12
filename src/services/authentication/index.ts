@@ -9,6 +9,12 @@ const getUserByEmail = async (email: string) => {
   return prisma.user.findUnique({
     where: { email },
     include: {
+      // Include merchant Uid only
+      merchant: {
+        select: {
+          uid: true,
+        },
+      },
       groups: {
         include: {
           group: true, // Fetch group details
