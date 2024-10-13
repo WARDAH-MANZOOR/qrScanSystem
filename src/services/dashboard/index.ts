@@ -1,6 +1,7 @@
 import { parseISO, subDays, parse } from "date-fns";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
+import { getWalletBalance } from "services/paymentGateway/disbursement/index.js";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {
@@ -104,39 +105,36 @@ const merchantDashboardDetails = async (params: any, user: any) => {
 
       // count transaction of this week and last week
       const lastWeekStart = subDays(currentDate, 7);
-      const lastWeekEnd = currentDate;
-      const thisWeekStart = currentDate;
+      const lastWeekEnd = new Date(currentDate.setHours(0, 0, 0, 0)); // End of last week is start of today
+      const thisWeekStart = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of this week is start of today
       const thisWeekEnd = new Date();
+
+      // Fetch last week's transaction sum
       fetchAggregates.push(
-        prisma.transaction.groupBy({
+        prisma.transaction.aggregate({
+          _sum: { original_amount: true },
           where: {
             date_time: {
               gte: lastWeekStart,
               lt: lastWeekEnd,
             },
+            merchant_id: +merchantId,
           },
-          by: ["status"],
-          _count: { status: true },
-          orderBy: {
-            status: "asc", // Ensure the result is ordered by status or any other field
-          },
-        }) // Properly type the groupBy query
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
+      // Fetch this week's transaction sum
       fetchAggregates.push(
-        prisma.transaction.groupBy({
+        prisma.transaction.aggregate({
+          _sum: { original_amount: true },
           where: {
             date_time: {
               gte: thisWeekStart,
               lt: thisWeekEnd,
             },
+            merchant_id: +merchantId,
           },
-          by: ["status"],
-          _count: { status: true },
-          orderBy: {
-            status: "asc", // Ensure the result is ordered by status or any other field
-          },
-        }) // Properly type the groupBy query
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
       // Execute all queries in parallel
@@ -163,9 +161,18 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         latestTransactions: latestTransactions as any,
         availableBalance: 0,
         transactionSuccessRate: 0,
-        lastWeek: lastWeek as any,
-        thisWeek: thisWeek as any,
+        lastWeek:
+          (lastWeek as { _sum: { original_amount: number | null } })._sum
+            ?.original_amount || 0,
+        thisWeek:
+          (thisWeek as { _sum: { original_amount: number | null } })._sum
+            ?.original_amount || 0,
       };
+
+      const walletBalance = await getWalletBalance(+merchantId);
+
+      // @ts-ignore
+      dashboardSummary.availableBalance = walletBalance?.walletBalance || 0;
 
       // Calculate the transaction success rate
       dashboardSummary.transactionSuccessRate =

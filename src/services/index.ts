@@ -7,5 +7,5 @@ export {
     jazzCashService,
     transactionService,
     merchantService,
-    dashboardService
+    dashboardService,
 };
