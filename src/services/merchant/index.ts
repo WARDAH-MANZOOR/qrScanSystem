@@ -18,7 +18,8 @@ const updateMerchant = async (payload: Merchant) => {
     disbursementGST,
     disbursementRate,
     disbursementWithHoldingTax,
-    settlementDuration
+    settlementDuration,
+    jazzCashMerchantId,
   } = payload;
   try {
     let result = await prisma.$transaction((async (tx) => {
@@ -30,6 +31,7 @@ const updateMerchant = async (payload: Merchant) => {
           company_url,
           city,
           payment_volume,
+          jazzCashMerchantId,
         },
         where: { merchant_id: +merchantId },
       });

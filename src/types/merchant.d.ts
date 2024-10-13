@@ -15,6 +15,7 @@ export interface Merchant {
   disbursementGST: number;
   disbursementWithHoldingTax: number;
   settlementDuration: number;
+  jazzCashMerchantId: number;
 }
 
 export interface IjazzCashConfigParams {
