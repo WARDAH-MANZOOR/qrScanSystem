@@ -41,6 +41,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         prisma.transaction.count({
           where: {
             merchant_id: +merchantId,
+            status: "completed",
             ...customWhere,
           },
         }) // Return type is a Promise<number>
@@ -74,6 +75,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
               lt: new Date(servertodayEnd),
             },
             merchant_id: +merchantId,
+            status: "completed"
           },
         }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
       );
@@ -119,6 +121,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
               lt: lastWeekEnd,
             },
             merchant_id: +merchantId,
+            status: "completed"
           },
         }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
@@ -133,6 +136,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
               lt: thisWeekEnd,
             },
             merchant_id: +merchantId,
+            status: "completed"
           },
         }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );

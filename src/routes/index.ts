@@ -4,6 +4,7 @@ import dashboard from "./dashboard/index.js";
 import transaction from "./transaction/index.js";
 import disbursement from "./paymentGateway/disbursement/index.js"
 import auth from "./authentication/index.js";
+import settlement from "./settlement/index.js";
 import express from "express";
 
 export default function (app: express.Application) {
@@ -13,4 +14,5 @@ export default function (app: express.Application) {
   app.use("/transactions", transaction);
   app.use("/disbursement", disbursement);
   app.use("/auth", auth);
+  app.use("/settlement",settlement);
 }
