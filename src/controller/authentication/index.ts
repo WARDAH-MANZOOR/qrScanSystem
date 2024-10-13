@@ -93,9 +93,9 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         username: user?.username,
         email: user?.email,
         id: user?.id,
-        merchantId: user?.merchant_id,
-        uid: user?.merchant?.uid,
-        merchant: {...user?.merchant},
+        merchantId: merchant[0]?.merchantId,
+        uid: merchant[0]?.merchant?.uid,
+        merchant: {...merchant[0]},
       })
     );
   } catch (error) {
