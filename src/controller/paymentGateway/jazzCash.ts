@@ -17,7 +17,7 @@ const initiateJazzCash = async (
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
 
-    const result = await jazzCashService.initiateJazzCashPayment(paymentData, merchantId);
+    const result: any = await jazzCashService.initiateJazzCashPayment(paymentData, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);

@@ -60,10 +60,10 @@ const getSecureHash = (data: any, salt: string): string => {
 
 const findTransaction = async (id: string) => {
   let transaction = await prisma.transaction.findUnique({
-    where: {transaction_id: id}
-  })
+    where: { transaction_id: id },
+  });
   return Boolean(transaction);
-}
+};
 const initiateJazzCashPayment = async (
   paymentData: any,
   merchant_uid?: string
@@ -75,6 +75,10 @@ const initiateJazzCashPayment = async (
       throw new CustomError("Amount and phone are required", 400);
     }
 
+    // add a redirect_url check
+    if (!paymentData.redirect_url) {
+      throw new CustomError("Redirect URL is required", 400);
+    }
 
     // type check
     if (!paymentData.type) {
@@ -117,15 +121,13 @@ const initiateJazzCashPayment = async (
       let transaction = await findTransaction(paymentData.transaction_id);
       if (transaction) {
         txnRefNo = paymentData.transaction_id;
+      } else {
+        throw new CustomError("Transaction with Tranaction ID not found", 404);
       }
-      else {
-        throw new CustomError("Transaction with Tranaction ID not found",404)
-      }
-    }
-    else {
-    txnRefNo = `T${txnDateTime}${fractionalMilliseconds
-      .toString()
-      .padStart(5, "0")}`;
+    } else {
+      txnRefNo = `T${txnDateTime}${fractionalMilliseconds
+        .toString()
+        .padStart(5, "0")}`;
     }
     const amount = paymentData.amount;
     const phone = paymentData.phone;
@@ -182,7 +184,7 @@ const initiateJazzCashPayment = async (
     } else if (paymentType === "WALLET") {
       await transactionService.createTransaction({
         id: txnRefNo,
-        original_amount: sendData.pp_Amount,
+        original_amount: amount,
         type: "wallet",
         merchant_id: parseInt(paymentData.merchantId),
       });
@@ -249,7 +251,12 @@ const initiateJazzCashPayment = async (
       }
 
       if (r.pp_ResponseCode === "000") {
-        return "Redirecting to thank you page...";
+        return {
+          message: "Redirecting to JazzCash...",
+          redirect_url: paymentData.redirect_url,
+          txnNo: r.pp_TxnRefNo,
+          txnDateTime: r.pp_TxnDateTime,
+        };
       } else {
         throw new CustomError(
           `The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`,
@@ -265,7 +272,7 @@ const initiateJazzCashPayment = async (
 
 const getJazzCashMerchant = async (params: IjazzCashConfigParams) => {
   try {
-    const where: any = {}
+    const where: any = {};
 
     if (params.merchantId) where["merchantId"] = parseInt(params.merchantId);
 
