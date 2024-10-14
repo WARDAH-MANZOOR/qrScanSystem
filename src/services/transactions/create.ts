@@ -18,9 +18,20 @@ async function getMerchantCommission(merchantId: number): Promise<number | Decim
 async function findOrCreateCustomer(customerName: string, customerEmail: string, merchantId: number) {
     let customer = await prisma.user.findUnique({
         where: { email: customerEmail },
+        include: {
+            groups: {
+                include: {
+                    group: {
+                        select: {
+                            id: true
+                        }
+                    }
+                }
+            }
+        }
     });
     if (!customer) {
-        customer = await prisma.user.create({
+        let new_customer = await prisma.user.create({
             data: {
                 username: customerName,
                 email: customerEmail,
@@ -29,11 +40,15 @@ async function findOrCreateCustomer(customerName: string, customerEmail: string,
         });
         await prisma.userGroup.create({
             data: {
-                userId: customer.id,
+                userId: new_customer.id,
                 groupId: 3,
                 merchantId
             }
         })
+        return new_customer;
+    }
+    else if(customer.groups.find((user) => user.groupId != 2)) {
+        throw new CustomError("Given user is not a customer",400);
     }
     return customer;
 }
@@ -103,7 +118,7 @@ const createTransaction = async (obj: any) => {
     try {
         const commissionPercentage = await getMerchantCommission(obj.merchant_id);
         const customer = await findOrCreateCustomer(obj.customerName, obj.customerEmail,obj.merchant_id);
-        const customerId = customer.id;
+        const customerId = customer?.id;
         const originalAmount = parseFloat(obj.original_amount);
         const settledAmount = calculateSettledAmount(originalAmount, commissionPercentage);
         // Create a new transaction request in the database
@@ -113,7 +128,7 @@ const createTransaction = async (obj: any) => {
             type: obj.type,
             merchantId: obj.merchant_id,
             settledAmount: settledAmount,
-            customerId
+            customerId: customerId as number
         });
 
         const transactionLink = await generateTransactionLink(transaction?.transaction_id as string);

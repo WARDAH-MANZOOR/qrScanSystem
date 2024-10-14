@@ -58,6 +58,12 @@ const getSecureHash = (data: any, salt: string): string => {
   return ppSecureHash;
 };
 
+const findTransaction = async (id: string) => {
+  let transaction = await prisma.transaction.findUnique({
+    where: {transaction_id: id}
+  })
+  return Boolean(transaction);
+}
 const initiateJazzCashPayment = async (
   paymentData: any,
   merchant_uid?: string
@@ -68,6 +74,7 @@ const initiateJazzCashPayment = async (
     if (!paymentData.amount || !paymentData.phone) {
       throw new CustomError("Amount and phone are required", 400);
     }
+
 
     // type check
     if (!paymentData.type) {
@@ -104,11 +111,22 @@ const initiateJazzCashPayment = async (
       (currentTime - Math.floor(currentTime)) * 1000
     );
 
+    let txnRefNo;
     // Create the transaction reference number
-    const txnRefNo = `T${txnDateTime}${fractionalMilliseconds
+    if (paymentData.transaction_id) {
+      let transaction = await findTransaction(paymentData.transaction_id);
+      if (transaction) {
+        txnRefNo = paymentData.transaction_id;
+      }
+      else {
+        throw new CustomError("Transaction with Tranaction ID not found",404)
+      }
+    }
+    else {
+    txnRefNo = `T${txnDateTime}${fractionalMilliseconds
       .toString()
       .padStart(5, "0")}`;
-
+    }
     const amount = paymentData.amount;
     const phone = paymentData.phone;
 
