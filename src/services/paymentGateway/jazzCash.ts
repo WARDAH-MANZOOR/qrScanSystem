@@ -60,7 +60,7 @@ const getSecureHash = (data: any, salt: string): string => {
 
 const findTransaction = async (id: string) => {
   let transaction = await prisma.transaction.findUnique({
-    where: { transaction_id: id },
+    where: { transaction_id: id, status: "pending" },
   });
   return Boolean(transaction);
 };
@@ -116,11 +116,13 @@ const initiateJazzCashPayment = async (
     );
 
     let txnRefNo;
+    let transactionCreated = false;
     // Create the transaction reference number
     if (paymentData.transaction_id) {
       let transaction = await findTransaction(paymentData.transaction_id);
       if (transaction) {
         txnRefNo = paymentData.transaction_id;
+        transactionCreated = true;
       } else {
         throw new CustomError("Transaction with Tranaction ID not found", 404);
       }
@@ -182,12 +184,14 @@ const initiateJazzCashPayment = async (
 
       return payload;
     } else if (paymentType === "WALLET") {
-      await transactionService.createTransaction({
-        id: txnRefNo,
-        original_amount: amount,
-        type: "wallet",
-        merchant_id: parseInt(paymentData.merchantId),
-      });
+      if (!transactionCreated) {
+        await transactionService.createTransaction({
+          id: txnRefNo,
+          original_amount: amount,
+          type: "wallet",
+          merchant_id: parseInt(paymentData.merchantId),
+        });
+      }
 
       // Send the request to JazzCash
       const paymentUrl =
