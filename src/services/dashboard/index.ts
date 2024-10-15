@@ -159,17 +159,17 @@ const merchantDashboardDetails = async (params: any, user: any) => {
           (totalIncome as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
         todayIncome:
-          (todayIncome as { _count: { original_amount: number | null } })._count
+          (todayIncome as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
         statusCounts: (statusCounts as any[]) || [],
         latestTransactions: latestTransactions as any,
         availableBalance: 0,
         transactionSuccessRate: 0,
         lastWeek:
-          (lastWeek as { _sum: { original_amount: number | null } })._sum
+          (lastWeek as { _count: { original_amount: number | null } })._count
             ?.original_amount || 0,
         thisWeek:
-          (thisWeek as { _sum: { original_amount: number | null } })._sum
+          (thisWeek as { _count: { original_amount: number | null } })._count
             ?.original_amount || 0,
       };
 
