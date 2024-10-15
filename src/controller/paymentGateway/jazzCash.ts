@@ -29,7 +29,7 @@ const initiateJazzCash = async (
   }
 };
 
-const getJazzCashMerchant = async (
+const getJazzCashMerchant = async ( 
   req: Request,
   res: Response,
   next: NextFunction
