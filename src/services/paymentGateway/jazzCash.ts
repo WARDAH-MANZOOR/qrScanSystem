@@ -7,10 +7,10 @@ import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
 
-const MERCHANT_ID = "12478544";
-const PASSWORD = "uczu5269d1";
+// const MERCHANT_ID = "12478544";
+// const PASSWORD = "uczu5269d1";
 const RETURN_URL = "https://devtects.com/thankyou.html";
-const INTEGRITY_SALT = "e6t384f1fu";
+// const INTEGRITY_SALT = "e6t384f1fu";
 
 const getSecureHash = (data: any, salt: string): string => {
   const hashArray = [
@@ -70,6 +70,11 @@ const initiateJazzCashPayment = async (
 ) => {
   try {
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
+    var jazzCashMerchantIntegritySalt = "";
+    const jazzCashCredentials = {
+      pp_MerchantID: "",
+      pp_Password: "",
+    };
 
     if (!paymentData.amount || !paymentData.phone) {
       throw new CustomError("Amount and phone are required", 400);
@@ -96,18 +101,28 @@ const initiateJazzCashPayment = async (
         },
       });
 
+      const jazzCashMerchant = await prisma.jazzCashMerchant.findFirst({
+        where: {
+          //@ts-ignore
+          id: merchant.jazzCashMerchantId,
+        },
+      });
+
+      if (!jazzCashMerchant) {
+        throw new CustomError("Payment Merchant not found", 404);
+      }
+
+      // update jazzCashCredentials
+      jazzCashCredentials.pp_MerchantID = jazzCashMerchant.jazzMerchantId;
+      jazzCashCredentials.pp_Password = jazzCashMerchant.password;
+      jazzCashMerchantIntegritySalt = jazzCashMerchant.integritySalt;
+
       if (!merchant) {
         throw new CustomError("Merchant not found", 404);
       }
       paymentData.merchantId = merchant.merchant_id;
     }
-
     const paymentType = paymentData.type?.toUpperCase();
-
-    const jazzCashCredentials = {
-      pp_MerchantID: MERCHANT_ID,
-      pp_Password: PASSWORD,
-    };
 
     // Get the fractional milliseconds part of the current timestamp
     const currentTime = Date.now();
@@ -139,9 +154,9 @@ const initiateJazzCashPayment = async (
       pp_Version: "1.1",
       pp_TxnType: "MWALLET",
       pp_Language: "EN",
-      pp_MerchantID: MERCHANT_ID,
+      pp_MerchantID: jazzCashCredentials.pp_MerchantID,
       pp_SubMerchantID: "",
-      pp_Password: PASSWORD,
+      pp_Password: jazzCashCredentials.pp_Password,
       pp_TxnRefNo: txnRefNo,
       pp_Amount: amount * 100,
       pp_DiscountedAmount: "",
@@ -162,7 +177,7 @@ const initiateJazzCashPayment = async (
     };
 
     // Generate the secure hash
-    sendData.pp_SecureHash = getSecureHash(sendData, INTEGRITY_SALT);
+    sendData.pp_SecureHash = getSecureHash(sendData, jazzCashMerchantIntegritySalt);
     if (paymentType === "CARD") {
       let payload = {
         pp_Version: "2.0",
