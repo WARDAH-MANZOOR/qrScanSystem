@@ -1,31 +1,211 @@
 import { Router } from "express";
 import { jazzCashController } from "controller/index.js";
 import { isLoggedIn, isAdmin } from "utils/middleware.js";
+import { validateCreateJazzcashMerchant, validateDeleteJazzcashMerchant, validateGetJazzcashMerchant, validateJazzcashRequest, validateUpdateJazzcashMerchant } from "validators/paymentGateway/jazzCash.js";
 
 const router = Router();
 
 // Define routes using arrow functions
-router.post("/initiate-jz/:merchantId", jazzCashController.initiateJazzCash);
+router.post("/initiate-jz/:merchantId", validateJazzcashRequest, jazzCashController.initiateJazzCash);
 // Merchant Config
 router.get(
   "/merchant-config",
   [isLoggedIn, isAdmin],
+  validateGetJazzcashMerchant,
   jazzCashController.getJazzCashMerchant
 );
 router.post(
   "/merchant-config",
   [isLoggedIn, isAdmin],
+  validateCreateJazzcashMerchant,
   jazzCashController.createJazzCashMerchant
 );
 router.put(
   "/merchant-config/:merchantId",
   [isLoggedIn, isAdmin],
+  validateUpdateJazzcashMerchant,
   jazzCashController.updateJazzCashMerchant
 );
 router.delete(
   "/merchant-config/:merchantId",
   [isLoggedIn, isAdmin],
+  validateDeleteJazzcashMerchant,
   jazzCashController.deleteJazzCashMerchant
 );
 
+/**
+ * @swagger
+ * /payment/initiate-jz/{merchantId}:
+ *   post:
+ *     summary: Initiate a JazzCash payment
+ *     tags:
+ *       - JazzCash
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Merchant ID
+ *     requestBody:
+ *       description: Payment data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - phone
+ *               - redirect_url
+ *               - type
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Payment amount
+ *               phone:
+ *                 type: string
+ *                 description: Customer phone number
+ *               redirect_url:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL to redirect after payment
+ *               type:
+ *                 type: string
+ *                 enum: [WALLET, CARD]
+ *                 description: Payment type
+ *     responses:
+ *       200:
+ *         description: Payment initiated successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ * /payment/merchant-config/:
+ *   get:
+ *     summary: Retrieve JazzCash merchant configurations
+ *     tags:
+ *       - JazzCash
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: merchantId
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Merchant ID to filter configurations
+ *     responses:
+ *       200:
+ *         description: List of JazzCash merchant configurations
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ *   post:
+ *     summary: Create a new JazzCash merchant configuration
+ *     tags:
+ *       - JazzCash
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: JazzCash merchant configuration data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - merchantId
+ *               - jazzMerchantId
+ *               - password
+ *               - integritySalt
+ *               - returnUrl
+ *             properties:
+ *               merchantId:
+ *                 type: integer
+ *                 description: Merchant ID
+ *               jazzMerchantId:
+ *                 type: string
+ *                 description: JazzCash Merchant ID
+ *               password:
+ *                 type: string
+ *                 description: JazzCash Password
+ *               integritySalt:
+ *                 type: string
+ *                 description: Integrity Salt
+ *               returnUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: Return URL after payment
+ *     responses:
+ *       200:
+ *         description: Merchant configuration created successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ * /payment/merchant-config/{merchantId}:
+ *   put:
+ *     summary: Update a JazzCash merchant configuration
+ *     tags:
+ *       - JazzCash
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Merchant ID
+ *     requestBody:
+ *       description: Updated merchant configuration data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               jazzMerchantId:
+ *                 type: string
+ *                 description: JazzCash Merchant ID
+ *               password:
+ *                 type: string
+ *                 description: JazzCash Password
+ *               integritySalt:
+ *                 type: string
+ *                 description: Integrity Salt
+ *               returnUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: Return URL after payment
+ *     responses:
+ *       200:
+ *         description: Merchant configuration updated successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ *   delete:
+ *     summary: Delete a JazzCash merchant configuration
+ *     tags:
+ *       - JazzCash
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Merchant ID
+ *     responses:
+ *       200:
+ *         description: Merchant configuration deleted successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
 export default router;

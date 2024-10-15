@@ -1,5 +1,6 @@
 // src/controllers/paymentController.ts
 import { Request, Response, NextFunction } from "express";
+import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
@@ -9,6 +10,10 @@ const initiateJazzCash = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const paymentData = req.body;
 
     let merchantId = req.params.merchantId;
@@ -30,6 +35,10 @@ const getJazzCashMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const query: any = req.query;
     const result = await jazzCashService.getJazzCashMerchant(query);
     return res.status(200).json(ApiResponse.success(result));
@@ -44,6 +53,10 @@ const createJazzCashMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const merchantData = req.body;
     const result = await jazzCashService.createJazzCashMerchant(merchantData);
     return res.status(200).json(ApiResponse.success(result));
@@ -58,6 +71,10 @@ const updateJazzCashMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const merchantId = parseInt(req.params.merchantId);
     const updateData = req.body;
 

@@ -68,7 +68,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
 
       fetchAggregates.push(
         prisma.transaction.aggregate({
-          _sum: { settled_amount: true },
+          _sum: { original_amount: true },
           where: {
             date_time: {
               gte: new Date(servertodayStart),
@@ -77,7 +77,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             merchant_id: +merchantId,
             status: "completed"
           },
-        }) as Promise<{ _sum: { settled_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
       // Fetch transaction status count
@@ -114,7 +114,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       // Fetch last week's transaction sum
       fetchAggregates.push(
         prisma.transaction.aggregate({
-          _sum: { original_amount: true },
+          _count: { original_amount: true },
           where: {
             date_time: {
               gte: lastWeekStart,
@@ -123,13 +123,13 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             merchant_id: +merchantId,
             status: "completed"
           },
-        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _count: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
       // Fetch this week's transaction sum
       fetchAggregates.push(
         prisma.transaction.aggregate({
-          _sum: { original_amount: true },
+          _count: { original_amount: true },
           where: {
             date_time: {
               gte: thisWeekStart,
@@ -138,7 +138,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             merchant_id: +merchantId,
             status: "completed"
           },
-        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _count: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
       // Execute all queries in parallel
@@ -159,8 +159,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
           (totalIncome as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
         todayIncome:
-          (todayIncome as { _sum: { settled_amount: number | null } })._sum
-            ?.settled_amount || 0,
+          (todayIncome as { _count: { original_amount: number | null } })._count
+            ?.original_amount || 0,
         statusCounts: (statusCounts as any[]) || [],
         latestTransactions: latestTransactions as any,
         availableBalance: 0,
