@@ -46,7 +46,7 @@ const validateJazzcashRequest = [
     body('type')
         .notEmpty()
         .withMessage('Payment type is required')
-        .isIn(['WALLET', 'CARD'])
+        .isIn(['wallet', 'card'])
         .withMessage('Payment type must be either WALLET or CARD'),
 ]
 
