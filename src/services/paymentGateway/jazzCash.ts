@@ -293,7 +293,7 @@ const getJazzCashMerchant = async (params: IjazzCashConfigParams) => {
   try {
     const where: any = {};
 
-    if (params.merchantId) where["merchantId"] = parseInt(params.merchantId);
+    if (params?.merchantId) where["merchantId"] = parseInt(params.merchantId);
 
     const jazzCashConfig = await prisma.jazzCashMerchant.findMany({
       where,

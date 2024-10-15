@@ -11,7 +11,7 @@ router.post("/initiate-jz/:merchantId", validateJazzcashRequest, jazzCashControl
 router.get(
   "/merchant-config",
   [isLoggedIn, isAdmin],
-  validateGetJazzcashMerchant,
+  // validateGetJazzcashMerchant,
   jazzCashController.getJazzCashMerchant
 );
 router.post(
