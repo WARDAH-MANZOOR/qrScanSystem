@@ -70,7 +70,11 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         userId: user?.id
       },
       include: {
-        merchant: true
+        merchant: {
+          include: {
+            commissions: true
+          }
+        }
       }
     })
     // Generate JWT token
@@ -96,6 +100,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         merchantId: merchant[0]?.merchantId,
         uid: merchant[0]?.merchant?.uid,
         merchant: {...merchant[0]},
+        commission: merchant[0].merchant?.commissions[0]
       })
     );
   } catch (error) {

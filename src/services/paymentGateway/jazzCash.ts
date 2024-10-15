@@ -99,7 +99,8 @@ const initiateJazzCashPayment = async (
         where: {
           ...customWhere,
         },
-      });
+      }); 
+      console.log(merchant)
 
       const jazzCashMerchant = await prisma.jazzCashMerchant.findFirst({
         where: {

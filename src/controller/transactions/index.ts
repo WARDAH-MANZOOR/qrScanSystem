@@ -68,14 +68,30 @@ const getTransactions = async (req: Request, res: Response) => {
         }),
         ...customWhere,
       },
+      include: {
+        merchant: {
+          include: {
+            groups: {
+              include: {
+                merchant: {
+                  include: {
+                    jazzCashMerchant: true, 
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
-    res.status(200).json(transactions);
+    res.status(200).json(transactions.map(transaction => ({...transaction, merchant: transaction.merchant.groups[0].merchant?.jazzCashMerchant}))); 
   } catch (err) {
+    console.log(err)
     const error = new CustomError("Internal Server Error", 500);
     res.status(500).send(error);
   }
-};
+}; 
 
 const getProAndBal = async (req: Request, res: Response) => {
   try {
