@@ -45,7 +45,7 @@ router.delete(
  *         name: merchantId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: Merchant ID
  *     requestBody:
  *       description: Payment data

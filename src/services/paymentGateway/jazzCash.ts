@@ -7,10 +7,10 @@ import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
 
-const MERCHANT_ID = "12478544";
-const PASSWORD = "uczu5269d1";
-const RETURN_URL = "https://devtects.com/thankyou.html";
-const INTEGRITY_SALT = "e6t384f1fu";
+const MERCHANT_ID = "32641894";
+const PASSWORD = "t33yz807a5";
+const RETURN_URL = "https://www.marketingmotion.pk/";
+const INTEGRITY_SALT = "wt25vdy0y8";
 
 const getSecureHash = (data: any, salt: string): string => {
   const hashArray = [
@@ -94,7 +94,8 @@ const initiateJazzCashPayment = async (
         where: {
           ...customWhere,
         },
-      });
+      }); 
+      console.log(merchant)
 
       if (!merchant) {
         throw new CustomError("Merchant not found", 404);

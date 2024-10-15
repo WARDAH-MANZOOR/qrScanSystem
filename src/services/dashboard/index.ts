@@ -114,7 +114,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       // Fetch last week's transaction sum
       fetchAggregates.push(
         prisma.transaction.aggregate({
-          _count: { original_amount: true },
+          _sum: { original_amount: true },
           where: {
             date_time: {
               gte: lastWeekStart,
@@ -123,13 +123,13 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             merchant_id: +merchantId,
             status: "completed"
           },
-        }) as Promise<{ _count: { original_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
       // Fetch this week's transaction sum
       fetchAggregates.push(
         prisma.transaction.aggregate({
-          _count: { original_amount: true },
+          _sum: { original_amount: true },
           where: {
             date_time: {
               gte: thisWeekStart,
@@ -138,7 +138,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             merchant_id: +merchantId,
             status: "completed"
           },
-        }) as Promise<{ _count: { original_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
       // Execute all queries in parallel
@@ -166,10 +166,10 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         availableBalance: 0,
         transactionSuccessRate: 0,
         lastWeek:
-          (lastWeek as { _count: { original_amount: number | null } })._count
+          (lastWeek as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
         thisWeek:
-          (thisWeek as { _count: { original_amount: number | null } })._count
+          (thisWeek as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
       };
 
