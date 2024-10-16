@@ -175,15 +175,18 @@ const completeTransaction = async (obj: any) => {
       })
       const scheduledAt = addWeekdays(date, settlment?.settlementDuration as number);  // Call the function to get the next 2 weekdays
 
+      let scheduledTask;
       // Create the scheduled task in the database
-      const scheduledTask = await prisma.scheduledTask.create({
-        data: {
-          transactionId: transaction_id,
-          status: 'pending',
-          scheduledAt: scheduledAt,  // Assign the calculated weekday date
-          executedAt: null,  // Assume executedAt is null when scheduling
-        }
-      });
+      if (status == "completed") {
+        scheduledTask = await prisma.scheduledTask.create({
+          data: {
+            transactionId: transaction_id,
+            status: 'pending',
+            scheduledAt: scheduledAt,  // Assign the calculated weekday date
+            executedAt: null,  // Assume executedAt is null when scheduling
+          }
+        });
+      }
 
       // Send the response with the updated transaction
       return { message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask };
