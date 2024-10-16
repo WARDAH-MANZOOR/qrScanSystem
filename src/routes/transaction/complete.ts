@@ -111,28 +111,31 @@ export const completeTransaction = async (req: Request, res: Response) => {
                     } : undefined
                 }
             });
-            
+
             const settlment = await prisma.merchantFinancialTerms.findUnique({
-                where: {merchant_id: (req.user as JwtPayload)?.id}
+                where: { merchant_id: (req.user as JwtPayload)?.id }
             })
             const scheduledAt = addWeekdays(date, settlment?.settlementDuration as number);  // Call the function to get the next 2 weekdays
 
-            // Create the scheduled task in the database
-            const scheduledTask = await prisma.scheduledTask.create({
-              data: {
-                transactionId: transaction_id,
-                status: 'pending',
-                scheduledAt: scheduledAt,  // Assign the calculated weekday date
-                executedAt: null,  // Assume executedAt is null when scheduling
-              }
-            });
-        
+            let scheduledTask;
+            if (status == "completed") {
+                // Create the scheduled task in the database
+                scheduledTask = await prisma.scheduledTask.create({
+                    data: {
+                        transactionId: transaction_id,
+                        status: 'pending',
+                        scheduledAt: scheduledAt,  // Assign the calculated weekday date
+                        executedAt: null,  // Assume executedAt is null when scheduling
+                    }
+                });
+            }
+
 
             // Send the response with the updated transaction
             return res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask });
         }
         else {
-            return res.status(404).json({message: "Transaction not found"});
+            return res.status(404).json({ message: "Transaction not found" });
         }
 
     } catch (error) {
