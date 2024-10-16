@@ -36,6 +36,8 @@ const getTransactions = async (req: Request, res: Response) => {
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
+    const status = req.query?.status as string;
+    const search = req.query?.search || "" as string;
    
     const customWhere = {} as any;
 
@@ -56,6 +58,16 @@ const getTransactions = async (req: Request, res: Response) => {
       };
     }
 
+    if (status) {
+      customWhere["status"] = status;
+    }
+
+    if (search) {
+      customWhere["transaction_id"] = {
+        contains: search,
+      };
+    }
+
     // Query based on provided parameters
     const transactions = await prisma.transaction.findMany({
       where: {
@@ -67,6 +79,9 @@ const getTransactions = async (req: Request, res: Response) => {
           },
         }),
         ...customWhere,
+      },
+      orderBy: {
+        date_time: "desc",
       },
       include: {
         merchant: {
@@ -85,7 +100,7 @@ const getTransactions = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(200).json(transactions.map(transaction => ({...transaction, merchant: transaction.merchant.groups[0].merchant?.jazzCashMerchant}))); 
+    res.status(200).json(transactions.map(transaction => ({...transaction, jazzCashMerchant: transaction.merchant.groups[0].merchant?.jazzCashMerchant}))); 
   } catch (err) {
     console.log(err)
     const error = new CustomError("Internal Server Error", 500);
