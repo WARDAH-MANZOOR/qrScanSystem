@@ -1,4 +1,4 @@
-import jazzCash from "./paymentGateway/jazzCash.js";
+import jazzCash from "./paymentGateway/easypaisa.js";
 import merchant from "./merchant/index.js";
 import dashboard from "./dashboard/index.js";
 import transaction from "./transaction/index.js";

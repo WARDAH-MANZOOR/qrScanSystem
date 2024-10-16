@@ -12,7 +12,7 @@ import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import { getDateRange } from "utils/date_method.js";
 import { parse } from "date-fns";
-
+ 
 import analytics from "./analytics.js";
 
 const createTransaction = async (
