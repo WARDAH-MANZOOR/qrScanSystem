@@ -7,10 +7,10 @@ import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
 
-// const MERCHANT_ID = "12478544";
-// const PASSWORD = "uczu5269d1";
+const MERCHANT_ID = "12478544";
+const PASSWORD = "uczu5269d1";
 const RETURN_URL = "https://devtects.com/thankyou.html";
-// const INTEGRITY_SALT = "e6t384f1fu";
+const INTEGRITY_SALT = "e6t384f1fu";
 
 const getSecureHash = (data: any, salt: string): string => {
   const hashArray = [
@@ -99,7 +99,7 @@ const initiateJazzCashPayment = async (
         where: {
           ...customWhere,
         },
-      }); 
+      });
       console.log(merchant)
 
       const jazzCashMerchant = await prisma.jazzCashMerchant.findFirst({
@@ -114,9 +114,12 @@ const initiateJazzCashPayment = async (
       }
 
       // update jazzCashCredentials
-      jazzCashCredentials.pp_MerchantID = jazzCashMerchant.jazzMerchantId;
-      jazzCashCredentials.pp_Password = jazzCashMerchant.password;
-      jazzCashMerchantIntegritySalt = jazzCashMerchant.integritySalt;
+      jazzCashCredentials.pp_MerchantID = "32641894" 
+      // jazzCashMerchant.jazzMerchantId;
+      jazzCashCredentials.pp_Password = "c1w993t81e"
+      // jazzCashMerchant.password;
+      jazzCashMerchantIntegritySalt = "wt25vdy0y8"
+      // jazzCashMerchant.integritySalt;
 
       if (!merchant) {
         throw new CustomError("Merchant not found", 404);
@@ -355,6 +358,34 @@ const deleteJazzCashMerchant = async (merchantId: number) => {
     throw new CustomError(error?.message || "An error occurred", 500);
   }
 };
+
+const statusInquiry = async (merchantId: number) => {
+  let data = JSON.stringify({
+    "pp_TxnRefNo": "T20241016163345",
+    "pp_MerchantID": "MC117957",
+    "pp_Password": "4gz0s3v24y",
+    "pp_SecureHash": "716D784F05981CD34FFCD79EAB4CC36A97E9AE7883564876606AF67BFE6B3E5A"
+  });
+
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: data
+  };
+
+  axios.request(config)
+    .then((response) => {
+      console.log(JSON.stringify(response.data));
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+
+}
 
 export default {
   initiateJazzCashPayment,
