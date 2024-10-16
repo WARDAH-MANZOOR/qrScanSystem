@@ -70,90 +70,123 @@ const initiateJazzCashPayment = async (
 ) => {
   try {
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
-    var jazzCashMerchantIntegritySalt = "";
+    let jazzCashMerchantIntegritySalt = "";
     const jazzCashCredentials = {
       pp_MerchantID: "",
       pp_Password: "",
+      pp_ReturnURL: ""
     };
 
+    // Input Validation
     if (!paymentData.amount || !paymentData.phone) {
       throw new CustomError("Amount and phone are required", 400);
     }
 
-    // add a redirect_url check
     if (!paymentData.redirect_url) {
       throw new CustomError("Redirect URL is required", 400);
     }
 
-    // type check
     if (!paymentData.type) {
       throw new CustomError("Payment type is required", 400);
     }
 
-    let customWhere = {} as any;
-    if (merchant_uid) {
-      customWhere = { uid: merchant_uid };
-
-      // find uid from merchant id
-      const merchant = await prisma.merchant.findFirst({
-        where: {
-          ...customWhere,
-        },
-      });
-      console.log(merchant)
-
-      const jazzCashMerchant = await prisma.jazzCashMerchant.findFirst({
-        where: {
-          //@ts-ignore
-          id: merchant.jazzCashMerchantId,
-        },
-      });
-
-      if (!jazzCashMerchant) {
-        throw new CustomError("Payment Merchant not found", 404);
-      }
-
-      // update jazzCashCredentials
-      jazzCashCredentials.pp_MerchantID = "32641894" 
-      // jazzCashMerchant.jazzMerchantId;
-      jazzCashCredentials.pp_Password = "c1w993t81e"
-      // jazzCashMerchant.password;
-      jazzCashMerchantIntegritySalt = "wt25vdy0y8"
-      // jazzCashMerchant.integritySalt;
-
-      if (!merchant) {
-        throw new CustomError("Merchant not found", 404);
-      }
-      paymentData.merchantId = merchant.merchant_id;
-    }
     const paymentType = paymentData.type?.toUpperCase();
 
-    // Get the fractional milliseconds part of the current timestamp
+    // Generate Transaction Reference Number
     const currentTime = Date.now();
     const fractionalMilliseconds = Math.floor(
       (currentTime - Math.floor(currentTime)) * 1000
     );
-
-    let txnRefNo;
+    let txnRefNo: string;
     let transactionCreated = false;
-    // Create the transaction reference number
-    if (paymentData.transaction_id) {
-      let transaction = await findTransaction(paymentData.transaction_id);
-      if (transaction) {
-        txnRefNo = paymentData.transaction_id;
-        transactionCreated = true;
+
+    // Start Prisma Transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Fetch Merchant and JazzCashMerchant within transaction
+      let merchant;
+      if (merchant_uid) {
+        merchant = await tx.merchant.findFirst({
+          where: {
+            uid: merchant_uid,
+          },
+        });
+
+        if (!merchant) {
+          throw new CustomError("Merchant not found", 404);
+        }
+
+        const jazzCashMerchant = await tx.jazzCashMerchant.findFirst({
+          where: {
+            id: merchant.jazzCashMerchantId as number,
+          },
+        });
+
+        if (!jazzCashMerchant) {
+          throw new CustomError("Payment Merchant not found", 404);
+        }
+
+        // Update JazzCash Credentials
+        jazzCashCredentials.pp_MerchantID = jazzCashMerchant.jazzMerchantId;
+        jazzCashCredentials.pp_Password = jazzCashMerchant.password;
+        jazzCashMerchantIntegritySalt = jazzCashMerchant.integritySalt;
+        jazzCashCredentials.pp_ReturnURL = jazzCashMerchant.returnUrl;
+
+        paymentData.merchantId = merchant.merchant_id;
       } else {
-        throw new CustomError("Transaction with Tranaction ID not found", 404);
+        throw new CustomError("Merchant UID is required", 400);
       }
-    } else {
-      txnRefNo = `T${txnDateTime}${fractionalMilliseconds
-        .toString()
-        .padStart(5, "0")}`;
-    }
+
+      // Transaction Reference Number
+      if (paymentData.transaction_id) {
+        const transactionExists = await tx.transaction.findUnique({
+          where: {
+            transaction_id: paymentData.transaction_id,
+            status: "pending",
+          },
+        });
+        if (transactionExists) {
+          txnRefNo = paymentData.transaction_id;
+          transactionCreated = true;
+        } else {
+          throw new CustomError(
+            "Transaction with Transaction ID not found",
+            404
+          );
+        }
+      } else {
+        txnRefNo = `T${txnDateTime}${fractionalMilliseconds
+          .toString()
+          .padStart(5, "0")}`;
+
+        // Create Transaction within the transaction
+        await tx.transaction.create({
+          data: {
+            transaction_id: txnRefNo,
+            date_time: new Date(),
+            original_amount: paymentData.amount,
+            type: paymentData.type.toLowerCase(),
+            status: "pending",
+            merchant_id: merchant.merchant_id,
+            // Add other necessary fields
+          },
+        });
+        transactionCreated = true;
+      }
+
+      // Return necessary data for further processing
+      return {
+        merchant,
+        integritySalt: jazzCashMerchantIntegritySalt,
+        refNo: txnRefNo,
+      };
+    }); // End of Prisma Transaction
+
+    // Prepare Data for JazzCash
+    const { merchant, integritySalt, refNo } = result;
+    jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
     const phone = paymentData.phone;
 
-    // Prepare the data to send
     const sendData: any = {
       pp_Version: "1.1",
       pp_TxnType: "MWALLET",
@@ -161,7 +194,7 @@ const initiateJazzCashPayment = async (
       pp_MerchantID: jazzCashCredentials.pp_MerchantID,
       pp_SubMerchantID: "",
       pp_Password: jazzCashCredentials.pp_Password,
-      pp_TxnRefNo: txnRefNo,
+      pp_TxnRefNo: refNo,
       pp_Amount: amount * 100,
       pp_DiscountedAmount: "",
       pp_TxnCurrency: "PKR",
@@ -172,46 +205,45 @@ const initiateJazzCashPayment = async (
         new Date(Date.now() + 60 * 60 * 1000),
         "yyyyMMddHHmmss"
       ), // +1 hour
-      pp_ReturnURL: RETURN_URL,
+      pp_ReturnURL: jazzCashCredentials.pp_ReturnURL,
       ppmpf_1: phone,
       ppmpf_2: "",
       ppmpf_3: "",
       ppmpf_4: "",
       ppmpf_5: "",
     };
-
     // Generate the secure hash
-    sendData.pp_SecureHash = getSecureHash(sendData, jazzCashMerchantIntegritySalt);
+    sendData.pp_SecureHash = getSecureHash(
+      sendData,
+      jazzCashMerchantIntegritySalt
+    );
+
     if (paymentType === "CARD") {
-      let payload = {
+      // Handle CARD payment type
+      const payload = {
         pp_Version: "2.0",
         pp_IsRegisteredCustomer: "Yes",
         pp_ShouldTokenizeCardNumber: "Yes",
         pp_TxnType: "MPAY",
-        pp_TxnRefNo: "T20221125153218",
-        pp_Amount: "20000",
+        pp_TxnRefNo: refNo,
+        pp_Amount: amount * 100,
         pp_TxnCurrency: "PKR",
-        pp_TxnDateTime: "20221125153215",
-        pp_TxnExpiryDateTime: "20221202153215",
+        pp_TxnDateTime: txnDateTime,
+        pp_TxnExpiryDateTime: format(
+          new Date(Date.now() + 60 * 60 * 1000),
+          "yyyyMMddHHmmss"
+        ),
         pp_BillReference: "billRef",
         pp_Description: "Description of transaction",
         pp_CustomerCardNumber: "5123456789012346",
         pp_UsageMode: "API",
-        pp_SecureHash: "",
+        pp_SecureHash: sendData.pp_SecureHash,
         ...jazzCashCredentials,
       };
 
+      // You can process CARD payments similarly
       return payload;
     } else if (paymentType === "WALLET") {
-      if (!transactionCreated) {
-        await transactionService.createTransaction({
-          id: txnRefNo,
-          original_amount: amount,
-          type: "wallet",
-          merchant_id: parseInt(paymentData.merchantId),
-        });
-      }
-
       // Send the request to JazzCash
       const paymentUrl =
         "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
@@ -224,55 +256,81 @@ const initiateJazzCashPayment = async (
         new URLSearchParams(sendData).toString(),
         { headers }
       );
-      let status = "completed";
-      console.log(response.data.status);
-      if (response.data.pp_ResponseCode != "000") {
-        status = "failed";
-      }
-
-      let info = {
-        bank_id: response.data.pp_BankID,
-        bill_ref: response.data.pp_BillReference,
-        retrieval_ref: response.data.pp_RetrievalReferenceNo,
-        sub_merchant_id:
-          response.data.pp_SubMerchantID != undefined
-            ? encrypt(response.data.pp_SubMerchantID)
-            : "",
-        custom_field_1: encrypt(response.data.ppmpf_1),
-        custom_field_2:
-          response.data.pp_CustomerCardNumber != undefined
-            ? encrypt(response.data.pp_CustomerCardNumber)
-            : "",
-        custom_field_3:
-          response.data.pp_CustomerCardCVV != undefined
-            ? encrypt(response.data.pp_CustomerCardCVV)
-            : "",
-        custom_field_4:
-          response.data.pp_CustomerCardExpiry != undefined
-            ? encrypt(response.data.pp_CustomerCardExpiry)
-            : "",
-        custom_field_5: response.data.ppmpf_5,
-      };
-      let provider = {
-        name: "JazzCash",
-        type: "MWALLET",
-        version: "1.1",
-      };
-      await transactionService.completeTransaction({
-        transaction_id: txnRefNo,
-        status,
-        response_message: response.data.pp_ResponseMessage,
-        info,
-        provider,
-        merchant_id: parseInt(paymentData.merchantId),
-      });
 
       const r = response.data;
-
+      console.log(r);
       if (!r) {
         throw new CustomError(response.statusText, 500);
       }
 
+      let status = "completed";
+      if (r.pp_ResponseCode !== "000") {
+        status = "failed";
+      }
+
+      // Update Transaction after receiving response
+      await prisma.$transaction(async (tx) => {
+        if (status != "completed" && status != "pending" && status != "failed") {
+          return;
+        }
+        // Update transaction status
+        await tx.transaction.update({
+          where: {
+            transaction_id: txnRefNo,
+          },
+          data: {
+            status,
+            response_message: r.pp_ResponseMessage,
+            // Update other necessary fields
+          },
+        });
+
+        // Create AdditionalInfo record
+        await tx.additionalInfo.create({
+          data: {
+            bank_id: r.pp_BankID,
+            bill_reference: r.pp_BillReference,
+            retrieval_ref: r.pp_RetrievalReferenceNo,
+            sub_merchant_id: r.pp_SubMerchantID
+              ? encrypt(r.pp_SubMerchantID)
+              : "",
+            custom_field_1: encrypt(r.ppmpf_1),
+            // Add other fields as necessary
+            transaction: {
+              connect: { transaction_id: txnRefNo },
+            },
+          },
+        });
+
+        // Update Provider info if necessary
+        const provider = await tx.provider.upsert({
+          where: {
+            name_txn_type_version: {
+              name: "JazzCash",
+              txn_type: "MWALLET",
+              version: "1.1",
+            },
+          },
+          update: {},
+          create: {
+            name: "JazzCash",
+            txn_type: "MWALLET",
+            version: "1.1",
+          },
+        });
+
+        // Update transaction with providerId
+        await tx.transaction.update({
+          where: {
+            transaction_id: txnRefNo,
+          },
+          data: {
+            providerId: provider.id,
+          },
+        });
+      }); // End of transaction
+
+      console.log(r.pp_ResponseCode)
       if (r.pp_ResponseCode === "000") {
         return {
           message: "Redirecting to JazzCash...",
@@ -288,8 +346,8 @@ const initiateJazzCashPayment = async (
       }
     }
   } catch (error: any) {
-    console.log(error);
-    throw new CustomError(error?.error, error?.statusCode);
+    console.error(error);
+    throw new CustomError(error?.message || "An error occurred", error?.statusCode || 500);
   }
 };
 
