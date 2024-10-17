@@ -47,7 +47,6 @@ model UserGroup {
   group      Group     @relation(fields: [groupId], references: [id])
   merchantId Int? // merchant association
   merchant   Merchant? @relation(fields: [merchantId], references: [merchant_id])
-
 }
 
 model GroupPermission {
