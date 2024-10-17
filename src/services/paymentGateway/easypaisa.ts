@@ -7,12 +7,11 @@ const initiateEasyPaisa = async (params: any) => {
     console.log(process.env["CREDENTIALS"]);
     let data = JSON.stringify({
       orderId: "abc123",
-      storeId: "477847",
+      storeId: process.env["STORE_ID"],
       transactionAmount: "1.23",
       transactionType: "MA",
-      mobileAccountNo: "03162309607",
+      mobileAccountNo: "03363739689",
       emailAddress: "m.owais1045@gmail.com",
-
     });
 
     let config = {
@@ -20,10 +19,10 @@ const initiateEasyPaisa = async (params: any) => {
       maxBodyLength: Infinity,
       url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction",
       headers: {
-        Credentials: "1f7a946be5fb0d27c8b9d5b25a1aa430",
+        Credentials: process.env["CREDENTIALS"],
         "Content-Type": "application/json",
       },
-      data: params,
+      data: data,
     };
 
     const response: any = await axios.request(config);

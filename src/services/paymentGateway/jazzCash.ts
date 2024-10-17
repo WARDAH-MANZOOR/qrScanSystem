@@ -417,9 +417,10 @@ const deleteJazzCashMerchant = async (merchantId: number) => {
   }
 };
 
-const statusInquiry = async (merchantId: number) => {
+const statusInquiry = async (payload: any,merchantId: string) => {
+  
   let data = JSON.stringify({
-    "pp_TxnRefNo": "T20241016163345",
+    "pp_TxnRefNo": payload.transactionId,
     "pp_MerchantID": "MC117957",
     "pp_Password": "4gz0s3v24y",
     "pp_SecureHash": "716D784F05981CD34FFCD79EAB4CC36A97E9AE7883564876606AF67BFE6B3E5A"
@@ -445,10 +446,12 @@ const statusInquiry = async (merchantId: number) => {
 
 }
 
+
 export default {
   initiateJazzCashPayment,
   getJazzCashMerchant,
   createJazzCashMerchant,
   updateJazzCashMerchant,
   deleteJazzCashMerchant,
+  statusInquiry
 };
