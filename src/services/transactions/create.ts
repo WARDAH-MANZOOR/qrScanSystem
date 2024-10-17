@@ -2,8 +2,9 @@ import { Decimal } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client/extension";
 
-async function getMerchantCommission(merchantId: number): Promise<number | Decimal> {
+async function getMerchantCommission(merchantId: number, prisma: PrismaClient): Promise<number> {
     console.log(merchantId);
     const merchant = await prisma.merchantFinancialTerms.findUnique({
         where: { merchant_id: merchantId },
@@ -12,10 +13,10 @@ async function getMerchantCommission(merchantId: number): Promise<number | Decim
         throw new CustomError('Merchant not found', 404);
     }
 
-    return +merchant.commissionRate + +merchant.commissionGST + +merchant.commissionWithHoldingTax;
+    return +Number(merchant.commissionRate) + +Number(merchant.commissionGST) + +Number(merchant.commissionWithHoldingTax);
 }
 
-async function findOrCreateCustomer(customerName: string, customerEmail: string, merchantId: number) {
+async function findOrCreateCustomer(customerName: string, customerEmail: string, merchantId: number, prisma: PrismaClient) {
     let customer = await prisma.user.findUnique({
         where: { email: customerEmail },
         include: {
@@ -47,8 +48,8 @@ async function findOrCreateCustomer(customerName: string, customerEmail: string,
         })
         return new_customer;
     }
-    else if(customer.groups.find((user) => user.groupId != 2)) {
-        throw new CustomError("Given user is not a customer",400);
+    else if (customer.groups.find((user: any) => user.groupId != 2)) {
+        throw new CustomError("Given user is not a customer", 400);
     }
     return customer;
 }
@@ -71,7 +72,8 @@ async function createTransactionRecord({
     merchantId: number;
     settledAmount: number;
     customerId: number;
-}) {
+},
+    prisma: PrismaClient) {
     if (type != "wallet" && type != "card" && type != "bank") {
         return;
     }
@@ -89,7 +91,7 @@ async function createTransactionRecord({
             },
             customer: {
                 connect: { id: customerId },
-              },
+            },
         },
     });
 
@@ -97,9 +99,9 @@ async function createTransactionRecord({
 }
 
 function createTransactionToken(transactionId: string) {
-  const secret = process.env.JWTSECRET || 'your_default_secret';
-  const token = jwt.sign({ transactionId }, secret, { expiresIn: '1h' });
-  return token;
+    const secret = process.env.JWTSECRET || 'your_default_secret';
+    const token = jwt.sign({ transactionId }, secret, { expiresIn: '1h' });
+    return token;
 }
 
 async function generateTransactionLink(transactionId: string) {
@@ -116,24 +118,27 @@ async function generateTransactionLink(transactionId: string) {
 
 const createTransaction = async (obj: any) => {
     try {
-        const commissionPercentage = await getMerchantCommission(obj.merchant_id);
-        const customer = await findOrCreateCustomer(obj.customerName, obj.customerEmail,obj.merchant_id);
-        const customerId = customer?.id;
-        const originalAmount = parseFloat(obj.original_amount);
-        const settledAmount = calculateSettledAmount(originalAmount, commissionPercentage);
-        // Create a new transaction request in the database
-        const transaction = await createTransactionRecord({
-            id: obj.id,
-            originalAmount: originalAmount,
-            type: obj.type,
-            merchantId: obj.merchant_id,
-            settledAmount: settledAmount,
-            customerId: customerId as number
+        const result = await prisma.$transaction(async (prismaTransaction) => {
+            const commissionPercentage = await getMerchantCommission(obj.merchant_id, prismaTransaction);
+            const customer = await findOrCreateCustomer(obj.customerName, obj.customerEmail, obj.merchant_id, prismaTransaction);
+            const customerId = customer?.id;
+            const originalAmount = parseFloat(obj.original_amount);
+            const settledAmount = calculateSettledAmount(originalAmount, commissionPercentage);
+            // Create a new transaction request in the database
+            const transaction = await createTransactionRecord({
+                id: obj.id,
+                originalAmount: originalAmount,
+                type: obj.type,
+                merchantId: obj.merchant_id,
+                settledAmount: settledAmount,
+                customerId: customerId as number
+            },
+                prismaTransaction);
+            return {transaction};
         });
-
-        const transactionLink = await generateTransactionLink(transaction?.transaction_id as string);
+        const transactionLink = await generateTransactionLink(result?.transaction.transaction_id as string);
         return {
-            transaction,
+            result,
             transactionLink
         }
 
@@ -149,4 +154,4 @@ const createTransaction = async (obj: any) => {
     }
 }
 
-export {createTransaction};
+export { createTransaction };
