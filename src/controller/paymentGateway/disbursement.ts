@@ -2,7 +2,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, updateTransactions } from "services/paymentGateway/disbursement/index.js";
+import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, updateTransactions } from "services/paymentGateway/disbursement.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
 

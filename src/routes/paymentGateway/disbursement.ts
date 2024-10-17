@@ -1,7 +1,7 @@
 import {
   disburseTransactions,
   getWalletBalanceController,
-} from "controller/paymentGateway/disbursement/index.js";
+} from "controller/paymentGateway/disbursement.js";
 import { Router } from "express";
 import { isLoggedIn } from "utils/middleware.js";
 

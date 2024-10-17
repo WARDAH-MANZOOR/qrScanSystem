@@ -1,14 +1,14 @@
-import jazzCash from "./paymentGateway/easypaisa.js";
+import payment from "./paymentGateway/index.js";
 import merchant from "./merchant/index.js";
 import dashboard from "./dashboard/index.js";
 import transaction from "./transaction/index.js";
-import disbursement from "./paymentGateway/disbursement/index.js"
+import disbursement from "./paymentGateway/disbursement.js"
 import auth from "./authentication/index.js";
 import settlement from "./settlement/index.js";
 import express from "express";
 
 export default function (app: express.Application) {
-  app.use("/payment", jazzCash);
+  app.use("/payment", payment);
   app.use("/merchant", merchant);
   app.use("/dashboard", dashboard);
   app.use("/transactions", transaction);
