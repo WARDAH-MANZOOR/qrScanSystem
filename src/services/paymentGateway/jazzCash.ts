@@ -7,10 +7,10 @@ import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
 
-const MERCHANT_ID = "12478544";
-const PASSWORD = "uczu5269d1";
-const RETURN_URL = "https://devtects.com/thankyou.html";
-const INTEGRITY_SALT = "e6t384f1fu";
+// const MERCHANT_ID = "12478544";
+// const PASSWORD = "uczu5269d1";
+// const RETURN_URL = "https://devtects.com/thankyou.html";
+// const INTEGRITY_SALT = "e6t384f1fu";
 
 const getSecureHash = (data: any, salt: string): string => {
   const hashArray = [

@@ -16,7 +16,7 @@ const initiateJazzCash = async (
     }
     const paymentData = req.body;
 
-    let merchantId = req.params.merchantId;
+    let merchantId = req.params?.merchantId;
 
     if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));

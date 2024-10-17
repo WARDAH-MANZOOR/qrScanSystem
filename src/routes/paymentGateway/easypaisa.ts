@@ -1,7 +1,7 @@
 import { Router } from "express";
-import router from "./jazzCash.js"
-import { easypaisa } from "controller/paymentGateway/easyPaisa.js";
+import { easyPaisaController } from "controller/index.js";
 
-router.post("/initiate-ep",easypaisa);
-
-export default router;
+export default function (router: Router) {
+  router.post("/initiate-ep/:merchantId", easyPaisaController.initiateEasyPaisa);
+  return router;
+}

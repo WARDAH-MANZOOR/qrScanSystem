@@ -1,16 +1,27 @@
-import { Request, Response, Router } from "express";
-import { initiateEasyPaisa } from "services/paymentGateway/easypaisa.js";
+import { Request, Response, NextFunction } from "express";
+import { easyPaisaService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
+const initiateEasyPaisa = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
 
-const easypaisa = async (req: Request, res: Response) => {
-    try {
-        await initiateEasyPaisa(req.body);
-        return res.status(200).json(ApiResponse.success({message: "Payment done successfully"}))
-    }
-    catch(err) {
-        return res.status(500).json(ApiResponse.error("Internal Server Error"))
-    }
-}
+    // let merchantId = req.params?.merchantId;
+    // console.log("🚀 ~ merchantId:", merchantId)
+    // if (!merchantId) {
+    //   return res.status(400).json(ApiResponse.error("Merchant ID is required"));
+    // }
 
-export {easypaisa}
+    await easyPaisaService.initiateEasyPaisa(req.body);
+    return res
+      .status(200)
+      .json(ApiResponse.success({ message: "Payment done successfully" }));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export default { initiateEasyPaisa };

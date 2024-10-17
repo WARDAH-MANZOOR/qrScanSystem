@@ -1,4 +1,5 @@
 import jazzCashController from './paymentGateway/jazzCash.js';
+import easyPaisaController from './paymentGateway/easyPaisa.js';
 import transactionController from './transactions/index.js';
 import merchantController from './merchant/index.js';
 import dashboardController from './dashboard/index.js';
@@ -8,5 +9,6 @@ export {
     jazzCashController,
     transactionController,
     merchantController,
-    dashboardController
+    dashboardController,
+    easyPaisaController
 };
