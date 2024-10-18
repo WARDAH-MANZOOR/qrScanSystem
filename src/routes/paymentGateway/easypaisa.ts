@@ -1,7 +1,32 @@
 import { Router } from "express";
+import { isLoggedIn, isAdmin } from "utils/middleware.js";
 import { easyPaisaController } from "controller/index.js";
 
 export default function (router: Router) {
-  router.post("/initiate-ep/:merchantId", easyPaisaController.initiateEasyPaisa);
+  router.post(
+    "/initiate-ep/:merchantId",
+    easyPaisaController.initiateEasyPaisa
+  );
+
+  router.post(
+    "/ep-merchant",
+    [isLoggedIn, isAdmin],
+    easyPaisaController.createEasyPaisaMerchant
+  );
+  router.get(
+    "/ep-merchant",
+    [isLoggedIn, isAdmin],
+    easyPaisaController.getEasyPaisaMerchant
+  );
+  router.put(
+    "/ep-merchant/:merchantId",
+    [isLoggedIn, isAdmin],
+    easyPaisaController.updateEasyPaisaMerchant
+  );
+  router.delete(
+    "/ep-merchant/:merchantId",
+    [isLoggedIn, isAdmin],
+    easyPaisaController.deleteEasyPaisaMerchant
+  );
   return router;
 }

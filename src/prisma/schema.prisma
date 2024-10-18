@@ -78,6 +78,9 @@ model Merchant {
   jazzCashMerchantId Int?
   jazzCashMerchant   JazzCashMerchant? @relation(fields: [jazzCashMerchantId], references: [id])
   SettlementReport           SettlementReport[]
+  
+  easyPaisaMerchantId Int?
+  easyPaisaMerchant   EasyPaisaMerchant? @relation(fields: [easyPaisaMerchantId], references: [id])
 }
 
 model MerchantProviderCredential {
@@ -217,5 +220,14 @@ model JazzCashMerchant {
   integritySalt String
   metadata         Json     @default("{}")
   merchantId    Int
+  merchant      Merchant[] // One-to-many relationship with Merchant
+}
+
+model EasyPaisaMerchant {
+  id            Int      @id @default(autoincrement())
+  storeId       String
+  username      String
+  credentials   String
+  metadata      Json     @default("{}")
   merchant      Merchant[] // One-to-many relationship with Merchant
 }

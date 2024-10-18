@@ -1,47 +1,224 @@
+import dotenv from "dotenv";
 import axios from "axios";
+import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
+import type { IEasyPaisaPayload } from "types/merchant.d.ts";
+import { log } from "console";
 
-const initiateEasyPaisa = async (params: any) => {
+dotenv.config();
+
+const initiateEasyPaisa = async (merchantId: string, params: any) => {
   try {
     console.log("🚀 ~ initiateEasyPaisa ~ params:", params);
-    console.log(process.env["CREDENTIALS"]);
-    let data = JSON.stringify({
-      orderId: "abc123",
-      storeId: process.env["STORE_ID"],
-      transactionAmount: "1.23",
-      transactionType: "MA",
-      mobileAccountNo: "03363739689",
-      emailAddress: "m.owais1045@gmail.com",
+
+    if (!merchantId) {
+      throw new CustomError("Merchant ID is required", 400);
+    }
+
+    const findMerchant = await prisma.merchant.findFirst({
+      where: {
+        uid: merchantId,
+      },
     });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
+      where: {
+        id: findMerchant.easyPaisaMerchantId ?? undefined,
+      },
+    });
+
+    if (!easyPaisaMerchant) {
+      throw new CustomError("Gateway merchant not found", 404);
+    }
+
+    const easyPaisaTxPayload = {
+      orderId: params.orderId,
+      storeId: easyPaisaMerchant.storeId,
+      transactionAmount: params.transactionAmount,
+      transactionType: "MA",
+      mobileAccountNo: params.mobileAccountNo,
+      emailAddress: params.emailAddress,
+    };
+
+    const base64Credentials = Buffer.from(
+      `${easyPaisaMerchant.username}:${easyPaisaMerchant.credentials}`
+    ).toString("base64");
+
+    let data = JSON.stringify(easyPaisaTxPayload);
 
     let config = {
       method: "post",
       maxBodyLength: Infinity,
       url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction",
       headers: {
-        Credentials: process.env["CREDENTIALS"],
+        Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
       },
       data: data,
     };
 
     const response: any = await axios.request(config);
-    console.log("🚀 ~ initiateEasyPaisa ~ response:", response?.data);
+    console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
-      return { message: "Success" };
+      return response.data;
     } else {
+      console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
       throw new CustomError(
-        response?.responseDescription ||
-          "An error occurred while initiating the transaction",
+        "An error occurred while initiating the transaction",
         500
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     throw new CustomError(
-      "An error occurred while initiating the transaction",
+      error?.message || "An error occurred while initiating the transaction",
       500
     );
   }
 };
 
-export default { initiateEasyPaisa };
+const createMerchant = async (merchantData: IEasyPaisaPayload) => {
+  try {
+    if (!merchantData.metadata) {
+      merchantData.metadata = {};
+    }
+
+    if (!merchantData) {
+      throw new CustomError("Merchant data is required", 400);
+    }
+
+    const easyPaisaMerchant = await prisma.$transaction(async (prisma) => {
+      return prisma.easyPaisaMerchant.create({
+        data: merchantData,
+      });
+    });
+
+    if (!easyPaisaMerchant) {
+      throw new CustomError(
+        "An error occurred while creating the merchant",
+        500
+      );
+    }
+    return {
+      message: "Merchant created successfully",
+      data: easyPaisaMerchant,
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while creating the merchant",
+      500
+    );
+  }
+};
+
+const getMerchant = async (merchantId: string) => {
+  try {
+    const where: any = {};
+
+    if (merchantId) {
+      where["id"] = parseInt(merchantId);
+    }
+
+    const merchant = await prisma.easyPaisaMerchant.findMany({
+      where: where,
+      orderBy: {
+        id: "desc",
+      },
+    });
+
+    if (!merchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    return {
+      message: "Merchant retrieved successfully",
+      data: merchant,
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while reading the merchant",
+      500
+    );
+  }
+};
+
+const updateMerchant = async (merchantId: string, updateData: any) => {
+  try {
+    if (!merchantId) {
+      throw new CustomError("Merchant ID is required", 400);
+    }
+
+    if (!updateData) {
+      throw new CustomError("Update data is required", 400);
+    }
+
+    const updatedMerchant = await prisma.$transaction(async (prisma) => {
+      return prisma.easyPaisaMerchant.update({
+        where: {
+          id: parseInt(merchantId),
+        },
+        data: updateData,
+      });
+    });
+
+    if (!updatedMerchant) {
+      throw new CustomError(
+        "An error occurred while updating the merchant",
+        500
+      );
+    }
+
+    return {
+      message: "Merchant updated successfully",
+      data: updatedMerchant,
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while updating the merchant",
+      500
+    );
+  }
+};
+
+const deleteMerchant = async (merchantId: string) => {
+  try {
+    if (!merchantId) {
+      throw new CustomError("Merchant ID is required", 400);
+    }
+
+    const deletedMerchant = await prisma.$transaction(async (prisma) => {
+      return prisma.easyPaisaMerchant.delete({
+        where: {
+          id: parseInt(merchantId),
+        },
+      });
+    });
+
+    if (!deletedMerchant) {
+      throw new CustomError(
+        "An error occurred while deleting the merchant",
+        500
+      );
+    }
+
+    return {
+      message: "Merchant deleted successfully",
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while deleting the merchant",
+      500
+    );
+  }
+};
+
+export default {
+  initiateEasyPaisa,
+  createMerchant,
+  getMerchant,
+  updateMerchant,
+  deleteMerchant,
+};

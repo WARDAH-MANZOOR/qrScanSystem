@@ -9,6 +9,10 @@ class ApiResponse {
       delete data.message;
     }
 
+    if (data?.data && typeof data.data === "object") {
+      data = data.data;
+    }
+
     return {
       success: true,
       message,

@@ -16,8 +16,15 @@ export interface Merchant {
   disbursementWithHoldingTax: number;
   settlementDuration: number;
   jazzCashMerchantId: number;
+  easyPaisaMerchantId: number;
 }
 
 export interface IjazzCashConfigParams {
   merchantId: string;
+}
+export interface IEasyPaisaPayload {
+  storeId: string;
+  username: string;
+  credentials: string;
+  metadata: any;
 }
