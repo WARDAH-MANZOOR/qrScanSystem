@@ -94,7 +94,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
 
       fetchAggregates.push(
         prisma.transaction.findMany({
-          take: 5,
+          take: 10,
           orderBy: {
             date_time: "desc",
           },
@@ -258,10 +258,10 @@ const adminDashboardDetails = async (params: any) => {
         }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
     );
 
-    // bring latest 5 transactions
+    // bring latest 10 transactions
     fetchAggregates.push(
       prisma.transaction.findMany({
-        take: 5,
+        take: 10,
         orderBy: {
           date_time: "desc",
         },
