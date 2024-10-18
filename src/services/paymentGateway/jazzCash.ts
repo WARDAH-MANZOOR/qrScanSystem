@@ -419,12 +419,21 @@ const deleteJazzCashMerchant = async (merchantId: number) => {
 
 const statusInquiry = async (payload: any,merchantId: string) => {
   
-  let data = JSON.stringify({
+  let merchant = await prisma.merchant.findFirst({
+    where: {uid: merchantId},
+    include: {
+      jazzCashMerchant: true
+    }
+  })
+  let sendData = {
     "pp_TxnRefNo": payload.transactionId,
-    "pp_MerchantID": "MC117957",
-    "pp_Password": "4gz0s3v24y",
-    "pp_SecureHash": "716D784F05981CD34FFCD79EAB4CC36A97E9AE7883564876606AF67BFE6B3E5A"
-  });
+    "pp_MerchantID": merchant?.jazzCashMerchant?.jazzMerchantId,
+    "pp_Password": merchant?.jazzCashMerchant?.password,
+    "pp_SecureHash": ""
+  }
+
+  sendData.pp_SecureHash = getSecureHash(sendData, merchant?.jazzCashMerchant?.integritySalt as string)
+  let data = JSON.stringify(sendData);
 
   let config = {
     method: 'post',
@@ -436,13 +445,13 @@ const statusInquiry = async (payload: any,merchantId: string) => {
     data: data
   };
 
-  axios.request(config)
-    .then((response) => {
-      console.log(JSON.stringify(response.data));
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+  let res = await axios.request(config)
+  if (res.data.pp_ResponseCode == "000") {
+    return res.data;
+  }
+  else {
+    throw new CustomError("Internal Server Error",500);
+  }
 
 }
 

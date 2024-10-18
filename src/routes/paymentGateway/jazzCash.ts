@@ -41,7 +41,9 @@ export default function (router: Router) {
     validateDeleteJazzcashMerchant,
     jazzCashController.deleteJazzCashMerchant
   );
-
+  router.get("/status-inquiry/:merchantId",
+    jazzCashController.statusInquiry
+  )
   return router;
 }
 
