@@ -19,6 +19,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       where: {
         uid: merchantId,
       },
+      include: {
+        commissions: true
+      }
     });
 
     if (!findMerchant) {
@@ -61,13 +64,13 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       data: data,
     };
 
-   
-
     const saveTxn = await transactionService.createTxn({
       amount: params.amount,
       status: "pending",
       type: params.type,
       merchant_id: findMerchant.merchant_id,
+      commission: +findMerchant.commissions[0].commissionGST + +findMerchant.commissions[0].commissionRate + +findMerchant.commissions[0].commissionWithHoldingTax,
+      settlementDuration: findMerchant.commissions[0].settlementDuration
     });
 
     console.log("saveTxn", saveTxn);

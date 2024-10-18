@@ -6,6 +6,7 @@ import { transactionService } from "services/index.js";
 import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
+import { addWeekdays } from "utils/date_method.js";
 
 // const MERCHANT_ID = "12478544";
 // const PASSWORD = "uczu5269d1";
@@ -109,6 +110,9 @@ const initiateJazzCashPayment = async (
           where: {
             uid: merchant_uid,
           },
+          include: {
+            commissions: true
+          }
         });
 
         if (!merchant) {
@@ -328,7 +332,19 @@ const initiateJazzCashPayment = async (
             providerId: provider.id,
           },
         });
-      }); // End of transaction
+        if (status == "completed") {
+          const scheduledAt = addWeekdays(new Date(), merchant.commissions[0].settlementDuration as number);  // Call the function to get the next 2 weekdays
+          let scheduledTask = await tx.scheduledTask.create({
+            data: {
+              transactionId: txnRefNo,
+              status: 'pending',
+              scheduledAt: scheduledAt,  // Assign the calculated weekday date
+              executedAt: null,  // Assume executedAt is null when scheduling
+            }
+          })
+        }
+      });
+      // End of transaction
 
       console.log(r.pp_ResponseCode)
       if (r.pp_ResponseCode === "000") {
@@ -417,10 +433,10 @@ const deleteJazzCashMerchant = async (merchantId: number) => {
   }
 };
 
-const statusInquiry = async (payload: any,merchantId: string) => {
-  
+const statusInquiry = async (payload: any, merchantId: string) => {
+
   let merchant = await prisma.merchant.findFirst({
-    where: {uid: merchantId},
+    where: { uid: merchantId },
     include: {
       jazzCashMerchant: true
     }
@@ -450,7 +466,7 @@ const statusInquiry = async (payload: any,merchantId: string) => {
     return res.data;
   }
   else {
-    throw new CustomError("Internal Server Error",500);
+    throw new CustomError("Internal Server Error", 500);
   }
 
 }

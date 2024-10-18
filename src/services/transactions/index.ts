@@ -167,36 +167,36 @@ const completeTransaction = async (obj: any) => {
           response_message: response_message || null,
           Provider: provider
             ? {
-                connectOrCreate: {
-                  where: {
-                    name_txn_type_version: {
-                      name: provider.name,
-                      txn_type: provider.type,
-                      version: provider.version,
-                    },
-                  },
-                  create: {
+              connectOrCreate: {
+                where: {
+                  name_txn_type_version: {
                     name: provider.name,
                     txn_type: provider.type,
                     version: provider.version,
                   },
                 },
-              }
+                create: {
+                  name: provider.name,
+                  txn_type: provider.type,
+                  version: provider.version,
+                },
+              },
+            }
             : undefined,
           AdditionalInfo: info
             ? {
-                create: {
-                  bank_id: info.bank_id || null,
-                  bill_reference: info.bill_reference || null,
-                  retrieval_ref: info.retrieval_ref || null,
-                  sub_merchant_id: info.sub_merchant_id || null,
-                  custom_field_1: info.custom_field_1 || null,
-                  custom_field_2: info.custom_field_2 || null,
-                  custom_field_3: info.custom_field_3 || null,
-                  custom_field_4: info.custom_field_4 || null,
-                  custom_field_5: info.custom_field_5 || null,
-                },
-              }
+              create: {
+                bank_id: info.bank_id || null,
+                bill_reference: info.bill_reference || null,
+                retrieval_ref: info.retrieval_ref || null,
+                sub_merchant_id: info.sub_merchant_id || null,
+                custom_field_1: info.custom_field_1 || null,
+                custom_field_2: info.custom_field_2 || null,
+                custom_field_3: info.custom_field_3 || null,
+                custom_field_4: info.custom_field_4 || null,
+                custom_field_5: info.custom_field_5 || null,
+              },
+            }
             : undefined,
         },
       });
@@ -247,7 +247,7 @@ const createTxn = async (obj: any) => {
   const txnRefNo = `T${txnDateTime}${fractionalMilliseconds
     .toString()
     .padStart(5, "0")}`;
-
+  let settledAmount = obj.amount * (1 - obj.commission);
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
@@ -257,6 +257,8 @@ const createTxn = async (obj: any) => {
         type: obj.type,
         status: obj.status,
         merchant_id: obj.merchant_id,
+        settled_amount: settledAmount,
+        balance: settledAmount
       },
     });
   });
@@ -264,7 +266,7 @@ const createTxn = async (obj: any) => {
 
 const updateTxn = async (transaction_id: string, obj: any) => {
   return await prisma.$transaction(async (tx) => {
-    return await tx.transaction.update({
+    let transaction = await tx.transaction.update({
       where: {
         transaction_id: transaction_id,
       },
@@ -272,7 +274,19 @@ const updateTxn = async (transaction_id: string, obj: any) => {
         ...obj,
       },
     });
+    if (obj.status == "completed") {
+      const scheduledAt = addWeekdays(new Date(), obj.settlementDuration as number);  // Call the function to get the next 2 weekdays
+      let scheduledTask = await prisma.scheduledTask.create({
+        data: {
+          transactionId: transaction_id,
+          status: 'pending',
+          scheduledAt: scheduledAt,  // Assign the calculated weekday date
+          executedAt: null,  // Assume executedAt is null when scheduling
+        }
+      });
+    }
   });
+
 };
 
 export default {
