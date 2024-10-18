@@ -14,10 +14,11 @@ const initiateEasyPaisa = async (
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
 
-    const result = await easyPaisaService.initiateEasyPaisa(merchantId, req.body);
-    return res
-      .status(200)
-      .json(ApiResponse.success(result));
+    const result = await easyPaisaService.initiateEasyPaisa(
+      merchantId,
+      req.body
+    );
+    return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }

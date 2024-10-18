@@ -3,7 +3,7 @@ import axios from "axios";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import type { IEasyPaisaPayload } from "types/merchant.d.ts";
-import { log } from "console";
+import { transactionService } from "services/index.js";
 
 dotenv.config();
 
@@ -38,10 +38,10 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     const easyPaisaTxPayload = {
       orderId: params.orderId,
       storeId: easyPaisaMerchant.storeId,
-      transactionAmount: params.transactionAmount,
+      transactionAmount: params.amount,
       transactionType: "MA",
-      mobileAccountNo: params.mobileAccountNo,
-      emailAddress: params.emailAddress,
+      mobileAccountNo: params.phone,
+      emailAddress: params.email,
     };
 
     const base64Credentials = Buffer.from(
@@ -61,12 +61,37 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       data: data,
     };
 
+   
+
+    const saveTxn = await transactionService.createTxn({
+      amount: params.amount,
+      status: "pending",
+      type: params.type,
+      merchant_id: findMerchant.merchant_id,
+    });
+
+    console.log("saveTxn", saveTxn);
+    
+
     const response: any = await axios.request(config);
     console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
-      return response.data;
+
+      const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
+        status: "completed",
+      });
+
+      return {
+        txnNo: saveTxn.transaction_id,
+        txnDateTime: saveTxn.date_time,
+      }
     } else {
       console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
+
+      const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
+        status: "failed",
+      });
+
       throw new CustomError(
         "An error occurred while initiating the transaction",
         500
