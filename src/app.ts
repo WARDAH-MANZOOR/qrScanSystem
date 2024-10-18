@@ -84,13 +84,4 @@ app.listen(process.env.PORT || 3001, () => {
 });
 
 
-let username = "devtects"
-let password = "1f7a946be5fb0d27c8b9d5b25a1aa430"
-
-// create base64 encoded string
-let base64data = Buffer.from(`${username}:${password}`).toString('base64');
-
-console.log("🚀 ~ base64data:", base64data)
-
-
 export default app;
