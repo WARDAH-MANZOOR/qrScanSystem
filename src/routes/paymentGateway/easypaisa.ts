@@ -28,5 +28,8 @@ export default function (router: Router) {
     [isLoggedIn, isAdmin],
     easyPaisaController.deleteEasyPaisaMerchant
   );
+  router.get("/inquiry-ep/:merchantId",
+    easyPaisaController.statusInquiry
+  )
   return router;
 }
