@@ -228,5 +228,6 @@ model EasyPaisaMerchant {
   username      String
   credentials   String
   metadata      Json     @default("{}")
+  accountNumber String?   
   merchant      Merchant[] // One-to-many relationship with Merchant
 }

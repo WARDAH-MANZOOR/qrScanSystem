@@ -4,9 +4,6 @@ import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import type { IEasyPaisaPayload } from "types/merchant.d.ts";
 import { transactionService } from "services/index.js";
-import { request } from "http";
-import { response } from "express";
-import { param } from "express-validator";
 
 dotenv.config();
 
@@ -77,7 +74,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     });
 
     console.log("saveTxn", saveTxn);
-    
+
 
     const response: any = await axios.request(config);
     console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
@@ -245,32 +242,40 @@ const deleteMerchant = async (merchantId: string) => {
     );
   }
 };
-const easypaisainquiry = async (param:any,merchantId: string)=>{
-let data = JSON.stringify({
-  "orderId": param.orderId,
-  "storeId": "477847",
-  "accountNum": "149731533"
-});
+const easypaisainquiry = async (param: any, merchantId: string) => {
+  let merchant = await prisma.merchant.findFirst({
+    where: { uid: merchantId },
+    include: {
+      easyPaisaMerchant: true
+    }
+  })
+  let data = JSON.stringify({
+    "orderId": param.orderId,
+    "storeId": merchant?.easyPaisaMerchant?.storeId,
+    "accountNum": merchant?.easyPaisaMerchant?.accountNumber
+  });
 
-let config = {
-  method: 'post',
-  maxBodyLength: Infinity,
-  url: 'https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction',
-  headers: { 
-    'Credentials': 'ZGV2dGVjdHM6MWY3YTk0NmJlNWZiMGQyN2M4YjlkNWIyNWExYWE0MzA=', 
-    'Content-Type': 'application/json', 
-    'Cookie': 'f5avraaaaaaaaaaaaaaaa_session_=PAPEMEHOPKEBAIILDILEOIFIKCDHBGOBKMAOKJFGFHFEIFJOJEADOFLNDMKLNGHHBDNDDIEDAAGEHMNNJGAAAIGLBKDKIKMPJPJDJOKOGPCOFLFMFNNEDIBGFLCCCJDC; TS01f2a187=011c1a8db63059f9e5f79fa62b8aebee700a2da5f57311a591a444b3ee33f112ef1540f5a65a024b66f50977d1ede14fe3d3fc10ce2d70c32721e7d2b232cda60b73435eff'
-  },
-  data : data
-};
+  const base64Credentials = Buffer.from(
+    `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`
+  ).toString("base64");
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction',
+    headers: {
+      'Credentials': base64Credentials,
+      'Content-Type': 'application/json',
+    },
+    data: data
+  };
 
-let res = await axios.request(config)
-if (res.data.responseCode == "0000") {
-  return res.data;
-}
-else {
-  throw new CustomError("Internal Server Error", 500);
-}
+  let res = await axios.request(config)
+  if (res.data.responseCode == "0000") {
+    return res.data;
+  }
+  else {
+    throw new CustomError("Internal Server Error", 500);
+  }
 }
 
 export default {
