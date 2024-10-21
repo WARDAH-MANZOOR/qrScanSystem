@@ -37,9 +37,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
-
+    let id = transactionService.createTransactionId();
     const easyPaisaTxPayload = {
-      orderId: params.orderId,
+      orderId: id,
       storeId: easyPaisaMerchant.storeId,
       transactionAmount: params.amount,
       transactionType: "MA",
@@ -65,6 +65,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     };
 
     const saveTxn = await transactionService.createTxn({
+      orderId: id,
       amount: params.amount,
       status: "pending",
       type: params.type,
@@ -82,7 +83,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
 
       const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
         status: "completed",
-      });
+        response_message: response.data.responseDesc
+      },findMerchant.commissions[0].settlementDuration);
 
       return {
         txnNo: saveTxn.transaction_id,
@@ -93,7 +95,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
 
       const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
         status: "failed",
-      });
+        response_message: response.data.responseDesc
+      },findMerchant.commissions[0].settlementDuration);
 
       throw new CustomError(
         "An error occurred while initiating the transaction",

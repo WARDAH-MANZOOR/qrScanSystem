@@ -268,6 +268,9 @@ const adminDashboardDetails = async (params: any) => {
         where: {
           ...customWhere,
         },
+        include: {
+          Provider: true
+        }
       })
     );
     // Execute all queries in parallel

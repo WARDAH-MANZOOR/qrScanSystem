@@ -237,7 +237,7 @@ const completeTransaction = async (obj: any) => {
   }
 };
 
-const createTxn = async (obj: any) => {
+const createTransactionId = () => {
   const currentTime = Date.now();
   const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
   const fractionalMilliseconds = Math.floor(
@@ -247,11 +247,14 @@ const createTxn = async (obj: any) => {
   const txnRefNo = `T${txnDateTime}${fractionalMilliseconds
     .toString()
     .padStart(5, "0")}`;
+  return txnRefNo;
+}
+const createTxn = async (obj: any) => {
   let settledAmount = obj.amount * (1 - obj.commission);
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
-        transaction_id: txnRefNo,
+        transaction_id: obj.orderId,
         date_time: new Date(),
         original_amount: obj.amount,
         type: obj.type,
@@ -264,7 +267,7 @@ const createTxn = async (obj: any) => {
   });
 };
 
-const updateTxn = async (transaction_id: string, obj: any) => {
+const updateTxn = async (transaction_id: string, obj: any,duration: number) => {
   return await prisma.$transaction(async (tx) => {
     let transaction = await tx.transaction.update({
       where: {
@@ -274,9 +277,26 @@ const updateTxn = async (transaction_id: string, obj: any) => {
         ...obj,
       },
     });
+
+    const provider = await tx.provider.upsert({
+      where: {
+        name_txn_type_version: {
+          name: "EasyPaisa",
+          txn_type: "MA",
+          version: "",
+        },
+      },
+      update: {},
+      create: {
+        name: "EasyPaisa",
+        txn_type: "MA",
+        version: "",
+      },
+    });
     if (obj.status == "completed") {
-      const scheduledAt = addWeekdays(new Date(), obj.settlementDuration as number);  // Call the function to get the next 2 weekdays
-      let scheduledTask = await prisma.scheduledTask.create({
+      const scheduledAt = addWeekdays(new Date(), duration);  // Call the function to get the next 2 weekdays
+      console.log(scheduledAt)
+      let scheduledTask = await tx.scheduledTask.create({
         data: {
           transactionId: transaction_id,
           status: 'pending',
@@ -294,5 +314,6 @@ export default {
   completeTransaction,
   createTxn,
   updateTxn,
+  createTransactionId,
   ...analyticsService,
 };

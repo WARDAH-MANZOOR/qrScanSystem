@@ -231,3 +231,10 @@ model EasyPaisaMerchant {
   accountNumber String?   
   merchant      Merchant[] // One-to-many relationship with Merchant
 }
+
+model SwichMerchant {
+  id            Int      @id @default(autoincrement())
+  clientId       String
+  clientSecret String?   
+  merchant      Merchant[] // One-to-many relationship with Merchant
+}
