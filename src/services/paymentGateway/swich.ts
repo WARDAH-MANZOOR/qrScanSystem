@@ -70,6 +70,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       "channelId": payload.channel.toUpperCase() == "JAZZCASH" ? "10" : "8",
       "item": "1",
       "amount": payload.amount,
+      "remoteIPAddress": "139.59.40.220",
       "msisdn": payload.msisdn,
       "email": payload.email
     });
@@ -110,7 +111,6 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       }
     }
     else {
-
       const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
         status: "failed",
         response_message: res.data.message
@@ -122,11 +122,11 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     }
   }
   catch (err: any) {
+    console.log(err);
     const updateTxn = await transactionService.updateTxn(saveTxn?.transaction_id as string, {
       status: "failed",
       response_message: "An error occured while initiating the transaction"
     }, findMerchant?.commissions[0].settlementDuration as number);
-    console.log(err.response.data.message);
     throw new CustomError(
       "An error occurred while initiating the transaction",
       500
