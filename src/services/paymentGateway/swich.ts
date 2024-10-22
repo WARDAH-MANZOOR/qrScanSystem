@@ -124,11 +124,11 @@ const initiateSwich = async (payload: any, merchantId: string) => {
   catch (err: any) {
     const updateTxn = await transactionService.updateTxn(saveTxn?.transaction_id as string, {
       status: "failed",
-      response_message: err.response.data.message
+      response_message: "An error occured while initiating the transaction"
     }, findMerchant?.commissions[0].settlementDuration as number);
     console.log(err.response.data.message);
     throw new CustomError(
-      err?.response.data.message || "An error occurred while initiating the transaction",
+      "An error occurred while initiating the transaction",
       500
     );
   }
