@@ -69,7 +69,6 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       "categoryId": "2",
       "channelId": payload.channel.toUpperCase() == "JAZZCASH" ? "10" : "8",
       "item": "1",
-      "remoteIPAddress": process.env["REMOTE_IP_ADDRESS"],
       "amount": payload.amount,
       "msisdn": payload.msisdn,
       "email": payload.email
