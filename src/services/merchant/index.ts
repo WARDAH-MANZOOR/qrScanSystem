@@ -21,6 +21,7 @@ const updateMerchant = async (payload: Merchant) => {
     settlementDuration,
     jazzCashMerchantId,
     easyPaisaMerchantId,
+    swichMerchantId
   } = payload;
   try {
     let result = await prisma.$transaction((async (tx) => {
@@ -34,9 +35,13 @@ const updateMerchant = async (payload: Merchant) => {
           payment_volume,
           jazzCashMerchantId,
           easyPaisaMerchantId,
+          swichMerchantId
         },
         where: { merchant_id: +merchantId },
       });
+      let finance = await tx.merchantFinancialTerms.findUnique({
+        where: {merchant_id: +merchantId}
+      })
       await tx.merchantFinancialTerms.update({
         data: {
           commissionRate: commission,
@@ -45,7 +50,7 @@ const updateMerchant = async (payload: Merchant) => {
           disbursementGST: disbursementGST,
           disbursementRate: disbursementRate,
           disbursementWithHoldingTax: disbursementWithHoldingTax,
-          settlementDuration: +settlementDuration,
+          settlementDuration: settlementDuration != undefined ? settlementDuration: finance?.settlementDuration,
         },
         where: { merchant_id: +merchantId }
       })

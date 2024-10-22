@@ -17,6 +17,7 @@ export interface Merchant {
   settlementDuration: number;
   jazzCashMerchantId: number;
   easyPaisaMerchantId: number;
+  swichMerchantId: number
 }
 
 export interface IjazzCashConfigParams {
@@ -27,4 +28,8 @@ export interface IEasyPaisaPayload {
   username: string;
   credentials: string;
   metadata: any;
+}
+export interface ISwichPayload {
+  clientId: string;
+  clientSecret: string;
 }

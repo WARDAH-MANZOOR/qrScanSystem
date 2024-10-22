@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from "express";
-import { easyPaisaService } from "services/index.js";
+import { NextFunction, Request, Response } from "express";
+import { swichService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
-const initiateEasyPaisa = async (
+const initiateSwichController = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -14,51 +14,48 @@ const initiateEasyPaisa = async (
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
 
-    const result = await easyPaisaService.initiateEasyPaisa(
-      merchantId,
-      req.body
-    );
+    const result = await swichService.initiateSwich(req.body, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
 };
 
-const getEasyPaisaMerchant = async (
+const getSwichMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const merchantId = req.params.merchantId;
-    const merchant = await easyPaisaService.getMerchant(merchantId);
+    const merchant = await swichService.getMerchant(merchantId);
     return res.status(200).json(ApiResponse.success(merchant));
   } catch (error) {
     next(error);
   }
 };
 
-const createEasyPaisaMerchant = async (
+const createSwichMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const newMerchant = await easyPaisaService.createMerchant(req.body);
+    const newMerchant = await swichService.createMerchant(req.body);
     return res.status(201).json(ApiResponse.success(newMerchant));
   } catch (error) {
     next(error);
   }
 };
 
-const updateEasyPaisaMerchant = async (
+const updateSwichMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const merchantId = req.params.merchantId;
-    const updatedMerchant = await easyPaisaService.updateMerchant(
+    const updatedMerchant = await swichService.updateMerchant(
       merchantId,
       req.body
     );
@@ -71,14 +68,14 @@ const updateEasyPaisaMerchant = async (
   }
 };
 
-const deleteEasyPaisaMerchant = async (
+const deleteSwichMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const merchantId = req.params.merchantId;
-    const deletedMerchant = await easyPaisaService.deleteMerchant(merchantId);
+    const deletedMerchant = await swichService.deleteMerchant(merchantId);
     if (!deletedMerchant) {
       return res.status(404).json(ApiResponse.error("Merchant not found"));
     }
@@ -88,28 +85,6 @@ const deleteEasyPaisaMerchant = async (
   } catch (error) {
     next(error);
   }
-};
+}
 
-const statusInquiry = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const merchantId = req.params.merchantId;
-    const payload = req.body;
-    if(!merchantId) {
-      return res.status(400).json(ApiResponse.error("Merchant ID is required"));
-    }
-    const result = await easyPaisaService.easypaisainquiry(payload,merchantId);
-    return res.status(200).json(ApiResponse.success(result));
-  }
-  catch(err) {
-    next(err);
-  }
-};
-
-export default {
-  initiateEasyPaisa,
-  getEasyPaisaMerchant,
-  createEasyPaisaMerchant,
-  updateEasyPaisaMerchant,
-  deleteEasyPaisaMerchant,
-  statusInquiry,
-};
+export default { initiateSwichController, createSwichMerchant, getSwichMerchant, updateSwichMerchant, deleteSwichMerchant };

@@ -37,9 +37,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
-
+    let id = transactionService.createTransactionId();
     const easyPaisaTxPayload = {
-      orderId: params.orderId,
+      orderId: id,
       storeId: easyPaisaMerchant.storeId,
       transactionAmount: params.amount,
       transactionType: "MA",
@@ -65,6 +65,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     };
 
     const saveTxn = await transactionService.createTxn({
+      orderId: id,
       amount: params.amount,
       status: "pending",
       type: params.type,
@@ -74,7 +75,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     });
 
     console.log("saveTxn", saveTxn);
-    
+
 
     const response: any = await axios.request(config);
     console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
@@ -82,7 +83,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
 
       const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
         status: "completed",
-      });
+        response_message: response.data.responseDesc
+      },findMerchant.commissions[0].settlementDuration);
 
       return {
         txnNo: saveTxn.transaction_id,
@@ -93,7 +95,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
 
       const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
         status: "failed",
-      });
+        response_message: response.data.responseDesc
+      },findMerchant.commissions[0].settlementDuration);
 
       throw new CustomError(
         "An error occurred while initiating the transaction",
@@ -242,6 +245,41 @@ const deleteMerchant = async (merchantId: string) => {
     );
   }
 };
+const easypaisainquiry = async (param: any, merchantId: string) => {
+  let merchant = await prisma.merchant.findFirst({
+    where: { uid: merchantId },
+    include: {
+      easyPaisaMerchant: true
+    }
+  })
+  let data = JSON.stringify({
+    "orderId": param.orderId,
+    "storeId": merchant?.easyPaisaMerchant?.storeId,
+    "accountNum": merchant?.easyPaisaMerchant?.accountNumber
+  });
+
+  const base64Credentials = Buffer.from(
+    `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`
+  ).toString("base64");
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction',
+    headers: {
+      'Credentials': base64Credentials,
+      'Content-Type': 'application/json',
+    },
+    data: data
+  };
+
+  let res = await axios.request(config)
+  if (res.data.responseCode == "0000") {
+    return res.data;
+  }
+  else {
+    throw new CustomError("Internal Server Error", 500);
+  }
+}
 
 export default {
   initiateEasyPaisa,
@@ -249,4 +287,5 @@ export default {
   getMerchant,
   updateMerchant,
   deleteMerchant,
+  easypaisainquiry,
 };

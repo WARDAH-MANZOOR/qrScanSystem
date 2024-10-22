@@ -66,7 +66,7 @@ model Merchant {
   company_name   String
   company_url    String?
   city           String
-  payment_volume Decimal?    
+  payment_volume Decimal?
   user_id        Int
   user_groups    UserGroup[] // Associate UserGroups with Merchant
 
@@ -75,11 +75,13 @@ model Merchant {
   MerchantProviderCredential MerchantProviderCredential[]
 
   jazzCashMerchantId Int?
-  jazzCashMerchant   JazzCashMerchant? @relation(fields: [jazzCashMerchantId], references: [id])
-  SettlementReport           SettlementReport[]
-  
+  jazzCashMerchant   JazzCashMerchant?  @relation(fields: [jazzCashMerchantId], references: [id])
+  SettlementReport   SettlementReport[]
+
   easyPaisaMerchantId Int?
   easyPaisaMerchant   EasyPaisaMerchant? @relation(fields: [easyPaisaMerchantId], references: [id])
+  SwichMerchant       SwichMerchant?     @relation(fields: [swichMerchantId], references: [id])
+  swichMerchantId     Int?
 }
 
 model MerchantProviderCredential {
@@ -105,12 +107,12 @@ model MerchantFinancialTerms {
   merchant_id Int      @unique
   merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id])
 
-  commissionRate             Decimal 
-  commissionWithHoldingTax   Decimal 
-  commissionGST              Decimal 
-  disbursementRate           Decimal 
-  disbursementWithHoldingTax Decimal 
-  disbursementGST            Decimal 
+  commissionRate             Decimal
+  commissionWithHoldingTax   Decimal
+  commissionGST              Decimal
+  disbursementRate           Decimal
+  disbursementWithHoldingTax Decimal
+  disbursementGST            Decimal
   settlementDuration         Int // Number of days for settlement
 
   createdAt DateTime @default(now())
@@ -120,11 +122,11 @@ model MerchantFinancialTerms {
 }
 
 model User {
-  id          Int         @id @default(autoincrement())
-  username    String
-  email       String      @unique      
-  password    String
-  groups      UserGroup[]
+  id       Int         @id @default(autoincrement())
+  username String
+  email    String      @unique
+  password String
+  groups   UserGroup[]
 
   // Transactions as Merchant
   merchantTransactions Transaction[] @relation("MerchantTransactions")
@@ -138,13 +140,13 @@ model User {
 model Transaction {
   transaction_id   String            @id @unique
   date_time        DateTime
-  original_amount  Decimal?          
+  original_amount  Decimal?
   status           TransactionStatus
   type             TransactionType
   response_message String?
   settlement       Boolean           @default(false)
-  settled_amount   Decimal?          
-  balance          Decimal           @default(0) 
+  settled_amount   Decimal?
+  balance          Decimal           @default(0)
 
   merchant_id Int
   merchant    User @relation("MerchantTransactions", fields: [merchant_id], references: [id])
@@ -152,16 +154,16 @@ model Transaction {
   customer_id Int?
   customer    User? @relation("CustomerTransactions", fields: [customer_id], references: [id])
 
-  additionalInfoId Int? @unique
+  additionalInfoId Int?            @unique
   AdditionalInfo   AdditionalInfo? @relation(fields: [additionalInfoId], references: [id])
 
-  providerId Int?
-  Provider   Provider? @relation(fields: [providerId], references: [id])
-  scheduledTasks   ScheduledTask[]
+  providerId     Int?
+  Provider       Provider?       @relation(fields: [providerId], references: [id])
+  scheduledTasks ScheduledTask[]
 }
 
 model AdditionalInfo {
-  id                Int           @id @default(autoincrement())
+  id                Int          @id @default(autoincrement())
   bank_id           String? // Bank ID for JazzCash
   bill_reference    String? // Bill reference number
   retrieval_ref     String? // Retrieval reference number
@@ -186,12 +188,12 @@ model Provider {
 }
 
 model ScheduledTask {
-  id            Int       @id @default(autoincrement())
-  transactionId String    @unique
-  status        String    @db.VarChar(50)
-  scheduledAt   DateTime? @db.Timestamptz
-  executedAt    DateTime? @db.Timestamptz
-  transaction   Transaction  @relation(fields: [transactionId], references: [transaction_id])
+  id            Int         @id @default(autoincrement())
+  transactionId String      @unique
+  status        String      @db.VarChar(50)
+  scheduledAt   DateTime?   @db.Timestamptz
+  executedAt    DateTime?   @db.Timestamptz
+  transaction   Transaction @relation(fields: [transactionId], references: [transaction_id])
 }
 
 model SettlementReport {
@@ -200,11 +202,11 @@ model SettlementReport {
   merchant          Merchant @relation(fields: [merchant_id], references: [merchant_id])
   settlementDate    DateTime
   transactionCount  Int
-  transactionAmount Decimal  
-  commission        Decimal  
-  gst               Decimal  
-  withholdingTax    Decimal  
-  merchantAmount    Decimal  
+  transactionAmount Decimal
+  commission        Decimal
+  gst               Decimal
+  withholdingTax    Decimal
+  merchantAmount    Decimal
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -212,21 +214,29 @@ model SettlementReport {
 }
 
 model JazzCashMerchant {
-  id            Int      @id @default(autoincrement())
-  jazzMerchantId    String
-  password      String
-  returnUrl     String
-  integritySalt String
-  metadata         Json     @default("{}")
-  merchantId    Int
-  merchant      Merchant[] // One-to-many relationship with Merchant
+  id             Int        @id @default(autoincrement())
+  jazzMerchantId String
+  password       String
+  returnUrl      String
+  integritySalt  String
+  metadata       Json       @default("{}")
+  merchantId     Int
+  merchant       Merchant[] // One-to-many relationship with Merchant
 }
 
 model EasyPaisaMerchant {
-  id            Int      @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   storeId       String
   username      String
   credentials   String
-  metadata      Json     @default("{}")
+  metadata      Json       @default("{}")
+  accountNumber String?
   merchant      Merchant[] // One-to-many relationship with Merchant
+}
+
+model SwichMerchant {
+  id           Int        @id @default(autoincrement())
+  clientId     String
+  clientSecret String?
+  merchant     Merchant[] // One-to-many relationship with Merchant
 }

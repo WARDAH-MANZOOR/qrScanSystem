@@ -3,12 +3,13 @@ import easyPaisaController from './paymentGateway/easyPaisa.js';
 import transactionController from './transactions/index.js';
 import merchantController from './merchant/index.js';
 import dashboardController from './dashboard/index.js';
-
+import swichController from "./paymentGateway/swich.js"
 
 export {
     jazzCashController,
     transactionController,
     merchantController,
     dashboardController,
-    easyPaisaController
+    easyPaisaController,
+    swichController
 };
