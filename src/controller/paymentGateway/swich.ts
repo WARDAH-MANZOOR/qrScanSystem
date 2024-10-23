@@ -13,7 +13,7 @@ const initiateSwichController = async (
     if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
-
+ 
     const result = await swichService.initiateSwich(req.body, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
