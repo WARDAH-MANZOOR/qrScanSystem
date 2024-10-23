@@ -90,8 +90,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         },
         findMerchant.commissions[0].settlementDuration
       );
-
-      
+      transactionService.sendCallback(findMerchant.webhook_url as string,saveTxn,params.phone)
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,

@@ -17,7 +17,8 @@ export interface Merchant {
   settlementDuration: number;
   jazzCashMerchantId: number;
   easyPaisaMerchantId: number;
-  swichMerchantId: number
+  swichMerchantId: number;
+  webhook_url: string;
 }
 
 export interface IjazzCashConfigParams {

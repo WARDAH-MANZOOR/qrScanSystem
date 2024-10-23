@@ -29,7 +29,7 @@ const createTransaction = async (
     next(error);
   }
 };
-
+ 
 const getTransactions = async (req: Request, res: Response) => {
   try {
     const { merchantId, transactionId, merchantName } = req.query;

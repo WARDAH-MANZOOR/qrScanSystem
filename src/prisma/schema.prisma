@@ -68,6 +68,7 @@ model Merchant {
   city           String
   payment_volume Decimal?
   user_id        Int
+  webhook_url    String?
   user_groups    UserGroup[] // Associate UserGroups with Merchant
 
   // New relation to MerchantCommission
@@ -236,7 +237,7 @@ model EasyPaisaMerchant {
 
 model SwichMerchant {
   id           Int        @id @default(autoincrement())
-  clientId     String
+  clientId     String     
   clientSecret String?
   merchant     Merchant[] // One-to-many relationship with Merchant
 }

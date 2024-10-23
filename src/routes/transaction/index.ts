@@ -8,7 +8,7 @@ router.post('/', transactionController.filterTransactions);
 router.get('/', transactionController.getTransactions);
 router.get('/summary', transactionController.getDashboardSummary);
 router.get('/balance', transactionController.getProAndBal);
-router.get("/customer", [isLoggedIn], transactionController.getCustomerTransactions)
+router.get("/customer", [isLoggedIn], transactionController.getCustomerTransactions);
 export default router;
 
 
