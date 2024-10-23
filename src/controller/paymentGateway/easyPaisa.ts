@@ -90,17 +90,20 @@ const deleteEasyPaisaMerchant = async (
   }
 };
 
-const statusInquiry = async (req: Request, res: Response, next: NextFunction) => {
+const statusInquiry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const merchantId = req.params.merchantId;
-    const payload = req.body;
-    if(!merchantId) {
+    const payload = req.query;
+    if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
-    const result = await easyPaisaService.easypaisainquiry(payload,merchantId);
+    const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
     return res.status(200).json(ApiResponse.success(result));
-  }
-  catch(err) {
+  } catch (err) {
     next(err);
   }
 };

@@ -20,8 +20,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         uid: merchantId,
       },
       include: {
-        commissions: true
-      }
+        commissions: true,
+      },
     });
 
     if (!findMerchant) {
@@ -70,33 +70,42 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       status: "pending",
       type: params.type,
       merchant_id: findMerchant.merchant_id,
-      commission: +findMerchant.commissions[0].commissionGST + +findMerchant.commissions[0].commissionRate + +findMerchant.commissions[0].commissionWithHoldingTax,
-      settlementDuration: findMerchant.commissions[0].settlementDuration
+      commission:
+        +findMerchant.commissions[0].commissionGST +
+        +findMerchant.commissions[0].commissionRate +
+        +findMerchant.commissions[0].commissionWithHoldingTax,
+      settlementDuration: findMerchant.commissions[0].settlementDuration,
     });
 
     console.log("saveTxn", saveTxn);
 
-
     const response: any = await axios.request(config);
     console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
-
-      const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
-        status: "completed",
-        response_message: response.data.responseDesc
-      },findMerchant.commissions[0].settlementDuration);
+      const updateTxn = await transactionService.updateTxn(
+        saveTxn.transaction_id,
+        {
+          status: "completed",
+          response_message: response.data.responseDesc,
+        },
+        findMerchant.commissions[0].settlementDuration
+      );
 
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,
-      }
+      };
     } else {
       console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
 
-      const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
-        status: "failed",
-        response_message: response.data.responseDesc
-      },findMerchant.commissions[0].settlementDuration);
+      const updateTxn = await transactionService.updateTxn(
+        saveTxn.transaction_id,
+        {
+          status: "failed",
+          response_message: response.data.responseDesc,
+        },
+        findMerchant.commissions[0].settlementDuration
+      );
 
       throw new CustomError(
         "An error occurred while initiating the transaction",
@@ -249,37 +258,36 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   let merchant = await prisma.merchant.findFirst({
     where: { uid: merchantId },
     include: {
-      easyPaisaMerchant: true
-    }
-  })
+      easyPaisaMerchant: true,
+    },
+  });
   let data = JSON.stringify({
-    "orderId": param.orderId,
-    "storeId": merchant?.easyPaisaMerchant?.storeId,
-    "accountNum": merchant?.easyPaisaMerchant?.accountNumber
+    orderId: param.orderId,
+    storeId: merchant?.easyPaisaMerchant?.storeId,
+    accountNum: merchant?.easyPaisaMerchant?.accountNumber,
   });
 
   const base64Credentials = Buffer.from(
     `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`
   ).toString("base64");
   let config = {
-    method: 'post',
+    method: "post",
     maxBodyLength: Infinity,
-    url: 'https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction',
+    url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction",
     headers: {
-      'Credentials': base64Credentials,
-      'Content-Type': 'application/json',
+      Credentials: base64Credentials,
+      "Content-Type": "application/json",
     },
-    data: data
+    data: data,
   };
 
-  let res = await axios.request(config)
+  let res: any = await axios.request(config);
   if (res.data.responseCode == "0000") {
     return res.data;
+  } else {
+    throw new CustomError(res?.data?.responseDesc || "Internal Server Error", 500);
   }
-  else {
-    throw new CustomError("Internal Server Error", 500);
-  }
-}
+};
 
 export default {
   initiateEasyPaisa,
