@@ -8,6 +8,7 @@ import type {
   CompleteRequest,
 } from "types/transaction_request.js";
 import { addWeekdays } from "utils/date_method.js";
+import axios from "axios";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -267,7 +268,7 @@ const createTxn = async (obj: any) => {
   });
 };
 
-const updateTxn = async (transaction_id: string, obj: any,duration: number) => {
+const updateTxn = async (transaction_id: string, obj: any, duration: number) => {
   return await prisma.$transaction(async (tx) => {
     let transaction = await tx.transaction.update({
       where: {
@@ -309,6 +310,37 @@ const updateTxn = async (transaction_id: string, obj: any,duration: number) => {
 
 };
 
+const sendCallback = async (webhook_url: string, payload: any, msisdn: string) => {
+  setTimeout(async () => {
+    let data = JSON.stringify({
+      "amount": payload.original_amount,
+      "msisdn": msisdn,
+      "time": payload.date_time,
+      "order_id": payload.transaction_id,
+      "status": "success"
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: webhook_url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: data
+    };
+
+    let res = await axios.request(config)
+    console.log(res)
+    if (res.data == "success") {
+      console.log("Callback sent successfully")
+    }
+    else {
+      console.log("Error sending callback")
+    }
+  }, 10000)
+}
+
 export default {
   createTransaction,
   completeTransaction,
@@ -316,4 +348,5 @@ export default {
   updateTxn,
   createTransactionId,
   ...analyticsService,
+  sendCallback
 };

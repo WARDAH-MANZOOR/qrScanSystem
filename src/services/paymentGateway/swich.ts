@@ -104,7 +104,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         status: "completed",
         response_message: res.data.message
       }, findMerchant.commissions[0].settlementDuration);
-
+      transactionService.sendCallback(findMerchant.webhook_url as string,saveTxn,payload.msisdn)
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,

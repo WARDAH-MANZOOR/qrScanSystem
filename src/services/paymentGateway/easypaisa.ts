@@ -90,7 +90,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         },
         findMerchant.commissions[0].settlementDuration
       );
-
+      transactionService.sendCallback(findMerchant.webhook_url as string,saveTxn,params.phone)
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,
@@ -266,6 +266,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
     storeId: merchant?.easyPaisaMerchant?.storeId,
     accountNum: merchant?.easyPaisaMerchant?.accountNumber,
   });
+  console.log(data)
 
   const base64Credentials = Buffer.from(
     `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`

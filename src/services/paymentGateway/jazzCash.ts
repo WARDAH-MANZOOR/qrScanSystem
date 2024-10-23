@@ -278,7 +278,7 @@ const initiateJazzCashPayment = async (
           return;
         }
         // Update transaction status
-        await tx.transaction.update({
+        let transaction = await tx.transaction.update({
           where: {
             transaction_id: txnRefNo,
           },
@@ -342,6 +342,7 @@ const initiateJazzCashPayment = async (
               executedAt: null,  // Assume executedAt is null when scheduling
             }
           })
+          transactionService.sendCallback(merchant?.webhook_url as string, transaction, phone)
         }
       });
       // End of transaction
