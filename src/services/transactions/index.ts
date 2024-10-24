@@ -341,7 +341,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string) =
       }
     }
     catch (err) {
-      throw new CustomError("Error calling callback", 500)
+      return {"message": "Error calling callback"}
     }
   }, 10000)
 }
