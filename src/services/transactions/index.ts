@@ -312,31 +312,36 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
 
 const sendCallback = async (webhook_url: string, payload: any, msisdn: string) => {
   setTimeout(async () => {
-    let data = JSON.stringify({
-      "amount": payload.original_amount,
-      "msisdn": msisdn,
-      "time": payload.date_time,
-      "order_id": payload.transaction_id,
-      "status": "success"
-    });
+    try {
+      let data = JSON.stringify({
+        "amount": payload.original_amount,
+        "msisdn": msisdn,
+        "time": payload.date_time,
+        "order_id": payload.transaction_id,
+        "status": "success"
+      });
 
-    let config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: webhook_url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: data
-    };
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: webhook_url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: data
+      };
 
-    let res = await axios.request(config)
-    console.log(res)
-    if (res.data == "success") {
-      console.log("Callback sent successfully")
+      let res = await axios.request(config)
+      console.log(res)
+      if (res.data == "success") {
+        console.log("Callback sent successfully")
+      }
+      else {
+        console.log("Error sending callback")
+      }
     }
-    else {
-      console.log("Error sending callback")
+    catch (err) {
+      throw new CustomError("Error calling callback", 500)
     }
   }, 10000)
 }

@@ -6,6 +6,7 @@ import cron from "node-cron";
 import dotenv from "dotenv";
 import routes from './routes/index.js';
 import cors from 'cors';
+import crypto from "crypto"
 
 dotenv.config();
 
@@ -83,5 +84,30 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
+function encryptWithPublicKey(publicKey: string, data: string) {
+  // Convert data to Buffer
+  const bufferData = Buffer.from(data, 'utf8');
+
+  // Encrypt the data using the public key
+  const encrypted = crypto.publicEncrypt(publicKey, bufferData);
+
+  // Return the encrypted data in base64 format
+  return encrypted.toString('base64');
+}
+
+// Example usage
+const publicKey = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/qQW8FLl9v92lmcLE0ZC
+E5Tu9OML8SOyDQJfcl8GTJm8AgcbrEmPeSOtatNljYze25U8NwlVLpvpHbfcJIUL
+IWUYL5qQIHNsdLM2kLggbxhp1V6EC6mgC6fYJtKO7L+NgN6hnZdHZve3gBhzfltG
+oM276SGDI615LUbSB+3YBz64YCg2pSxPcXTh50a5ovu8BJAWyeiwTkPPVb7T1dfS
+tyH41SVk8E1XD+a9d3CVgsCqaCog9vIyOgiSrhKCUftWmtPeHNraNVFMOExkGh/c
+JDdH+5zk2BkXsm3Tv/3+FTGhS5/5avdmcivv07jZ6LToP1uAzbzwLBRr3rnCoBiV
+FwIDAQAB
+-----END PUBLIC KEY-----`;
+const data = '923424823244:18250';
+
+const encryptedData = encryptWithPublicKey(publicKey, data);
+console.log('Encrypted Data:', encryptedData);
 
 export default app;
