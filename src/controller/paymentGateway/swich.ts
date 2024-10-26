@@ -13,7 +13,6 @@ const initiateSwichController = async (
     if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
- 
     const result = await swichService.initiateSwich(req.body, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
@@ -85,6 +84,43 @@ const deleteSwichMerchant = async (
   } catch (error) {
     next(error);
   }
-}
+};
 
-export default { initiateSwichController, createSwichMerchant, getSwichMerchant, updateSwichMerchant, deleteSwichMerchant };
+const swichTxInquiry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { transactionId } = req.query;
+    const { merchantId } = req.params;
+
+    if (!transactionId) {
+      return res
+        .status(400)
+        .json(ApiResponse.error("Transaction ID is required"));
+    }
+
+    if (!merchantId) {
+      return res.status(400).json(ApiResponse.error("Merchant ID is required"));
+    }
+
+    const transaction = await swichService.swichTxInquiry(
+      transactionId as string,
+      merchantId as string
+    );
+
+    return res.status(200).json(ApiResponse.success(transaction));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export default {
+  initiateSwichController,
+  createSwichMerchant,
+  getSwichMerchant,
+  updateSwichMerchant,
+  deleteSwichMerchant,
+  swichTxInquiry,
+};
