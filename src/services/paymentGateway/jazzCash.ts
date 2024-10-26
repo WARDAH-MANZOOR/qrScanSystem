@@ -174,6 +174,7 @@ const initiateJazzCashPayment = async (
             type: paymentData.type.toLowerCase(),
             status: "pending",
             merchant_id: merchant.merchant_id,
+            settled_amount: parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number),
             providerDetails: {
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,

@@ -91,9 +91,6 @@ const createTransaction = async (obj: any) => {
   let commission = await prisma.merchantFinancialTerms.findUnique({
     where: { merchant_id },
   });
-  let rate = commission?.commissionRate ?? 0;
-  let gst = commission?.commissionGST ?? 0;
-  let withTax = commission?.commissionWithHoldingTax ?? 0;
   try {
     console.log(new Date().toLocaleDateString());
     // Create a new transaction request in the database
@@ -109,10 +106,10 @@ const createTransaction = async (obj: any) => {
         },
         settled_amount:
           parseFloat(original_amount) *
-          ((1 - (+rate + +gst + +withTax)) as unknown as number),
+          ((1 - obj.commission) as unknown as number),
         balance:
           parseFloat(original_amount) *
-          ((1 - (+rate + +gst + +withTax)) as unknown as number),
+          ((1 - obj.commission) as unknown as number),
       },
     });
     console.log("Created");
