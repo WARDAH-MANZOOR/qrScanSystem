@@ -6,6 +6,7 @@ import prisma from "prisma/client.js";
 import { decrypt, encrypt } from "utils/enc_dec.js";
 import { transactionService } from "services/index.js";
 import qs from "qs";
+import { PROVIDERS } from "constants/providers.js";
 dotenv.config();
 
 const getAuthToken = async (id: number) => {
@@ -94,7 +95,11 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       type: "wallet",
       merchant_id: findMerchant.merchant_id,
       commission: +findMerchant.commissions[0].commissionGST + +findMerchant.commissions[0].commissionRate + +findMerchant.commissions[0].commissionWithHoldingTax,
-      settlementDuration: findMerchant.commissions[0].settlementDuration
+      settlementDuration: findMerchant.commissions[0].settlementDuration,
+      providerDetails: {
+        id: findMerchant.swichMerchantId as number,
+        name: PROVIDERS.SWICH,
+      },
     });
 
     let res = await axios.request(config)

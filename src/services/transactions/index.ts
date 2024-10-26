@@ -262,7 +262,8 @@ const createTxn = async (obj: any) => {
         status: obj.status,
         merchant_id: obj.merchant_id,
         settled_amount: settledAmount,
-        balance: settledAmount
+        balance: settledAmount,
+        providerDetails: obj.providerDetails,
       },
     });
   });

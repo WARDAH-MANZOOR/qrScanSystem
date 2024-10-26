@@ -7,6 +7,7 @@ import { encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
 import { addWeekdays } from "utils/date_method.js";
+import { PROVIDERS } from "constants/providers.js";
 
 // const MERCHANT_ID = "12478544";
 // const PASSWORD = "uczu5269d1";
@@ -70,6 +71,7 @@ const initiateJazzCashPayment = async (
   merchant_uid?: string
 ) => {
   try {
+    var JAZZ_CASH_MERCHANT_ID: any = null;
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
     let jazzCashMerchantIntegritySalt = "";
     const jazzCashCredentials = {
@@ -134,6 +136,7 @@ const initiateJazzCashPayment = async (
         jazzCashCredentials.pp_Password = jazzCashMerchant.password;
         jazzCashMerchantIntegritySalt = jazzCashMerchant.integritySalt;
         jazzCashCredentials.pp_ReturnURL = jazzCashMerchant.returnUrl;
+        JAZZ_CASH_MERCHANT_ID = jazzCashMerchant.id;
 
         paymentData.merchantId = merchant.merchant_id;
       } else {
@@ -171,6 +174,10 @@ const initiateJazzCashPayment = async (
             type: paymentData.type.toLowerCase(),
             status: "pending",
             merchant_id: merchant.merchant_id,
+            providerDetails: {
+              id: JAZZ_CASH_MERCHANT_ID,
+              name: PROVIDERS.JAZZ_CASH,
+            }
             // Add other necessary fields
           },
         });
@@ -363,7 +370,7 @@ const initiateJazzCashPayment = async (
       }
     }
   } catch (error: any) {
-    console.error(error);
+    // console.error(error);
     throw new CustomError(error?.message || "An error occurred", error?.statusCode || 500);
   }
 };

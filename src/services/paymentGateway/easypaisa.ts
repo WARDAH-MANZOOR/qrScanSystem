@@ -4,12 +4,13 @@ import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import type { IEasyPaisaPayload } from "types/merchant.d.ts";
 import { transactionService } from "services/index.js";
+import { PROVIDERS } from "constants/providers.js";
 
 dotenv.config();
 
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
   try {
-    console.log("🚀 ~ initiateEasyPaisa ~ params:", params);
+    
 
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
@@ -75,12 +76,16 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         +findMerchant.commissions[0].commissionRate +
         +findMerchant.commissions[0].commissionWithHoldingTax,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
+      providerDetails: {
+        id: easyPaisaMerchant.id,
+        name: PROVIDERS.EASYPAISA,
+      }
     });
 
-    console.log("saveTxn", saveTxn);
+    // console.log("saveTxn", saveTxn);
 
     const response: any = await axios.request(config);
-    console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
+    // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,

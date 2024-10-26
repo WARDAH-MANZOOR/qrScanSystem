@@ -161,6 +161,11 @@ model Transaction {
   providerId     Int?
   Provider       Provider?       @relation(fields: [providerId], references: [id])
   scheduledTasks ScheduledTask[]
+
+  deletedAt      DateTime? 
+  createdAt      DateTime? @default(now())
+  updatedAt      DateTime? @updatedAt
+  providerDetails Json?
 }
 
 model AdditionalInfo {
