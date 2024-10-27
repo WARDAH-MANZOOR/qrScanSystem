@@ -19,6 +19,7 @@ export interface Merchant {
   easyPaisaMerchantId: number;
   swichMerchantId: number;
   webhook_url: string;
+  uid?: string;
 }
 
 export interface IjazzCashConfigParams {

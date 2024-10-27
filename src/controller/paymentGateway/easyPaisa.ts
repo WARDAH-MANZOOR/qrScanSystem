@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { easyPaisaService } from "services/index.js";
+import type { DisbursementPayload } from "types/providers.js";
 import ApiResponse from "utils/ApiResponse.js";
 
 const initiateEasyPaisa = async (
@@ -108,6 +109,21 @@ const statusInquiry = async (
   }
 };
 
+const createDisbursement = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const merchantId = req.params?.merchantId;
+    const payload: DisbursementPayload = req.body;
+    const result = await easyPaisaService.createDisbursement(payload, merchantId);
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   initiateEasyPaisa,
   getEasyPaisaMerchant,
@@ -115,4 +131,5 @@ export default {
   updateEasyPaisaMerchant,
   deleteEasyPaisaMerchant,
   statusInquiry,
+  createDisbursement
 };

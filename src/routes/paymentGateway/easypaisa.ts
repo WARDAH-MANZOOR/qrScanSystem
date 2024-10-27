@@ -4,6 +4,12 @@ import { easyPaisaController } from "controller/index.js";
 
 export default function (router: Router) {
   router.post(
+    "/ep-disburse/:merchantId",
+    [isLoggedIn],
+    easyPaisaController.createDisbursement
+  );
+
+  router.post(
     "/initiate-ep/:merchantId",
     easyPaisaController.initiateEasyPaisa
   );
@@ -28,8 +34,6 @@ export default function (router: Router) {
     [isLoggedIn, isAdmin],
     easyPaisaController.deleteEasyPaisaMerchant
   );
-  router.get("/inquiry-ep/:merchantId",
-    easyPaisaController.statusInquiry
-  )
+  router.get("/inquiry-ep/:merchantId", easyPaisaController.statusInquiry);
   return router;
 }

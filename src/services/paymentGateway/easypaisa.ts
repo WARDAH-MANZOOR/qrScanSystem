@@ -5,13 +5,17 @@ import CustomError from "utils/custom_error.js";
 import type { IEasyPaisaPayload } from "types/merchant.d.ts";
 import { transactionService } from "services/index.js";
 import { PROVIDERS } from "constants/providers.js";
+import RSAEncryption from "utils/RSAEncryption.js";
+import { merchantService } from "services/index.js";
+import type {
+  DisbursementPayload,
+  IEasyLoginPayload,
+} from "types/providers.js";
 
 dotenv.config();
 
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
   try {
-    
-
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -79,7 +83,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       providerDetails: {
         id: easyPaisaMerchant.id,
         name: PROVIDERS.EASYPAISA,
-      }
+      },
     });
 
     // console.log("saveTxn", saveTxn);
@@ -95,7 +99,11 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         },
         findMerchant.commissions[0].settlementDuration
       );
-      transactionService.sendCallback(findMerchant.webhook_url as string,saveTxn,params.phone)
+      transactionService.sendCallback(
+        findMerchant.webhook_url as string,
+        saveTxn,
+        params.phone
+      );
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,
@@ -259,6 +267,7 @@ const deleteMerchant = async (merchantId: string) => {
     );
   }
 };
+
 const easypaisainquiry = async (param: any, merchantId: string) => {
   let merchant = await prisma.merchant.findFirst({
     where: { uid: merchantId },
@@ -271,7 +280,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
     storeId: merchant?.easyPaisaMerchant?.storeId,
     accountNum: merchant?.easyPaisaMerchant?.accountNumber,
   });
-  console.log(data)
+  console.log(data);
 
   const base64Credentials = Buffer.from(
     `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`
@@ -291,7 +300,110 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   if (res.data.responseCode == "0000") {
     return res.data;
   } else {
-    throw new CustomError(res?.data?.responseDesc || "Internal Server Error", 500);
+    throw new CustomError(
+      res?.data?.responseDesc || "Internal Server Error",
+      500
+    );
+  }
+};
+
+const createRSAEncryptedPayload = async (url: string) => {
+  const inputEnc = url;
+  try {
+    const publicKeyPath = "src/keys/publickey.pem";
+    const publicKey = RSAEncryption.getPublicKey(publicKeyPath);
+    const outputEnc = RSAEncryption.encrypt(inputEnc, publicKey);
+    return outputEnc;
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
+const corporateLogin = async () => {
+  try {
+    return await axios
+      .post(
+        "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/corporate-solution-corporate-login",
+        {
+          LoginPayload: await createRSAEncryptedPayload("923424823244:18250"),
+        },
+        {
+          headers: {
+            "X-IBM-Client-Id": "7b77946ff4721fc3feccf435d3aa0093",
+            "X-IBM-Client-Secret": "d8036450dfa05829442b727d0f9f91d3",
+            "X-Channel": "apigdevtect",
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      .then((res) => {
+        return res?.data;
+      })
+      .catch((error) => {
+        console.error("Error:", error?.response?.data);
+      });
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while initiating the transaction",
+      500
+    );
+  }
+};
+
+const createDisbursement = async (
+  obj: DisbursementPayload,
+  merchantId: string
+) => {
+  try {
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    // Phone number validation (must start with 92)
+    if (!obj.phone.startsWith("92")) {
+      throw new CustomError("Number should start with 92", 400);
+    }
+
+    const getTimeStamp: IEasyLoginPayload = await corporateLogin();
+    const creatHashKey = await createRSAEncryptedPayload(
+      `923424823244~${getTimeStamp.Timestamp}`
+    );
+
+    const ma2ma: any = await axios
+      .post(
+        "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
+        {
+          Amount: obj.amount,
+          MSISDN: "923424823244",
+          ReceiverMSISDN: obj.phone,
+        },
+        {
+          headers: {
+            "X-Hash-Value": creatHashKey,
+            "X-IBM-Client-Id": "7b77946ff4721fc3feccf435d3aa0093",
+            "X-IBM-Client-Secret": "d8036450dfa05829442b727d0f9f91d3",
+            accept: "application/json",
+            "content-type": "application/json",
+            "X-Channel": "apigdevtect",
+          },
+        }
+      )
+      .then((res) => res?.data)
+      .catch((error) => {
+        console.error("Error MA:", error?.response?.data);
+      });
+
+    return ma2ma;
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while initiating the transaction",
+      500
+    );
   }
 };
 
@@ -302,4 +414,5 @@ export default {
   updateMerchant,
   deleteMerchant,
   easypaisainquiry,
+  createDisbursement,
 };

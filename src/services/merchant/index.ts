@@ -22,10 +22,10 @@ const updateMerchant = async (payload: Merchant) => {
     jazzCashMerchantId,
     easyPaisaMerchantId,
     swichMerchantId,
-    webhook_url
+    webhook_url,
   } = payload;
   try {
-    let result = await prisma.$transaction((async (tx) => {
+    let result = await prisma.$transaction(async (tx) => {
       const user = await tx.merchant.update({
         data: {
           full_name: username,
@@ -37,13 +37,13 @@ const updateMerchant = async (payload: Merchant) => {
           jazzCashMerchantId,
           easyPaisaMerchantId,
           swichMerchantId,
-          webhook_url
+          webhook_url,
         },
         where: { merchant_id: +merchantId },
       });
       let finance = await tx.merchantFinancialTerms.findUnique({
-        where: {merchant_id: +merchantId}
-      })
+        where: { merchant_id: +merchantId },
+      });
       await tx.merchantFinancialTerms.update({
         data: {
           commissionRate: commission,
@@ -52,28 +52,59 @@ const updateMerchant = async (payload: Merchant) => {
           disbursementGST: disbursementGST,
           disbursementRate: disbursementRate,
           disbursementWithHoldingTax: disbursementWithHoldingTax,
-          settlementDuration: settlementDuration != undefined ? settlementDuration: finance?.settlementDuration,
+          settlementDuration:
+            settlementDuration != undefined
+              ? settlementDuration
+              : finance?.settlementDuration,
         },
-        where: { merchant_id: +merchantId }
-      })
+        where: { merchant_id: +merchantId },
+      });
       return "Merchant updated successfully";
-    }))
+    });
     return result;
   } catch (error: any) {
     console.log(error);
-    throw new CustomError(error.error || "Internal Server Error", error.statusCode || 500);
+    throw new CustomError(
+      error.error || "Internal Server Error",
+      error.statusCode || 500
+    );
   }
 };
 
 const getMerchants = async (params: any) => {
   try {
-    let merchants = await prisma.merchant.findMany(
-      {
-        include: {
-          commissions: true
-        }
-      }
-    );
+    const where: any = {};
+
+    if (params?.uid) {
+      where["uid"] = params.uid;
+    }
+
+    let merchants = await prisma.merchant.findMany({
+      where,
+      include: {
+        commissions: true,
+      },
+    });
+    return merchants;
+  } catch (err: any) {
+    throw new CustomError(err?.error, err?.statusCode);
+  }
+};
+
+const findOne = async (params: any) => {
+  try {
+    const where: any = {};
+
+    if (params?.uid) {
+      where["uid"] = params.uid;
+    }
+
+    let merchants = await prisma.merchant.findFirst({
+      where,
+      include: {
+        commissions: true,
+      },
+    });
     return merchants;
   } catch (err: any) {
     throw new CustomError(err?.error, err?.statusCode);
@@ -100,7 +131,7 @@ const addMerchant = async (payload: Merchant) => {
     jazzCashMerchantId,
     easyPaisaMerchantId,
     swichMerchantId,
-    webhook_url
+    webhook_url,
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -134,7 +165,7 @@ const addMerchant = async (payload: Merchant) => {
           jazzCashMerchantId,
           easyPaisaMerchantId,
           swichMerchantId,
-          webhook_url
+          webhook_url,
         },
       });
 
@@ -167,8 +198,11 @@ const addMerchant = async (payload: Merchant) => {
     return result;
   } catch (error: any) {
     console.error("Error adding merchant:", error);
-    throw new CustomError(error.message || "Internal Server Error", error.statusCode || 500);
+    throw new CustomError(
+      error.message || "Internal Server Error",
+      error.statusCode || 500
+    );
   }
 };
 
-export default { updateMerchant, getMerchants, addMerchant };
+export default { updateMerchant, getMerchants, addMerchant, findOne };

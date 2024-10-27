@@ -66,6 +66,7 @@ const findTransaction = async (id: string) => {
   });
   return Boolean(transaction);
 };
+
 const initiateJazzCashPayment = async (
   paymentData: any,
   merchant_uid?: string
@@ -77,7 +78,7 @@ const initiateJazzCashPayment = async (
     const jazzCashCredentials = {
       pp_MerchantID: "",
       pp_Password: "",
-      pp_ReturnURL: ""
+      pp_ReturnURL: "",
     };
 
     // Input Validation
@@ -113,8 +114,8 @@ const initiateJazzCashPayment = async (
             uid: merchant_uid,
           },
           include: {
-            commissions: true
-          }
+            commissions: true,
+          },
         });
 
         if (!merchant) {
@@ -177,7 +178,7 @@ const initiateJazzCashPayment = async (
             providerDetails: {
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
-            }
+            },
             // Add other necessary fields
           },
         });
@@ -253,7 +254,14 @@ const initiateJazzCashPayment = async (
       };
 
       // You can process CARD payments similarly
-      return payload;
+      jazzCashCardPayment({
+        refNo: refNo,
+        secureHash: sendData.pp_SecureHash,
+        amount: amount,
+        txnDateTime: txnDateTime,
+        jazzCashMerchantIntegritySalt: jazzCashMerchantIntegritySalt,
+        ...jazzCashCredentials,
+      });
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
@@ -281,7 +289,11 @@ const initiateJazzCashPayment = async (
 
       // Update Transaction after receiving response
       await prisma.$transaction(async (tx) => {
-        if (status != "completed" && status != "pending" && status != "failed") {
+        if (
+          status != "completed" &&
+          status != "pending" &&
+          status != "failed"
+        ) {
           return;
         }
         // Update transaction status
@@ -340,21 +352,28 @@ const initiateJazzCashPayment = async (
           },
         });
         if (status == "completed") {
-          const scheduledAt = addWeekdays(new Date(), merchant.commissions[0].settlementDuration as number);  // Call the function to get the next 2 weekdays
+          const scheduledAt = addWeekdays(
+            new Date(),
+            merchant.commissions[0].settlementDuration as number
+          ); // Call the function to get the next 2 weekdays
           let scheduledTask = await tx.scheduledTask.create({
             data: {
               transactionId: txnRefNo,
-              status: 'pending',
-              scheduledAt: scheduledAt,  // Assign the calculated weekday date
-              executedAt: null,  // Assume executedAt is null when scheduling
-            }
-          })
-          transactionService.sendCallback(merchant?.webhook_url as string, transaction, phone)
+              status: "pending",
+              scheduledAt: scheduledAt, // Assign the calculated weekday date
+              executedAt: null, // Assume executedAt is null when scheduling
+            },
+          });
+          transactionService.sendCallback(
+            merchant?.webhook_url as string,
+            transaction,
+            phone
+          );
         }
       });
       // End of transaction
 
-      console.log(r.pp_ResponseCode)
+      console.log(r.pp_ResponseCode);
       if (r.pp_ResponseCode === "000") {
         return {
           message: "Redirecting to JazzCash...",
@@ -371,8 +390,136 @@ const initiateJazzCashPayment = async (
     }
   } catch (error: any) {
     // console.error(error);
-    throw new CustomError(error?.message || "An error occurred", error?.statusCode || 500);
+    throw new CustomError(
+      error?.message || "An error occurred",
+      error?.statusCode || 500
+    );
   }
+};
+
+const jazzCashCardPayment = async (obj: any) => {
+  let payload: any = {
+    pp_Version: "1.1",
+    pp_TxnType: "MPAY",
+    pp_TxnRefNo: obj.refNo,
+    pp_MerchantID: obj.pp_MerchantID,
+    pp_Password: obj.pp_Password,
+    pp_Amount: obj.amount * 100,
+    pp_TxnCurrency: "PKR",
+    pp_TxnDateTime: obj.txnDateTime,
+    pp_TxnExpiryDateTime: format(
+      new Date(Date.now() + 60 * 60 * 1000),
+      "yyyyMMddHHmmss"
+    ),
+    pp_BillReference: "billRef",
+    pp_Description: "Description of transaction",
+    pp_CustomerCardNumber: "5160670239008941",
+    pp_UsageMode: "API",
+    // pp_IsRegisteredCustomer: "Yes",
+    // pp_ShouldTokenizeCardNumber: "Yes",
+    // pp_CustomerCardExpiry: "0139",
+    // pp_CustomerCardNumberCvv: "100",
+  };
+
+  payload.pp_SecureHash = getSecureHash(
+    payload,
+    obj.jazzCashMerchantIntegritySalt
+  );
+
+  const paymentUrl =
+    "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/Purchase/InitiateAuthentication";
+  const headers = {
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+
+  console.log("Payload: ", payload);
+
+  const response = await axios.post(paymentUrl, payload);
+
+  const r = response.data;
+  console.log(r);
+  // if (!r) {
+  //   throw new CustomError(response.statusText, 500);
+  // }
+
+  // let status = "completed";
+  // if (r.pp_ResponseCode !== "000") {
+  //   status = "failed";
+  // }
+
+  // // Update Transaction after receiving response
+  // await prisma.$transaction(async (tx) => {
+  //   if (status != "completed" && status != "pending" && status != "failed") {
+  //     return;
+  //   }
+  //   // Update transaction status
+  //   let transaction = await tx.transaction.update({
+  //     where: {
+  //       transaction_id: obj.refNo,
+  //     },
+  //     data: {
+  //       status,
+  //       response_message: r.pp_ResponseMessage,
+  //       // Update other necessary fields
+  //     },
+  //   });
+
+  //   // Create AdditionalInfo record
+  //   await tx.additionalInfo.create({
+  //     data: {
+  //       bank_id: r.pp_BankID,
+  //       bill_reference: r.pp_BillReference,
+  //       retrieval_ref: r.pp_RetrievalReferenceNo,
+  //       sub_merchant_id: r.pp_SubMerchantID ? encrypt(r.pp_SubMerchantID) : "",
+  //       custom_field_1: encrypt(r.ppmpf_1),
+  //       // Add other fields as necessary
+  //       transaction: {
+  //         connect: { transaction_id: obj.refNo },
+  //       },
+  //     },
+  //   });
+
+  //   // Update Provider info if necessary
+  //   const provider = await tx.provider.upsert({
+  //     where: {
+  //       name_txn_type_version: {
+  //         name: "JazzCash",
+  //         txn_type: "MPAY",
+  //         version: "2.0",
+  //       },
+  //     },
+  //     update: {},
+  //     create: {
+  //       name: "JazzCash",
+  //       txn_type: "MPAY",
+  //       version: "2.0",
+  //     },
+  //   });
+
+  //   // Update transaction with providerId
+  //   await tx.transaction.update({
+  //     where: {
+  //       transaction_id: obj.refNo,
+  //     },
+  //     data: {
+  //       providerId: provider.id,
+  //     },
+  //   });
+  // });
+
+  // console.log(r.pp_ResponseCode);
+  // if (r.pp_ResponseCode === "000") {
+  //   return {
+  //     message: "Payment successful",
+  //     txnNo: r.pp_TxnRefNo,
+  //     txnDateTime: r.pp_TxnDateTime,
+  //   };
+  // } else {
+  //   throw new CustomError(
+  //     `The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`,
+  //     400
+  //   );
+  // }
 };
 
 const getJazzCashMerchant = async (params: IjazzCashConfigParams) => {
@@ -442,43 +589,42 @@ const deleteJazzCashMerchant = async (merchantId: number) => {
 };
 
 const statusInquiry = async (payload: any, merchantId: string) => {
-
   let merchant = await prisma.merchant.findFirst({
     where: { uid: merchantId },
     include: {
-      jazzCashMerchant: true
-    }
-  })
+      jazzCashMerchant: true,
+    },
+  });
   let sendData = {
-    "pp_TxnRefNo": payload.transactionId,
-    "pp_MerchantID": merchant?.jazzCashMerchant?.jazzMerchantId,
-    "pp_Password": merchant?.jazzCashMerchant?.password,
-    "pp_SecureHash": ""
-  }
+    pp_TxnRefNo: payload.transactionId,
+    pp_MerchantID: merchant?.jazzCashMerchant?.jazzMerchantId,
+    pp_Password: merchant?.jazzCashMerchant?.password,
+    pp_SecureHash: "",
+  };
 
-  sendData.pp_SecureHash = getSecureHash(sendData, merchant?.jazzCashMerchant?.integritySalt as string)
+  sendData.pp_SecureHash = getSecureHash(
+    sendData,
+    merchant?.jazzCashMerchant?.integritySalt as string
+  );
   let data = JSON.stringify(sendData);
 
   let config = {
-    method: 'post',
+    method: "post",
     maxBodyLength: Infinity,
-    url: 'https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire',
+    url: "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire",
     headers: {
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     },
-    data: data
+    data: data,
   };
 
-  let res = await axios.request(config)
+  let res = await axios.request(config);
   if (res.data.pp_ResponseCode == "000") {
     return res.data;
-  }
-  else {
+  } else {
     throw new CustomError("Internal Server Error", 500);
   }
-
-}
-
+};
 
 export default {
   initiateJazzCashPayment,
@@ -486,5 +632,5 @@ export default {
   createJazzCashMerchant,
   updateJazzCashMerchant,
   deleteJazzCashMerchant,
-  statusInquiry
+  statusInquiry,
 };
