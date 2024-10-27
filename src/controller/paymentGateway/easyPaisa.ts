@@ -1,4 +1,6 @@
+import { error } from "console";
 import { Request, Response, NextFunction } from "express";
+import { validationResult } from "express-validator";
 import { easyPaisaService } from "services/index.js";
 import type { DisbursementPayload } from "types/providers.js";
 import ApiResponse from "utils/ApiResponse.js";
@@ -13,6 +15,11 @@ const initiateEasyPaisa = async (
 
     if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
     }
 
     const result = await easyPaisaService.initiateEasyPaisa(
@@ -45,6 +52,10 @@ const createEasyPaisaMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+    }
     const newMerchant = await easyPaisaService.createMerchant(req.body);
     return res.status(201).json(ApiResponse.success(newMerchant));
   } catch (error) {
@@ -58,6 +69,10 @@ const updateEasyPaisaMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+    }
     const merchantId = req.params.merchantId;
     const updatedMerchant = await easyPaisaService.updateMerchant(
       merchantId,
@@ -78,6 +93,10 @@ const deleteEasyPaisaMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+    }
     const merchantId = req.params.merchantId;
     const deletedMerchant = await easyPaisaService.deleteMerchant(merchantId);
     if (!deletedMerchant) {
@@ -97,6 +116,10 @@ const statusInquiry = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+    }
     const merchantId = req.params.merchantId;
     const payload = req.query;
     if (!merchantId) {

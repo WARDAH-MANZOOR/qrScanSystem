@@ -84,4 +84,19 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
+function encryptWithPublicKey(publicKey: string, data: string) {
+  // Convert data to Buffer
+  const bufferData = Buffer.from(data, 'utf8');
+
+  // Encrypt the data using the public key
+  const encrypted = crypto.publicEncrypt(publicKey, bufferData);
+
+  // Return the encrypted data in base64 format
+  return encrypted.toString('base64');
+}
+
+// Example usage
+
+// const encryptedData = encryptWithPublicKey(publicKey, data);
+// console.log('Encrypted Data:', encryptedData);
 export default app;
