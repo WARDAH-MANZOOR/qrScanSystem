@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
 import { merchantService } from "services/index.js";
 import { dashboardService } from "services/index.js";
@@ -10,6 +11,10 @@ const merchantDashboardDetails = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const queryParameters = req.query;
     const user = req.user as JwtPayload;
     const result = await dashboardService.merchantDashboardDetails(
@@ -28,6 +33,10 @@ const adminDashboardDetails = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const queryParameters = req.query;
     const result = await dashboardService.adminDashboardDetails(
       queryParameters

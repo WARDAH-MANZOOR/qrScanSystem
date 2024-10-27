@@ -1,49 +1,41 @@
 import { Router } from "express";
 import { merchantController } from "controller/index.js";
 import { isLoggedIn, isAdmin } from "utils/middleware.js";
+import { addMerchantValidation, updateMerchantValidation } from "validators/merchant/index.js";
 
 
 const router = Router();
 
 router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
-router.put("/", [isLoggedIn, isAdmin], merchantController.updateMerchant);
-router.post("/", [isLoggedIn, isAdmin], merchantController.addMerchant)
+router.put("/", [isLoggedIn, isAdmin, ...updateMerchantValidation], merchantController.updateMerchant);
+router.post("/", [isLoggedIn, isAdmin, ...addMerchantValidation], merchantController.addMerchant)
 
 
-// Define routes using arrow functions
 /**
  * @swagger
  * /merchant/:
  *   get:
- *     summary: Retrieve a list of merchants
- *     description: Fetches all merchants from the database.
- *     tags: [AdminOnly]
+ *     summary: Get a list of all merchants
+ *     tags: [Merchants]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: A list of merchants
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Merchant'
+ *         description: List of merchants retrieved successfully
  *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *         description: Server error
  */
 
 /**
  * @swagger
  * /merchant/:
- *    put:
- *      summary: Update merchant details
- *      tags: [AdminOnly] 
- *      security:
+ *   put:
+ *     summary: Update an existing merchant
+ *     tags: [Merchants]
+ *     security:
  *       - bearerAuth: []
- *      requestBody:
+ *     requestBody:
+ *       description: Merchant data to update
  *       required: true
  *       content:
  *         application/json:
@@ -52,40 +44,85 @@ router.post("/", [isLoggedIn, isAdmin], merchantController.addMerchant)
  *             properties:
  *               username:
  *                 type: string
- *                 description: The full name of the merchant
- *                 example: John Doe
  *               phone_number:
  *                 type: string
- *                 description: The phone number of the merchant
- *                 example: +1234567890
  *               company_name:
  *                 type: string
- *                 description: The name of the company
- *                 example: Acme Inc
- *               company_url:
- *                 type: string
- *                 description: The website of the company
- *                 example: https://acme.com
  *               city:
  *                 type: string
- *                 description: The city where the company is based
- *                 example: New York
  *               payment_volume:
  *                 type: number
- *                 description: Monthly payment volume
- *                 example: 50000
  *               commission:
  *                 type: number
- *                 description: Monthly payment volume
- *                 example: 0.01
- *      responses:
+ *               settlementDuration:
+ *                 type: number
+ *               jazzCashMerchantId:
+ *                 type: string
+ *               easyPaisaMerchantId:
+ *                 type: string
+ *               swichMerchantId:
+ *                 type: string
+ *               webhook_url:
+ *                 type: string
+ *     responses:
  *       200:
  *         description: Merchant updated successfully
  *       400:
- *         description: Bad request
- *       401:
- *         description: Unauthorized - JWT token missing or invalid
+ *         description: Missing or invalid fields
  *       500:
- *         description: Internal server error 
+ *         description: Server error
  */
+
+/**
+ * @swagger
+ * /merchant/:
+ *   post:
+ *     summary: Add a new merchant
+ *     tags: [Merchants]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: New merchant data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *               phone_number:
+ *                 type: string
+ *               company_name:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               payment_volume:
+ *                 type: number
+ *               commission:
+ *                 type: number
+ *               settlementDuration:
+ *                 type: number
+ *               jazzCashMerchantId:
+ *                 type: string
+ *               easyPaisaMerchantId:
+ *                 type: string
+ *               swichMerchantId:
+ *                 type: string
+ *               webhook_url:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Merchant created successfully
+ *       400:
+ *         description: Missing or invalid fields
+ *       500:
+ *         description: Server error
+ */
+
 export default router;

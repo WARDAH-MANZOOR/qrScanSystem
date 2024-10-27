@@ -48,10 +48,10 @@ export default function (router: Router) {
  *         in: path
  *         required: true
  *         schema:
- *           type: string
+ *           type: string 
  *         description: Merchant ID
  *     requestBody:
- *       required: true
+ *       required: true 
  *       content:
  *         application/json:
  *           schema:

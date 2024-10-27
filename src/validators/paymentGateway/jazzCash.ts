@@ -1,27 +1,5 @@
 import { body, param, query } from "express-validator";
 
-const baseValidation = [
-    body('password')
-        .notEmpty()
-        .withMessage('password is required')
-        .isString()
-        .withMessage('password must be a string'),
-    body('integritySalt')
-        .notEmpty()
-        .withMessage('integritySalt is required')
-        .isString()
-        .withMessage('integritySalt must be a string'),
-    body('returnUrl')
-        .notEmpty()
-        .withMessage('returnUrl is required')
-        .isURL()
-        .withMessage('returnUrl must be a valid URL'),
-    body('jazzMerchantId')
-        .notEmpty()
-        .withMessage("jazzMerchantId is required")
-        .isString()
-        .withMessage("jazzMerchantId must be a string")
-]
 const validateJazzcashRequest = [
     param('merchantId')
         .notEmpty()

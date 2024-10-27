@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { validationResult } from "express-validator";
 import { swichService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
@@ -8,6 +9,10 @@ const initiateSwichController = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     let merchantId = req.params?.merchantId;
 
     if (!merchantId) {
@@ -40,6 +45,10 @@ const createSwichMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const newMerchant = await swichService.createMerchant(req.body);
     return res.status(201).json(ApiResponse.success(newMerchant));
   } catch (error) {
@@ -53,6 +62,10 @@ const updateSwichMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const merchantId = req.params.merchantId;
     const updatedMerchant = await swichService.updateMerchant(
       merchantId,
@@ -73,6 +86,10 @@ const deleteSwichMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const merchantId = req.params.merchantId;
     const deletedMerchant = await swichService.deleteMerchant(merchantId);
     if (!deletedMerchant) {
@@ -92,6 +109,10 @@ const swichTxInquiry = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const { transactionId } = req.query;
     const { merchantId } = req.params;
 
