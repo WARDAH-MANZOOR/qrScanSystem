@@ -39,7 +39,7 @@ export default function (router: Router) {
 
 /**
  * @swagger
- * /initiate-ep/{merchantId}:
+ * /payment/initiate-ep/{merchantId}/:
  *   post:
  *     summary: Initiate EasyPaisa transaction
  *     tags: [EasyPaisa]
@@ -63,6 +63,8 @@ export default function (router: Router) {
  *                 type: string
  *               email:
  *                 type: string
+ *               type:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Successful transaction initiation
@@ -74,7 +76,7 @@ export default function (router: Router) {
 
 /**
  * @swagger
- * /ep-merchant:
+ * /payment/ep-merchant/:
  *   post:
  *     summary: Create an EasyPaisa merchant
  *     tags: [EasyPaisa]
@@ -102,7 +104,7 @@ export default function (router: Router) {
 
 /**
  * @swagger
- * /ep-merchant:
+ * /payment/ep-merchant/:
  *   get:
  *     summary: Get EasyPaisa merchant
  *     tags: [EasyPaisa]
@@ -117,7 +119,7 @@ export default function (router: Router) {
 
 /**
  * @swagger
- * /ep-merchant/{merchantId}:
+ * /payment/ep-merchant/{merchantId}/:
  *   put:
  *     summary: Update an EasyPaisa merchant
  *     tags: [EasyPaisa]
@@ -145,7 +147,7 @@ export default function (router: Router) {
 
 /**
  * @swagger
- * /ep-merchant/{merchantId}:
+ * /payment/ep-merchant/{merchantId}/:
  *   delete:
  *     summary: Delete an EasyPaisa merchant
  *     tags: [EasyPaisa]
@@ -167,7 +169,7 @@ export default function (router: Router) {
 
 /**
  * @swagger
- * /inquiry-ep/{merchantId}:
+ * /payment/inquiry-ep/{merchantId}/:
  *   get:
  *     summary: Inquire status of an EasyPaisa transaction
  *     tags: [EasyPaisa]

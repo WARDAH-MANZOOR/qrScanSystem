@@ -1,4 +1,4 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 
 const validateEasypaisaTxn = [
     param('merchantId').isString().withMessage('Merchant ID must be a string'),
@@ -19,7 +19,7 @@ const validateUpdateMerchant = [
 
 const validateInquiry = [
     ...validateUpdateMerchant,
-    body("orderId").isString().withMessage("Order ID must be a string")
+    query("orderId").isString().withMessage("Order ID must be a string")
 ]
 
 export {validateEasypaisaTxn, validateCreateMerchant, validateUpdateMerchant, validateInquiry}
