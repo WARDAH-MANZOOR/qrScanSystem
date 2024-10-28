@@ -445,12 +445,12 @@ const createDisbursement = async (
         throw new CustomError(ma2ma.ResponseMessage,500);
       }
 
-      updates.map(saveTxn => transactionService.sendCallback(
-        findMerchant.webhook_url as string,
-        saveTxn,
-        obj.phone,
-        "payout"
-      ));
+      // updates.map(saveTxn => transactionService.sendCallback(
+      //   findMerchant.webhook_url as string,
+      //   saveTxn,
+      //   obj.phone,
+      //   "payout"
+      // ));
 
       // Update transactions to adjust balances
       await updateTransactions(updates, tx);
