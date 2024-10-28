@@ -83,6 +83,9 @@ model Merchant {
   easyPaisaMerchant   EasyPaisaMerchant? @relation(fields: [easyPaisaMerchantId], references: [id])
   SwichMerchant       SwichMerchant?     @relation(fields: [swichMerchantId], references: [id])
   swichMerchantId     Int?
+
+  EasyPaisaDisburseAccountId Int?
+  EasyPaisaDisburseAccount EasyPaisaDisburseAccount? @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
 }
 
 model MerchantProviderCredential {
@@ -245,4 +248,18 @@ model SwichMerchant {
   clientId     String     
   clientSecret String?
   merchant     Merchant[] // One-to-many relationship with Merchant
+}
+
+model EasyPaisaDisburseAccount {
+  id           Int      @id @default(autoincrement())
+  MSISDN       String
+  clientId     String
+  clientSecret String
+  xChannel     String
+  pin          String
+  merchant     Merchant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 }
