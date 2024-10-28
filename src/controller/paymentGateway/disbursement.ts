@@ -2,6 +2,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
+import prisma from "prisma/client.js";
 import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, updateTransactions } from "services/paymentGateway/disbursement.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
@@ -29,7 +30,7 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
 
     const merchantId = (req.user as JwtPayload)?.id;
     let { amount } = req.body;
-    let rate = await getMerchantRate(merchantId);
+    let rate = await getMerchantRate(prisma,merchantId);
     amount *= (1 - +rate);
     if (!merchantId) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -38,7 +39,7 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
     try {
 
         // Get eligible transactions
-        const transactions = await getEligibleTransactions(merchantId);
+        const transactions = await getEligibleTransactions(merchantId,prisma);
         if (transactions.length === 0) {
             throw new CustomError('No eligible transactions to disburse', 400);
         }
@@ -53,7 +54,7 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
             totalDisbursed = result.totalDisbursed;
         } else {
             // Disburse all eligible transactions
-            updates = transactions.map((t) => ({
+            updates = transactions.map((t:any) => ({
                 transaction_id: t.transaction_id,
                 disbursed: true,
                 balance: new Decimal(0),
@@ -61,13 +62,13 @@ const disburseTransactions = async (req: Request, res: Response, next: NextFunct
                 original_amount: t.original_amount
             }));
             totalDisbursed = transactions.reduce(
-                (sum, t) => sum.plus(t.balance),
+                (sum: Decimal, t:any) => sum.plus(t.balance),
                 new Decimal(0)
             );
         }
 
         // Update transactions to set disbursed: true or adjust balances
-        await updateTransactions(updates);
+        await updateTransactions(updates,prisma);
 
         res.status(200).json(ApiResponse.success({
             message: 'Transactions disbursed successfully',

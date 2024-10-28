@@ -1,9 +1,15 @@
+import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 
-async function getMerchantRate(merchantId: number): Promise<number | Decimal> {
-    const merchant = await prisma.merchantFinancialTerms.findUnique({
+async function getMerchantRate(prsma:Prisma.TransactionClient,merchantId: number): Promise<{
+    disbursementRate: Decimal;
+    disbursementWithHoldingTax: Decimal;
+    disbursementGST: Decimal;
+}> {
+    console.log("Merchant Id: ",merchantId)
+    const merchant = await prsma.merchantFinancialTerms.findFirst({
         where: { merchant_id: merchantId },
     });
 
@@ -11,7 +17,7 @@ async function getMerchantRate(merchantId: number): Promise<number | Decimal> {
         throw new CustomError('Merchant not found', 404);
     }
 
-    return +merchant.disbursementRate + +merchant.disbursementGST + +merchant.disbursementWithHoldingTax;
+    return {disbursementRate: new Decimal(merchant.disbursementRate), disbursementGST: new Decimal(merchant.disbursementGST), disbursementWithHoldingTax: new Decimal(merchant.disbursementWithHoldingTax)};
 }
 
 const checkMerchantExists = async (merchantId: number): Promise<boolean> => {
@@ -21,12 +27,12 @@ const checkMerchantExists = async (merchantId: number): Promise<boolean> => {
     return Boolean(merchant);
 };
 
-const getEligibleTransactions = async (merchantId: number) => {
+const getEligibleTransactions = async (merchantId: number, prsm: Prisma.TransactionClient) => {
     const merchantExists = await checkMerchantExists(merchantId);
     if (!merchantExists) {
         throw new CustomError('Merchant not found', 404);
     }
-    return prisma.transaction.findMany({
+    return prsm.transaction.findMany({
         where: {
             settlement: true,
             merchant_id: merchantId,
@@ -106,7 +112,7 @@ const getWalletBalance = async (merchantId: number): Promise<Object> => {
 
 const calculateDisbursement = (
     transactions: TransactionData[],
-    amount: Decimal
+    amount: Decimal,
 ): { updates: TransactionUpdate[]; totalDisbursed: Decimal } => {
     const updates: TransactionUpdate[] = [];
     let totalDisbursed = new Decimal(0);
@@ -150,9 +156,9 @@ const calculateDisbursement = (
     return { updates, totalDisbursed };
 };
 
-const updateTransactions = async (updates: TransactionUpdate[]) => {
+const updateTransactions = async (updates: TransactionUpdate[], prsma: Prisma.TransactionClient) => {
     const updatePromises = updates.map((update) =>
-        prisma.transaction.update({
+        prsma.transaction.update({
             where: {
                 transaction_id: update.transaction_id,
             },
