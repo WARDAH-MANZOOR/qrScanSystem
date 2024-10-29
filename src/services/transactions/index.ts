@@ -308,7 +308,7 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
 
 };
 
-const sendCallback = async (webhook_url: string, payload: any, msisdn: string) => {
+const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string) => {
   setTimeout(async () => {
     try {
       let data = JSON.stringify({
@@ -316,7 +316,8 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string) =
         "msisdn": msisdn,
         "time": payload.date_time,
         "order_id": payload.transaction_id,
-        "status": "success"
+        "status": "success",
+        "type": type
       });
 
       let config = {

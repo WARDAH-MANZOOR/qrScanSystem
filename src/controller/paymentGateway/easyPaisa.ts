@@ -1,6 +1,7 @@
 import { error } from "console";
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
+import { JwtPayload } from "jsonwebtoken";
 import { easyPaisaService } from "services/index.js";
 import type { DisbursementPayload } from "types/providers.js";
 import ApiResponse from "utils/ApiResponse.js";
@@ -117,7 +118,7 @@ const statusInquiry = async (
 ) => {
   try {
     const errors = validationResult(req);
-    if(!errors.isEmpty()) {
+    if (!errors.isEmpty()) {
       return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
     }
     const merchantId = req.params.merchantId;
@@ -147,6 +148,16 @@ const createDisbursement = async (
   }
 }
 
+const getDisbursement = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = (req.user as JwtPayload)?.merchant_id;
+    const merchant = await easyPaisaService.getDisbursement(id);
+    return res.status(200).json(ApiResponse.success(merchant));
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   initiateEasyPaisa,
   getEasyPaisaMerchant,
@@ -154,5 +165,6 @@ export default {
   updateEasyPaisaMerchant,
   deleteEasyPaisaMerchant,
   statusInquiry,
-  createDisbursement
+  createDisbursement,
+  getDisbursement
 };

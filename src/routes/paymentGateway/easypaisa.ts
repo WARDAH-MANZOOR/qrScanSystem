@@ -15,6 +15,12 @@ export default function (router: Router) {
     easyPaisaController.createDisbursement
   );
 
+  router.get(
+    "/ep-disburse/",
+    [isLoggedIn],
+    easyPaisaController.getDisbursement
+  )
+
   router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,

@@ -368,7 +368,8 @@ const initiateJazzCashPayment = async (
           transactionService.sendCallback(
             merchant?.webhook_url as string,
             transaction,
-            phone
+            phone,
+            "payin"
           );
         }
       });
