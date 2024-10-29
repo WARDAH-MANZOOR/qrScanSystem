@@ -83,6 +83,7 @@ model Merchant {
   easyPaisaMerchant   EasyPaisaMerchant? @relation(fields: [easyPaisaMerchantId], references: [id])
   SwichMerchant       SwichMerchant?     @relation(fields: [swichMerchantId], references: [id])
   swichMerchantId     Int?
+  Disbursement        Disbursement[]
 
   EasyPaisaDisburseAccountId Int?
   EasyPaisaDisburseAccount EasyPaisaDisburseAccount? @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
@@ -165,9 +166,9 @@ model Transaction {
   Provider       Provider?       @relation(fields: [providerId], references: [id])
   scheduledTasks ScheduledTask[]
 
-  deletedAt      DateTime? 
-  createdAt      DateTime? @default(now())
-  updatedAt      DateTime? @updatedAt
+  deletedAt       DateTime?
+  createdAt       DateTime? @default(now())
+  updatedAt       DateTime? @updatedAt
   providerDetails Json?
 }
 
@@ -245,11 +246,28 @@ model EasyPaisaMerchant {
 
 model SwichMerchant {
   id           Int        @id @default(autoincrement())
-  clientId     String     
+  clientId     String
   clientSecret String?
   merchant     Merchant[] // One-to-many relationship with Merchant
 }
 
+model Disbursement {
+  id                Int      @id @default(autoincrement())
+  merchant_id       Int
+  merchant          Merchant @relation(fields: [merchant_id], references: [merchant_id])
+  disbursementDate  DateTime
+  transactionAmount Decimal
+  commission        Decimal
+  gst               Decimal
+  withholdingTax    Decimal
+  platform          Decimal?
+  merchantAmount    Decimal
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
+}
 model EasyPaisaDisburseAccount {
   id           Int      @id @default(autoincrement())
   MSISDN       String

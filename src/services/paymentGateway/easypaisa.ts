@@ -11,6 +11,8 @@ import type {
   DisbursementPayload,
   IEasyLoginPayload,
 } from "types/providers.js";
+import { calculateDisbursement, getEligibleTransactions, getMerchantRate, updateTransactions } from "./disbursement.js";
+import { Decimal } from "@prisma/client/runtime/library";
 
 dotenv.config();
 
@@ -102,7 +104,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       transactionService.sendCallback(
         findMerchant.webhook_url as string,
         saveTxn,
-        params.phone
+        params.phone,
+        "payin"
       );
       return {
         txnNo: saveTxn.transaction_id,
@@ -355,50 +358,134 @@ const createDisbursement = async (
   merchantId: string
 ) => {
   try {
-    // validate Merchant
-    const findMerchant = await merchantService.findOne({
-      uid: merchantId,
-    });
-
-    if (!findMerchant) {
-      throw new CustomError("Merchant not found", 404);
-    }
-
-    // Phone number validation (must start with 92)
-    if (!obj.phone.startsWith("92")) {
-      throw new CustomError("Number should start with 92", 400);
-    }
-
-    const getTimeStamp: IEasyLoginPayload = await corporateLogin();
-    const creatHashKey = await createRSAEncryptedPayload(
-      `923424823244~${getTimeStamp.Timestamp}`
-    );
-
-    const ma2ma: any = await axios
-      .post(
-        "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
-        {
-          Amount: obj.amount,
-          MSISDN: "923424823244",
-          ReceiverMSISDN: obj.phone,
-        },
-        {
-          headers: {
-            "X-Hash-Value": creatHashKey,
-            "X-IBM-Client-Id": "7b77946ff4721fc3feccf435d3aa0093",
-            "X-IBM-Client-Secret": "d8036450dfa05829442b727d0f9f91d3",
-            accept: "application/json",
-            "content-type": "application/json",
-            "X-Channel": "apigdevtect",
-          },
-        }
-      )
-      .then((res) => res?.data)
-      .catch((error) => {
-        console.error("Error MA:", error?.response?.data);
+    return await prisma.$transaction(async (tx) => {
+      // validate Merchant
+      const findMerchant = await merchantService.findOne({
+        uid: merchantId,
       });
 
-    return ma2ma;
+      if (!findMerchant) {
+        throw new CustomError("Merchant not found", 404);
+      }
+
+      // Phone number validation (must start with 92)
+      if (!obj.phone.startsWith("92")) {
+        throw new CustomError("Number should start with 92", 400);
+      }
+      // Fetch merchant financial terms
+      let rate = await getMerchantRate(tx, findMerchant.merchant_id);
+
+      // Calculate total deductions and merchant amount
+      const amountDecimal = new Decimal(obj.amount);
+      const totalCommission = amountDecimal.mul(rate.disbursementRate);
+      const totalGST = amountDecimal.mul(rate.disbursementGST);
+      const totalWithholdingTax = amountDecimal.mul(rate.disbursementWithHoldingTax);
+      const totalDeductions = totalCommission
+        .plus(totalGST)
+        .plus(totalWithholdingTax);
+      const merchantAmount = amountDecimal.minus(totalDeductions);
+
+      // Get eligible transactions
+      const transactions = await getEligibleTransactions(findMerchant.merchant_id, tx);
+      if (transactions.length === 0) {
+        throw new CustomError("No eligible transactions to disburse", 400);
+      }
+
+      let updates: TransactionUpdate[] = [];
+      let totalDisbursed = new Decimal(0);
+
+      if (obj.amount) {
+        const result = calculateDisbursement(transactions, amountDecimal);
+        updates = result.updates;
+        totalDisbursed = result.totalDisbursed;
+      } else {
+        // Disburse all eligible transactions
+        updates = transactions.map((t: any) => ({
+          transaction_id: t.transaction_id,
+          disbursed: true,
+          balance: new Decimal(0),
+          settled_amount: t.settled_amount,
+          original_amount: t.original_amount,
+        }));
+        totalDisbursed = transactions.reduce(
+          (sum: Decimal, t: any) => sum.plus(t.balance),
+          new Decimal(0)
+        );
+      }
+
+      const getTimeStamp: IEasyLoginPayload = await corporateLogin();
+      const creatHashKey = await createRSAEncryptedPayload(
+        `923424823244~${getTimeStamp.Timestamp}`
+      );
+
+      const ma2ma: any = await axios
+        .post(
+          "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
+          {
+            Amount: merchantAmount,
+            MSISDN: "923424823244",
+            ReceiverMSISDN: obj.phone,
+          },
+          {
+            headers: {
+              "X-Hash-Value": creatHashKey,
+              "X-IBM-Client-Id": "7b77946ff4721fc3feccf435d3aa0093",
+              "X-IBM-Client-Secret": "d8036450dfa05829442b727d0f9f91d3",
+              accept: "application/json",
+              "content-type": "application/json",
+              "X-Channel": "apigdevtect",
+            },
+          }
+        )
+        .then((res) => res?.data)
+        .catch((error) => {
+          throw new CustomError(error?.response?.data?.ResponseMessage,500)
+        });
+      if (ma2ma.ResponseCode != 0) {
+        throw new CustomError(ma2ma.ResponseMessage,500);
+      }
+
+      // updates.map(saveTxn => transactionService.sendCallback(
+      //   findMerchant.webhook_url as string,
+      //   saveTxn,
+      //   obj.phone,
+      //   "payout"
+      // ));
+
+      // Update transactions to adjust balances
+      await updateTransactions(updates, tx);
+
+      // Create disbursement record
+      await tx.disbursement.create({
+        data: {
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: new Date(),
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: merchantAmount,
+          platform: ma2ma.Fee
+        },
+      });
+
+      return {
+        message: "Disbursement created successfully",
+        totalDisbursed: totalDisbursed.toString(),
+        totalCommission: totalCommission.toString(),
+        totalGST: totalGST.toString(),
+        totalWithholdingTax: totalWithholdingTax.toString(),
+        merchantAmount: merchantAmount.toString(),
+        transactionsUpdated: updates,
+        externalApiResponse: {
+          TransactionReference: ma2ma.TransactionReference,
+          TransactionStatus: ma2ma.TransactionStatus
+        },
+      };
+    },{
+      maxWait: 5000,
+      timeout: 60000
+    })
   } catch (error: any) {
     throw new CustomError(
       error?.message || "An error occurred while initiating the transaction",
@@ -406,6 +493,19 @@ const createDisbursement = async (
     );
   }
 };
+
+const getDisbursement = async (merchantId: number) => {
+  try {
+    return await prisma.disbursement.findMany({
+      where: {
+        merchant_id: merchantId
+      }
+    })
+  }  
+  catch(err) {
+    throw new CustomError("Unable to get disbursement history",500);
+  }
+}
 
 export default {
   initiateEasyPaisa,
@@ -415,4 +515,5 @@ export default {
   deleteMerchant,
   easypaisainquiry,
   createDisbursement,
+  getDisbursement
 };

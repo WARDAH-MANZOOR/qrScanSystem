@@ -243,14 +243,20 @@ const adminDashboardDetails = async (params: any) => {
       }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
     );
 
+    const servertodayStart = new Date().setHours(0, 0, 0, 0);
+    const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+
     // Fetch sum of original_amount from today's transactions
     fetchAggregates.push(
       prisma.transaction
         .aggregate({
           _sum: { original_amount: true },
           where: {
+            date_time: {
+              gte: new Date(servertodayStart),
+              lte: new Date(servertodayEnd),
+            },
             status: "completed",
-            ...customWhere,
           },
         })
         .catch((error: any) => {
