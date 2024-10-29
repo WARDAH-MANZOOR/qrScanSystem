@@ -1,13 +1,24 @@
 import { Router } from "express";
 import { dashboardController } from "controller/index.js";
 import { isLoggedIn, isAdmin } from "utils/middleware.js";
-import { adminDashboardValidation, merchantDashboardValidation } from "validators/dashboard/index.js";
+import {
+  adminDashboardValidation,
+  merchantDashboardValidation,
+} from "validators/dashboard/index.js";
 
 const router = Router();
 
 // Define routes using arrow functions
-router.get("/merchant",...merchantDashboardValidation,  dashboardController.merchantDashboardDetails);
-router.get("/admin", [isLoggedIn, isAdmin, ...adminDashboardValidation], dashboardController.adminDashboardDetails);
+router.get(
+  "/merchant",
+  [isLoggedIn, ...merchantDashboardValidation],
+  dashboardController.merchantDashboardDetails
+);
+router.get(
+  "/admin",
+  [isLoggedIn, isAdmin, ...adminDashboardValidation],
+  dashboardController.adminDashboardDetails
+);
 
 // Globally apply middleware to all routes
 router.use(isLoggedIn);
