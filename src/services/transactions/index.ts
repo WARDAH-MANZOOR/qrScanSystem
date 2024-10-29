@@ -36,6 +36,10 @@ const isValidTransactionRequest = (data: TransactionRequest) => {
     errors.push({ msg: "Invalid transaction type", param: "type" });
   }
 
+  if(!data.order_id) {
+    errors.push({msg: "Order ID is required", param: "type"})
+  }
+
   return errors;
 };
 
@@ -83,7 +87,7 @@ const isValidTransactionCompletion = (data: CompleteRequest) => {
 
 const createTransaction = async (obj: any) => {
   console.log("Called");
-  const { id, original_amount, type, merchant_id } = obj;
+  const { id, original_amount, type, merchant_id, order_id } = obj;
   const validationErrors = isValidTransactionRequest(obj);
   if (validationErrors.length > 0) {
     return { errors: validationErrors, success: false };
@@ -96,6 +100,7 @@ const createTransaction = async (obj: any) => {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
       data: {
+        order_id,
         transaction_id: id,
         date_time: new Date(),
         original_amount: parseFloat(original_amount),
@@ -252,6 +257,7 @@ const createTxn = async (obj: any) => {
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
+        order_id: obj.order_id,
         transaction_id: obj.orderId,
         date_time: new Date(),
         original_amount: obj.amount,

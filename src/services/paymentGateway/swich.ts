@@ -63,6 +63,10 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       throw new CustomError("Merchant not found", 404);
     }
 
+    if(!payload.order_id) {
+      throw new CustomError("Order ID not found",404);
+    }
+    
     let id = transactionService.createTransactionId();
     let data = JSON.stringify({
       customerTransactionId: id,
@@ -90,7 +94,8 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     };
 
     saveTxn = await transactionService.createTxn({
-      orderId: id,
+      order_id: payload.order_id,
+      transaction_id: id,
       amount: payload.amount,
       status: "pending",
       type: "wallet",

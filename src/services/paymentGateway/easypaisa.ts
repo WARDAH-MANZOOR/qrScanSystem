@@ -35,6 +35,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       throw new CustomError("Merchant not found", 404);
     }
 
+    if (!params.order_id) {
+      throw new CustomError("Order ID not found", 404)
+    }
     const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
       where: {
         id: findMerchant.easyPaisaMerchantId ?? undefined,
@@ -72,7 +75,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     };
 
     const saveTxn = await transactionService.createTxn({
-      orderId: id,
+      order_id: params.order_id,
+      transaction_id: id,
       amount: params.amount,
       status: "pending",
       type: params.type,
@@ -364,6 +368,7 @@ const createDisbursement = async (
         uid: merchantId,
       });
 
+
       if (!findMerchant) {
         throw new CustomError("Merchant not found", 404);
       }
@@ -375,31 +380,17 @@ const createDisbursement = async (
       // Fetch merchant financial terms
       let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-      // Calculate total deductions and merchant amount
-      const amountDecimal = new Decimal(obj.amount);
-      const totalCommission = amountDecimal.mul(rate.disbursementRate);
-      const totalGST = amountDecimal.mul(rate.disbursementGST);
-      const totalWithholdingTax = amountDecimal.mul(rate.disbursementWithHoldingTax);
-      const totalDeductions = totalCommission
-        .plus(totalGST)
-        .plus(totalWithholdingTax);
-      const merchantAmount = amountDecimal.minus(totalDeductions);
-
-      // Get eligible transactions
       const transactions = await getEligibleTransactions(findMerchant.merchant_id, tx);
       if (transactions.length === 0) {
         throw new CustomError("No eligible transactions to disburse", 400);
       }
-
       let updates: TransactionUpdate[] = [];
       let totalDisbursed = new Decimal(0);
-
+      let amountDecimal;
       if (obj.amount) {
-        const result = calculateDisbursement(transactions, amountDecimal);
-        updates = result.updates;
-        totalDisbursed = result.totalDisbursed;
-      } else {
-        // Disburse all eligible transactions
+        amountDecimal = new Decimal(obj.amount);
+      }
+      else {
         updates = transactions.map((t: any) => ({
           transaction_id: t.transaction_id,
           disbursed: true,
@@ -410,7 +401,24 @@ const createDisbursement = async (
         totalDisbursed = transactions.reduce(
           (sum: Decimal, t: any) => sum.plus(t.balance),
           new Decimal(0)
-        );
+        ); 
+        amountDecimal = totalDisbursed;
+      }
+      // Calculate total deductions and merchant amount
+      const totalCommission = amountDecimal.mul(rate.disbursementRate);
+      const totalGST = amountDecimal.mul(rate.disbursementGST);
+      const totalWithholdingTax = amountDecimal.mul(rate.disbursementWithHoldingTax);
+      const totalDeductions = totalCommission
+        .plus(totalGST)
+        .plus(totalWithholdingTax);
+      const merchantAmount = obj.amount ? amountDecimal.plus(totalDeductions) : amountDecimal.minus(totalDeductions);
+
+      // Get eligible transactions
+
+      if (obj.amount) {
+        const result = calculateDisbursement(transactions, merchantAmount);
+        updates = result.updates;
+        totalDisbursed = result.totalDisbursed;
       }
 
       const getTimeStamp: IEasyLoginPayload = await corporateLogin();
@@ -422,7 +430,7 @@ const createDisbursement = async (
         .post(
           "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
           {
-            Amount: merchantAmount,
+            Amount: obj.amount ? obj.amount : merchantAmount,
             MSISDN: "923424823244",
             ReceiverMSISDN: obj.phone,
           },
@@ -439,50 +447,54 @@ const createDisbursement = async (
         )
         .then((res) => res?.data)
         .catch((error) => {
-          throw new CustomError(error?.response?.data?.ResponseMessage,500)
+          throw new CustomError(error?.response?.data?.ResponseMessage, 500)
         });
       if (ma2ma.ResponseCode != 0) {
-        throw new CustomError(ma2ma.ResponseMessage,500);
+        throw new CustomError(ma2ma.ResponseMessage, 500);
       }
-
-      // updates.map(saveTxn => transactionService.sendCallback(
-      //   findMerchant.webhook_url as string,
-      //   saveTxn,
-      //   obj.phone,
-      //   "payout"
-      // ));
 
       // Update transactions to adjust balances
       await updateTransactions(updates, tx);
 
+      let id = transactionService.createTransactionId();
+      let data: {order_id?: string} = {};
+      if(obj.order_id) {
+        data["order_id"] = obj.order_id 
+      }
+      let date = new Date();
       // Create disbursement record
-      await tx.disbursement.create({
+      let disbursement = await tx.disbursement.create({
         data: {
+          ...data,
+          transaction_id: id,
           merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: new Date(),
+          disbursementDate: date,
           transactionAmount: amountDecimal,
           commission: totalCommission,
           gst: totalGST,
           withholdingTax: totalWithholdingTax,
-          merchantAmount: merchantAmount,
+          merchantAmount: obj.amount ? obj.amount : merchantAmount,
           platform: ma2ma.Fee
         },
       });
 
+      transactionService.sendCallback(
+        findMerchant.webhook_url as string,
+        {original_amount: obj.amount ? obj.amount: merchantAmount, date_time: date, transaction_id: disbursement.order_id, },
+        obj.phone,
+        "payout"
+      );
+
       return {
         message: "Disbursement created successfully",
-        totalDisbursed: totalDisbursed.toString(),
-        totalCommission: totalCommission.toString(),
-        totalGST: totalGST.toString(),
-        totalWithholdingTax: totalWithholdingTax.toString(),
-        merchantAmount: merchantAmount.toString(),
-        transactionsUpdated: updates,
+        merchantAmount: obj.amount ? obj.amount.toString(): merchantAmount.toString(),
+        order_id: disbursement.order_id,
         externalApiResponse: {
           TransactionReference: ma2ma.TransactionReference,
           TransactionStatus: ma2ma.TransactionStatus
         },
       };
-    },{
+    }, {
       maxWait: 5000,
       timeout: 60000
     })
@@ -501,9 +513,9 @@ const getDisbursement = async (merchantId: number) => {
         merchant_id: merchantId
       }
     })
-  }  
-  catch(err) {
-    throw new CustomError("Unable to get disbursement history",500);
+  }
+  catch (err) {
+    throw new CustomError("Unable to get disbursement history", 500);
   }
 }
 

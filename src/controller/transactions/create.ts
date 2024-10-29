@@ -46,10 +46,15 @@ export const validateTransaction = [
         .isEmail()
         .withMessage('Customer email must be a valid email address')
         .normalizeEmail(),
+    body('order_id')
+        .notEmpty()
+        .withMessage("Order Id is required")
+        .isString()
+        .withMessage("Order Id must be a string")
 ];
 
 export const createTransactionRequest = async (req: Request, res: Response) => {
-    const { id, original_amount, type, customerName, customerEmail } = req.body;
+    const { id, original_amount, type, customerName, customerEmail,order_id } = req.body;
 
     // Validate data
     const validationErrors = validationResult(req);
@@ -64,6 +69,7 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     try {
         // Create a new transaction request in the database
         const result = await createTransaction({
+            order_id,
             id,
             date_time: new Date(),
             original_amount,

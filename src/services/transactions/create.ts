@@ -59,6 +59,7 @@ function calculateSettledAmount(originalAmount: number, commissionPercentage: nu
 }
 
 async function createTransactionRecord({
+    order_id,
     id,
     originalAmount,
     type,
@@ -66,6 +67,7 @@ async function createTransactionRecord({
     settledAmount,
     customerId,
 }: {
+    order_id: string;
     id: string;
     originalAmount: number;
     type: string;
@@ -79,6 +81,7 @@ async function createTransactionRecord({
     }
     const transaction = await prisma.transaction.create({
         data: {
+            order_id,
             transaction_id: id,
             date_time: new Date(),
             original_amount: originalAmount,
@@ -126,6 +129,7 @@ const createTransaction = async (obj: any) => {
             const settledAmount = calculateSettledAmount(originalAmount, commissionPercentage);
             // Create a new transaction request in the database
             const transaction = await createTransactionRecord({
+                order_id: obj.order_id,
                 id: obj.id,
                 originalAmount: originalAmount,
                 type: obj.type,
@@ -134,7 +138,7 @@ const createTransaction = async (obj: any) => {
                 customerId: customerId as number
             },
                 prismaTransaction);
-            return {transaction};
+            return { transaction };
         });
         const transactionLink = await generateTransactionLink(result?.transaction.transaction_id as string);
         return {

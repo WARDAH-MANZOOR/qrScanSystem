@@ -169,6 +169,7 @@ const initiateJazzCashPayment = async (
         // Create Transaction within the transaction
         await tx.transaction.create({
           data: {
+            order_id: paymentData.order_id,
             transaction_id: txnRefNo,
             date_time: new Date(),
             original_amount: paymentData.amount,
@@ -180,7 +181,6 @@ const initiateJazzCashPayment = async (
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
             },
-            // Add other necessary fields
           },
         });
         transactionCreated = true;

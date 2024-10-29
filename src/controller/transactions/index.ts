@@ -23,6 +23,9 @@ const createTransaction = async (
   try {
     const paymentData = req.body;
     let merchantId = (req.user as JwtPayload)?.id;
+    if (!paymentData.order_id) {
+      return res.status(400).json(ApiResponse.error("Order ID required"))
+    }
     const result = await jazzCashService.initiateJazzCashPayment(paymentData);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
