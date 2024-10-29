@@ -47,8 +47,6 @@ export const validateTransaction = [
         .withMessage('Customer email must be a valid email address')
         .normalizeEmail(),
     body('order_id')
-        .notEmpty()
-        .withMessage("Order Id is required")
         .isString()
         .withMessage("Order Id must be a string")
 ];
@@ -66,10 +64,14 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     if (!merchant_id) {
         return res.status(401).json(ApiResponse.error("Unauthorized"));
     }
+    let data:{order_id?:string} = {};
+    if(order_id) {
+        data["order_id"] = order_id;
+    }
     try {
         // Create a new transaction request in the database
         const result = await createTransaction({
-            order_id,
+            ...data,
             id,
             date_time: new Date(),
             original_amount,

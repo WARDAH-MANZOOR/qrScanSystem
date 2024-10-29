@@ -79,6 +79,10 @@ async function createTransactionRecord({
     if (type != "wallet" && type != "card" && type != "bank") {
         return;
     }
+    let data: {order_id?: string} = {};
+    if(order_id) {
+        data["order_id"] = order_id;
+    }
     const transaction = await prisma.transaction.create({
         data: {
             order_id,

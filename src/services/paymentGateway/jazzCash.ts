@@ -166,10 +166,14 @@ const initiateJazzCashPayment = async (
           .toString()
           .padStart(5, "0")}`;
 
+        let data:{order_id?: string} = {};
+        if(paymentData.order_id) {
+          data["order_id"] = paymentData.order_id;
+        }
         // Create Transaction within the transaction
         await tx.transaction.create({
           data: {
-            order_id: paymentData.order_id,
+            ...data,
             transaction_id: txnRefNo,
             date_time: new Date(),
             original_amount: paymentData.amount,

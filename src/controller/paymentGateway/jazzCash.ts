@@ -15,10 +15,6 @@ const initiateJazzCash = async (
       return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
     }
     const paymentData = req.body;
-
-    if(!paymentData.order_id) {
-      return res.status(400).json(ApiResponse.error("Order ID is required"));
-    }
     
     let merchantId = req.params?.merchantId;
 

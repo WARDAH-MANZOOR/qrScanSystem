@@ -35,9 +35,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       throw new CustomError("Merchant not found", 404);
     }
 
-    if (!params.order_id) {
-      throw new CustomError("Order ID not found", 404)
-    }
+    
     const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
       where: {
         id: findMerchant.easyPaisaMerchantId ?? undefined,

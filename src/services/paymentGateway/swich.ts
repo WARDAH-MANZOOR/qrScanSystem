@@ -62,10 +62,6 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     if (!findMerchant) {
       throw new CustomError("Merchant not found", 404);
     }
-
-    if(!payload.order_id) {
-      throw new CustomError("Order ID not found",404);
-    }
     
     let id = transactionService.createTransactionId();
     let data = JSON.stringify({
@@ -148,14 +144,16 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     }
   } catch (err: any) {
     console.log(err);
-    const updateTxn = await transactionService.updateTxn(
-      saveTxn?.transaction_id as string,
-      {
-        status: "failed",
-        response_message: "An error occured while initiating the transaction",
-      },
-      findMerchant?.commissions[0].settlementDuration as number
-    );
+    if (saveTxn && saveTxn.transaction_id) {
+      const updateTxn = await transactionService.updateTxn(
+        saveTxn.transaction_id,
+        {
+          status: "failed",
+          response_message: "An error occurred while initiating the transaction",
+        },
+        findMerchant?.commissions[0]?.settlementDuration as number
+      );
+    }
     throw new CustomError(
       "An error occurred while initiating the transaction",
       500
