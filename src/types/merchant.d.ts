@@ -20,6 +20,7 @@ export interface Merchant {
   swichMerchantId: number;
   webhook_url: string;
   uid?: string;
+  EasyPaisaDisburseAccountId?: number | null;
 }
 
 export interface IjazzCashConfigParams {
@@ -34,4 +35,16 @@ export interface IEasyPaisaPayload {
 export interface ISwichPayload {
   clientId: string;
   clientSecret: string;
+}
+
+export interface IDisbursement {
+  id?: string | number | null;
+  MSISDN: string;
+  clientId: string;
+  clientSecret: string;
+  xChannel: string;
+  pin: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
 }

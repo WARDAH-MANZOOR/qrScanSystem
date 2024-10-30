@@ -36,31 +36,44 @@ const addDisburseAccount = async (payload: any) => {
   }
 };
 
-const getDisburseAccount = async (accountId: string) => {
+const getDisburseAccount = async (accountId: number | null) => {
   try {
     const where: any = {
       deletedAt: null,
     };
 
     if (accountId) {
-      where["id"] = parseInt(accountId);
+      where["id"] = accountId;
+
+      let account = await prisma.easyPaisaDisburseAccount.findFirst({
+        where: where,
+      });
+
+      if (!account) {
+        throw new CustomError("Disburse account not found", 404);
+      }
+
+      return {
+        message: "Disburse account retrieved successfully",
+        data: account,
+      };
+    } else {
+      let account = await prisma.easyPaisaDisburseAccount.findMany({
+        where: where,
+        orderBy: {
+          id: "desc",
+        },
+      });
+
+      if (!account) {
+        throw new CustomError("Disburse account not found", 404);
+      }
+
+      return {
+        message: "Disburse account retrieved successfully",
+        data: account,
+      };
     }
-
-    let account = await prisma.easyPaisaDisburseAccount.findMany({
-      where: where,
-      orderBy: {
-        id: "desc",
-      },
-    });
-
-    if (!account) {
-      throw new CustomError("Disburse account not found", 404);
-    }
-
-    return {
-      message: "Disburse account retrieved successfully",
-      data: account,
-    };
   } catch (error: any) {
     throw new CustomError(
       error?.message ||
