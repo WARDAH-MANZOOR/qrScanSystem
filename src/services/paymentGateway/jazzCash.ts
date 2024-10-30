@@ -210,6 +210,10 @@ const initiateJazzCashPayment = async (
     const amount = paymentData.amount;
     const phone = paymentData.phone;
 
+    const date = format(
+      new Date(Date.now() + 60 * 60 * 1000),
+      "yyyyMMddHHmmss"
+    );
     const sendData: any = {
       pp_Version: "1.1",
       pp_TxnType: "MWALLET",
@@ -224,10 +228,7 @@ const initiateJazzCashPayment = async (
       pp_TxnDateTime: txnDateTime,
       pp_BillReference: "billRef",
       pp_Description: "buy",
-      pp_TxnExpiryDateTime: format(
-        new Date(Date.now() + 60 * 60 * 1000),
-        "yyyyMMddHHmmss"
-      ), // +1 hour
+      pp_TxnExpiryDateTime: date, // +1 hour
       pp_ReturnURL: jazzCashCredentials.pp_ReturnURL,
       ppmpf_1: phone,
       ppmpf_2: "",
