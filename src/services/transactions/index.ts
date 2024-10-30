@@ -262,7 +262,7 @@ const createTxn = async (obj: any) => {
     return await tx.transaction.create({
       data: {
         // order_id: obj.order_id,
-        transaction_id: obj.orderId,
+        transaction_id: obj.transaction_id,
         date_time: new Date(),
         original_amount: obj.amount,
         type: obj.type,
