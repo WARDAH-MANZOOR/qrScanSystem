@@ -158,6 +158,18 @@ const getDisbursement = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
+const disburseThroughBank = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const merchantId = req.params?.merchantId;
+    const payload: DisbursementPayload = req.body;
+    const result = await easyPaisaService.disburseThroughBank(payload, merchantId);
+    return res.status(200).json(ApiResponse.success(result));
+  }
+  catch(err) {
+    next(err);
+  }
+}
+
 export default {
   initiateEasyPaisa,
   getEasyPaisaMerchant,
@@ -166,5 +178,6 @@ export default {
   deleteEasyPaisaMerchant,
   statusInquiry,
   createDisbursement,
-  getDisbursement
+  getDisbursement,
+  disburseThroughBank
 };

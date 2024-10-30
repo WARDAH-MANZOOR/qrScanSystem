@@ -21,6 +21,7 @@ import {
 } from "./disbursement.js";
 import { easyPaisaDisburse } from "services/index.js";
 import { Decimal } from "@prisma/client/runtime/library";
+import ApiResponse from "utils/ApiResponse.js";
 
 dotenv.config();
 
@@ -43,7 +44,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       throw new CustomError("Merchant not found", 404);
     }
 
-    
+
     const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
       where: {
         id: findMerchant.easyPaisaMerchantId ?? undefined,
@@ -486,9 +487,12 @@ const createDisbursement = async (
         await updateTransactions(updates, tx);
 
         let id = transactionService.createTransactionId();
-        let data: { order_id?: string } = {};
+        let data: { transaction_id?: string } = {};
         if (obj.order_id) {
-          data["order_id"] = obj.order_id;
+          data["transaction_id"] = obj.order_id;
+        }
+        else {
+          data["transaction_id"] = transactionService.createTransactionId();
         }
         let date = new Date();
         // Create disbursement record
@@ -551,10 +555,122 @@ const getDisbursement = async (merchantId: number) => {
       },
     });
   } catch (err) {
-    throw new CustomError("Unable to get disbursement history", 500);
+    // throw new CustomError("Unable to get disbursement history", 500);
+    return err;
   }
 };
 
+const disburseThroughBank = async (obj: any, merchantId: string) => {
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        // validate Merchant
+        const findMerchant = await merchantService.findOne({
+          uid: merchantId,
+        });
+
+        if (!findMerchant) {
+          throw new CustomError("Merchant not found", 404);
+        }
+
+        if (!findMerchant.EasyPaisaDisburseAccountId) {
+          throw new CustomError("Disbursement account not assigned.", 404);
+        }
+
+        // find disbursement merchant
+        const findDisbureMerch: any = await easyPaisaDisburse
+          .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
+          .then((res) => res?.data);
+
+        if (!findDisbureMerch) {
+          throw new CustomError("Disbursement account not found", 404);
+        }
+
+        // Phone number validation (must start with 92)
+        // if (!obj.phone.startsWith("92")) {
+        //   throw new CustomError("Number should start with 92", 400);
+        // }
+        const getTimeStamp: IEasyLoginPayload = await corporateLogin(
+          findDisbureMerch
+        );
+        const creatHashKey = await createRSAEncryptedPayload(
+          `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
+        );
+
+        const headers = {
+          'X-IBM-Client-Id': findDisbureMerch.clientId,
+          'X-IBM-Client-Secret': findDisbureMerch.clientSecret,
+          'X-Channel': findDisbureMerch.xChannel,
+          'X-Hash-Value': `${creatHashKey}`,
+        }
+
+        let data = JSON.stringify({
+          "AccountNumber": obj.accountNo,
+          "BankTitle": obj.bankTitle,
+          "MSISDN": findDisbureMerch.MSISDN,
+          "ReceiverMSISDN": obj.phone,
+          "BankShortName": obj.bankName,
+          "TransactionPurpose": obj.purpose,
+          "Amount": obj.amount
+        });
+
+        let config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Inquiry',
+          headers: headers,
+          data: data
+        };
+
+        let res = await axios.request(config);
+        if (res.data.ResponseCode != "0") {
+          throw new CustomError("Error conducting transfer inquiry", 500);
+        }
+
+        data = JSON.stringify({
+          "AccountNumber": obj.accountNo,
+          "BankTitle": obj.bankTitle,
+          "MSISDN": findDisbureMerch.MSISDN,
+          "ReceiverMSISDN": obj.phone,
+          "BankShortName": obj.bankName,
+          "TransactionPurpose": obj.purpose,
+          "Amount": obj.amount,
+          "SenderName": res.data.Name,
+          "Branch": res.data.Branch,
+          "Username": res.data.Username,
+          "ReceiverIBAN": res.data.ReceiverIBAN
+        });
+
+        config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Transfer',
+          headers: headers,
+          data: data
+        };
+
+        let res2 = await axios.request(config)
+        if (res2.data.ResponseCode == "0") {
+          return {
+            TransactionReference: res2.data.TransactionReference,
+            TransactionStatus: res2.data.TransactionStatus
+          };
+        }
+        else {
+          throw new CustomError("Error transferring the amount", 500);
+        }
+
+      },
+      {
+        maxWait: 5000,
+        timeout: 20000
+      })
+  }
+  catch (err) {
+    console.log(err)
+    throw new CustomError("Disbursement Failed", 500)
+  }
+}
 export default {
   initiateEasyPaisa,
   createMerchant,
@@ -564,4 +680,9 @@ export default {
   easypaisainquiry,
   createDisbursement,
   getDisbursement,
+  disburseThroughBank
 };
+
+// const axios = require('axios');
+
+

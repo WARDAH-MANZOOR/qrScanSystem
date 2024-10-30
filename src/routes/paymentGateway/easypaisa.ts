@@ -22,6 +22,12 @@ export default function (router: Router) {
   )
 
   router.post(
+    "/epb-disburse/:merchantId",
+    [isLoggedIn],
+    easyPaisaController.disburseThroughBank
+  )
+
+  router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
     easyPaisaController.initiateEasyPaisa

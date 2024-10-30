@@ -9,6 +9,7 @@ import type {
 } from "types/transaction_request.js";
 import { addWeekdays } from "utils/date_method.js";
 import axios from "axios";
+import { transactionService } from "services/index.js";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -93,14 +94,18 @@ const createTransaction = async (obj: any) => {
   });
   try {
     console.log(new Date().toLocaleDateString());
-    let data:{order_id?: string} = {};
+    let data:{transaction_id?: string} = {};
     if (order_id) {
-      data["order_id"] = order_id;
+      data["transaction_id"] = order_id;
+    }
+    else {
+      data["transaction_id"] = transactionService.createTransactionId();
     }
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
       data: {
         // order_id,
+        ...data,
         transaction_id: id,
         date_time: new Date(),
         original_amount: parseFloat(original_amount),
@@ -254,15 +259,18 @@ const createTransactionId = () => {
 }
 const createTxn = async (obj: any) => {
   let settledAmount = obj.amount * (1 - obj.commission);
-  let data:{order_id?: string} = {};
+  let data:{transaction_id: string} = {transaction_id: ""};
   if(obj.order_id) {
-    data["order_id"] = obj.order_id;
+    data["transaction_id"] = obj.order_id;
+  }
+  else {
+    data["transaction_id"] = transactionService.createTransactionId();
   }
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
         // order_id: obj.order_id,
-        transaction_id: obj.transaction_id,
+        ...data,
         date_time: new Date(),
         original_amount: obj.amount,
         type: obj.type,

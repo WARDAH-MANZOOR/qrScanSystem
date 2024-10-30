@@ -3,6 +3,7 @@ import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client/extension";
+import { transactionService } from "services/index.js";
 
 async function getMerchantCommission(merchantId: number, prisma: PrismaClient): Promise<number> {
     console.log(merchantId);
@@ -79,14 +80,16 @@ async function createTransactionRecord({
     if (type != "wallet" && type != "card" && type != "bank") {
         return;
     }
-    let data: {order_id?: string} = {};
+    let data: {transaction_id?: string} = {};
     if(order_id) {
-        data["order_id"] = order_id;
+        data["transaction_id"] = order_id;
+    }
+    else {
+        data["transaction_id"] = transactionService.createTransactionId();
     }
     const transaction = await prisma.transaction.create({
         data: {
-            order_id,
-            transaction_id: id,
+            ...data,
             date_time: new Date(),
             original_amount: originalAmount,
             status: 'pending', // Ensure this matches your enum
