@@ -68,6 +68,9 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     if(order_id) {
         data["order_id"] = order_id;
     }
+    else {
+        // data["order"]
+    }
     try {
         // Create a new transaction request in the database
         const result = await createTransaction({

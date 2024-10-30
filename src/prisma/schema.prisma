@@ -144,7 +144,6 @@ model User {
 
 model Transaction {
   transaction_id   String            @id @unique
-  order_id         String?            @unique @default(uuid())
   date_time        DateTime
   original_amount  Decimal?
   status           TransactionStatus
@@ -254,7 +253,6 @@ model SwichMerchant {
 
 model Disbursement {
   id                Int      @id @default(autoincrement())
-  order_id          String?  @default(uuid()) 
   transaction_id    String?  @unique @default(uuid())   
   merchant_id       Int
   merchant          Merchant @relation(fields: [merchant_id], references: [merchant_id])

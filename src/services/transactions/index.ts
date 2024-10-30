@@ -100,7 +100,7 @@ const createTransaction = async (obj: any) => {
     // Create a new transaction request in the database
     const transaction = await prisma.transaction.create({
       data: {
-        order_id,
+        // order_id,
         transaction_id: id,
         date_time: new Date(),
         original_amount: parseFloat(original_amount),
@@ -261,7 +261,7 @@ const createTxn = async (obj: any) => {
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
-        order_id: obj.order_id,
+        // order_id: obj.order_id,
         transaction_id: obj.orderId,
         date_time: new Date(),
         original_amount: obj.amount,

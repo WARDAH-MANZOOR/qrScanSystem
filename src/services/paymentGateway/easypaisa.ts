@@ -512,7 +512,7 @@ const createDisbursement = async (
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: date,
-            transaction_id: disbursement.order_id,
+            transaction_id: disbursement.transaction_id,
           },
           obj.phone,
           "payout"
@@ -523,7 +523,7 @@ const createDisbursement = async (
           merchantAmount: obj.amount
             ? obj.amount.toString()
             : merchantAmount.toString(),
-          order_id: disbursement.order_id,
+          order_id: disbursement.transaction_id,
           externalApiResponse: {
             TransactionReference: ma2ma.TransactionReference,
             TransactionStatus: ma2ma.TransactionStatus,
