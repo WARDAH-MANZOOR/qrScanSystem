@@ -67,7 +67,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     let data = JSON.stringify({
       customerTransactionId: id,
       categoryId: "2",
-      channelId: payload.channel.toUpperCase() == "JAZZCASH" ? "10" : "8",
+      channelId: payload.channel.toUpperCase() == "JAZZCASH" ? 10 : 8,
       item: "1",
       amount: payload.amount,
       remoteIPAddress: "139.59.40.220",
