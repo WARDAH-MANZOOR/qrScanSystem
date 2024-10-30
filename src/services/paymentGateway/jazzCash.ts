@@ -144,6 +144,8 @@ const initiateJazzCashPayment = async (
         throw new CustomError("Merchant UID is required", 400);
       }
 
+      let data:{transaction_id: string} = {transaction_id: ""};
+
       // Transaction Reference Number
       if (paymentData.transaction_id) {
         const transactionExists = await tx.transaction.findUnique({
@@ -166,15 +168,16 @@ const initiateJazzCashPayment = async (
           .toString()
           .padStart(5, "0")}`;
 
-        let data:{order_id?: string} = {};
         if(paymentData.order_id) {
-          data["order_id"] = paymentData.order_id;
+          data["transaction_id"] = paymentData.order_id;
+        }
+        else {
+          data["transaction_id"] = txnRefNo;
         }
         // Create Transaction within the transaction
         await tx.transaction.create({
           data: {
             ...data,
-            transaction_id: txnRefNo,
             date_time: new Date(),
             original_amount: paymentData.amount,
             type: paymentData.type.toLowerCase(),
@@ -194,8 +197,11 @@ const initiateJazzCashPayment = async (
       return {
         merchant,
         integritySalt: jazzCashMerchantIntegritySalt,
-        refNo: txnRefNo,
+        refNo: data["transaction_id"],
       };
+    },{
+      maxWait: 5000,
+      timeout: 20000
     }); // End of Prisma Transaction
 
     // Prepare Data for JazzCash
@@ -304,7 +310,7 @@ const initiateJazzCashPayment = async (
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
-            transaction_id: txnRefNo,
+            transaction_id: refNo,
           },
           data: {
             status,
@@ -325,7 +331,7 @@ const initiateJazzCashPayment = async (
             custom_field_1: encrypt(r.ppmpf_1),
             // Add other fields as necessary
             transaction: {
-              connect: { transaction_id: txnRefNo },
+              connect: { transaction_id: refNo },
             },
           },
         });
@@ -350,7 +356,7 @@ const initiateJazzCashPayment = async (
         // Update transaction with providerId
         await tx.transaction.update({
           where: {
-            transaction_id: txnRefNo,
+            transaction_id: refNo,
           },
           data: {
             providerId: provider.id,
@@ -363,7 +369,7 @@ const initiateJazzCashPayment = async (
           ); // Call the function to get the next 2 weekdays
           let scheduledTask = await tx.scheduledTask.create({
             data: {
-              transactionId: txnRefNo,
+              transactionId: refNo,
               status: "pending",
               scheduledAt: scheduledAt, // Assign the calculated weekday date
               executedAt: null, // Assume executedAt is null when scheduling

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
 import prisma from "prisma/client.js";
+import { transactionService } from "services/index.js";
 import { createTransaction } from "services/transactions/create.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
@@ -64,12 +65,12 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     if (!merchant_id) {
         return res.status(401).json(ApiResponse.error("Unauthorized"));
     }
-    let data:{order_id?:string} = {};
+    let data:{transaction_id?:string} = {};
     if(order_id) {
-        data["order_id"] = order_id;
+        data["transaction_id"] = order_id;
     }
     else {
-        // data["order"]
+        data["transaction_id"] = transactionService.createTransactionId();
     }
     try {
         // Create a new transaction request in the database
