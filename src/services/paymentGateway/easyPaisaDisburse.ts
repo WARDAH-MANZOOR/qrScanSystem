@@ -36,7 +36,7 @@ const addDisburseAccount = async (payload: any) => {
   }
 };
 
-const getDisburseAccount = async (accountId: number | null) => {
+const getDisburseAccount = async (accountId: number | null | string) => {
   try {
     const where: any = {
       deletedAt: null,
