@@ -12,6 +12,7 @@
     "generate": "prisma generate --sql --schema src/prisma/schema.prisma"
   },
   "dependencies": {
+    "@getvim/execute": "^1.0.0",
     "@prisma/client": "^5.19.1",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",

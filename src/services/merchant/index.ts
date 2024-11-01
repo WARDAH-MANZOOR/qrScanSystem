@@ -6,6 +6,8 @@ import { hashPassword } from "services/authentication/index.js";
 const updateMerchant = async (payload: Merchant) => {
   const {
     username,
+    email,
+    password,
     phone_number,
     company_name,
     company_url,
@@ -27,6 +29,19 @@ const updateMerchant = async (payload: Merchant) => {
   } = payload;
   try {
     let result = await prisma.$transaction(async (tx) => {
+      let hashedPassword;
+      if (password) {
+        hashedPassword = await hashPassword(password as string);
+        await tx.user.update({
+          where: {
+            id: +merchantId
+          },
+          data: {
+            password: hashedPassword,
+            email
+          }
+        })
+      }
       const user = await tx.merchant.update({
         data: {
           full_name: username,

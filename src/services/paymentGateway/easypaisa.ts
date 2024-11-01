@@ -590,6 +590,55 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         // if (!obj.phone.startsWith("92")) {
         //   throw new CustomError("Number should start with 92", 400);
         // }
+        // Fetch merchant financial terms
+        let rate = await getMerchantRate(tx, findMerchant.merchant_id);
+
+        const transactions = await getEligibleTransactions(
+          findMerchant.merchant_id,
+          tx
+        );
+        if (transactions.length === 0) {
+          throw new CustomError("No eligible transactions to disburse", 400);
+        }
+        let updates: TransactionUpdate[] = [];
+        let totalDisbursed = new Decimal(0);
+        let amountDecimal;
+        if (obj.amount) {
+          amountDecimal = new Decimal(obj.amount);
+        } else {
+          updates = transactions.map((t: any) => ({
+            transaction_id: t.transaction_id,
+            disbursed: true,
+            balance: new Decimal(0),
+            settled_amount: t.settled_amount,
+            original_amount: t.original_amount,
+          }));
+          totalDisbursed = transactions.reduce(
+            (sum: Decimal, t: any) => sum.plus(t.balance),
+            new Decimal(0)
+          );
+          amountDecimal = totalDisbursed;
+        }
+        // Calculate total deductions and merchant amount
+        const totalCommission = amountDecimal.mul(rate.disbursementRate);
+        const totalGST = amountDecimal.mul(rate.disbursementGST);
+        const totalWithholdingTax = amountDecimal.mul(
+          rate.disbursementWithHoldingTax
+        );
+        const totalDeductions = totalCommission
+          .plus(totalGST)
+          .plus(totalWithholdingTax);
+        const merchantAmount = obj.amount
+          ? amountDecimal.plus(totalDeductions)
+          : amountDecimal.minus(totalDeductions);
+
+        // Get eligible transactions
+
+        if (obj.amount) {
+          const result = calculateDisbursement(transactions, merchantAmount);
+          updates = result.updates;
+          totalDisbursed = result.totalDisbursed;
+        }
         const getTimeStamp: IEasyLoginPayload = await corporateLogin(
           findDisbureMerch
         );
@@ -650,15 +699,58 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         };
 
         let res2 = await axios.request(config)
-        if (res2.data.ResponseCode == "0") {
-          return {
-            TransactionReference: res2.data.TransactionReference,
-            TransactionStatus: res2.data.TransactionStatus
-          };
+        if (res2.data.ResponseCode != "0") {
+          throw new CustomError("Error conducting transfer inquiry", 500);
+        }
+        await updateTransactions(updates, tx);
+
+        let id = transactionService.createTransactionId();
+        let data2: { transaction_id?: string } = {};
+        if (obj.order_id) {
+          data2["transaction_id"] = obj.order_id;
         }
         else {
-          throw new CustomError("Error transferring the amount", 500);
+          data2["transaction_id"] = id;
         }
+        let date = new Date();
+        // Create disbursement record
+        let disbursement = await tx.disbursement.create({
+          data: {
+            ...data2,
+            transaction_id: id,
+            merchant_id: Number(findMerchant.merchant_id),
+            disbursementDate: date,
+            transactionAmount: amountDecimal,
+            commission: totalCommission,
+            gst: totalGST,
+            withholdingTax: totalWithholdingTax,
+            merchantAmount: obj.amount ? obj.amount : merchantAmount,
+            platform: res2.data.Fee,
+          },
+        });
+
+        transactionService.sendCallback(
+          findMerchant.webhook_url as string,
+          {
+            original_amount: obj.amount ? obj.amount : merchantAmount,
+            date_time: date,
+            transaction_id: disbursement.transaction_id,
+          },
+          obj.phone,
+          "payout"
+        );
+
+        return {
+          message: "Disbursement created successfully",
+          merchantAmount: obj.amount
+            ? obj.amount.toString()
+            : merchantAmount.toString(),
+          order_id: disbursement.transaction_id,
+          externalApiResponse: {
+            TransactionReference: res2.data.TransactionReference,
+            TransactionStatus: res2.data.TransactionStatus,
+          },
+        };
 
       },
       {

@@ -23,6 +23,7 @@ import completeTransactionRouter from "./routes/transaction/complete.js"
 import adminTransactionRouter from "./routes/user/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
+// import backup from 'utils/backup.js';
  
 var app = express();
 cron.schedule("0 0 * * 1-5",task); 
@@ -39,6 +40,8 @@ app.use(cors({
   ],
   credentials: true,
 }));
+
+// await backup()
 
 app.use(logger('dev'));
 app.use(express.json());
