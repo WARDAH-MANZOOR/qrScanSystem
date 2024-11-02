@@ -88,6 +88,14 @@ async function updateUserPassword(userId: number, hashedPassword: string) {
   });
 }
 
+const getAPIKey = async (userId: number) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { apiKey: true },
+  });
+  return user?.apiKey;
+}
+
 export {
   getUserByEmail,
   comparePasswords,
@@ -99,3 +107,7 @@ export {
   hashPassword,
   updateUserPassword,
 };
+
+export default {
+  getAPIKey,
+}

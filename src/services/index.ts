@@ -5,6 +5,7 @@ import dashboardService from './dashboard/index.js';
 import easyPaisaService from './paymentGateway/easypaisa.js';
 import swichService from "./paymentGateway/swich.js"
 import easyPaisaDisburse from './paymentGateway/easyPaisaDisburse.js';
+import authenticationService from './authentication/index.js';
 
 export {
     jazzCashService,
@@ -13,5 +14,6 @@ export {
     dashboardService,
     easyPaisaService,
     swichService,
-    easyPaisaDisburse
+    easyPaisaDisburse,
+    authenticationService
 };
