@@ -139,6 +139,8 @@ model User {
   // Transactions as Customer
   customerTransactions Transaction[] @relation("CustomerTransactions")
 
+  apiKey String? @unique
+
   @@index([email])
 }
 

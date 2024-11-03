@@ -14,6 +14,7 @@ import {
   updateUserPassword,
 } from "services/authentication/index.js";
 import ApiResponse from "utils/ApiResponse.js";
+import { authenticationService } from "services/index.js";
 
 const logout = async (req: Request, res: Response) => {
   res.cookie("token", "", {
@@ -67,16 +68,16 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const role = userGroup ? userGroup.group.name : "User"; // Default role if no group found
     const merchant = await prisma.userGroup.findMany({
       where: {
-        userId: user?.id
+        userId: user?.id,
       },
       include: {
         merchant: {
           include: {
-            commissions: true
-          }
-        }
-      }
-    })
+            commissions: true,
+          },
+        },
+      },
+    });
     // Generate JWT token
     const token = generateToken({
       email: user?.email,
@@ -99,8 +100,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         id: user?.id,
         merchantId: merchant[0]?.merchantId,
         uid: merchant[0]?.merchant?.uid,
-        merchant: {...merchant[0]},
-        commission: merchant[0].merchant?.commissions[0]
+        merchant: { ...merchant[0] },
+        commission: merchant[0].merchant?.commissions[0],
       })
     );
   } catch (error) {
@@ -169,4 +170,25 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { logout, login, signup };
+const getAPIKey = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    const id = parseInt(req.params.id);
+
+    if (!id) {
+      throw new CustomError("Invalid user id", 400);
+    }
+
+
+    const result = await authenticationService.getAPIKey(id);
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { logout, login, signup, getAPIKey };
+
+export default {
+  getAPIKey,
+}

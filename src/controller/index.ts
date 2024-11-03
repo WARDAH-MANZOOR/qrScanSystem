@@ -5,6 +5,7 @@ import merchantController from './merchant/index.js';
 import dashboardController from './dashboard/index.js';
 import swichController from "./paymentGateway/swich.js"
 import easyPaisaDisburse from './paymentGateway/easyPaisaDisburse.js';
+import authenticationController from './authentication/index.js'
 
 export {
     jazzCashController,
@@ -13,5 +14,7 @@ export {
     dashboardController,
     easyPaisaController,
     swichController,
-    easyPaisaDisburse
+    easyPaisaDisburse,
+    authenticationController
+
 };

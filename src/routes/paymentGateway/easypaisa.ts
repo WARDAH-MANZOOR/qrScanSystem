@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { isLoggedIn, isAdmin } from "utils/middleware.js";
 import { easyPaisaController } from "controller/index.js";
+import { apiKeyAuth } from "middleware/auth.js";
 import {
   validateEasypaisaTxn,
   validateCreateMerchant,
@@ -11,7 +12,7 @@ import {
 export default function (router: Router) {
   router.post(
     "/ep-disburse/:merchantId",
-    [isLoggedIn],
+    [apiKeyAuth],
     easyPaisaController.createDisbursement
   );
 
@@ -19,13 +20,13 @@ export default function (router: Router) {
     "/ep-disburse/",
     [isLoggedIn],
     easyPaisaController.getDisbursement
-  )
+  );
 
   router.post(
     "/epb-disburse/:merchantId",
     [isLoggedIn],
     easyPaisaController.disburseThroughBank
-  )
+  );
 
   router.post(
     "/initiate-ep/:merchantId",

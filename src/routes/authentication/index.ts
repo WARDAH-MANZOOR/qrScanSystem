@@ -1,16 +1,34 @@
 import { Request, Response, Router } from "express";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { login, logout, signup } from "controller/authentication/index.js";
 import { validateLoginData } from "services/authentication/index.js";
+import { isLoggedIn, isAdmin } from "utils/middleware.js";
+import { populateEncryptedApiKeysForExistingUsers } from "scripts/populateEncryptedApiKeys.js";
+import { authenticationController } from "controller/index.js";
 
 const router = Router();
 
-router.get("/logout", logout)
+router.get("/logout", logout);
 router.post("/login", validateLoginData, login);
-router.post("/signup", validateLoginData, signup)
+router.post("/signup", validateLoginData, signup);
+router.get("/get-key/:id", [isLoggedIn], authenticationController.getAPIKey);
+router.post(
+  "/populate_encrypted_api_keys",
+  [isLoggedIn, isAdmin],
+  async (req: Request, res: Response) => {
+    try {
+      await populateEncryptedApiKeysForExistingUsers();
+      res.status(200).json({
+        message: "Encrypted API keys populated for all existing users.",
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
 
 export default router;
 
