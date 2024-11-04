@@ -265,6 +265,8 @@ model Disbursement {
   withholdingTax    Decimal
   platform          Decimal?
   merchantAmount    Decimal
+  account           String?
+  provider          String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   deletedAt         DateTime?
