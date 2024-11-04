@@ -372,118 +372,118 @@ const createDisbursement = async (
   merchantId: string
 ) => {
   try {
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.EasyPaisaDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await easyPaisaDisburse
+      .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    // Phone number validation (must start with 92)
+    if (!obj.phone.startsWith("92")) {
+      throw new CustomError("Number should start with 92", 400);
+    }
+    // Fetch merchant financial terms
+    let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
+
+    const transactions = await getEligibleTransactions(
+      findMerchant.merchant_id,
+      prisma
+    );
+    if (transactions.length === 0) {
+      throw new CustomError("No eligible transactions to disburse", 400);
+    }
+    let updates: TransactionUpdate[] = [];
+    let totalDisbursed = new Decimal(0);
+    let amountDecimal;
+    if (obj.amount) {
+      amountDecimal = new Decimal(obj.amount);
+    } else {
+      updates = transactions.map((t: any) => ({
+        transaction_id: t.transaction_id,
+        disbursed: true,
+        balance: new Decimal(0),
+        settled_amount: t.settled_amount,
+        original_amount: t.original_amount,
+      }));
+      totalDisbursed = transactions.reduce(
+        (sum: Decimal, t: any) => sum.plus(t.balance),
+        new Decimal(0)
+      );
+      amountDecimal = totalDisbursed;
+    }
+    // Calculate total deductions and merchant amount
+    const totalCommission = amountDecimal.mul(rate.disbursementRate);
+    const totalGST = amountDecimal.mul(rate.disbursementGST);
+    const totalWithholdingTax = amountDecimal.mul(
+      rate.disbursementWithHoldingTax
+    );
+    const totalDeductions = totalCommission
+      .plus(totalGST)
+      .plus(totalWithholdingTax);
+    const merchantAmount = obj.amount
+      ? amountDecimal.plus(totalDeductions)
+      : amountDecimal.minus(totalDeductions);
+
+    // Get eligible transactions
+
+    if (obj.amount) {
+      const result = calculateDisbursement(transactions, merchantAmount);
+      updates = result.updates;
+      totalDisbursed = result.totalDisbursed;
+    }
+
+    const getTimeStamp: IEasyLoginPayload = await corporateLogin(
+      findDisbureMerch
+    );
+    const creatHashKey = await createRSAEncryptedPayload(
+      `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
+    );
+
+    const ma2ma: any = await axios
+      .post(
+        "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
+        {
+          Amount: obj.amount ? obj.amount : merchantAmount,
+          MSISDN: findDisbureMerch.MSISDN,
+          ReceiverMSISDN: obj.phone,
+        },
+        {
+          headers: {
+            "X-Hash-Value": creatHashKey,
+            "X-IBM-Client-Id": findDisbureMerch.clientId,
+            "X-IBM-Client-Secret": findDisbureMerch.clientSecret,
+            "X-Channel": findDisbureMerch.xChannel,
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+        }
+      )
+      .then((res) => res?.data)
+      .catch((error) => {
+        throw new CustomError(error?.response?.data?.ResponseMessage, 500);
+      });
+    if (ma2ma.ResponseCode != 0) {
+      throw new CustomError(ma2ma.ResponseMessage, 500);
+    }
+
     return await prisma.$transaction(
       async (tx) => {
-        // validate Merchant
-        const findMerchant = await merchantService.findOne({
-          uid: merchantId,
-        });
-
-        if (!findMerchant) {
-          throw new CustomError("Merchant not found", 404);
-        }
-
-        if (!findMerchant.EasyPaisaDisburseAccountId) {
-          throw new CustomError("Disbursement account not assigned.", 404);
-        }
-
-        // find disbursement merchant
-        const findDisbureMerch: any = await easyPaisaDisburse
-          .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
-          .then((res) => res?.data);
-
-        if (!findDisbureMerch) {
-          throw new CustomError("Disbursement account not found", 404);
-        }
-
-        // Phone number validation (must start with 92)
-        if (!obj.phone.startsWith("92")) {
-          throw new CustomError("Number should start with 92", 400);
-        }
-        // Fetch merchant financial terms
-        let rate = await getMerchantRate(tx, findMerchant.merchant_id);
-
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        let totalDisbursed = new Decimal(0);
-        let amountDecimal;
-        if (obj.amount) {
-          amountDecimal = new Decimal(obj.amount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
-        // Calculate total deductions and merchant amount
-        const totalCommission = amountDecimal.mul(rate.disbursementRate);
-        const totalGST = amountDecimal.mul(rate.disbursementGST);
-        const totalWithholdingTax = amountDecimal.mul(
-          rate.disbursementWithHoldingTax
-        );
-        const totalDeductions = totalCommission
-          .plus(totalGST)
-          .plus(totalWithholdingTax);
-        const merchantAmount = obj.amount
-          ? amountDecimal.plus(totalDeductions)
-          : amountDecimal.minus(totalDeductions);
-
-        // Get eligible transactions
-
-        if (obj.amount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = result.totalDisbursed;
-        }
-
-        const getTimeStamp: IEasyLoginPayload = await corporateLogin(
-          findDisbureMerch
-        );
-        const creatHashKey = await createRSAEncryptedPayload(
-          `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
-        );
-
-        const ma2ma: any = await axios
-          .post(
-            "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
-            {
-              Amount: obj.amount ? obj.amount : merchantAmount,
-              MSISDN: findDisbureMerch.MSISDN,
-              ReceiverMSISDN: obj.phone,
-            },
-            {
-              headers: {
-                "X-Hash-Value": creatHashKey,
-                "X-IBM-Client-Id": findDisbureMerch.clientId,
-                "X-IBM-Client-Secret": findDisbureMerch.clientSecret,
-                "X-Channel": findDisbureMerch.xChannel,
-                accept: "application/json",
-                "content-type": "application/json",
-              },
-            }
-          )
-          .then((res) => res?.data)
-          .catch((error) => {
-            throw new CustomError(error?.response?.data?.ResponseMessage, 500);
-          });
-        if (ma2ma.ResponseCode != 0) {
-          throw new CustomError(ma2ma.ResponseMessage, 500);
-        }
-
         // Update transactions to adjust balances
         await updateTransactions(updates, tx);
 
@@ -582,146 +582,147 @@ const getDisbursement = async (merchantId: number, params: any) => {
 
 const disburseThroughBank = async (obj: any, merchantId: string) => {
   try {
+
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.EasyPaisaDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await easyPaisaDisburse
+      .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    // Phone number validation (must start with 92)
+    // if (!obj.phone.startsWith("92")) {
+    //   throw new CustomError("Number should start with 92", 400);
+    // }
+    // Fetch merchant financial terms
+    let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
+
+    const transactions = await getEligibleTransactions(
+      findMerchant.merchant_id,
+      prisma
+    );
+    if (transactions.length === 0) {
+      throw new CustomError("No eligible transactions to disburse", 400);
+    }
+    let updates: TransactionUpdate[] = [];
+    let totalDisbursed = new Decimal(0);
+    let amountDecimal;
+    if (obj.amount) {
+      amountDecimal = new Decimal(obj.amount);
+    } else {
+      updates = transactions.map((t: any) => ({
+        transaction_id: t.transaction_id,
+        disbursed: true,
+        balance: new Decimal(0),
+        settled_amount: t.settled_amount,
+        original_amount: t.original_amount,
+      }));
+      totalDisbursed = transactions.reduce(
+        (sum: Decimal, t: any) => sum.plus(t.balance),
+        new Decimal(0)
+      );
+      amountDecimal = totalDisbursed;
+    }
+    // Calculate total deductions and merchant amount
+    const totalCommission = amountDecimal.mul(rate.disbursementRate);
+    const totalGST = amountDecimal.mul(rate.disbursementGST);
+    const totalWithholdingTax = amountDecimal.mul(
+      rate.disbursementWithHoldingTax
+    );
+    const totalDeductions = totalCommission
+      .plus(totalGST)
+      .plus(totalWithholdingTax);
+    const merchantAmount = obj.amount
+      ? amountDecimal.plus(totalDeductions)
+      : amountDecimal.minus(totalDeductions);
+
+    // Get eligible transactions
+
+    if (obj.amount) {
+      const result = calculateDisbursement(transactions, merchantAmount);
+      updates = result.updates;
+      totalDisbursed = result.totalDisbursed;
+    }
+    const getTimeStamp: IEasyLoginPayload = await corporateLogin(
+      findDisbureMerch
+    );
+    const creatHashKey = await createRSAEncryptedPayload(
+      `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
+    );
+
+    const headers = {
+      'X-IBM-Client-Id': findDisbureMerch.clientId,
+      'X-IBM-Client-Secret': findDisbureMerch.clientSecret,
+      'X-Channel': findDisbureMerch.xChannel,
+      'X-Hash-Value': `${creatHashKey}`,
+    }
+
+    let data = JSON.stringify({
+      "AccountNumber": obj.accountNo,
+      "BankTitle": obj.bankTitle,
+      "MSISDN": findDisbureMerch.MSISDN,
+      "ReceiverMSISDN": obj.phone,
+      "BankShortName": obj.bankName,
+      "TransactionPurpose": obj.purpose,
+      "Amount": obj.amount
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Inquiry',
+      headers: headers,
+      data: data
+    };
+
+    let res = await axios.request(config);
+    if (res.data.ResponseCode != "0") {
+      throw new CustomError("Error conducting transfer inquiry", 500);
+    }
+
+    data = JSON.stringify({
+      "AccountNumber": obj.accountNo,
+      "BankTitle": obj.bankTitle,
+      "MSISDN": findDisbureMerch.MSISDN,
+      "ReceiverMSISDN": obj.phone,
+      "BankShortName": obj.bankName,
+      "TransactionPurpose": obj.purpose,
+      "Amount": obj.amount,
+      "SenderName": res.data.Name,
+      "Branch": res.data.Branch,
+      "Username": res.data.Username,
+      "ReceiverIBAN": res.data.ReceiverIBAN
+    });
+
+    config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Transfer',
+      headers: headers,
+      data: data
+    };
+
+    let res2 = await axios.request(config)
+    if (res2.data.ResponseCode != "0") {
+      throw new CustomError("Error conducting transfer inquiry", 500);
+    }
     return await prisma.$transaction(
       async (tx) => {
-        // validate Merchant
-        const findMerchant = await merchantService.findOne({
-          uid: merchantId,
-        });
-
-        if (!findMerchant) {
-          throw new CustomError("Merchant not found", 404);
-        }
-
-        if (!findMerchant.EasyPaisaDisburseAccountId) {
-          throw new CustomError("Disbursement account not assigned.", 404);
-        }
-
-        // find disbursement merchant
-        const findDisbureMerch: any = await easyPaisaDisburse
-          .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
-          .then((res) => res?.data);
-
-        if (!findDisbureMerch) {
-          throw new CustomError("Disbursement account not found", 404);
-        }
-
-        // Phone number validation (must start with 92)
-        // if (!obj.phone.startsWith("92")) {
-        //   throw new CustomError("Number should start with 92", 400);
-        // }
-        // Fetch merchant financial terms
-        let rate = await getMerchantRate(tx, findMerchant.merchant_id);
-
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        let totalDisbursed = new Decimal(0);
-        let amountDecimal;
-        if (obj.amount) {
-          amountDecimal = new Decimal(obj.amount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
-        // Calculate total deductions and merchant amount
-        const totalCommission = amountDecimal.mul(rate.disbursementRate);
-        const totalGST = amountDecimal.mul(rate.disbursementGST);
-        const totalWithholdingTax = amountDecimal.mul(
-          rate.disbursementWithHoldingTax
-        );
-        const totalDeductions = totalCommission
-          .plus(totalGST)
-          .plus(totalWithholdingTax);
-        const merchantAmount = obj.amount
-          ? amountDecimal.plus(totalDeductions)
-          : amountDecimal.minus(totalDeductions);
-
-        // Get eligible transactions
-
-        if (obj.amount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = result.totalDisbursed;
-        }
-        const getTimeStamp: IEasyLoginPayload = await corporateLogin(
-          findDisbureMerch
-        );
-        const creatHashKey = await createRSAEncryptedPayload(
-          `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
-        );
-
-        const headers = {
-          'X-IBM-Client-Id': findDisbureMerch.clientId,
-          'X-IBM-Client-Secret': findDisbureMerch.clientSecret,
-          'X-Channel': findDisbureMerch.xChannel,
-          'X-Hash-Value': `${creatHashKey}`,
-        }
-
-        let data = JSON.stringify({
-          "AccountNumber": obj.accountNo,
-          "BankTitle": obj.bankTitle,
-          "MSISDN": findDisbureMerch.MSISDN,
-          "ReceiverMSISDN": obj.phone,
-          "BankShortName": obj.bankName,
-          "TransactionPurpose": obj.purpose,
-          "Amount": obj.amount
-        });
-
-        let config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Inquiry',
-          headers: headers,
-          data: data
-        };
-
-        let res = await axios.request(config);
-        if (res.data.ResponseCode != "0") {
-          throw new CustomError("Error conducting transfer inquiry", 500);
-        }
-
-        data = JSON.stringify({
-          "AccountNumber": obj.accountNo,
-          "BankTitle": obj.bankTitle,
-          "MSISDN": findDisbureMerch.MSISDN,
-          "ReceiverMSISDN": obj.phone,
-          "BankShortName": obj.bankName,
-          "TransactionPurpose": obj.purpose,
-          "Amount": obj.amount,
-          "SenderName": res.data.Name,
-          "Branch": res.data.Branch,
-          "Username": res.data.Username,
-          "ReceiverIBAN": res.data.ReceiverIBAN
-        });
-
-        config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Transfer',
-          headers: headers,
-          data: data
-        };
-
-        let res2 = await axios.request(config)
-        if (res2.data.ResponseCode != "0") {
-          throw new CustomError("Error conducting transfer inquiry", 500);
-        }
         await updateTransactions(updates, tx);
 
         let id = transactionService.createTransactionId();
