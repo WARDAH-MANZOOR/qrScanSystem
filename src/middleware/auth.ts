@@ -20,24 +20,28 @@ export const apiKeyAuth = async (
   let encryptedApiKey = encryptApiKey(apiKey);
 
   try {
+    console.log(apiKey)
     // Retrieve the user associated with the API key from the database
     const user = await prisma.user.findFirst({
       where: {
-        apiKey: encryptApiKey(apiKey),
+        apiKey: 
+        // encryptApiKey(
+          apiKey
+        // ),
       },
     });
-
+    console.log(user?.apiKey);
     if (!user || !user.apiKey) {
       return res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
 
     // Decrypt the API key if stored encrypted in your DB (optional)
-    const decryptedApiKey = decryptApiKey(user.apiKey);
+    // const decryptedApiKey = decryptApiKey(user.apiKey);
 
     // Check if the decrypted API key matches the provided API key
-    if (decryptedApiKey !== apiKey) {
-      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
-    }
+    // if (decryptedApiKey !== apiKey) {
+      // return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+    // }
 
     // Attach user to request for further use
     req.user = user;
