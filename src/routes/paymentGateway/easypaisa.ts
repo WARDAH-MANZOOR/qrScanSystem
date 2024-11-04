@@ -12,7 +12,6 @@ import {
 export default function (router: Router) {
   router.post(
     "/ep-disburse/:merchantId",
-    [apiKeyAuth],
     easyPaisaController.createDisbursement
   );
 
