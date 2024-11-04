@@ -4,6 +4,6 @@ import { isLoggedIn } from "utils/middleware.js";
 
 const router = Router();
 
-router.get("/",[isLoggedIn],getSettlements);
+router.get("/", [isLoggedIn], getSettlements);
 
 export default router;
