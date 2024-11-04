@@ -1,7 +1,7 @@
 import { AUTH } from "constants/auth.js";
 import crypto from "crypto";
 
-const encryptionKey = Buffer.from(AUTH.ENCRYPTION_KEY!, 'hex'); // 32 bytes key for AES-256
+const encryptionKey = Buffer.from(AUTH.ENCRYPTION_KEY!, "hex"); // 32 bytes key for AES-256
 const ivLength = Buffer.alloc(16, 0); // Static 16-byte IV
 
 const generateApiKey = () => {
@@ -19,18 +19,41 @@ const generateApiKey = () => {
 
 // Encrypt the API key
 const encryptApiKey = (apiKey: string): string => {
-  const cipher = crypto.createCipheriv('aes-256-cbc', encryptionKey, ivLength);
-  let encrypted = cipher.update(apiKey, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
+  const cipher = crypto.createCipheriv("aes-256-cbc", encryptionKey, ivLength);
+  let encrypted = cipher.update(apiKey, "utf8", "hex");
+  encrypted += cipher.final("hex");
   return encrypted;
 };
 
 // Decrypt the API key
 const decryptApiKey = (encryptedApiKey: string): string => {
-  const decipher = crypto.createDecipheriv('aes-256-cbc', encryptionKey, ivLength);
-  let decrypted = decipher.update(encryptedApiKey, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
+  const decipher = crypto.createDecipheriv(
+    "aes-256-cbc",
+    encryptionKey,
+    ivLength
+  );
+  let decrypted = decipher.update(encryptedApiKey, "hex", "utf8");
+  decrypted += decipher.final("utf8");
   return decrypted;
 };
 
-export { generateApiKey, encryptApiKey, decryptApiKey };
+// Hash the KEY
+const hashApiKey = (apiKey: string): string => {
+  return crypto.createHash("sha256").update(apiKey).digest("hex");
+};
+
+const verifyHashedKey = (apiKey: string, storedHash: string): boolean => {
+  const hashedKey = hashApiKey(apiKey);
+  return crypto.timingSafeEqual(
+    Buffer.from(hashedKey),
+    Buffer.from(storedHash)
+  );
+};
+
+export {
+  generateApiKey,
+  encryptApiKey,
+  decryptApiKey,
+  hashApiKey,
+  verifyHashedKey,
+};

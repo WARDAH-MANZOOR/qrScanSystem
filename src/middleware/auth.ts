@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { decryptApiKey, encryptApiKey } from "../utils/authentication.js";
+import {
+  decryptApiKey,
+  encryptApiKey,
+  verifyHashedKey,
+} from "../utils/authentication.js";
 import prisma from "prisma/client.js";
 import dotenv from "dotenv";
 dotenv.config();
@@ -11,36 +15,51 @@ export const apiKeyAuth = async (
 ) => {
   // Extract the API key from headers
   const apiKey = req.headers["x-api-key"] as string;
+  const { merchantId } = req.params;
+
+  if (!merchantId) {
+    return res.status(400).json({ error: "Merchant ID is required" });
+  }
 
   // Check if API key is missing
   if (!apiKey) {
     return res.status(401).json({ error: "API key is missing" });
   }
 
-  let encryptedApiKey = encryptApiKey(apiKey);
-
   try {
     // Retrieve the user associated with the API key from the database
-    const user = await prisma.user.findFirst({
+    const merchant = await prisma.merchant.findFirst({
       where: {
-        apiKey: encryptApiKey(apiKey),
+        uid: merchantId,
       },
     });
-    console.log(user?.apiKey);
-    if (!user || !user.apiKey) {
+
+    if (!merchant) {
       return res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
 
-    // Decrypt the API key if stored encrypted in your DB (optional)
-    const decryptedApiKey = decryptApiKey(user.apiKey);
+    const user = await prisma.user.findFirst({
+      where: {
+        id: merchant.user_id,
+      },
+    });
 
-    // Check if the decrypted API key matches the provided API key
-    if (decryptedApiKey !== apiKey) {
+    if (!user) {
       return res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
 
-    // Attach user to request for further use
-    req.user = user;
+    const hashedKey = user.apiKey;
+
+    if (!hashedKey) {
+      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+    }
+
+    const verify = verifyHashedKey(apiKey, hashedKey);
+
+    if (!verify) {
+      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+    }
+
     next();
   } catch (error) {
     console.error(error);
