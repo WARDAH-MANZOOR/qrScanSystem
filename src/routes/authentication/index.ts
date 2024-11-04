@@ -24,8 +24,8 @@ router.post(
       res.status(200).json({
         message: "Encrypted API keys populated for all existing users.",
       });
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+      res.status(500).json({ message: error?.message || "Internal server error" });
     }
   }
 );

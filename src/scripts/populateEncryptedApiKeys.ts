@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { encryptApiKey, generateApiKey } from "../utils/authentication.js";
+import {
+  encryptApiKey,
+  generateApiKey,
+  hashApiKey,
+} from "../utils/authentication.js";
 
 const prisma = new PrismaClient();
 export const populateEncryptedApiKeysForExistingUsers = async () => {
@@ -12,13 +16,14 @@ export const populateEncryptedApiKeysForExistingUsers = async () => {
     // Generate a new API key
     const plainApiKey = generateApiKey();
 
-    // Encrypt the API key
-    const encryptedApiKey = encryptApiKey(plainApiKey);
+    // Hash the API key
+    const hashedKey = hashApiKey(plainApiKey);
+    // console.log(`Merchant Key: ${plainApiKey}\nHashed Key: ${hashedKey}\n`);
 
     // Update the user with the encrypted API key
     await prisma.user.update({
       where: { id: user.id },
-      data: { apiKey: encryptedApiKey },
+      data: { apiKey: hashedKey },
     });
 
     console.log(`API key generated and encrypted for user ID: ${user.id}`);
