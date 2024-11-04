@@ -22,6 +22,7 @@ import {
 import { easyPaisaDisburse } from "services/index.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import ApiResponse from "utils/ApiResponse.js";
+import { parse } from "date-fns";
 
 dotenv.config();
 
@@ -547,11 +548,30 @@ const createDisbursement = async (
   }
 };
 
-const getDisbursement = async (merchantId: number) => {
+const getDisbursement = async (merchantId: number, params: any) => {
   try {
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+
+    const customWhere = {} as any;
+
+    if (startDate && endDate) {
+      const todayStart = parse(
+        startDate,
+        "yyyy-MM-dd",
+        new Date()
+      );
+      const todayEnd = parse(endDate, "yyyy-MM-dd", new Date());
+
+      customWhere["disbursementDate"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
     return await prisma.disbursement.findMany({
       where: {
         merchant_id: merchantId,
+        ...customWhere
       },
     });
   } catch (err) {
