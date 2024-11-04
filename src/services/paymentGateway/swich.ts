@@ -103,7 +103,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       settlementDuration: findMerchant.commissions[0].settlementDuration,
       providerDetails: {
         id: findMerchant.swichMerchantId as number,
-        name: PROVIDERS.SWICH,
+        name: payload.channel.toUpperCase() == "JAZZCASH" ? PROVIDERS.JAZZ_CASH: PROVIDERS.EASYPAISA,
       },
     });
 
