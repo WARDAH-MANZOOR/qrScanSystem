@@ -22,7 +22,7 @@ import {
 import { easyPaisaDisburse } from "services/index.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import ApiResponse from "utils/ApiResponse.js";
-import { parse } from "date-fns";
+import { parse, parseISO } from "date-fns";
 
 dotenv.config();
 
@@ -44,7 +44,6 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     if (!findMerchant) {
       throw new CustomError("Merchant not found", 404);
     }
-
 
     const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
       where: {
@@ -491,8 +490,7 @@ const createDisbursement = async (
         let data: { transaction_id?: string } = {};
         if (obj.order_id) {
           data["transaction_id"] = obj.order_id;
-        }
-        else {
+        } else {
           data["transaction_id"] = transactionService.createTransactionId();
         }
         let date = new Date();
@@ -553,36 +551,39 @@ const getDisbursement = async (merchantId: number, params: any) => {
     const startDate = params?.start?.replace(" ", "+");
     const endDate = params?.end?.replace(" ", "+");
 
-    const customWhere = {} as any;
+    const customWhere = {
+      deletedAt: null,
+    } as any;
 
     if (startDate && endDate) {
-      const todayStart = parse(
-        startDate,
-        "yyyy-MM-dd",
-        new Date()
-      );
-      const todayEnd = parse(endDate, "yyyy-MM-dd", new Date());
+      const todayStart = parseISO(startDate as string);
+      const todayEnd = parseISO(endDate as string);
 
       customWhere["disbursementDate"] = {
         gte: todayStart,
         lt: todayEnd,
       };
     }
-    return await prisma.disbursement.findMany({
-      where: {
-        merchant_id: merchantId,
-        ...customWhere
-      },
-    });
-  } catch (err) {
-    // throw new CustomError("Unable to get disbursement history", 500);
-    return err;
+    return await prisma.disbursement
+      .findMany({
+        where: {
+          merchant_id: merchantId,
+          ...customWhere,
+        },
+      })
+      .catch((err) => {
+        throw new CustomError("Unable to get disbursement history", 500);
+      });
+  } catch (error: any) {
+    throw new CustomError(
+      error?.error || "Unable to get disbursement",
+      error?.statusCode || 500
+    );
   }
 };
 
 const disburseThroughBank = async (obj: any, merchantId: string) => {
   try {
-
     // validate Merchant
     const findMerchant = await merchantService.findOne({
       uid: merchantId,
@@ -666,28 +667,28 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     );
 
     const headers = {
-      'X-IBM-Client-Id': findDisbureMerch.clientId,
-      'X-IBM-Client-Secret': findDisbureMerch.clientSecret,
-      'X-Channel': findDisbureMerch.xChannel,
-      'X-Hash-Value': `${creatHashKey}`,
-    }
+      "X-IBM-Client-Id": findDisbureMerch.clientId,
+      "X-IBM-Client-Secret": findDisbureMerch.clientSecret,
+      "X-Channel": findDisbureMerch.xChannel,
+      "X-Hash-Value": `${creatHashKey}`,
+    };
 
     let data = JSON.stringify({
-      "AccountNumber": obj.accountNo,
-      "BankTitle": obj.bankTitle,
-      "MSISDN": findDisbureMerch.MSISDN,
-      "ReceiverMSISDN": obj.phone,
-      "BankShortName": obj.bankName,
-      "TransactionPurpose": obj.purpose,
-      "Amount": obj.amount
+      AccountNumber: obj.accountNo,
+      BankTitle: obj.bankTitle,
+      MSISDN: findDisbureMerch.MSISDN,
+      ReceiverMSISDN: obj.phone,
+      BankShortName: obj.bankName,
+      TransactionPurpose: obj.purpose,
+      Amount: obj.amount,
     });
 
     let config = {
-      method: 'post',
+      method: "post",
       maxBodyLength: Infinity,
-      url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Inquiry',
+      url: "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Inquiry",
       headers: headers,
-      data: data
+      data: data,
     };
 
     let res = await axios.request(config);
@@ -696,28 +697,28 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     }
 
     data = JSON.stringify({
-      "AccountNumber": obj.accountNo,
-      "BankTitle": obj.bankTitle,
-      "MSISDN": findDisbureMerch.MSISDN,
-      "ReceiverMSISDN": obj.phone,
-      "BankShortName": obj.bankName,
-      "TransactionPurpose": obj.purpose,
-      "Amount": obj.amount,
-      "SenderName": res.data.Name,
-      "Branch": res.data.Branch,
-      "Username": res.data.Username,
-      "ReceiverIBAN": res.data.ReceiverIBAN
+      AccountNumber: obj.accountNo,
+      BankTitle: obj.bankTitle,
+      MSISDN: findDisbureMerch.MSISDN,
+      ReceiverMSISDN: obj.phone,
+      BankShortName: obj.bankName,
+      TransactionPurpose: obj.purpose,
+      Amount: obj.amount,
+      SenderName: res.data.Name,
+      Branch: res.data.Branch,
+      Username: res.data.Username,
+      ReceiverIBAN: res.data.ReceiverIBAN,
     });
 
     config = {
-      method: 'post',
+      method: "post",
       maxBodyLength: Infinity,
-      url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Transfer',
+      url: "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Transfer",
       headers: headers,
-      data: data
+      data: data,
     };
 
-    let res2 = await axios.request(config)
+    let res2 = await axios.request(config);
     if (res2.data.ResponseCode != "0") {
       throw new CustomError("Error conducting transfer inquiry", 500);
     }
@@ -729,8 +730,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         let data2: { transaction_id?: string } = {};
         if (obj.order_id) {
           data2["transaction_id"] = obj.order_id;
-        }
-        else {
+        } else {
           data2["transaction_id"] = id;
         }
         let date = new Date();
@@ -772,18 +772,17 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             TransactionStatus: res2.data.TransactionStatus,
           },
         };
-
       },
       {
         maxWait: 5000,
-        timeout: 20000
-      })
+        timeout: 20000,
+      }
+    );
+  } catch (err) {
+    console.log(err);
+    throw new CustomError("Disbursement Failed", 500);
   }
-  catch (err) {
-    console.log(err)
-    throw new CustomError("Disbursement Failed", 500)
-  }
-}
+};
 export default {
   initiateEasyPaisa,
   createMerchant,
@@ -793,9 +792,7 @@ export default {
   easypaisainquiry,
   createDisbursement,
   getDisbursement,
-  disburseThroughBank
+  disburseThroughBank,
 };
 
 // const axios = require('axios');
-
-
