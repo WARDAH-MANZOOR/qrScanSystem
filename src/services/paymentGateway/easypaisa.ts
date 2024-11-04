@@ -22,6 +22,7 @@ import {
 import { easyPaisaDisburse } from "services/index.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import ApiResponse from "utils/ApiResponse.js";
+import bankDetails from "../../data/banks.json"
 import { parse, parseISO } from "date-fns";
 
 dotenv.config();
@@ -397,6 +398,7 @@ const createDisbursement = async (
     if (!obj.phone.startsWith("92")) {
       throw new CustomError("Number should start with 92", 400);
     }
+
     // Fetch merchant financial terms
     let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
 
@@ -507,6 +509,8 @@ const createDisbursement = async (
             withholdingTax: totalWithholdingTax,
             merchantAmount: obj.amount ? obj.amount : merchantAmount,
             platform: ma2ma.Fee,
+            account: obj.phone,
+            provider: PROVIDERS.EASYPAISA
           },
         });
 
@@ -611,6 +615,11 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     //   throw new CustomError("Number should start with 92", 400);
     // }
     // Fetch merchant financial terms
+    const bank = bankDetails.find(bank => bank.BankName === obj.bankName);
+    if (!bank) {
+      throw new CustomError("Bank not found", 404);
+    }
+
     let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
 
     const transactions = await getEligibleTransactions(
@@ -674,13 +683,13 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     };
 
     let data = JSON.stringify({
-      AccountNumber: obj.accountNo,
-      BankTitle: obj.bankTitle,
-      MSISDN: findDisbureMerch.MSISDN,
-      ReceiverMSISDN: obj.phone,
-      BankShortName: obj.bankName,
-      TransactionPurpose: obj.purpose,
-      Amount: obj.amount,
+      "AccountNumber": obj.accountNo,
+      "BankTitle": bank.BankTitle,
+      "MSISDN": findDisbureMerch.MSISDN,
+      "ReceiverMSISDN": obj.phone,
+      "BankShortName": bank.BankShortName,
+      "TransactionPurpose": obj.purpose,
+      "Amount": obj.amount
     });
 
     let config = {
@@ -697,17 +706,17 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     }
 
     data = JSON.stringify({
-      AccountNumber: obj.accountNo,
-      BankTitle: obj.bankTitle,
-      MSISDN: findDisbureMerch.MSISDN,
-      ReceiverMSISDN: obj.phone,
-      BankShortName: obj.bankName,
-      TransactionPurpose: obj.purpose,
-      Amount: obj.amount,
-      SenderName: res.data.Name,
-      Branch: res.data.Branch,
-      Username: res.data.Username,
-      ReceiverIBAN: res.data.ReceiverIBAN,
+      "AccountNumber": obj.accountNo,
+      "BankTitle": bank.BankTitle,
+      "MSISDN": findDisbureMerch.MSISDN,
+      "ReceiverMSISDN": obj.phone,
+      "BankShortName": bank.BankShortName,
+      "TransactionPurpose": obj.purpose,
+      "Amount": obj.amount,
+      "SenderName": res.data.Name,
+      "Branch": res.data.Branch,
+      "Username": res.data.Username,
+      "ReceiverIBAN": res.data.ReceiverIBAN
     });
 
     config = {
@@ -747,6 +756,8 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             withholdingTax: totalWithholdingTax,
             merchantAmount: obj.amount ? obj.amount : merchantAmount,
             platform: res2.data.Fee,
+            account: obj.accountNo,
+            provider: obj.bankTitle
           },
         });
 
@@ -775,12 +786,12 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       },
       {
         maxWait: 5000,
-        timeout: 20000,
-      }
-    );
-  } catch (err) {
-    console.log(err);
-    throw new CustomError("Disbursement Failed", 500);
+        timeout: 60000
+      })
+  }
+  catch (err) {
+    console.log(err)
+    throw new CustomError("Disbursement Failed", 500)
   }
 };
 export default {

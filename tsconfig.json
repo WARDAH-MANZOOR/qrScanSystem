@@ -12,6 +12,7 @@
     "paths": {
       "*": ["*"]                      // Allow all paths to resolve from baseUrl
     },
+    "resolveJsonModule": true
   },
   "include": ["src"],          // Include the "src" folder for TypeScript compilation
   "exclude": ["node_modules"]  // Exclude node_modules from compilation

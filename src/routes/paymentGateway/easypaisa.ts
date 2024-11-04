@@ -17,7 +17,7 @@ export default function (router: Router) {
 
   router.post(
     "/epb-disburse/:merchantId",
-    [apiKeyAuth],
+    // [apiKeyAuth],
     easyPaisaController.disburseThroughBank
   );
 
