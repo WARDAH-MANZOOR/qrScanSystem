@@ -55,11 +55,9 @@ export const apiKeyAuth = async (
     }
 
     const verify = verifyHashedKey(apiKey, hashedKey);
-
     if (!verify) {
       return res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
-
     next();
   } catch (error) {
     console.error(error);

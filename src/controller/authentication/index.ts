@@ -172,15 +172,32 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
 
 const getAPIKey = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
     const id = parseInt(req.params.id);
 
     if (!id) {
       throw new CustomError("Invalid user id", 400);
     }
 
-
     const result = await authenticationService.getAPIKey(id);
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createAPIKey = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    if (!id) {
+      throw new CustomError("Invalid user id", 400);
+    }
+
+    const result = await authenticationService.createAPIKey(id);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
@@ -191,4 +208,5 @@ export { logout, login, signup, getAPIKey };
 
 export default {
   getAPIKey,
-}
+  createAPIKey,
+};

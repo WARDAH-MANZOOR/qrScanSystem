@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { Response } from "express";
 import { body } from "express-validator";
 import CustomError from "utils/custom_error.js";
+import { generateApiKey, hashApiKey } from "utils/authentication.js";
 
 const getUserByEmail = async (email: string) => {
   return prisma.user.findUnique({
@@ -94,7 +95,35 @@ const getAPIKey = async (userId: number) => {
     select: { apiKey: true },
   });
   return user?.apiKey;
-}
+};
+
+const createAPIKey = async (userId: number) => {
+  try {
+    const createKey = generateApiKey();
+    const hashedKey = hashApiKey(createKey);
+
+    const result = await prisma.$transaction(async (transaction) => {
+      const user = await transaction.user
+        .update({
+          where: { id: userId },
+          data: { apiKey: hashedKey },
+        })
+        .catch((error) => {
+          throw new CustomError(
+            "An error occured while creating the API key",
+            500
+          );
+        });
+    });
+
+    return {
+      key: createKey,
+      message:"API key created successfully",
+    };
+  } catch (error) {
+    console.error("Transaction rolled back due to error:", error);
+  }
+};
 
 export {
   getUserByEmail,
@@ -106,8 +135,10 @@ export {
   findUserByEmail,
   hashPassword,
   updateUserPassword,
+  createAPIKey,
 };
 
 export default {
   getAPIKey,
-}
+  createAPIKey,
+};

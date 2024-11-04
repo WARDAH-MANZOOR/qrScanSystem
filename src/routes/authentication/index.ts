@@ -12,6 +12,11 @@ import { authenticationController } from "controller/index.js";
 const router = Router();
 
 router.get("/logout", logout);
+router.get(
+  "/generate-key/:id",
+  [isLoggedIn],
+  authenticationController.createAPIKey
+);
 router.post("/login", validateLoginData, login);
 router.post("/signup", validateLoginData, signup);
 router.get("/get-key/:id", [isLoggedIn], authenticationController.getAPIKey);
@@ -25,7 +30,9 @@ router.post(
         message: "Encrypted API keys populated for all existing users.",
       });
     } catch (error: any) {
-      res.status(500).json({ message: error?.message || "Internal server error" });
+      res
+        .status(500)
+        .json({ message: error?.message || "Internal server error" });
     }
   }
 );
