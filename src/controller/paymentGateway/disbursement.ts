@@ -44,47 +44,47 @@ const disburseTransactions = async (
       .json(ApiResponse.error(errors.array()[0] as unknown as string));
   }
 
-    const merchantId = (req.user as JwtPayload)?.id;
-    let { amount } = req.body;
-    let rate = await getMerchantRate(prisma,merchantId);
-    amount *= (1 - +rate);
-    if (!merchantId) {
-        return res.status(401).json({ message: 'Unauthorized' });
+  const merchantId = (req.user as JwtPayload)?.id;
+  let { amount } = req.body;
+  let rate = await getMerchantRate(prisma, merchantId);
+  amount *= (1 - +rate);
+  if (!merchantId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+
+    // Get eligible transactions
+    const transactions = await getEligibleTransactions(merchantId, prisma);
+    if (transactions.length === 0) {
+      throw new CustomError('No eligible transactions to disburse', 400);
     }
-
-    try {
-
-        // Get eligible transactions
-        const transactions = await getEligibleTransactions(merchantId,prisma);
-        if (transactions.length === 0) {
-            throw new CustomError('No eligible transactions to disburse', 400);
-        }
 
     let updates: TransactionUpdate[] = [];
     let totalDisbursed = new Decimal(0);
 
-        if (amount) {
-            const amountDecimal = new Decimal(amount);
-            const result = calculateDisbursement(transactions, amountDecimal);
-            updates = result.updates;
-            totalDisbursed = result.totalDisbursed;
-        } else {
-            // Disburse all eligible transactions
-            updates = transactions.map((t) => ({
-                transaction_id: t.transaction_id,
-                disbursed: true,
-                balance: new Decimal(0),
-                settled_amount: t.settled_amount,
-                original_amount: t.original_amount
-            }));
-            totalDisbursed = transactions.reduce(
-                (sum, t) => sum.plus(t.balance),
-                new Decimal(0)
-            );
-        }
+    if (amount) {
+      const amountDecimal = new Decimal(amount);
+      const result = calculateDisbursement(transactions, amountDecimal);
+      updates = result.updates;
+      totalDisbursed = result.totalDisbursed;
+    } else {
+      // Disburse all eligible transactions
+      updates = transactions.map((t) => ({
+        transaction_id: t.transaction_id,
+        disbursed: true,
+        balance: new Decimal(0),
+        settled_amount: t.settled_amount,
+        original_amount: t.original_amount
+      }));
+      totalDisbursed = transactions.reduce(
+        (sum, t) => sum.plus(t.balance),
+        new Decimal(0)
+      );
+    }
 
-        // Update transactions to set disbursed: true or adjust balances
-        await updateTransactions(updates,prisma);
+    // Update transactions to set disbursed: true or adjust balances
+    await updateTransactions(updates, prisma);
 
     res.status(200).json(
       ApiResponse.success({
