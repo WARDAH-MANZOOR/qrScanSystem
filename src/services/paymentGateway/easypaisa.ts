@@ -591,18 +591,18 @@ const getDisbursement = async (merchantId: number, params: any) => {
       });
 
     // loop through disbursements and add transaction details
-    for (let i = 0; i < disbursements.length; i++) {
-      if (!disbursements[i].transaction_id) {
-        disbursements[i].transaction = null;
-      } else {
-        const transaction = await prisma.transaction.findFirst({
-          where: {
-            transaction_id: disbursements[i].transaction_id,
-          },
-        });
-        disbursements[i].transaction = transaction;
-      }
-    }
+    // for (let i = 0; i < disbursements.length; i++) {
+    //   if (!disbursements[i].transaction_id) {
+    //     disbursements[i].transaction = null;
+    //   } else {
+    //     const transaction = await prisma.transaction.findFirst({
+    //       where: {
+    //         transaction_id: disbursements[i].transaction_id,
+    //       },
+    //     });
+    //     disbursements[i].transaction = transaction;
+    //   }
+    // }
 
     return disbursements;
   } catch (error: any) {
