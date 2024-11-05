@@ -221,5 +221,64 @@ export default function (router: Router) {
  *         description: Validation error
  *       500:
  *         description: Internal server error
+ * /payment/status-inquiry/{merchantId}:
+ *   get:
+ *     summary: Retrieve the status of a transaction for a specific merchant.
+ *     description: This endpoint allows merchants to inquire about the status of a specific transaction using their merchant ID and transaction details.
+ *     tags:
+ *       - [JazzCash]
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the merchant.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               transactionId:
+ *                 type: string
+ *                 description: The unique identifier of the transaction.
+ *             required:
+ *               - transactionId
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the transaction status.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   description: The status of the transaction.
+ *                 details:
+ *                   type: object
+ *                   description: Additional details about the transaction.
+ *       400:
+ *         description: Bad Request. Merchant ID or transaction ID is missing or invalid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message detailing the issue.
+ *       500:
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message detailing the issue.
  */
 

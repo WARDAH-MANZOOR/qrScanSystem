@@ -574,6 +574,13 @@ const getDisbursement = async (merchantId: number, params: any) => {
           merchant_id: merchantId,
           ...customWhere,
         },
+        include: {
+          merchant: {
+            select: {
+              full_name: true
+            }
+          }
+        }
       })
       .catch((err) => {
         throw new CustomError("Unable to get disbursement history", 500);
@@ -671,6 +678,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     const getTimeStamp: IEasyLoginPayload = await corporateLogin(
       findDisbureMerch
     );
+    
     const creatHashKey = await createRSAEncryptedPayload(
       `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
     );
@@ -757,7 +765,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             merchantAmount: obj.amount ? obj.amount : merchantAmount,
             platform: res2.data.Fee,
             account: obj.accountNo,
-            provider: obj.bankTitle
+            provider: obj.bankName
           },
         });
 
