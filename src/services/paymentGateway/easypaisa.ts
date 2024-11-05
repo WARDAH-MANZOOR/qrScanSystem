@@ -22,7 +22,7 @@ import {
 import { easyPaisaDisburse } from "services/index.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import ApiResponse from "utils/ApiResponse.js";
-import bankDetails from "../../data/banks.json"
+import bankDetails from "../../data/banks.json";
 import { parse, parseISO } from "date-fns";
 
 dotenv.config();
@@ -510,7 +510,7 @@ const createDisbursement = async (
             merchantAmount: obj.amount ? obj.amount : merchantAmount,
             platform: ma2ma.Fee,
             account: obj.phone,
-            provider: PROVIDERS.EASYPAISA
+            provider: PROVIDERS.EASYPAISA,
           },
         });
 
@@ -568,16 +568,43 @@ const getDisbursement = async (merchantId: number, params: any) => {
         lt: todayEnd,
       };
     }
-    return await prisma.disbursement
+    const disbursements = await prisma.disbursement
       .findMany({
         where: {
           merchant_id: merchantId,
           ...customWhere,
         },
+        orderBy: {
+          disbursementDate: "desc",
+        },
+        include: {
+          merchant: {
+            select: {
+              uid: true,
+              full_name: true,
+            },
+          },
+        },
       })
       .catch((err) => {
         throw new CustomError("Unable to get disbursement history", 500);
       });
+
+    // loop through disbursements and add transaction details
+    for (let i = 0; i < disbursements.length; i++) {
+      if (!disbursements[i].transaction_id) {
+        disbursements[i].transaction = null;
+      } else {
+        const transaction = await prisma.transaction.findFirst({
+          where: {
+            transaction_id: disbursements[i].transaction_id,
+          },
+        });
+        disbursements[i].transaction = transaction;
+      }
+    }
+
+    return disbursements;
   } catch (error: any) {
     throw new CustomError(
       error?.error || "Unable to get disbursement",
@@ -615,7 +642,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     //   throw new CustomError("Number should start with 92", 400);
     // }
     // Fetch merchant financial terms
-    const bank = bankDetails.find(bank => bank.BankName === obj.bankName);
+    const bank = bankDetails.find((bank) => bank.BankName === obj.bankName);
     if (!bank) {
       throw new CustomError("Bank not found", 404);
     }
@@ -683,13 +710,13 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     };
 
     let data = JSON.stringify({
-      "AccountNumber": obj.accountNo,
-      "BankTitle": bank.BankTitle,
-      "MSISDN": findDisbureMerch.MSISDN,
-      "ReceiverMSISDN": obj.phone,
-      "BankShortName": bank.BankShortName,
-      "TransactionPurpose": obj.purpose,
-      "Amount": obj.amount
+      AccountNumber: obj.accountNo,
+      BankTitle: bank.BankTitle,
+      MSISDN: findDisbureMerch.MSISDN,
+      ReceiverMSISDN: obj.phone,
+      BankShortName: bank.BankShortName,
+      TransactionPurpose: obj.purpose,
+      Amount: obj.amount,
     });
 
     let config = {
@@ -706,17 +733,17 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     }
 
     data = JSON.stringify({
-      "AccountNumber": obj.accountNo,
-      "BankTitle": bank.BankTitle,
-      "MSISDN": findDisbureMerch.MSISDN,
-      "ReceiverMSISDN": obj.phone,
-      "BankShortName": bank.BankShortName,
-      "TransactionPurpose": obj.purpose,
-      "Amount": obj.amount,
-      "SenderName": res.data.Name,
-      "Branch": res.data.Branch,
-      "Username": res.data.Username,
-      "ReceiverIBAN": res.data.ReceiverIBAN
+      AccountNumber: obj.accountNo,
+      BankTitle: bank.BankTitle,
+      MSISDN: findDisbureMerch.MSISDN,
+      ReceiverMSISDN: obj.phone,
+      BankShortName: bank.BankShortName,
+      TransactionPurpose: obj.purpose,
+      Amount: obj.amount,
+      SenderName: res.data.Name,
+      Branch: res.data.Branch,
+      Username: res.data.Username,
+      ReceiverIBAN: res.data.ReceiverIBAN,
     });
 
     config = {
@@ -757,7 +784,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             merchantAmount: obj.amount ? obj.amount : merchantAmount,
             platform: res2.data.Fee,
             account: obj.accountNo,
-            provider: obj.bankTitle
+            provider: obj.bankTitle,
           },
         });
 
@@ -786,12 +813,12 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       },
       {
         maxWait: 5000,
-        timeout: 60000
-      })
-  }
-  catch (err) {
-    console.log(err)
-    throw new CustomError("Disbursement Failed", 500)
+        timeout: 60000,
+      }
+    );
+  } catch (err) {
+    console.log(err);
+    throw new CustomError("Disbursement Failed", 500);
   }
 };
 export default {
