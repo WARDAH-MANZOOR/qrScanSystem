@@ -204,6 +204,15 @@ const createAPIKey = async (
   }
 };
 
+const updatePassword = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // updateUserPassword(req.query.merchantId,req.body.password);
+  }
+  catch(err) {
+    next(err);
+  }
+}
+
 export { logout, login, signup, getAPIKey };
 
 export default {
