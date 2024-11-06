@@ -559,6 +559,10 @@ const getDisbursement = async (merchantId: number, params: any) => {
       deletedAt: null,
     } as any;
 
+    if (merchantId) {
+      customWhere["merchant_id"] = merchantId;
+    }
+
     if (startDate && endDate) {
       const todayStart = parseISO(startDate as string);
       const todayEnd = parseISO(endDate as string);
@@ -571,7 +575,6 @@ const getDisbursement = async (merchantId: number, params: any) => {
     const disbursements = await prisma.disbursement
       .findMany({
         where: {
-          merchant_id: merchantId,
           ...customWhere,
         },
         orderBy: {

@@ -6,11 +6,15 @@ import CustomError from "utils/custom_error.js";
 const getSettlement = async (params: any, user: JwtPayload) => {
   const merchantId = user?.merchant_id;
 
-  if (!merchantId) {
+  if (!merchantId && user?.role !== "Admin") {
     throw new CustomError("Merchant ID is required", 400);
   }
 
-  let filters: { merchant_id: number } = { merchant_id: merchantId };
+  let filters: { merchant_id?: number } = {};
+
+  if (merchantId) {
+    filters["merchant_id"] = merchantId;
+  }
 
   try {
     const startDate = params?.start?.replace(" ", "+");
@@ -37,6 +41,14 @@ const getSettlement = async (params: any, user: JwtPayload) => {
         ...filters,
         ...customWhere,
       },
+      include: {
+        merchant: {
+          select: {
+            uid: true,
+            full_name: true,
+          },
+        },
+      }
     });
     return reports;
   } catch (error: any) {
