@@ -53,6 +53,7 @@ export default function (router: Router) {
     [...validateInquiry],
     easyPaisaController.statusInquiry
   );
+  router.get("/ep-disburse",[isLoggedIn],easyPaisaController.getDisbursement)
   return router;
 }
 
@@ -212,4 +213,115 @@ export default function (router: Router) {
  *         description: Invalid request
  *       500:
  *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /payment/ep-disburse/{merchantId}:
+ *   post:
+ *     summary: Initiate a disbursement via EasyPaisa for a specific merchant.
+ *     description: This endpoint allows merchants to initiate a disbursement through EasyPaisa by providing the necessary details.
+ *     security:
+ *       - apiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the merchant.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DisbursementPayload'
+ *     responses:
+ *       200:
+ *         description: Disbursement initiated successfully.
+ *       400:
+ *         description: Bad Request. Invalid merchant ID or payload.
+ *       500:
+ *         description: Internal Server Error. An error occurred while processing the request.
+ */
+
+/**
+ * @swagger
+ * /payment/epb-disburse/{merchantId}:
+ *   post:
+ *     summary: Initiate a bank disbursement via EasyPaisa for a specific merchant.
+ *     description: This endpoint allows merchants to initiate a bank disbursement through EasyPaisa by providing the necessary details.
+ *     parameters:
+ *       - in: path
+ *         name: merchantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the merchant.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DisbursementPayload'
+ *     responses:
+ *       200:
+ *         description: Bank disbursement initiated successfully.
+ *       400:
+ *         description: Bad Request. Invalid merchant ID or payload.
+ *       500:
+ *         description: Internal Server Error. An error occurred while processing the request.
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     DisbursementPayload:
+ *       type: object
+ *       required:
+ *         - amount
+ *         - phone
+ *       properties:
+ *         amount:
+ *           type: number
+ *           description: The amount to be disbursed.
+ *           example: 1000.00
+ *         phone:
+ *           type: string
+ *           description: The recipient's phone number (must start with country code 92 for Pakistan).
+ *           example: "923001234567"
+ *         accountNo:
+ *           type: string
+ *           description: The bank account number for disbursement (for bank transfers).
+ *           example: "1234567890"
+ *         bankName:
+ *           type: string
+ *           description: The name of the bank (for bank disbursement only).
+ *           example: "ABC Bank"
+ *         purpose:
+ *           type: string
+ *           description: The purpose of the transaction.
+ *           example: "0350"
+ *         order_id:
+ *           type: string
+ *           description: Optional unique identifier for the transaction order.
+ *           example: "ORD123456"
+ *     ErrorResponse:
+ *       type: object
+ *       properties:
+ *         error:
+ *           type: string
+ *           description: Error message detailing the issue.
+ *           example: "Merchant ID is required."
+ *         code:
+ *           type: integer
+ *           description: HTTP status code for the error.
+ *           example: 400
+ *         details:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Additional details about the error (optional).
+ *           example: ["Field 'phone' is required", "Amount must be greater than zero"]
  */
