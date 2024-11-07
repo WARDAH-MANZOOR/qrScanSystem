@@ -188,6 +188,7 @@ const initiateJazzCashPayment = async (
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
             },
+            balance: parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number)
           },
         });
         transactionCreated = true;

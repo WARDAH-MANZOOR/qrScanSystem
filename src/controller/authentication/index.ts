@@ -2,13 +2,14 @@ import { NextFunction, Request, Response } from "express";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { validationResult } from "express-validator";
 import {
   comparePasswords,
   findUserByEmail,
   generateToken,
   getUserByEmail,
+  getUserPassword,
   hashPassword,
   setTokenCookie,
   updateUserPassword,
@@ -204,9 +205,15 @@ const createAPIKey = async (
   }
 };
 
-const updatePassword = (req: Request, res: Response, next: NextFunction) => {
+const updatePassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // updateUserPassword(req.query.merchantId,req.body.password);
+    const old_password = await getUserPassword((req.user as JwtPayload)?.merchant_id);
+    if(!(await comparePasswords(req.body.old_password, old_password?.password as string))) {
+      throw new CustomError("Old password do not match",500);
+    }
+    let new_password = await hashPassword(req.body.new_password);
+    updateUserPassword((req.user as JwtPayload)?.merchant_id,new_password);
+    return res.status(200).json(ApiResponse.success({"message": "Password updated successfully"}))
   }
   catch(err) {
     next(err);
@@ -218,4 +225,5 @@ export { logout, login, signup, getAPIKey };
 export default {
   getAPIKey,
   createAPIKey,
+  updatePassword
 };

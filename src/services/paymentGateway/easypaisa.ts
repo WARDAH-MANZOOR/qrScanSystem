@@ -27,6 +27,16 @@ import { parse, parseISO } from "date-fns";
 
 dotenv.config();
 
+const getMerchantChannel = async (merchantId: string) => {
+  return await prisma.merchant.findFirst({
+    where: {
+      uid: merchantId
+    },
+    select: {
+      easypaisaPaymentMethod: true
+    }
+  })
+}
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
   try {
     if (!merchantId) {
@@ -826,6 +836,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
   }
 };
 export default {
+  getMerchantChannel,
   initiateEasyPaisa,
   createMerchant,
   getMerchant,

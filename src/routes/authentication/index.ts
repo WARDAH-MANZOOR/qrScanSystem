@@ -36,6 +36,7 @@ router.post(
     }
   }
 );
+router.post("/update-password",[isLoggedIn],authenticationController.updatePassword)
 
 export default router;
 

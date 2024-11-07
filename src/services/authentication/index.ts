@@ -125,6 +125,17 @@ const createAPIKey = async (userId: number) => {
   }
 };
 
+const getUserPassword = async (merchant_id: number) => {
+  return await prisma.user.findFirst({
+    where: {
+      id: merchant_id
+    },
+    select: {
+      password: true
+    }
+  })
+}
+
 export {
   getUserByEmail,
   comparePasswords,
@@ -136,6 +147,7 @@ export {
   hashPassword,
   updateUserPassword,
   createAPIKey,
+  getUserPassword
 };
 
 export default {
