@@ -26,6 +26,12 @@ enum ProviderEnum {
   // Add other providers as needed
 }
 
+// Define Enum for Easypaisa Payment Method
+enum EasypaisaPaymentMethodEnum {
+  DIRECT
+  SWITCH
+}
+
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            @unique
@@ -87,7 +93,14 @@ model Merchant {
 
   EasyPaisaDisburseAccountId Int?
   EasyPaisaDisburseAccount EasyPaisaDisburseAccount? @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
+
+  // New column for Easypaisa payment method selection
+  easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(DIRECT)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 }
+
 
 model MerchantProviderCredential {
   id          Int      @id @default(autoincrement())

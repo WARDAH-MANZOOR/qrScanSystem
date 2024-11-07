@@ -71,7 +71,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       item: "1",
       amount: payload.amount,
       remoteIPAddress: "139.59.40.220",
-      msisdn: payload.msisdn,
+      msisdn: payload.phone,
       email: payload.email,
     });
 
@@ -94,7 +94,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       transaction_id: id,
       amount: payload.amount,
       status: "pending",
-      type: "wallet",
+      type: payload.type,
       merchant_id: findMerchant.merchant_id,
       commission:
         +findMerchant.commissions[0].commissionGST +
@@ -103,7 +103,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       settlementDuration: findMerchant.commissions[0].settlementDuration,
       providerDetails: {
         id: findMerchant.swichMerchantId as number,
-        name: payload.channel.toUpperCase() == "JAZZCASH" ? PROVIDERS.JAZZ_CASH: PROVIDERS.EASYPAISA,
+        name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH: PROVIDERS.EASYPAISA,
       },
     });
 

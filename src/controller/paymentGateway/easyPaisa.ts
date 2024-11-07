@@ -2,7 +2,7 @@ import { error } from "console";
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import { easyPaisaService } from "services/index.js";
+import { easyPaisaService, swichService } from "services/index.js";
 import type { DisbursementPayload } from "types/providers.js";
 import ApiResponse from "utils/ApiResponse.js";
 
@@ -23,10 +23,24 @@ const initiateEasyPaisa = async (
       return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
     }
 
-    const result = await easyPaisaService.initiateEasyPaisa(
-      merchantId,
-      req.body
-    );
+    const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    let result;
+    if (channel == "DIRECT") {
+      result = await easyPaisaService.initiateEasyPaisa(
+        merchantId,
+        req.body
+      );
+    }
+    else {
+      result = await swichService.initiateSwich({
+        channel: 1749,
+        amount: req.body.amount,
+        phone: req.body.phone,
+        email: req.body.email,
+        order_id: req.body.order_id,
+        type: req.body.type
+      },merchantId)
+    }
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);

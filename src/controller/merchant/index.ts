@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { validationResult } from "express-validator";
 import { merchantService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
@@ -9,6 +10,10 @@ const updateMerchant = async (
   next: NextFunction
 ) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const payload = req.body;
     const result = await merchantService.updateMerchant(payload);
     return res.status(200).json(ApiResponse.success(result));
@@ -33,6 +38,10 @@ const getMerchants = async (
 
 const addMerchant = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+      return res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
     const payload = req.body;
     const result = await merchantService.addMerchant(payload);
     if (result == "Settlment Duration Required") {

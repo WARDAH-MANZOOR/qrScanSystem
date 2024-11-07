@@ -26,6 +26,7 @@ const updateMerchant = async (payload: Merchant) => {
     swichMerchantId,
     webhook_url,
     EasyPaisaDisburseAccountId,
+    easypaisaMethod
   } = payload;
   try {
     let result = await prisma.$transaction(async (tx) => {
@@ -55,6 +56,7 @@ const updateMerchant = async (payload: Merchant) => {
           swichMerchantId,
           webhook_url,
           EasyPaisaDisburseAccountId,
+          easypaisaPaymentMethod: easypaisaMethod
         },
         where: { merchant_id: +merchantId },
       });
@@ -149,6 +151,7 @@ const addMerchant = async (payload: Merchant) => {
     easyPaisaMerchantId,
     swichMerchantId,
     webhook_url,
+    easypaisaMethod
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -183,6 +186,7 @@ const addMerchant = async (payload: Merchant) => {
           easyPaisaMerchantId,
           swichMerchantId,
           webhook_url,
+          easypaisaPaymentMethod: easypaisaMethod
         },
       });
 

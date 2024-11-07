@@ -124,17 +124,34 @@ async function processMerchantSettlement(
   // Aggregate data
   const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
 
-  // Create SettlementReport
-  await prisma.settlementReport.create({
-    data: {
+  const today = new Date();
+  const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Upsert SettlementReport for the day
+  await tx.settlementReport.upsert({
+    where: {
+      merchant_id_settlementDate: {
+        merchant_id,
+        settlementDate,
+      },
+    },
+    create: {
       merchant_id,
-      settlementDate: new Date(),
+      settlementDate,
       transactionCount: settlementData.transactionCount,
       transactionAmount: settlementData.transactionAmount,
       commission: settlementData.totalCommission,
       gst: settlementData.totalGST,
       withholdingTax: settlementData.totalWithholdingTax,
       merchantAmount: settlementData.merchantAmount,
+    },
+    update: {
+      transactionCount: { increment: settlementData.transactionCount },
+      transactionAmount: { increment: settlementData.transactionAmount },
+      commission: { increment: settlementData.totalCommission },
+      gst: { increment: settlementData.totalGST },
+      withholdingTax: { increment: settlementData.totalWithholdingTax },
+      merchantAmount: { increment: settlementData.merchantAmount },
     },
   });
 
