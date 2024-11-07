@@ -1,4 +1,4 @@
-import express, {Request, Response, NextFunction} from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
@@ -23,10 +23,11 @@ import completeTransactionRouter from "./routes/transaction/complete.js"
 import adminTransactionRouter from "./routes/user/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
+import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
- 
+
 var app = express();
-cron.schedule("0 16 * * 1-5",task); 
+cron.schedule("0 16 * * 1-5", task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
@@ -63,7 +64,7 @@ routes(app);
 
 // Redoc route
 // app.get('/redoc', (req, res) => {
-  // res.sendFile('C://Users/musta/OneDrive/Desktop/spb/node_modules/redoc/bundles/redoc.standalone.js');
+// res.sendFile('C://Users/musta/OneDrive/Desktop/spb/node_modules/redoc/bundles/redoc.standalone.js');
 // });
 
 // Serve Swagger docs as JSON (required by Redoc)
@@ -87,17 +88,7 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
-function encryptWithPublicKey(publicKey: string, data: string) {
-  // Convert data to Buffer
-  const bufferData = Buffer.from(data, 'utf8');
-
-  // Encrypt the data using the public key
-  const encrypted = crypto.publicEncrypt(publicKey, bufferData);
-
-  // Return the encrypted data in base64 format
-  return encrypted.toString('base64');
-}
-
+console.log(encrypt_payload(JSON.stringify({"bankAccountNumber": "01150100189365","bankCode": "49","amount": "1.00","receiverMSISDN": "03059564722","referenceId": "OriID_OFT2451AB23302145709"})))
 // Example usage
 
 // const encryptedData = encryptWithPublicKey(publicKey, data);
