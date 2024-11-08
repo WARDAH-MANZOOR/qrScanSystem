@@ -23,7 +23,7 @@ import completeTransactionRouter from "./routes/transaction/complete.js"
 import adminTransactionRouter from "./routes/user/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
-import { encrypt_payload } from 'utils/enc_dec.js';
+// import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 
 var app = express();
@@ -88,7 +88,7 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
-console.log(encrypt_payload(JSON.stringify({"bankAccountNumber": "01150100189365","bankCode": "49","amount": "1.00","receiverMSISDN": "03059564722","referenceId": "OriID_OFT2451AB23302145709"})))
+// console.log(encrypt_payload(JSON.stringify({"bankAccountNumber": "01150100189365","bankCode": "49","amount": "1.00","receiverMSISDN": "03059564722","referenceId": "OriID_OFT2451AB23302145709"})))
 // Example usage
 
 // const encryptedData = encryptWithPublicKey(publicKey, data);
