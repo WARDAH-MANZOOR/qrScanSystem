@@ -27,21 +27,17 @@ function decrypt(text: string) {
   return decrypted.toString('utf8');
 }
 
-// function encrypt_payload(payload: any) {
-//   const secretKey = Buffer.from("Myin!tv3ctorjCM@","utf-8")
-//   const iv = Buffer.from("mYjC!nc3dibleY3k","utf-8")
-//   // Convert payload to a buffer (if it's not already)
-//   const payloadBuffer = Buffer.from(payload, 'utf-8');
+function encryptData(payload: any, secretKey: string, iv: string) {
+  // Ensure the payload is a JSON string
+  const jsonString = JSON.stringify(payload);
 
-//   // Create a cipher instance
-//   const cipher = crypto.createCipheriv('aes-128-cbc', secretKey, iv);
+  // Create a cipher instance
+  const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(secretKey, 'hex'), Buffer.from(iv, 'hex'));
 
-//   // Encrypt the data
-//   let encryptedData = cipher.update(payloadBuffer, 'utf-8', 'hex');
-//   encryptedData += cipher.final('hex');
+  // Encrypt the data
+  let encryptedData = cipher.update(jsonString, 'utf8', 'hex');
+  encryptedData += cipher.final('hex');
 
-//   return encryptedData;
-// }
-export {encrypt, decrypt, 
-  // encrypt_payload
-};
+  return encryptedData;
+}
+export {encrypt, decrypt, encryptData};

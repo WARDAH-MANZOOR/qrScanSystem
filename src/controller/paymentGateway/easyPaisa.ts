@@ -140,7 +140,19 @@ const statusInquiry = async (
     if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
-    const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
+    const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    let result;
+    console.log(req.socket.remoteAddress)
+    if (channel == "DIRECT") {
+      result = await easyPaisaService.easypaisainquiry(req.query,merchantId);
+    }
+    else {
+      result = await swichService.swichTxInquiry(
+        req.query.orderId as string,
+        merchantId as string
+      );
+    }
+    // const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   } catch (err) {
     next(err);

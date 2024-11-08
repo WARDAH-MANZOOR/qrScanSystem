@@ -31,7 +31,7 @@ cron.schedule("0 16 * * 1-5", task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
-
+app.set("trust proxy",true);
 // Allow only specific origins
 app.use(cors({
   origin: [
