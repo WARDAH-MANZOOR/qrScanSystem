@@ -1,3 +1,4 @@
+import CustomError from "utils/custom_error.js";
 import { encryptData } from "utils/enc_dec.js";
 
 const baseUrl = 'https://gateway-sandbox.jazzcash.com.pk';
@@ -32,28 +33,33 @@ async function getToken() {
 }
 
 async function initiateTransaction(token: string) {
-  const payload = encryptData({
-    "bankAccountNumber": "01150100189365",
-    "bankCode": "49",
-    "amount": "1.00",
-    "receiverMSISDN": "03059564722",
-    "referenceId": "OriID_OFT2451AB23302145709"
-  }
-  ,"mYjC!nc3dibleY3k","Myin!tv3ctorjCM@")
-  const requestData = {
-    data: payload
-  };
+  try {
+    const payload = encryptData({
+      "bankAccountNumber": "01150100189365",
+      "bankCode": "49",
+      "amount": "1",
+      "receiverMSISDN": "03059564722",
+      "referenceId": "OriID_OFT2451AB23302145709"
+    }
+      , "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+    const requestData = {
+      data: payload
+    };
 
-  const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestData)
-  });
-  return await response.json();
+    const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    return await response.json();
+  }
+  catch (err) {
+    throw new CustomError("Failed to initiate transaction",500);
+  }
 }
 
 // async function confirmTransaction(token) {
