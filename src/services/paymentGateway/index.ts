@@ -18,11 +18,11 @@ async function getToken() {
     };
 
     const token = await fetch(`${baseUrl}/token`, requestOptions)
-      .then((response) => response.json())
+      .then((response) => response.text())
       .then((result) => result)
       .catch((error) => error);
     console.log(token);
-    return token.access_token;
+    return token;
   } catch (error) {
     console.error('Fetch error:', error);
   }
