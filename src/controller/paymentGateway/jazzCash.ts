@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
+import { getToken } from "services/paymentGateway/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
 const initiateJazzCash = async (
@@ -123,11 +124,22 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
+const initiateDisbursment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = getToken();
+    return res.status(200).json(ApiResponse.success(token));
+  }
+  catch(err) {
+    next(err)
+  }
+}
+
 export default {
   initiateJazzCash,
   getJazzCashMerchant,
   createJazzCashMerchant,
   updateJazzCashMerchant,
   deleteJazzCashMerchant,
-  statusInquiry
+  statusInquiry,
+  initiateDisbursment
 };
