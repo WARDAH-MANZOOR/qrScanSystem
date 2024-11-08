@@ -126,7 +126,7 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
 
 const initiateDisbursment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = getToken();
+    const token = await getToken();
     return res.status(200).json(ApiResponse.success(token));
   }
   catch(err) {
