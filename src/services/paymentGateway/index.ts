@@ -1,3 +1,5 @@
+import { encryptData } from "utils/enc_dec.js";
+
 const baseUrl = 'https://gateway-sandbox.jazzcash.com.pk';
 const tokenKey = 'RkR5Y250MXNTRWh5QXZvcnMyN2tLRDU1WE9jYTpBS2NCaTYyZ0Vmdl95YVZTQ0FCaHo2UnNKYWth';
 
@@ -18,33 +20,41 @@ async function getToken() {
     };
 
     const token = await fetch(`${baseUrl}/token`, requestOptions)
-      .then((response) => response.text())
+      .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
     console.log(token);
     return token;
   } catch (error) {
     console.error('Fetch error:', error);
-    
+
   }
 }
 
-// async function initTransaction(token) {
-//   const requestData = {
-//     data: '8e7ad04bffae4f1b7985ee1d116d2a88fffaf4a673425924da6330ac6a403faca943c13d4b01c2fbe1d7e628b7f0c709efceeea5deadbf946f397b08cdcd3b665464a7b2bacb3eb2b5728f511977ec03530e6bc20bdf3439321eab9944073f1440fe85d936f7b6089c8a44a9806ca011422b958799fdf852333543bc1011f2b3b4f55132cecda4f5575d53351aa95b874074e940ffb22298d3f6efc6bb1808f054dbe38cf482d32fa3c272ed2a0e7a9f'
-//   };
+async function initiateTransaction(token: string) {
+  const payload = encryptData({
+    "bankAccountNumber": "01150100189365",
+    "bankCode": "49",
+    "amount": "1.00",
+    "receiverMSISDN": "03059564722",
+    "referenceId": "OriID_OFT2451AB23302145709"
+  }
+  ,"mYjC!nc3dibleY3k","Myin!tv3ctorjCM@")
+  const requestData = {
+    data: payload
+  };
 
-//   const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
-//     method: 'POST',
-//     headers: {
-//       'Accept': 'application/json',
-//       'Authorization': `Bearer ${token}`,
-//       'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify(requestData)
-//   });
-//   return await response.json();
-// }
+  const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestData)
+  });
+  return await response.json();
+}
 
 // async function confirmTransaction(token) {
 //   const requestData = {
@@ -103,7 +113,7 @@ async function getToken() {
 //     const token = await getToken();
 //     console.log('Token:', token);
 
-//     const initResult = await initTransaction(token);
+//     const initResult = await initiateTransaction(token);
 //     console.log('Init Transaction:', initResult);
 
 //     const confirmResult = await confirmTransaction(token);
@@ -120,5 +130,6 @@ async function getToken() {
 // })();
 
 export {
-  getToken
+  getToken,
+  initiateTransaction
 }
