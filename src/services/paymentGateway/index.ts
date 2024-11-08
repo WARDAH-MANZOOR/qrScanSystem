@@ -20,7 +20,7 @@ async function getToken() {
     const token = await fetch(`${baseUrl}/token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
-      .catch((error) => console.error(error));
+      .catch((error) => error);
     console.log(token);
     return token.access_token;
   } catch (error) {
