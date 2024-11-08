@@ -12,6 +12,11 @@ import {
 export default function (router: Router) {
   // Define routes using arrow functions
   router.post(
+    "/jz-disburse",
+    jazzCashController.initiateDisbursment
+  )
+
+  router.post(
     "/initiate-jz/:merchantId",
     validateJazzcashRequest,
     jazzCashController.initiateJazzCash
