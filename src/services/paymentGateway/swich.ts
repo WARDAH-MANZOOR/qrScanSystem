@@ -121,7 +121,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       transactionService.sendCallback(
         findMerchant.webhook_url as string,
         saveTxn,
-        payload.msisdn,
+        payload.phone,
         "payin"
       );
       return {
