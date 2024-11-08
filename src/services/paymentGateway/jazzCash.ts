@@ -174,6 +174,7 @@ const initiateJazzCashPayment = async (
         else {
           data["transaction_id"] = txnRefNo;
         }
+        const settled_amount = parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number)
         // Create Transaction within the transaction
         await tx.transaction.create({
           data: {
@@ -183,12 +184,12 @@ const initiateJazzCashPayment = async (
             type: paymentData.type.toLowerCase(),
             status: "pending",
             merchant_id: merchant.merchant_id,
-            settled_amount: parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number),
+            settled_amount,
             providerDetails: {
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
             },
-            balance: parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number)
+            balance: settled_amount
           },
         });
         transactionCreated = true;
