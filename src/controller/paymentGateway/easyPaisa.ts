@@ -142,7 +142,7 @@ const statusInquiry = async (
     }
     const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
     let result;
-    console.log(req.socket.remoteAddress)
+    console.log(req.ip)
     if (channel == "DIRECT") {
       result = await easyPaisaService.easypaisainquiry(req.query,merchantId);
     }
