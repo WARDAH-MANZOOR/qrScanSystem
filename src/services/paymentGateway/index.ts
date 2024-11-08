@@ -25,6 +25,7 @@ async function getToken() {
     return token;
   } catch (error) {
     console.error('Fetch error:', error);
+    
   }
 }
 
