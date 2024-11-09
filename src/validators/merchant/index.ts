@@ -8,7 +8,7 @@ const updateMerchantValidation = [
     body('commission').optional().isNumeric().withMessage('Commission should be a number'),
     body('settlementDuration').optional().isNumeric().withMessage('Settlement duration should be a number'),
     // body('easypaisaMethod').optional().isString().withMessage('Easy Paisa Method is required').isIn(["DIRECT", "SWITCH"]).withMessage('Invalid Method'),
-    body('merchantId').isString().withMessage('Merchant ID is required'),
+    // body('merchantId').isString().withMessage('Merchant ID is required'),
 ]; 
  
 const addMerchantValidation = [
