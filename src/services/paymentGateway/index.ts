@@ -35,13 +35,12 @@ async function getToken() {
 async function initiateTransaction(token: string) {
   try {
     const payload = encryptData({
-      "bankAccountNumber": "01150100189365",
+      "bankAccountNumber": "12345678911112",
       "bankCode": "49",
-      "amount": "1",
-      "receiverMSISDN": "03059564722",
+      "amount": "1000.00",
+      "receiverMSISDN": "xxxxxxxxxxx",
       "referenceId": "OriID_OFT2451AB23302145709"
-    }
-      , "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+    }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
     const requestData = {
       data: payload
     };
@@ -58,6 +57,7 @@ async function initiateTransaction(token: string) {
     return await response.json();
   }
   catch (err) {
+    console.log("Initiate Transaction Error",err);
     throw new CustomError("Failed to initiate transaction",500);
   }
 }
