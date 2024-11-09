@@ -32,7 +32,7 @@ function encryptData(payload: any, secretKey: string, iv: string) {
   const jsonString = JSON.stringify(payload);
 
   // Create a cipher instance
-  const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(secretKey, 'hex'), Buffer.from(iv));
+  const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(secretKey), Buffer.from(iv));
 
   // Encrypt the data
   let encryptedData = cipher.update(jsonString, 'utf8', 'hex');
