@@ -95,7 +95,7 @@ model Merchant {
   EasyPaisaDisburseAccount EasyPaisaDisburseAccount? @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
 
   // New column for Easypaisa payment method selection
-  easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(DIRECT)
+  easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(SWITCH)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
