@@ -10,6 +10,7 @@ import {
 } from "validators/paymentGateway/jazzCash.js";
 
 export default function (router: Router) {
+  router.post("/dummy-callback",jazzCashController.dummyCallback)
   router.post("/jzw-disburse",jazzCashController.initiateMWDisbursement)
   // Define routes using arrow functions
   router.post(

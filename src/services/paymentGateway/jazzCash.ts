@@ -641,6 +641,15 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   }
 };
 
+const callback = (body: any) => {
+  try {
+    return "success";
+  }
+  catch {
+    return "error";
+  }
+}
+
 export default {
   initiateJazzCashPayment,
   getJazzCashMerchant,
@@ -648,4 +657,5 @@ export default {
   updateJazzCashMerchant,
   deleteJazzCashMerchant,
   statusInquiry,
+  callback
 };
