@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
-import { getToken, initiateTransaction } from "services/paymentGateway/index.js";
+import { getToken, initiateTransaction, mwTransaction } from "services/paymentGateway/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
 const initiateJazzCash = async (
@@ -136,6 +136,18 @@ const initiateDisbursment = async (req: Request, res: Response, next: NextFuncti
   }
 }
 
+const initiateMWDisbursement = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await getToken();
+    const initTransaction = await mwTransaction(token?.access_token, req.body);
+    return res.status(200).json(ApiResponse.success(initTransaction));
+  }
+  catch(err) {
+    next(err)
+  }
+}
+
 export default {
   initiateJazzCash,
   getJazzCashMerchant,
@@ -143,5 +155,6 @@ export default {
   updateJazzCashMerchant,
   deleteJazzCashMerchant,
   statusInquiry,
-  initiateDisbursment
+  initiateDisbursment,
+  initiateMWDisbursement
 };
