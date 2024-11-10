@@ -1,3 +1,4 @@
+import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 import { encryptData } from "utils/enc_dec.js";
 
@@ -34,12 +35,13 @@ async function getToken() {
 
 async function initiateTransaction(token: string) {
   try {
+    const id = transactionService.createTransactionId();
     const payload = encryptData({
       "bankAccountNumber": "12345678911112",
       "bankCode": "49",
       "amount": "1.00",
       "receiverMSISDN": "03142304891",
-      "referenceId": "OriID_OFT2451AB23302145709"
+      "referenceId": id
     }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
     const requestData = {
       data: payload
