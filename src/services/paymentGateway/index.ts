@@ -40,7 +40,7 @@ async function initiateTransaction(token: string) {
       "bankAccountNumber": "12345678911112",
       "bankCode": "49",
       "amount": "1000.00",
-      "receiverMSISDN": "xxxxxxxxxxx",
+      "receiverMSISDN": "03142304891",
       "referenceId": "OriID_"+id
     }
     , "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
