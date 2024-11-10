@@ -75,22 +75,24 @@ async function initiateTransaction(token: string, body: any) {
 //   return await response.json();
 // }
 
-// async function mwTransaction(token) {
-//   const requestData = {
-//     data: '86928ea8e1b0efa3c42bb84ac4e3622911b54bbd5a3dcb35a1b7e2eb97e33ef52f39c64e94030ce81ad3b7664331d5d5b3af6ee86aacc40fcc74985a574b2fe1d2fe1c94d99bde6f87702c1a0c7cd4326998540b9bb2f4ebbd7bb58585956d307179ac5fd3aba7568d08d46c2b1ece482a4c79a72e5872580db44d12fbb6798d969ee20e20509935e2ea78e8a8649929'
-//   };
+async function mwTransaction(token: string, body: any) {
+  const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
 
-//   const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
-//     method: 'POST',
-//     headers: {
-//       'Accept': 'application/json',
-//       'Authorization': `Bearer ${token}`,
-//       'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify(requestData)
-//   });
-//   return await response.json();
-// }
+  const requestData = {
+    data: payload
+  };
+
+  const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestData)
+  });
+  return await response.json();
+}
 
 // async function checkTransactionStatus(token) {
 //   const requestData = {
@@ -133,5 +135,6 @@ async function initiateTransaction(token: string, body: any) {
 
 export {
   getToken,
-  initiateTransaction
+  initiateTransaction,
+  mwTransaction
 }
