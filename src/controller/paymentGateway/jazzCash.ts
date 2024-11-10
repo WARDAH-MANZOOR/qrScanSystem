@@ -128,7 +128,7 @@ const initiateDisbursment = async (req: Request, res: Response, next: NextFuncti
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
     const token = await getToken();
-    const initTransaction = await initiateTransaction(token?.access_token);
+    const initTransaction = await initiateTransaction(token?.access_token, req.body);
     return res.status(200).json(ApiResponse.success(initTransaction));
   }
   catch(err) {
