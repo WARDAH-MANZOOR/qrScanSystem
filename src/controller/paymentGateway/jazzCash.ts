@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
-import { getToken, initiateTransaction, mwTransaction } from "services/paymentGateway/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction } from "services/paymentGateway/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 
 const initiateJazzCash = async (
@@ -16,7 +16,7 @@ const initiateJazzCash = async (
       return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
     }
     const paymentData = req.body;
-    
+
     let merchantId = req.params?.merchantId;
 
     if (!merchantId) {
@@ -30,7 +30,7 @@ const initiateJazzCash = async (
   }
 };
 
-const getJazzCashMerchant = async ( 
+const getJazzCashMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -113,13 +113,13 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
   try {
     const merchantId = req.params.merchantId;
     const payload = req.body;
-    if(!merchantId) {
+    if (!merchantId) {
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
-    const result = await jazzCashService.statusInquiry(payload,merchantId);
+    const result = await jazzCashService.statusInquiry(payload, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   }
-  catch(err) {
+  catch (err) {
     next(err);
   }
 };
@@ -131,7 +131,7 @@ const initiateDisbursment = async (req: Request, res: Response, next: NextFuncti
     const initTransaction = await initiateTransaction(token?.access_token, req.body);
     return res.status(200).json(ApiResponse.success(initTransaction));
   }
-  catch(err) {
+  catch (err) {
     next(err)
   }
 }
@@ -143,7 +143,7 @@ const initiateMWDisbursement = async (req: Request, res: Response, next: NextFun
     const initTransaction = await mwTransaction(token?.access_token, req.body);
     return res.status(200).json(ApiResponse.success(initTransaction));
   }
-  catch(err) {
+  catch (err) {
     next(err)
   }
 }
@@ -153,8 +153,20 @@ const dummyCallback = async (req: Request, res: Response, next: NextFunction) =>
     const result = jazzCashService.callback(req.body);
     return res.status(200).json(ApiResponse.success(result));
   }
-  catch(err) {
+  catch (err) {
     next(err);
+  }
+}
+
+const disburseInquiryController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await getToken();
+    const inquiry = await checkTransactionStatus(token?.access_token, req.body);
+    return res.status(200).json(ApiResponse.success(inquiry));
+  }
+  catch (err) {
+    next(err)
   }
 }
 
@@ -167,5 +179,6 @@ export default {
   statusInquiry,
   initiateDisbursment,
   initiateMWDisbursement,
-  dummyCallback
+  dummyCallback,
+  disburseInquiryController
 };

@@ -94,21 +94,23 @@ async function mwTransaction(token: string, body: any) {
   return await response.json();
 }
 
-// async function checkTransactionStatus(token) {
-//   const requestData = {
-//     data: 'e49cc24c6dea0a3cc75a7a0f38721c408fd0b0bb6b85a81e1348e5da650a04e188ec47826f7996d98003b5fc58b3a2798d018292fb8939775c04102f3dada0df94211ac4807fdeda392d4a0cff19cff13738046ada3924fa6580ee6607a4985b'
-//   };
+async function checkTransactionStatus(token: string, body: any) {
+  const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
 
-//   const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
-//     method: 'POST',
-//     headers: {
-//       'Authorization': `Bearer ${token}`,
-//       'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify(requestData)
-//   });
-//   return await response.json();
-// }
+  const requestData = {
+    data: payload
+  };
+
+  const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestData)
+  });
+  return await response.json();
+}
 
 // Main execution function to get the token and perform transactions
 // (async function main() {
@@ -136,5 +138,6 @@ async function mwTransaction(token: string, body: any) {
 export {
   getToken,
   initiateTransaction,
-  mwTransaction
+  mwTransaction,
+  checkTransactionStatus
 }
