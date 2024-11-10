@@ -37,8 +37,8 @@ async function initiateTransaction(token: string) {
     const payload = encryptData({
       "bankAccountNumber": "12345678911112",
       "bankCode": "49",
-      "amount": "1000.00",
-      "receiverMSISDN": "xxxxxxxxxxx",
+      "amount": "1.00",
+      "receiverMSISDN": "03142304891",
       "referenceId": "OriID_OFT2451AB23302145709"
     }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
     const requestData = {

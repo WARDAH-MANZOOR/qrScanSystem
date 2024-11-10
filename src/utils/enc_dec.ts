@@ -40,4 +40,19 @@ function encryptData(payload: any, secretKey: string, iv: string) {
 
   return encryptedData;
 }
-export {encrypt, decrypt, encryptData};
+
+function decryptData(encryptedData: string, secretKey: string, iv: string) {
+  // Create a decipher instance
+  const decipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(secretKey), Buffer.from(iv));
+
+  // Decrypt the data
+  let decryptedData = decipher.update(encryptedData, 'hex', 'utf8');
+  decryptedData += decipher.final('utf8');
+
+  // Parse the decrypted JSON string
+  const payload = JSON.parse(decryptedData);
+
+  return payload;
+}
+
+export {encrypt, decrypt, encryptData, decryptData};
