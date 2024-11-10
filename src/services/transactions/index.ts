@@ -349,7 +349,6 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       };
 
       let res = await axios.request(config)
-      console.log(res)
       if (res.data == "success") {
         console.log("Callback sent successfully")
       }
