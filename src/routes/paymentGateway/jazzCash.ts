@@ -12,6 +12,7 @@ import {
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
   router.post("/jzw-disburse",jazzCashController.initiateMWDisbursement)
+  router.post("/jz-disburse-status",jazzCashController.disburseInquiryController);
   // Define routes using arrow functions
   router.post(
     "/jz-disburse",
