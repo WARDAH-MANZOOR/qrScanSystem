@@ -95,14 +95,20 @@ async function mwTransaction(token: string, body: any) {
 }
 
 async function checkTransactionStatus(token: string, body: any) {
-  const results = await Promise.all(
-    body.transactionIds.map(async (id: string) => {
-      const payload = encryptData({ originalReferenceId: id, referenceID: transactionService.createTransactionId() }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
-      
-      const requestData = {
-        data: payload
-      };
+  const results = [];
 
+  for (const id of body.transactionIds) {
+    const payload = encryptData(
+      { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
+      "mYjC!nc3dibleY3k",
+      "Myin!tv3ctorjCM@"
+    );
+
+    const requestData = {
+      data: payload
+    };
+
+    try {
       const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
         method: 'POST',
         headers: {
@@ -113,12 +119,16 @@ async function checkTransactionStatus(token: string, body: any) {
       });
 
       const jsonResponse = await response.json();
-      return { id, status: jsonResponse };  // Capture the status response for each ID
-    })
-  );
+      results.push({ id, status: jsonResponse });
+    } catch (error: any) {
+      // Handle error (e.g., network issue) and add to results
+      results.push({ id, status: null, error: error?.message });
+    }
+  }
 
-  return results;  // Array of status responses for each transaction ID
+  return results; // Array of status responses for each transaction ID
 }
+
 
 
 // Main execution function to get the token and perform transactions
