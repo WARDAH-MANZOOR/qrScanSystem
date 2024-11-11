@@ -96,7 +96,6 @@ const router = Router();
  */
 
 router.post("/create-user",
-    isLoggedIn,
     async (req: Request, res: Response) => {
         const { username, email, password, group, commission, commissionGST, commissionWithHoldingTax, disbursementRate, disbursementGST, disbursementWithHoldingTax, settlementDuration } = req.body;
         let error;

@@ -67,6 +67,71 @@ const findTransaction = async (id: string) => {
   return Boolean(transaction);
 };
 
+interface RequestObject {
+  [key: string]: string | null;
+}
+
+function calculateHmacSha256(
+  json: string, 
+  integrityText: string
+): string | null {
+  try {
+    // Parse the JSON input
+    const request: RequestObject = JSON.parse(json);
+    console.log('Valid JSON');
+
+    // Create a sorted list of the request object (excluding "pp_SecureHash")
+    const sortedList: RequestObject = {};
+    Object.keys(request).sort().forEach(key => {
+      if (key !== "pp_SecureHash") {
+        sortedList[key] = request[key];
+      }
+    });
+
+    console.log(sortedList);
+
+    // Build the final string by concatenating the values from sorted list and integrityText
+    let finalString = integrityText + '&';
+    Object.keys(sortedList).forEach(key => {
+      finalString += sortedList[key] || ''; // Append the value of each key (skip null or undefined)
+      if (sortedList[key] !== null && sortedList[key] !== "") {
+        finalString += '&'; // Append '&' only if the value is not null or empty
+      }
+    });
+
+    // Remove trailing '&'
+    finalString = finalString.slice(0, -1);
+    // console.log('Calculating Hash of "' + finalString + '"');
+
+    // Calculate HMAC SHA256 hash using integrityText as the key
+    const hmac256 = crypto.createHmac('sha256', integrityText)
+                          .update(finalString)
+                          .digest('hex')
+                          .toUpperCase();
+
+    console.log(hmac256);
+
+    // Return the calculated HMAC as output
+    return hmac256;
+
+  } catch (e: any) {
+    console.error('Error: ' + e.message);
+    return null;
+  }
+}
+
+// // Example Usage:
+// const jsonInput = '{"key1": "value1", "key2": "value2", "pp_SecureHash": "somehash"}';
+// const integrityText = 'your_integrity_key_here';
+// const hashResult = calculateHmacSha256(jsonInput, integrityText);
+
+// if (hashResult) {
+//   console.log('HMAC SHA256 Hash:', hashResult);
+// } else {
+//   console.log('Failed to calculate hash.');
+// }
+
+
 const initiateJazzCashPayment = async (
   paymentData: any,
   merchant_uid?: string
@@ -246,36 +311,64 @@ const initiateJazzCashPayment = async (
 
     if (paymentType === "CARD") {
       // Handle CARD payment type
-      const payload = {
-        pp_Version: "2.0",
-        pp_IsRegisteredCustomer: "Yes",
-        pp_ShouldTokenizeCardNumber: "Yes",
+      const payload: any = {
+        pp_CustomerID: "25352",
+        pp_CustomerEmail: "abc@abc.com",
+        pp_CustomerMobile: "03022082257",
+        pp_Version: "1.1",
         pp_TxnType: "MPAY",
-        pp_TxnRefNo: refNo,
-        pp_Amount: amount * 100,
+        pp_TxnRefNo: "T202411111011302",
+        pp_MerchantID: "12478544",
+        pp_Password: "uczu5269d1",
+        pp_Amount: "100",
         pp_TxnCurrency: "PKR",
-        pp_TxnDateTime: txnDateTime,
-        pp_TxnExpiryDateTime: format(
-          new Date(Date.now() + 60 * 60 * 1000),
-          "yyyyMMddHHmmss"
-        ),
+        pp_TxnDateTime: format(new Date(), "yyyyMMddHHmmss"),
+        pp_TxnExpiryDateTime: format(new Date(Date.now() + 60 * 60 * 1000), "yyyyMMddHHmmss"),
         pp_BillReference: "billRef",
         pp_Description: "Description of transaction",
-        pp_CustomerCardNumber: "5123456789012346",
-        pp_UsageMode: "API",
-        pp_SecureHash: sendData.pp_SecureHash,
-        ...jazzCashCredentials,
+        pp_CustomerCardNumber: "5123450000000008",
+        pp_CustomerCardCVV: "100",
+        pp_CustomerCardExpiry: "01/39",
+        // pp_SecureHash: "",
+        // pp_DiscountedAmount: "",
+        // pp_DiscountBank: "",
+        pp_ReturnURL: "https://devtects.com/thankyou.html",
+        pp_UsageMode: "API"
       };
+  
+      let salt = "e6t384f1fu";
+  
+      payload.pp_SecureHash = calculateHmacSha256(JSON.stringify(payload), salt);
+      console.log("🚀 ~ payload.pp_SecureHash:", payload.pp_SecureHash)
+  
+  
+  
+      const paymentUrl = "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/Purchase/PAY";
+      const headers = {
+        "Content-Type": "application/json",
+      };
+  
+      console.log("🚀 ~ payload:", payload);
+      
+  
+      const response = await axios.post(paymentUrl, payload, { headers });
+  
+      const r = response.data;
+      console.log(r);
+  
+  
+      return r
+     
 
       // You can process CARD payments similarly
-      jazzCashCardPayment({
-        refNo: refNo,
-        secureHash: sendData.pp_SecureHash,
-        amount: amount,
-        txnDateTime: txnDateTime,
-        jazzCashMerchantIntegritySalt: jazzCashMerchantIntegritySalt,
-        ...jazzCashCredentials,
-      });
+      // jazzCashCardPayment({
+      //   refNo: refNo,
+      //   secureHash: sendData.pp_SecureHash,
+      //   amount: amount,
+      //   txnDateTime: txnDateTime,
+      //   jazzCashMerchantIntegritySalt: jazzCashMerchantIntegritySalt,
+      //   ...jazzCashCredentials,
+      // });
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
@@ -404,6 +497,7 @@ const initiateJazzCashPayment = async (
       }
     }
   } catch (error: any) {
+    console.log("🚀 ~ error:", error?.response?.data)
     // console.error(error);
     throw new CustomError(
       error?.message || "An error occurred",
@@ -644,12 +738,10 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 const callback = (body: any) => {
   try {
     return "success";
-  }
-  catch {
+  } catch {
     return "error";
   }
-}
-
+};
 
 export default {
   initiateJazzCashPayment,
@@ -658,5 +750,5 @@ export default {
   updateJazzCashMerchant,
   deleteJazzCashMerchant,
   statusInquiry,
-  callback
+  callback,
 };
