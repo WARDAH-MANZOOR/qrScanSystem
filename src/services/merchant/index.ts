@@ -43,6 +43,10 @@ const updateMerchant = async (payload: Merchant) => {
           }
         })
       }
+      let method = easypaisaMethod.toUpperCase();
+      if (method != "DIRECT" && method != "SWITCH") {
+        throw new CustomError("Easy Paisa Method not valid",400);
+      }
       const user = await tx.merchant.update({
         data: {
           full_name: username,
@@ -56,7 +60,7 @@ const updateMerchant = async (payload: Merchant) => {
           swichMerchantId,
           webhook_url,
           EasyPaisaDisburseAccountId,
-          easypaisaPaymentMethod: easypaisaMethod
+          easypaisaPaymentMethod: method
         },
         where: { merchant_id: +merchantId },
       });
