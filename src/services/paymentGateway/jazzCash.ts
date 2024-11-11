@@ -635,6 +635,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
   let res = await axios.request(config);
   if (res.data.pp_ResponseCode == "000") {
+    delete res.data.pp_SecureHash;
     return res.data;
   } else {
     throw new CustomError("Internal Server Error", 500);

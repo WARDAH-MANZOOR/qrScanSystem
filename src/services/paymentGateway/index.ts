@@ -1,6 +1,6 @@
 import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
-import { encryptData } from "utils/enc_dec.js";
+import { decryptData, encryptData } from "utils/enc_dec.js";
 
 const baseUrl = 'https://gateway-sandbox.jazzcash.com.pk';
 const tokenKey = 'RkR5Y250MXNTRWh5QXZvcnMyN2tLRDU1WE9jYTpBS2NCaTYyZ0Vmdl95YVZTQ0FCaHo2UnNKYWth';
@@ -50,11 +50,11 @@ async function initiateTransaction(token: string, body: any) {
       },
       body: JSON.stringify(requestData)
     });
-    return await response.json();
+    return decryptData(await response.json(), "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
   }
   catch (err) {
-    console.log("Initiate Transaction Error",err);
-    throw new CustomError("Failed to initiate transaction",500);
+    console.log("Initiate Transaction Error", err);
+    throw new CustomError("Failed to initiate transaction", 500);
   }
 }
 
@@ -91,7 +91,7 @@ async function mwTransaction(token: string, body: any) {
     },
     body: JSON.stringify(requestData)
   });
-  return await response.json();
+  return decryptData(await response.json(), "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
 }
 
 async function checkTransactionStatus(token: string, body: any) {
@@ -117,8 +117,7 @@ async function checkTransactionStatus(token: string, body: any) {
         },
         body: JSON.stringify(requestData)
       });
-
-      const jsonResponse = await response.json();
+      const jsonResponse = decryptData(await response.json(), "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results
