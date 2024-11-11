@@ -367,7 +367,7 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
         params: {
           ClientId: clientId,
           CustomerTransactionId: transactionId,
-          RemoteIPAddress: "139.59.40.220",
+          RemoteIPAddress: "167.71.225.46",
         },
       })
       .catch((err) => {
