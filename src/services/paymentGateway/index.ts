@@ -97,7 +97,7 @@ async function mwTransaction(token: string, body: any) {
 async function checkTransactionStatus(token: string, body: any) {
   const results = await Promise.all(
     body.transactionIds.map(async (id: string) => {
-      const payload = encryptData({ id }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+      const payload = encryptData({ originalReferenceId: id, referenceID: transactionService.createTransactionId() }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
       
       const requestData = {
         data: payload
