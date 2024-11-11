@@ -50,7 +50,7 @@ async function initiateTransaction(token: string, body: any) {
       },
       body: JSON.stringify(requestData)
     });
-    return decryptData(await response.json(), "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+    return decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
   }
   catch (err) {
     console.log("Initiate Transaction Error", err);
@@ -91,7 +91,7 @@ async function mwTransaction(token: string, body: any) {
     },
     body: JSON.stringify(requestData)
   });
-  return decryptData(await response.json(), "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+  return decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
 }
 
 async function checkTransactionStatus(token: string, body: any) {
@@ -117,7 +117,7 @@ async function checkTransactionStatus(token: string, body: any) {
         },
         body: JSON.stringify(requestData)
       });
-      const jsonResponse = decryptData(await response.json(), "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+      const jsonResponse = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results
