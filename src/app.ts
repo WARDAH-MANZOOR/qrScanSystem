@@ -89,7 +89,6 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
  
-console.log(decryptData("814c86e695359028d4cab4ba322d4ba94b274eac54dd0d820116a4c9361018e854203a59acf201b17e79f162e617a73b2129b5a71229fdca8b21ce946cb70411dbf2aebcb1583eeeed931e78f558f13ff3b84c2d261dc572a85b6175c9296b2a5dfef388a78533bac1e3a735b318fb4809c6bab1e1efeb54dcddefb59a96c7f450aff550f71f962d1cc14c6ba9a58e1c49965d1f9522e4f3d7b257eb848931701cfdc83b8b4fbaf37549523c56ab003b8bffe0d47813fac592c71e6787d5f2529d56a0b7f391763d4f2d48f285526b558c4a2ce901c998eb0fae2ac3e19ca0e35f15ba3e9363b027c9c8a1ebe78e3406313964ae668380329619db65c9d6bf951dfd0b27824f6cb5864dc0ab1ac241aa338e4ac8ff5d55de306afb23e1f13c09","mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@"))
 // Example usage
 
 // const encryptedData = encryptWithPublicKey(publicKey, data);
