@@ -365,7 +365,7 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
           Authorization: `Bearer ${authToken}`,
         },
         params: {
-          clientId: clientId,
+          ClientId: clientId,
           CustomerTransactionId: transactionId,
           RemoteIPAddress: "139.59.40.220",
         },
