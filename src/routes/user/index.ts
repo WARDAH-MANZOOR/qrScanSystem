@@ -184,7 +184,7 @@ router.post("/create-user",
                         };
 
                         // Check group and assign user to the correct group
-                        if (group === 1 || group === 2) {
+                        // if (group === 1 || group === 2) {
                             await prisma.userGroup.create({
                                 data: {
                                     userId: user.id,
@@ -192,7 +192,7 @@ router.post("/create-user",
                                     merchantId: (req.user as JwtPayload)?.merchant_id // Group ID 1 or 2
                                 }
                             });
-                        }
+                        // }
 
                         // Generate token and respond
                         let token = jwt.sign({ email, id: user.id, merchant_id: group == 2 ? user.id: null, role: group == 1 ? "Admin": group == 2 ? "Merchant": "User", }, "shhhhhhhhhhhhhh");

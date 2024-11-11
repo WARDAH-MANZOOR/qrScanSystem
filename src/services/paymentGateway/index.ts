@@ -95,22 +95,31 @@ async function mwTransaction(token: string, body: any) {
 }
 
 async function checkTransactionStatus(token: string, body: any) {
-  const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+  const results = await Promise.all(
+    body.transactionIds.map(async (id: string) => {
+      const payload = encryptData({ id }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+      
+      const requestData = {
+        data: payload
+      };
 
-  const requestData = {
-    data: payload
-  };
+      const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
 
-  const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestData)
-  });
-  return await response.json();
+      const jsonResponse = await response.json();
+      return { id, status: jsonResponse };  // Capture the status response for each ID
+    })
+  );
+
+  return results;  // Array of status responses for each transaction ID
 }
+
 
 // Main execution function to get the token and perform transactions
 // (async function main() {
