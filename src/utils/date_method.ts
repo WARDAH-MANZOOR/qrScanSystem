@@ -14,7 +14,7 @@ const addWeekdays = (date: Date, days: number) => {
     }
   }
   // Set a random time before 4:00 pm (16:00)
-  result.setHours(15, 0, 0, 0);
+  result.setHours(0, 0, 0, 0);
 
   return result;
 };
