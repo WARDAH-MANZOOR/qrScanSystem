@@ -76,7 +76,7 @@ async function initiateTransaction(token: string, body: any) {
 // }
 
 async function mwTransaction(token: string, body: any) {
-  const payload = encryptData(body, "mYjC!nc3dY3k", "Myin!tvrjCM@")
+  const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
 
   const requestData = {
     data: payload
@@ -86,7 +86,7 @@ async function mwTransaction(token: string, body: any) {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Authorization': `Bearer asdfghkad`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(requestData)
@@ -107,7 +107,7 @@ async function checkTransactionStatus(token: string, body: any) {
     const requestData = {
       data: payload
     };
-
+    console.log(requestData)
     try {
       const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
         method: 'POST',
