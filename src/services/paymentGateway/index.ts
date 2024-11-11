@@ -76,7 +76,7 @@ async function initiateTransaction(token: string, body: any) {
 // }
 
 async function mwTransaction(token: string, body: any) {
-  const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+  const payload = encryptData(body, "mYjC!nc3dY3k", "Myin!tvrjCM@")
 
   const requestData = {
     data: payload
@@ -86,7 +86,7 @@ async function mwTransaction(token: string, body: any) {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer asdfghkad`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(requestData)
