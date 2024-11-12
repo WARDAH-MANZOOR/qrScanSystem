@@ -86,6 +86,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       "responseDesc": txn?.response_message,
       "responseMode": "MA"
     }
+    return data;
   }
   catch(err: any) {
     throw new CustomError(err?.message || "Error getting transaction",500);
