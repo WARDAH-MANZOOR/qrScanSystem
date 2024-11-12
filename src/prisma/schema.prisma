@@ -32,6 +32,11 @@ enum EasypaisaPaymentMethodEnum {
   SWITCH
 }
 
+enum EasypaisaInquiryMethod {
+  DATABASE
+  WALLET
+}
+
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            @unique
@@ -96,6 +101,7 @@ model Merchant {
 
   // New column for Easypaisa payment method selection
   easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(SWITCH)
+  easypaisaInquiryMethod EasypaisaInquiryMethod     @default(DATABASE)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt

@@ -37,6 +37,62 @@ const getMerchantChannel = async (merchantId: string) => {
     }
   })
 }
+
+const getMerchantInquiryMethod = async (merchantId: string) => {
+  return await prisma.merchant.findFirst({
+    where: {
+      uid: merchantId
+    },
+    select: {
+      easypaisaInquiryMethod: true
+    }
+  })
+}
+
+const getTransaction = async (merchantId: string, transactionId: string) => {
+  try {
+    const id = await prisma.merchant.findFirst({
+      where: {
+        uid: merchantId,
+      },
+      select: {
+        merchant_id: true
+      }
+    })
+    if(!id) {
+      throw new CustomError("Merchant not found",400);
+    }
+    const txn = await prisma.transaction.findFirst({
+      where: {
+        transaction_id: transactionId,
+        merchant_id: id?.merchant_id
+      },
+      include: {
+        AdditionalInfo: {
+          select: {
+            custom_field_1: true
+          }
+        }
+      }
+    })
+    if(!txn) {
+      throw new CustomError("Transaction not found",400);
+    }
+    // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
+    return {
+      "orderId": txn.transaction_id,
+      "transactionStatus": txn.status,
+      "transactionAmount": txn.original_amount,
+      "transactionDateTime": txn.date_time,
+      "msisdn": txn.AdditionalInfo?.custom_field_1,
+      "responseDesc": txn.response_message,
+      "responseMode": "MA"
+    }
+  }
+  catch(err) {
+    throw new CustomError("Error getting transaction",500);
+  }
+}
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
   try {
     if (!merchantId) {
@@ -323,7 +379,15 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
 
   let res: any = await axios.request(config);
   if (res.data.responseCode == "0000") {
-    return res.data;
+    return {
+      "orderId": res.data.orderId,
+      "transactionStatus": res.data.transactionStatus,
+      "transactionAmount": res.data.transactionAmount,
+      "transactionDateTime": res.data.transactionDateTime,
+      "msisdn": res.data.msisdn,
+      "responseDesc": res.data.responseDesc,
+      "responseMode": "MA"
+    }
   } else {
     throw new CustomError(
       res?.data?.responseDesc || "Internal Server Error",
@@ -846,6 +910,8 @@ export default {
   createDisbursement,
   getDisbursement,
   disburseThroughBank,
+  getMerchantInquiryMethod,
+getTransaction
 };
 
 // const axios = require('axios');
