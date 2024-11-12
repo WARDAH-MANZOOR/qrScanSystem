@@ -374,7 +374,16 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
         return err.response.data;
       });
 
-    return txnInquiry;
+    // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
+    return {
+      "orderId": txnInquiry.transaction.transaction_id,
+      "transactionStatus": txnInquiry.transaction.transactionStatus,
+      "transactionAmount": txnInquiry.transaction.amount,
+      "transactionDateTime": txnInquiry.transaction.createdDateTime,
+      "msisdn": txnInquiry.transaction.msisdn,
+      "responseDesc": txnInquiry.transaction.transactionStatus,
+      "responseMode": "MA"
+    };
   } catch (err: any) {
     throw new CustomError(
       err?.message || "An error occurred while inquiring the transaction",

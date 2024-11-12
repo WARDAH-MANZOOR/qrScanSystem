@@ -39,7 +39,7 @@ const initiateEasyPaisa = async (
         email: req.body.email,
         order_id: req.body.order_id,
         type: req.body.type
-      },merchantId)
+      }, merchantId)
     }
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
@@ -141,16 +141,22 @@ const statusInquiry = async (
       return res.status(400).json(ApiResponse.error("Merchant ID is required"));
     }
     const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    const method = (await easyPaisaService.getMerchantInquiryMethod(merchantId))?.easypaisaInquiryMethod;
     let result;
     console.log(req.ip)
-    if (channel == "DIRECT") {
-      result = await easyPaisaService.easypaisainquiry(req.query,merchantId);
+    if (method == "WALLET") {
+      if (channel == "DIRECT") {
+        result = await easyPaisaService.easypaisainquiry(req.query, merchantId);
+      }
+      else {
+        result = await swichService.swichTxInquiry(
+          req.query.orderId as string,
+          merchantId as string
+        );
+      }
     }
     else {
-      result = await swichService.swichTxInquiry(
-        req.query.orderId as string,
-        merchantId as string
-      );
+      result = await easyPaisaService.getTransaction(merchantId as string, req.query.orderId as string)
     }
     // const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
     return res.status(200).json(ApiResponse.success(result));
@@ -177,8 +183,8 @@ const createDisbursement = async (
 const getDisbursement = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = (req.user as JwtPayload)?.merchant_id;
-    const {query} = req;
-    const merchant = await easyPaisaService.getDisbursement(id,query);
+    const { query } = req;
+    const merchant = await easyPaisaService.getDisbursement(id, query);
     return res.status(200).json(ApiResponse.success(merchant));
   } catch (error) {
     next(error);
@@ -192,7 +198,7 @@ const disburseThroughBank = async (req: Request, res: Response, next: NextFuncti
     const result = await easyPaisaService.disburseThroughBank(payload, merchantId);
     return res.status(200).json(ApiResponse.success(result));
   }
-  catch(err) {
+  catch (err) {
     next(err);
   }
 }
