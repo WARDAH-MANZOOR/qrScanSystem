@@ -191,6 +191,8 @@ model Transaction {
   createdAt       DateTime? @default(now())
   updatedAt       DateTime? @updatedAt
   providerDetails Json?
+
+  paymentRequest    PaymentRequest?
 }
 
 model AdditionalInfo {
@@ -301,6 +303,23 @@ model EasyPaisaDisburseAccount {
   xChannel     String
   pin          String
   merchant     Merchant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model PaymentRequest {
+  id            String     @id @default(uuid()) @unique
+  transactionId String?     @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [transaction_id])
+  email         String
+  amount        Decimal
+  description   String?
+  dueDate       DateTime
+  status TransactionStatus @default(pending)
+  link           String?
+  metadata      Json? @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
