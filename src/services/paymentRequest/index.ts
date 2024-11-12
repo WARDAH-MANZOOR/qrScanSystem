@@ -1,28 +1,27 @@
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 
-const createPaymentRequest = async (data: any) => {
+const createPaymentRequest = async (data: any, user: any) => {
   try {
-    // Verify the transaction ID, does it exist in the database?
-    const transaction = await prisma.transaction.findFirst({
-      where: {
-        transaction_id: data.transactionId,
-      },
-    });
+    // if (user.role !== "Merchant") {
+    //   throw new CustomError("Only merchants can create payment requests", 403);
+    // }
 
-    if (!transaction) {
-      throw new CustomError("Transaction not found", 404);
+    if (!user.id) {
+      throw new CustomError("User not found", 400);
     }
 
     const newPaymentRequest = await prisma.$transaction(async (tx) => {
       return tx.paymentRequest.create({
         data: {
+          userId: user.id,
           amount: data.amount,
           status: "pending",
           email: data.email,
           description: data.description,
           transactionId: data.transactionId,
           dueDate: data.dueDate,
+          provider: data.provider,
           link: data.link,
           metadata: data.metadata || {},
           createdAt: new Date(),
@@ -45,6 +44,50 @@ const createPaymentRequest = async (data: any) => {
   } catch (error: any) {
     throw new CustomError(
       error?.message || "An error occurred while creating the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
+const payRequestedPayment = async (paymentRequestId: string) => {
+  try {
+    const paymentRequest = await prisma.paymentRequest.findFirst({
+      where: {
+        id: paymentRequestId,
+        deletedAt: null,
+      },
+    });
+    // console.log("🚀 ~ payRequestedPayment ~ paymentRequest:", paymentRequest)
+    
+    if (!paymentRequest) {
+      throw new CustomError("Payment request not found", 404);
+    }
+
+    if (!paymentRequest.userId) {
+      throw new CustomError("User not found", 404);
+    }
+
+    // find merchant by user id because merchant and user are the same
+    const merchant = await prisma.merchant.findFirst({
+      where: {
+        merchant_id: paymentRequest.userId,
+      },
+    });
+    // console.log("🚀 ~ payRequestedPayment ~ merchant:", merchant)
+
+
+    // const updatedPaymentRequest = await updatePaymentRequest(paymentRequestId, {
+    //   status: "paid",
+    //   link: `/${paymentRequest.id}`,
+    // });
+
+    return {
+      message: "Payment request updated successfully",
+      // data: updatedPaymentRequest,
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while updating the payment request",
       error?.statusCode || 500
     );
   }
@@ -117,6 +160,8 @@ const updatePaymentRequest = async (paymentRequestId: string, data: any) => {
           status: data.status,
           email: data.email,
           description: data.description,
+          transactionId: data.transactionId,
+          provider: data.provider,
           dueDate: data.dueDate,
           link: data.link,
           metadata: data.metadata || {},
@@ -146,7 +191,6 @@ const updatePaymentRequest = async (paymentRequestId: string, data: any) => {
 
 const deletePaymentRequest = async (paymentRequestId: string) => {
   try {
-
     // Verify if it is already deleted
     const paymentRequest = await prisma.paymentRequest.findFirst({
       where: {
@@ -158,7 +202,6 @@ const deletePaymentRequest = async (paymentRequestId: string) => {
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
     }
-
 
     const deletedPaymentRequest = await prisma.$transaction(async (tx) => {
       return tx.paymentRequest.update({
@@ -195,4 +238,5 @@ export default {
   getPaymentRequest,
   updatePaymentRequest,
   deletePaymentRequest,
+  payRequestedPayment,
 };

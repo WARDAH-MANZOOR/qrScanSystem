@@ -12,6 +12,7 @@ enum TransactionStatus {
   completed
   pending
   failed
+  paid
 }
 
 enum TransactionType {
@@ -320,6 +321,8 @@ model PaymentRequest {
   status TransactionStatus @default(pending)
   link           String?
   metadata      Json? @default("{}")
+  provider      String?
+  userId        Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

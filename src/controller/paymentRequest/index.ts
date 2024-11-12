@@ -9,7 +9,10 @@ const createPaymentRequest = async (
   next: NextFunction
 ) => {
   try {
-    const result = await paymentRequestService.createPaymentRequest(req.body);
+    const result = await paymentRequestService.createPaymentRequest(
+      req.body,
+      req.user
+    );
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
@@ -22,10 +25,7 @@ const getPaymentRequest = async (
   next: NextFunction
 ) => {
   try {
-   
-    const result = await paymentRequestService.getPaymentRequest(
-      req.query
-    );
+    const result = await paymentRequestService.getPaymentRequest(req.query);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
@@ -80,9 +80,31 @@ const deletePaymentRequest = async (
   }
 };
 
+const payRequestedPayment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const paymentRequestId = req.params?.paymentRequestId;
+
+    if (!paymentRequestId) {
+      throw new CustomError("Payment request ID is required", 400);
+    }
+
+    const result = await paymentRequestService.payRequestedPayment(
+      paymentRequestId
+    );
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   createPaymentRequest,
   getPaymentRequest,
   updatePaymentRequest,
   deletePaymentRequest,
+  payRequestedPayment,
 };

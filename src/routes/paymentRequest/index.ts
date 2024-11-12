@@ -7,6 +7,8 @@ const router = Router();
 router.use([isLoggedIn]);
 
 router.post("/", paymentRequestController.createPaymentRequest);
+router.post("/pay/:paymentRequestId", paymentRequestController.payRequestedPayment);
+
 router.get("/", paymentRequestController.getPaymentRequest);
 router.put(
   "/:paymentRequestId",
