@@ -65,7 +65,12 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
     const txn = await prisma.transaction.findFirst({
       where: {
         transaction_id: transactionId,
-        merchant_id: id?.merchant_id
+        merchant_id: id?.merchant_id,
+        // providerDetails: {
+          // equals: {
+            // name: "Easypaisa",
+          // }
+        // } 
       },
       include: {
         AdditionalInfo: {
@@ -75,7 +80,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
         }
       }
     })
-    if(!txn) {
+    if(txn?.AdditionalInfo?.custom_field_1 || !txn) {
       throw new CustomError("Transaction not found",400);
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
@@ -89,8 +94,8 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       "responseMode": "MA"
     }
   }
-  catch(err) {
-    throw new CustomError("Error getting transaction",500);
+  catch(err: any) {
+    throw new CustomError(err?.message || "Error getting transaction",500);
   }
 }
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
