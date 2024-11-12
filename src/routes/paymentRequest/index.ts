@@ -4,18 +4,23 @@ import { paymentRequestController } from "controller/index.js";
 
 const router = Router();
 
-router.use([isLoggedIn]);
+router.post(
+  "/pay/:paymentRequestId",
+  paymentRequestController.payRequestedPayment
+);
 
-router.post("/", paymentRequestController.createPaymentRequest);
-router.post("/pay/:paymentRequestId", paymentRequestController.payRequestedPayment);
+router.get("/:id", paymentRequestController.getPaymentRequestbyId);
 
-router.get("/", paymentRequestController.getPaymentRequest);
+router.get("/", [isLoggedIn], paymentRequestController.getPaymentRequest);
+router.post("/", [isLoggedIn], paymentRequestController.createPaymentRequest);
 router.put(
   "/:paymentRequestId",
+  [isLoggedIn],
   paymentRequestController.updatePaymentRequest
 );
 router.delete(
   "/:paymentRequestId",
+  [isLoggedIn],
   paymentRequestController.deletePaymentRequest
 );
 

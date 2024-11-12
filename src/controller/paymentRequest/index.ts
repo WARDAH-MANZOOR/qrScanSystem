@@ -25,6 +25,7 @@ const getPaymentRequest = async (
   next: NextFunction
 ) => {
   try {
+    req.query.user = req.user;
     const result = await paymentRequestService.getPaymentRequest(req.query);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
@@ -39,6 +40,7 @@ const updatePaymentRequest = async (
 ) => {
   try {
     const id = req.params?.paymentRequestId;
+    const user = req?.user;
 
     if (!id) {
       throw new CustomError("Payment request ID is required", 400);
@@ -51,7 +53,29 @@ const updatePaymentRequest = async (
 
     const result = await paymentRequestService.updatePaymentRequest(
       id,
-      req.body
+      req.body,
+      user
+    );
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPaymentRequestbyId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.params?.id;
+
+    if (!id) {
+      throw new CustomError("Payment request ID is required", 400);
+    }
+
+    const result = await paymentRequestService.getPaymentRequestbyId(
+      id as string
     );
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
@@ -107,4 +131,5 @@ export default {
   updatePaymentRequest,
   deletePaymentRequest,
   payRequestedPayment,
+  getPaymentRequestbyId,
 };

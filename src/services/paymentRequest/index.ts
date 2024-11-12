@@ -3,9 +3,9 @@ import CustomError from "utils/custom_error.js";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
-    // if (user.role !== "Merchant") {
-    //   throw new CustomError("Only merchants can create payment requests", 403);
-    // }
+    if (user.role !== "Merchant") {
+      throw new CustomError("Only merchants can create payment requests", 403);
+    }
 
     if (!user.id) {
       throw new CustomError("User not found", 400);
@@ -57,8 +57,7 @@ const payRequestedPayment = async (paymentRequestId: string) => {
         deletedAt: null,
       },
     });
-    // console.log("🚀 ~ payRequestedPayment ~ paymentRequest:", paymentRequest)
-    
+
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
     }
@@ -75,14 +74,13 @@ const payRequestedPayment = async (paymentRequestId: string) => {
     });
     // console.log("🚀 ~ payRequestedPayment ~ merchant:", merchant)
 
-
     // const updatedPaymentRequest = await updatePaymentRequest(paymentRequestId, {
     //   status: "paid",
     //   link: `/${paymentRequest.id}`,
     // });
 
     return {
-      message: "Payment request updated successfully",
+      message: "Payment request paid successfully",
       // data: updatedPaymentRequest,
     };
   } catch (error: any) {
@@ -93,10 +91,41 @@ const payRequestedPayment = async (paymentRequestId: string) => {
   }
 };
 
+const getPaymentRequestbyId = async (paymentRequestId: string) => {
+  try {
+    const paymentRequest = await prisma.paymentRequest.findFirst({
+      where: {
+        id: paymentRequestId,
+        deletedAt: null,
+      },
+    });
+
+    if (!paymentRequest) {
+      throw new CustomError("Payment request not found", 404);
+    }
+
+    return {
+      message: "Payment request retrieved successfully",
+      data: paymentRequest,
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message ||
+        "An error occurred while retrieving the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
 const getPaymentRequest = async (obj: any) => {
   try {
+    if (!obj.user.id) {
+      throw new CustomError("User not found", 400);
+    }
+
     const where: any = {
       deletedAt: null,
+      userId: obj.user.id,
     };
 
     if (obj?.id) {
@@ -137,7 +166,11 @@ const getPaymentRequest = async (obj: any) => {
   }
 };
 
-const updatePaymentRequest = async (paymentRequestId: string, data: any) => {
+const updatePaymentRequest = async (
+  paymentRequestId: string,
+  data: any,
+  user: any
+) => {
   try {
     // Verify the transaction ID, does it exist in the database?
     const transaction = await prisma.transaction.findFirst({
@@ -148,6 +181,22 @@ const updatePaymentRequest = async (paymentRequestId: string, data: any) => {
 
     if (!transaction) {
       throw new CustomError("Transaction not found", 404);
+    }
+
+    // Verify if it is being updated by the same user
+    const paymentRequest = await prisma.paymentRequest.findFirst({
+      where: {
+        id: paymentRequestId,
+        deletedAt: null,
+      },
+    });
+
+    // Verify User id
+    console.log("Req User Id", user.id);
+    console.log("paymentRequest User Id", paymentRequest?.userId);
+
+    if (paymentRequest?.userId !== user.id) {
+      throw new CustomError("Payment request not found", 404);
     }
 
     const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
@@ -239,4 +288,5 @@ export default {
   updatePaymentRequest,
   deletePaymentRequest,
   payRequestedPayment,
+  getPaymentRequestbyId,
 };
