@@ -253,6 +253,7 @@ const initiateJazzCashPayment = async (
             providerDetails: {
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
+              msisdn: encrypt(paymentData.phone)
             },
             balance: settled_amount
           },

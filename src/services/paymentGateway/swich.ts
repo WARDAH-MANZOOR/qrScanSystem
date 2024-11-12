@@ -104,6 +104,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       providerDetails: {
         id: findMerchant.swichMerchantId as number,
         name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH: PROVIDERS.EASYPAISA,
+        msisdn: payload.phone
       },
     });
 

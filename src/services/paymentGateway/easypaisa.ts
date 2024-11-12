@@ -20,10 +20,11 @@ import {
   updateTransactions,
 } from "./disbursement.js";
 import { easyPaisaDisburse } from "services/index.js";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import ApiResponse from "utils/ApiResponse.js";
 import bankDetails from "../../data/banks.json";
 import { parse, parseISO } from "date-fns";
+import { decrypt, encrypt } from "utils/enc_dec.js";
 
 dotenv.config();
 
@@ -66,31 +67,23 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       where: {
         transaction_id: transactionId,
         merchant_id: id?.merchant_id,
-        // providerDetails: {
-          // equals: {
-            // name: "Easypaisa",
-          // }
-        // } 
+        providerDetails: {
+          path: ['name'],
+          equals: "Easypaisa"
+        } 
       },
-      include: {
-        AdditionalInfo: {
-          select: {
-            custom_field_1: true
-          }
-        }
-      }
     })
-    if(txn?.AdditionalInfo?.custom_field_1 || !txn) {
+    if(!txn) {
       throw new CustomError("Transaction not found",400);
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
-    return {
-      "orderId": txn.transaction_id,
-      "transactionStatus": txn.status,
-      "transactionAmount": txn.original_amount,
-      "transactionDateTime": txn.date_time,
-      "msisdn": txn.AdditionalInfo?.custom_field_1,
-      "responseDesc": txn.response_message,
+    let data = {
+      "orderId": txn?.transaction_id,
+      "transactionStatus": txn?.status,
+      "transactionAmount": txn?.original_amount,
+      "transactionDateTime": txn?.date_time,
+      "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+      "responseDesc": txn?.response_message,
       "responseMode": "MA"
     }
   }
@@ -168,6 +161,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       providerDetails: {
         id: easyPaisaMerchant.id,
         name: PROVIDERS.EASYPAISA,
+        msisdn: params.phone
       },
     });
 
