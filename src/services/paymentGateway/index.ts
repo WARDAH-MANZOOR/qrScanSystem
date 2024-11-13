@@ -36,6 +36,7 @@ async function getToken() {
 async function initiateTransaction(token: string, body: any) {
   try {
     let id = transactionService.createTransactionId();
+    console.log("Initiate Request: ",{...body, referenceId: id})
     let payload = encryptData({...body, referenceId: id}, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
     let requestData = {
       data: payload,
@@ -52,6 +53,7 @@ async function initiateTransaction(token: string, body: any) {
     });
 
     let data = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+    console.log("Initiate Response: ",data)
 
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ",data);
@@ -59,6 +61,11 @@ async function initiateTransaction(token: string, body: any) {
     }
 
     id = transactionService.createTransactionId();
+    console.log("Confirm Request: ",{
+      "Init_transactionID": data.transactionID,
+      "referenceID": id
+    })
+    
     payload = encryptData({
       "Init_transactionID": data.transactionID,
       "referenceID": id

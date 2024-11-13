@@ -77,7 +77,7 @@ const updateMerchant = async (payload: Merchant) => {
           disbursementWithHoldingTax: disbursementWithHoldingTax,
           settlementDuration:
             settlementDuration != undefined
-              ? settlementDuration
+              ? +settlementDuration
               : finance?.settlementDuration,
         },
         where: { merchant_id: +merchantId },
