@@ -1,10 +1,10 @@
 import CustomError from "./custom_error.js";
 
-const addWeekdays = (date: Date, days: number) => {
+const addWeekdays = (date: Date, days: number) => { 
   let result = new Date(date);
   let addedDays = 0;
 
-  while (addedDays < days) {
+  while (addedDays < days) { 
     result.setDate(result.getDate() + 1);
 
     // Skip weekends
