@@ -26,7 +26,7 @@ const updateMerchant = async (payload: Merchant) => {
     swichMerchantId,
     webhook_url,
     EasyPaisaDisburseAccountId,
-    easypaisaMethod
+    easypaisaPaymentMethod
   } = payload;
   try {
     let result = await prisma.$transaction(async (tx) => {
@@ -43,7 +43,7 @@ const updateMerchant = async (payload: Merchant) => {
           }
         })
       }
-      let method = easypaisaMethod.toUpperCase();
+      let method = easypaisaPaymentMethod?.toUpperCase();
       if (method != "DIRECT" && method != "SWITCH") {
         throw new CustomError("Easy Paisa Method not valid",400);
       }
@@ -155,7 +155,7 @@ const addMerchant = async (payload: Merchant) => {
     easyPaisaMerchantId,
     swichMerchantId,
     webhook_url,
-    easypaisaMethod
+    easypaisaPaymentMethod
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -190,7 +190,7 @@ const addMerchant = async (payload: Merchant) => {
           easyPaisaMerchantId,
           swichMerchantId,
           webhook_url,
-          easypaisaPaymentMethod: easypaisaMethod
+          easypaisaPaymentMethod: easypaisaPaymentMethod
         },
       });
 
