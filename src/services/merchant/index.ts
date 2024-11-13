@@ -43,7 +43,7 @@ const updateMerchant = async (payload: Merchant) => {
           }
         })
       }
-      let method = easypaisaMethod.toUpperCase();
+      let method = easypaisaMethod?.toUpperCase();
       if (method != "DIRECT" && method != "SWITCH") {
         throw new CustomError("Easy Paisa Method not valid",400);
       }
