@@ -23,7 +23,7 @@ import completeTransactionRouter from "./routes/transaction/complete.js"
 import adminTransactionRouter from "./routes/user/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
-import { decryptData } from 'utils/enc_dec.js';
+import { decrypt, decryptData } from 'utils/enc_dec.js';
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 
