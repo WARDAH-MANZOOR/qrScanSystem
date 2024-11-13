@@ -21,7 +21,7 @@ export interface Merchant {
   webhook_url: string;
   uid?: string;
   EasyPaisaDisburseAccountId?: number | null;
-  easypaisaMethod: "DIRECT" | "SWITCH";
+  easypaisaPaymentMethod: "DIRECT" | "SWITCH";
 }
 
 export interface IjazzCashConfigParams {
