@@ -35,13 +35,13 @@ async function getToken() {
 
 async function initiateTransaction(token: string, body: any) {
   try {
-    const id = transactionService.createTransactionId();
-    const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
-    const requestData = {
-      data: payload
+    let id = transactionService.createTransactionId();
+    let payload = encryptData({...body, referenceId: id}, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+    let requestData = {
+      data: payload,
     };
 
-    const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -50,7 +50,37 @@ async function initiateTransaction(token: string, body: any) {
       },
       body: JSON.stringify(requestData)
     });
-    return decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+
+    let data = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+
+    if (data.responseCode != "G2P-T-0") {
+      console.log("IBFT Response: ",data);
+      throw new CustomError("Error with ibft inquiry", 500)
+    }
+
+    id = transactionService.createTransactionId();
+    payload = encryptData({
+      "Init_transactionID": data.transactionID,
+      "referenceID": id
+    }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+
+    requestData = {
+      data: payload
+    }
+
+    response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+      method: "POST",
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    })
+
+    data = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+
+    return data;
   }
   catch (err) {
     console.log("Initiate Transaction Error", err);
