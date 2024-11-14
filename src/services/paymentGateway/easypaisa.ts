@@ -634,7 +634,15 @@ const getDisbursement = async (merchantId: number, params: any) => {
     } as any;
 
     if (merchantId) {
-      customWhere["merchant_id"] = merchantId;
+      customWhere["merchant_id"] = +merchantId;
+    }
+
+    if (params.account) {
+      customWhere["account"] = params.account;
+    }
+
+    if(params.transaction_id) {
+      customWhere["transaction_id"] = params.transaction_id;
     }
 
     if (startDate && endDate) {
@@ -807,6 +815,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
 
     let res = await axios.request(config);
     if (res.data.ResponseCode != "0") {
+      console.log("Transfer Inquiry Error: ",res.data);
       throw new CustomError("Error conducting transfer inquiry", 500);
     }
 

@@ -4,7 +4,7 @@ import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 
 const getSettlement = async (params: any, user: JwtPayload) => {
-  const merchantId = user?.merchant_id;
+  const merchantId = user?.merchant_id || params.merchant_id;
 
   if (!merchantId && user?.role !== "Admin") {
     throw new CustomError("Merchant ID is required", 400);
@@ -13,7 +13,7 @@ const getSettlement = async (params: any, user: JwtPayload) => {
   let filters: { merchant_id?: number } = {};
 
   if (merchantId) {
-    filters["merchant_id"] = merchantId;
+    filters["merchant_id"] = +merchantId;
   }
 
   try {
