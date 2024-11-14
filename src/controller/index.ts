@@ -7,6 +7,7 @@ import swichController from "./paymentGateway/swich.js";
 import easyPaisaDisburse from "./paymentGateway/easyPaisaDisburse.js";
 import authenticationController from "./authentication/index.js";
 import paymentRequestController from "./paymentRequest/index.js";
+import zindigiController from "./paymentGateway/zindigi.js"
 
 export {
   jazzCashController,
@@ -18,4 +19,5 @@ export {
   easyPaisaDisburse,
   authenticationController,
   paymentRequestController,
+  zindigiController
 };
