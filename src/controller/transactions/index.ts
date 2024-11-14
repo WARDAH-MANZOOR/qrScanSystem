@@ -38,6 +38,7 @@ const getTransactions = async (req: Request, res: Response) => {
     let endDate = req.query?.end as string;
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
+    const msisdn = req.query?.msisdn || "" as string;
    
     const customWhere = {} as any;
 
@@ -66,6 +67,13 @@ const getTransactions = async (req: Request, res: Response) => {
       customWhere["transaction_id"] = {
         contains: search,
       };
+    }
+
+    if (msisdn) {
+      customWhere["providerDetails"] = {
+        path: ['msisdn'],
+        equals: msisdn
+      }
     }
 
     // Query based on provided parameters

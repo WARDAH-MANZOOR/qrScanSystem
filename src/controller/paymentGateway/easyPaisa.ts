@@ -182,8 +182,8 @@ const createDisbursement = async (
 
 const getDisbursement = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = (req.user as JwtPayload)?.merchant_id;
     const { query } = req;
+    const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
     const merchant = await easyPaisaService.getDisbursement(id, query);
     return res.status(200).json(ApiResponse.success(merchant));
   } catch (error) {
