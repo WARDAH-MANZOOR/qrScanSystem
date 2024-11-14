@@ -638,11 +638,15 @@ const getDisbursement = async (merchantId: number, params: any) => {
     }
 
     if (params.account) {
-      customWhere["account"] = params.account;
+      customWhere["account"] = {
+        contains: params.account
+      };
     }
 
     if(params.transaction_id) {
-      customWhere["transaction_id"] = params.transaction_id;
+      customWhere["transaction_id"] = {
+        contains: params.transaction_id
+      }
     }
 
     if (startDate && endDate) {
