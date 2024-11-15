@@ -32,6 +32,8 @@ const task = async () => {
           transactionIdToTaskIdMap
         );
       }
+    },{
+      maxWait: 3600000
     });
   } catch (error) {
     console.error("Error during settlement process:", error);
