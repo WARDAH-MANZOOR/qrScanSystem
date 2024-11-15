@@ -362,6 +362,17 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
   }, 10000)
 }
 
+function convertPhoneNumber(phoneNumber: string): string {
+  // Remove any '+' at the start of the number
+  if (phoneNumber.startsWith("+92")) {
+      return "0" + phoneNumber.slice(3);
+  } else if (phoneNumber.startsWith("92")) {
+      return "0" + phoneNumber.slice(2);
+  }
+  // Return the phone number unchanged if it doesn't start with '92' or '+92'
+  return phoneNumber;
+}
+
 export default {
   createTransaction,
   completeTransaction,
@@ -369,5 +380,6 @@ export default {
   updateTxn,
   createTransactionId,
   ...analyticsService,
-  sendCallback
+  sendCallback,
+  convertPhoneNumber
 };

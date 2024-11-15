@@ -2,7 +2,7 @@ import { error } from "console";
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import { easyPaisaService, swichService } from "services/index.js";
+import { easyPaisaService, swichService, transactionService } from "services/index.js";
 import type { DisbursementPayload } from "types/providers.js";
 import ApiResponse from "utils/ApiResponse.js";
 
@@ -35,7 +35,7 @@ const initiateEasyPaisa = async (
       result = await swichService.initiateSwich({
         channel: 1749,
         amount: req.body.amount,
-        phone: req.body.phone,
+        phone: transactionService.convertPhoneNumber(req.body.phone),
         email: req.body.email,
         order_id: req.body.order_id,
         type: req.body.type
