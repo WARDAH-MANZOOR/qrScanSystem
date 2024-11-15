@@ -5,7 +5,7 @@ import { paymentRequestController } from "controller/index.js";
 const router = Router();
 
 router.post(
-  "/pay/:paymentRequestId",
+  "/pay",
   paymentRequestController.payRequestedPayment
 );
 

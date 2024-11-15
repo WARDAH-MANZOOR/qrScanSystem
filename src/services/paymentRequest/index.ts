@@ -1,5 +1,6 @@
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
+import { jazzCashService } from "services/index.js";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -49,14 +50,15 @@ const createPaymentRequest = async (data: any, user: any) => {
   }
 };
 
-const payRequestedPayment = async (paymentRequestId: string) => {
+const payRequestedPayment = async (paymentRequestObj: any) => {
   try {
     const paymentRequest = await prisma.paymentRequest.findFirst({
       where: {
-        id: paymentRequestId,
+        id: paymentRequestObj.payId,
         deletedAt: null,
       },
     });
+    console.log("🚀 ~ payRequestedPayment ~ paymentRequest:", paymentRequest);
 
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
@@ -72,9 +74,40 @@ const payRequestedPayment = async (paymentRequestId: string) => {
         merchant_id: paymentRequest.userId,
       },
     });
+
+    if (!merchant || !merchant.uid) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    console.log("🚀 ~ payRequestedPayment ~ merchant:", merchant);
+
+    if (paymentRequest.provider?.toLocaleLowerCase() === "jazzcash") {
+      const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
+        {
+          amount: paymentRequest.amount,
+          type: "wallet",
+          phone: paymentRequestObj.accountNo,
+          redirect_url: paymentRequest.link,
+          // order_id: `${paymentRequest.id}`,
+        },
+        merchant.uid
+      );
+      console.log(
+        "🚀 ~ payRequestedPayment ~ jazzCashPayment:",
+        jazzCashPayment
+      );
+
+      if (!jazzCashPayment) {
+        throw new CustomError(
+          "An error occurred while paying the payment request",
+          500
+        );
+      }
+    }
+
     // console.log("🚀 ~ payRequestedPayment ~ merchant:", merchant)
 
-    // const updatedPaymentRequest = await updatePaymentRequest(paymentRequestId, {
+    // const updatedPaymentRequest = await updatePaymentRequest(paymentRequestObj, {
     //   status: "paid",
     //   link: `/${paymentRequest.id}`,
     // });

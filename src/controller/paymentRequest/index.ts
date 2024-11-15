@@ -110,15 +110,16 @@ const payRequestedPayment = async (
   next: NextFunction
 ) => {
   try {
-    const paymentRequestId = req.params?.paymentRequestId;
-
-    if (!paymentRequestId) {
+    
+    if (!req.body.payId) {
       throw new CustomError("Payment request ID is required", 400);
     }
 
-    const result = await paymentRequestService.payRequestedPayment(
-      paymentRequestId
-    );
+    if (!req.body.accountNo) {
+      throw new CustomError("Account number is required", 400);
+    }
+
+    const result = await paymentRequestService.payRequestedPayment(req.body);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
