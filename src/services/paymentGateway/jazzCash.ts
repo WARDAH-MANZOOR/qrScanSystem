@@ -160,6 +160,8 @@ const initiateJazzCashPayment = async (
       throw new CustomError("Payment type is required", 400);
     }
 
+    const phone = transactionService.convertPhoneNumber(paymentData.phone);
+
     const paymentType = paymentData.type?.toUpperCase();
 
     // Generate Transaction Reference Number
@@ -254,7 +256,7 @@ const initiateJazzCashPayment = async (
             providerDetails: {
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
-              msisdn: paymentData.phone
+              msisdn: phone
             },
             balance: settled_amount
           },
@@ -277,7 +279,6 @@ const initiateJazzCashPayment = async (
     const { merchant, integritySalt, refNo } = result;
     jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
-    const phone = paymentData.phone;
 
     const date = format(
       new Date(Date.now() + 60 * 60 * 1000),

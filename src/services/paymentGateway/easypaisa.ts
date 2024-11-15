@@ -120,13 +120,14 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
+    const phone = transactionService.convertPhoneNumber(params.phone)
     let id = transactionService.createTransactionId();
     const easyPaisaTxPayload = {
       orderId: id,
       storeId: easyPaisaMerchant.storeId,
       transactionAmount: params.amount,
       transactionType: "MA",
-      mobileAccountNo: params.phone,
+      mobileAccountNo: phone,
       emailAddress: params.email,
     };
 
@@ -162,7 +163,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       providerDetails: {
         id: easyPaisaMerchant.id,
         name: PROVIDERS.EASYPAISA,
-        msisdn: params.phone
+        msisdn: phone
       },
     });
 
@@ -182,7 +183,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       transactionService.sendCallback(
         findMerchant.webhook_url as string,
         saveTxn,
-        params.phone,
+        phone,
         "payin"
       );
       return {
