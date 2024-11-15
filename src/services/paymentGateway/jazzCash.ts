@@ -8,6 +8,7 @@ import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
 import { addWeekdays } from "utils/date_method.js";
 import { PROVIDERS } from "constants/providers.js";
+import { JsonObject } from "@prisma/client/runtime/library";
 
 // const MERCHANT_ID = "12478544";
 // const PASSWORD = "uczu5269d1";
@@ -72,7 +73,7 @@ interface RequestObject {
 }
 
 function calculateHmacSha256(
-  json: string, 
+  json: string,
   integrityText: string
 ): string | null {
   try {
@@ -105,9 +106,9 @@ function calculateHmacSha256(
 
     // Calculate HMAC SHA256 hash using integrityText as the key
     const hmac256 = crypto.createHmac('sha256', integrityText)
-                          .update(finalString)
-                          .digest('hex')
-                          .toUpperCase();
+      .update(finalString)
+      .digest('hex')
+      .toUpperCase();
 
     console.log(hmac256);
 
@@ -209,7 +210,7 @@ const initiateJazzCashPayment = async (
         throw new CustomError("Merchant UID is required", 400);
       }
 
-      let data:{transaction_id: string} = {transaction_id: ""};
+      let data: { transaction_id: string } = { transaction_id: "" };
 
       // Transaction Reference Number
       if (paymentData.transaction_id) {
@@ -233,7 +234,7 @@ const initiateJazzCashPayment = async (
           .toString()
           .padStart(5, "0")}`;
 
-        if(paymentData.order_id) {
+        if (paymentData.order_id) {
           data["transaction_id"] = paymentData.order_id;
         }
         else {
@@ -267,7 +268,7 @@ const initiateJazzCashPayment = async (
         integritySalt: jazzCashMerchantIntegritySalt,
         refNo: data["transaction_id"],
       };
-    },{
+    }, {
       maxWait: 5000,
       timeout: 20000
     }); // End of Prisma Transaction
@@ -336,30 +337,30 @@ const initiateJazzCashPayment = async (
         pp_ReturnURL: "https://devtects.com/thankyou.html",
         pp_UsageMode: "API"
       };
-  
+
       let salt = "e6t384f1fu";
-  
+
       payload.pp_SecureHash = calculateHmacSha256(JSON.stringify(payload), salt);
       console.log("🚀 ~ payload.pp_SecureHash:", payload.pp_SecureHash)
-  
-  
-  
+
+
+
       const paymentUrl = "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/Purchase/PAY";
       const headers = {
         "Content-Type": "application/json",
       };
-  
+
       console.log("🚀 ~ payload:", payload);
-      
-  
+
+
       const response = await axios.post(paymentUrl, payload, { headers });
-  
+
       const r = response.data;
       console.log(r);
-  
-  
+
+
       return r
-     
+
 
       // You can process CARD payments similarly
       // jazzCashCardPayment({
@@ -705,6 +706,25 @@ const statusInquiry = async (payload: any, merchantId: string) => {
       jazzCashMerchant: true,
     },
   });
+
+  if (!merchant) {
+    throw new CustomError("Merchant Not Found", 400);
+  }
+
+  const txn = await prisma.transaction.findFirst({
+    where: {
+      transaction_id: payload.transactionId,
+      merchant_id: merchant?.merchant_id,
+      providerDetails: {
+        path: ['name'],
+        equals: PROVIDERS.JAZZ_CASH
+      }
+    }
+  })
+
+  if(!txn) {
+    throw new CustomError("Transaction Not Found",400)
+  }
   let sendData = {
     pp_TxnRefNo: payload.transactionId,
     pp_MerchantID: merchant?.jazzCashMerchant?.jazzMerchantId,
@@ -731,7 +751,16 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   let res = await axios.request(config);
   if (res.data.pp_ResponseCode == "000") {
     delete res.data.pp_SecureHash;
-    return res.data;
+    return {
+      "orderId": payload.transactionId,
+      "transactionStatus": res.data.pp_Status,
+      "transactionAmount": txn.original_amount,
+      "transactionDateTime": txn.date_time,
+      "msisdn": (txn.providerDetails as JsonObject)?.msisdn,
+      "responseDesc": res.data.pp_ResponseMessage,
+      "responseMode": "MA"
+    }
+    // return res.data;
   } else {
     throw new CustomError("Internal Server Error", 500);
   }
