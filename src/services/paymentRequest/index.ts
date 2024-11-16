@@ -1,6 +1,11 @@
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
-import { jazzCashService } from "services/index.js";
+import {
+  jazzCashService,
+  easyPaisaService,
+  swichService,
+  transactionService,
+} from "services/index.js";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -31,6 +36,18 @@ const createPaymentRequest = async (data: any, user: any) => {
       });
     });
 
+    // update link with payment request id
+    const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: newPaymentRequest.id,
+        },
+        data: {
+          link: `/pay/${newPaymentRequest.id}`,
+        },
+      });
+    });
+
     if (!newPaymentRequest) {
       throw new CustomError(
         "An error occurred while creating the payment request",
@@ -40,7 +57,7 @@ const createPaymentRequest = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: newPaymentRequest,
+      data: updatedPaymentRequest,
     };
   } catch (error: any) {
     throw new CustomError(
@@ -58,7 +75,6 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         deletedAt: null,
       },
     });
-    console.log("🚀 ~ payRequestedPayment ~ paymentRequest:", paymentRequest);
 
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
@@ -79,38 +95,78 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       throw new CustomError("Merchant not found", 404);
     }
 
-    console.log("🚀 ~ payRequestedPayment ~ merchant:", merchant);
-
-    if (paymentRequest.provider?.toLocaleLowerCase() === "jazzcash") {
+    if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
         {
           amount: paymentRequest.amount,
           type: "wallet",
           phone: paymentRequestObj.accountNo,
           redirect_url: paymentRequest.link,
-          // order_id: `${paymentRequest.id}`,
         },
         merchant.uid
       );
-      console.log(
-        "🚀 ~ payRequestedPayment ~ jazzCashPayment:",
-        jazzCashPayment
-      );
-
       if (!jazzCashPayment) {
         throw new CustomError(
           "An error occurred while paying the payment request",
           500
         );
       }
+    } else if (
+      paymentRequestObj.provider?.toLocaleLowerCase() === "easypaisa"
+    ) {
+      if (merchant.easypaisaPaymentMethod === "DIRECT") {
+        // easypaisa payment
+        const easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
+          merchant.uid,
+          {
+            amount: paymentRequest.amount,
+            type: "wallet",
+            phone: paymentRequestObj.accountNo,
+            email: paymentRequest.email,
+            orderId: `SPAY-PR-${paymentRequest.id}`,
+          }
+        );
+
+        if (!easyPaisaPayment) {
+          throw new CustomError(
+            "An error occurred while paying the payment request",
+            500
+          );
+        }
+      } else {
+        // swich payment
+        const swichPayment = await swichService.initiateSwich(
+          {
+            channel: 1749,
+            amount: paymentRequest.amount,
+            phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+            email: paymentRequest.email,
+            order_id: `SPAY-PR-${paymentRequest.id}`,
+            type: "wallet",
+          },
+          merchant.uid
+        );
+
+        if (!swichPayment) {
+          throw new CustomError(
+            "An error occurred while paying the payment request",
+            500
+          );
+        }
+      }
     }
 
-    // console.log("🚀 ~ payRequestedPayment ~ merchant:", merchant)
-
-    // const updatedPaymentRequest = await updatePaymentRequest(paymentRequestObj, {
-    //   status: "paid",
-    //   link: `/${paymentRequest.id}`,
-    // });
+    const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: paymentRequestObj.payId,
+        },
+        data: {
+          status: "paid",
+          updatedAt: new Date(),
+        },
+      });
+    });
 
     return {
       message: "Payment request paid successfully",
@@ -225,8 +281,8 @@ const updatePaymentRequest = async (
     });
 
     // Verify User id
-    console.log("Req User Id", user.id);
-    console.log("paymentRequest User Id", paymentRequest?.userId);
+    // console.log("Req User Id", user.id);
+    // console.log("paymentRequest User Id", paymentRequest?.userId);
 
     if (paymentRequest?.userId !== user.id) {
       throw new CustomError("Payment request not found", 404);

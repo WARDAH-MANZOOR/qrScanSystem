@@ -210,7 +210,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
   } catch (error: any) {
     throw new CustomError(
       error?.message || "An error occurred while initiating the transaction",
-      500
+      error?.statusCode || 500
     );
   }
 };
