@@ -15,7 +15,9 @@ const validateJazzcashRequest = [
         .notEmpty()
         .withMessage('Phone is required')
         .isString()
-        .withMessage('Phone must be a string'),
+        .withMessage('Phone must be a string')
+        .isLength({min: 11, max: 13})
+        .withMessage("Phone Number must be between 11 and 13 digits"),
     body('redirect_url')
         .notEmpty()
         .withMessage('Redirect URL is required')
