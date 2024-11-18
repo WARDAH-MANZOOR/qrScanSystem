@@ -28,7 +28,7 @@ import { decrypt, decryptData } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 
 var app = express();
-cron.schedule("0 16 * * 1-5", task);
+cron.schedule("0 11 * * 1-5", task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
