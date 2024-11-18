@@ -3,7 +3,7 @@ import { body, param, query } from "express-validator";
 const validateEasypaisaTxn = [
     param('merchantId').isString().withMessage('Merchant ID must be a string'),
     body('amount').isString().withMessage('Amount must be a string'),
-    body('phone').isString().withMessage('Phone must be a string').isLength({min: 11, max: 13}),
+    body('phone').isString().withMessage('Phone must be a string'),
     body('email').isEmail().withMessage('Must be a valid email')
 ]
 
