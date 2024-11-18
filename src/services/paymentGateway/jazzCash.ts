@@ -769,6 +769,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
 const callback = (body: any) => {
   try {
+    console.log("Callback Body: ",body);
     return "success";
   } catch {
     return "error";
