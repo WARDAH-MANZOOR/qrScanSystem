@@ -33,6 +33,7 @@ const task = async () => {
         );
       }
     },{
+      timeout: 3600000,
       maxWait: 3600000
     });
   } catch (error) {
