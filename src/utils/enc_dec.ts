@@ -5,6 +5,7 @@ dotenv.config();
 // Encryption algorithm and key
 const algorithm = process.env.ENCRYPTION_ALGO as string;
 const key = Buffer.from(process.env.ENCRYPTION_KEY as string, 'hex'); // 32 bytes key for AES-256
+const iv = crypto.randomBytes(12);
 
 // Encrypt function
 function encrypt(text: string) {
@@ -55,4 +56,15 @@ function decryptData(encryptedData: string, secretKey: string, iv: string) {
   return payload;
 }
 
-export {encrypt, decrypt, encryptData, decryptData};
+function callbackEncrypt(payload: string) {
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(payload, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+      encrypted_data: encrypted.toString('base64'),
+      iv: iv.toString('base64'),
+      tag: tag.toString('base64')
+  };
+}
+
+export {encrypt, decrypt, encryptData, decryptData, callbackEncrypt};

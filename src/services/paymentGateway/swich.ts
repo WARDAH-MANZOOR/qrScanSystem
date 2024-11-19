@@ -62,7 +62,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     if (!findMerchant) {
       throw new CustomError("Merchant not found", 404);
     }
-    
+
     let id = transactionService.createTransactionId();
     let data = JSON.stringify({
       customerTransactionId: id,
@@ -103,7 +103,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       settlementDuration: findMerchant.commissions[0].settlementDuration,
       providerDetails: {
         id: findMerchant.swichMerchantId as number,
-        name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH: PROVIDERS.EASYPAISA,
+        name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
         msisdn: payload.phone
       },
     });
@@ -128,6 +128,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,
+        statusCode: res.data.code
       };
     } else {
       const updateTxn = await transactionService.updateTxn(
@@ -144,6 +145,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       );
     }
   } catch (err: any) {
+    console.log(err);
     if (saveTxn && saveTxn.transaction_id) {
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
@@ -153,11 +155,12 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         },
         findMerchant?.commissions[0]?.settlementDuration as number
       );
+      return {
+        message: err?.message || "An error occurred while initiating the transaction",
+        statusCode: err?.statusCode || 500,
+        txnNo: saveTxn?.transaction_id
+      }
     }
-    throw new CustomError(
-      "An error occurred while initiating the transaction",
-      500
-    );
   }
 };
 

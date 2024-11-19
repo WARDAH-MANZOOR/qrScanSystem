@@ -259,7 +259,7 @@ const getMerchant = async (merchantId: string) => {
         });
 
         merchant = merchant.map((obj) => {
-            obj["clientId"] = decrypt(obj["clientId"]);
+            obj["clientId"] = decrypt(obj["clientId"] as string);
             obj["clientSecret"] = decrypt(obj["clientSecret"] as string);
             obj["organizationId"] = decrypt(obj["organizationId"] as string);
             return obj;

@@ -24,12 +24,15 @@ const initiateEasyPaisa = async (
     }
 
     const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
-    let result;
+    let result: any;
     if (channel == "DIRECT") {
       result = await easyPaisaService.initiateEasyPaisa(
         merchantId,
-        req.body
+        req.body 
       );
+      if(result.statusCode != "0000") {
+        return res.status(result.statusCode).send(ApiResponse.error(result))
+      }
     }
     else {
       result = await swichService.initiateSwich({
@@ -40,6 +43,9 @@ const initiateEasyPaisa = async (
         order_id: req.body.order_id,
         type: req.body.type
       }, merchantId)
+      if (result.statusCode != "0000") {
+        return res.status(result.statusCode).send(ApiResponse.error(result));
+      }
     }
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
