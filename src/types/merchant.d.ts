@@ -50,3 +50,9 @@ export interface IDisbursement {
   updatedAt?: Date;
   deletedAt?: Date | null;
 }
+
+export interface IZindigiPayload {
+  clientId: string;
+  clientSecret: string;
+  organizationId: string;
+}

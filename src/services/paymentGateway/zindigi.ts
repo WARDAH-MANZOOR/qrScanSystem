@@ -1,6 +1,9 @@
 import axios from "axios";
+import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
+import { IZindigiPayload } from "types/merchant.js";
 import CustomError from "utils/custom_error.js";
+import { decrypt, encrypt } from "utils/enc_dec.js";
 
 async function fetchExistingClientSecret() {
     const firstApiUrl = 'https://z-sandbox.jsbl.com/zconnect/client/oauth-blb'; // Replace with your actual API endpoint
@@ -83,7 +86,7 @@ function generateUniqueSixDigitNumber(): string {
 const walletToWalletPayment = async (body: any, clientInfo: any) => {
     try {
         let id = generateUniqueSixDigitNumber();
-        let date = transactionService.createTransactionId().slice(1,15);
+        let date = transactionService.createTransactionId().slice(1, 15);
         const response = await axios.post(
             'https://z-sandbox.jsbl.com/zconnect/api/v2/w2wp-blb',
             {
@@ -111,7 +114,7 @@ const walletToWalletPayment = async (body: any, clientInfo: any) => {
             }
         );
 
-        if(response.data.errorcode == "0000") {
+        if (response.data.errorcode == "0000") {
             return {
                 success: false,
                 data: null
@@ -205,4 +208,172 @@ const transactionInquiry = async (body: any) => {
         throw new CustomError("An Error has occured", 500);
     }
 }
-export default { walletToWalletPayment, debitInquiry, debitPayment, transactionInquiry, fetchExistingClientSecret, generateNewClientSecret }
+
+const createMerchant = async (merchantData: IZindigiPayload) => {
+    try {
+        if (!merchantData) {
+            throw new CustomError("Merchant data is required", 400);
+        }
+
+        const zindigiMerchant = await prisma.$transaction(async (tx) => {
+            return tx.zindigiMerchant.create({
+                data: {
+                    clientId: encrypt(merchantData.clientId),
+                    clientSecret: encrypt(merchantData.clientSecret),
+                    organizationId: encrypt(merchantData.organizationId)
+                },
+            });
+        });
+
+        if (!zindigiMerchant) {
+            throw new CustomError(
+                "An error occurred while creating the merchant",
+                500
+            );
+        }
+        return {
+            message: "Merchant created successfully",
+            data: zindigiMerchant,
+        };
+    } catch (error: any) {
+        throw new CustomError(
+            error?.message || "An error occurred while creating the merchant",
+            500
+        );
+    }
+};
+
+const getMerchant = async (merchantId: string) => {
+    try {
+        const where: any = {};
+
+        if (merchantId) {
+            where["id"] = parseInt(merchantId);
+        }
+
+        let merchant = await prisma.zindigiMerchant.findMany({
+            where: where,
+            orderBy: {
+                id: "desc",
+            },
+        });
+
+        merchant = merchant.map((obj) => {
+            obj["clientId"] = decrypt(obj["clientId"]);
+            obj["clientSecret"] = decrypt(obj["clientSecret"] as string);
+            obj["organizationId"] = decrypt(obj["organizationId"] as string);
+            return obj;
+        });
+
+        if (!merchant) {
+            throw new CustomError("Merchant not found", 404);
+        }
+
+        return {
+            message: "Merchant retrieved successfully",
+            data: merchant,
+        };
+    } catch (error: any) {
+        throw new CustomError(
+            error?.message || "An error occurred while reading the merchant",
+            500
+        );
+    }
+};
+
+const updateMerchant = async (merchantId: string, updateData: IZindigiPayload) => {
+    try {
+        if (!merchantId) {
+            throw new CustomError("Merchant ID is required", 400);
+        }
+
+        if (!updateData) {
+            throw new CustomError("Update data is required", 400);
+        }
+
+        // Fetch existing data for the merchant
+        const existingMerchant = await prisma.zindigiMerchant.findUnique({
+            where: {
+                id: parseInt(merchantId),
+            },
+        });
+
+        if (!existingMerchant) {
+            throw new Error("Merchant not found");
+        }
+
+        const updatedMerchant = await prisma.$transaction(async (tx) => {
+            return tx.zindigiMerchant.update({
+                where: {
+                    id: parseInt(merchantId),
+                },
+                data: {
+                    clientId:
+                        updateData.clientId != undefined
+                            ? encrypt(updateData.clientId)
+                            : existingMerchant.clientId,
+                    clientSecret:
+                        updateData.clientSecret != undefined
+                            ? encrypt(updateData.clientSecret)
+                            : existingMerchant.clientSecret,
+                    organizationId:
+                        updateData.organizationId != undefined
+                        ? encrypt(updateData.organizationId)
+                        : existingMerchant.organizationId
+                },
+            });
+        });
+
+        if (!updatedMerchant) {
+            throw new CustomError(
+                "An error occurred while updating the merchant",
+                500
+            );
+        }
+
+        return {
+            message: "Merchant updated successfully",
+            data: updatedMerchant,
+        };
+    } catch (error: any) {
+        console.log(error);
+        throw new CustomError(
+            error?.message || "An error occurred while updating the merchant",
+            500
+        );
+    }
+};
+
+const deleteMerchant = async (merchantId: string) => {
+    try {
+        if (!merchantId) {
+            throw new CustomError("Merchant ID is required", 400);
+        }
+
+        const deletedMerchant = await prisma.$transaction(async (tx) => {
+            return tx.zindigiMerchant.delete({
+                where: {
+                    id: parseInt(merchantId),
+                },
+            });
+        });
+
+        if (!deletedMerchant) {
+            throw new CustomError(
+                "An error occurred while deleting the merchant",
+                500
+            );
+        }
+
+        return {
+            message: "Merchant deleted successfully",
+        };
+    } catch (error: any) {
+        throw new CustomError(
+            error?.message || "An error occurred while deleting the merchant",
+            500
+        );
+    }
+};
+
+export default { walletToWalletPayment, debitInquiry, debitPayment, transactionInquiry, fetchExistingClientSecret, generateNewClientSecret, createMerchant, getMerchant, updateMerchant, deleteMerchant }

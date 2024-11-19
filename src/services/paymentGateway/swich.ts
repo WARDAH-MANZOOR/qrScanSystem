@@ -161,24 +161,6 @@ const initiateSwich = async (payload: any, merchantId: string) => {
   }
 };
 
-function maskSensitiveDetails(message: string) {
-  // Regular expression to find all square-bracketed content except for CustomerTransactionId
-  return message.replace(/(CustomerTransactionId\s*\[.*?\])|(\[.*?\])/g, (match, keep) => {
-      // If it's the CustomerTransactionId, keep it as is
-      if (keep) {
-          return keep;
-      }
-      // Check if it's related to RemoteIP and mask completely
-      if (/RemoteIP/.test(match)) {
-          return '[RemoteIP > ****]';
-      }
-      // Otherwise, mask the general content in square brackets
-      return '[****]';
-  });
-}
-
-
-
 const createMerchant = async (merchantData: ISwichPayload) => {
   try {
     if (!merchantData) {
