@@ -137,6 +137,7 @@ const initiateJazzCashPayment = async (
   paymentData: any,
   merchant_uid?: string
 ) => {
+  let refNo: string = "";
   try {
     var JAZZ_CASH_MERCHANT_ID: any = null;
     const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
@@ -276,7 +277,8 @@ const initiateJazzCashPayment = async (
     }); // End of Prisma Transaction
 
     // Prepare Data for JazzCash
-    const { merchant, integritySalt, refNo } = result;
+    const { merchant, integritySalt } = result;
+    refNo = result.refNo;
     jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
 
@@ -491,6 +493,7 @@ const initiateJazzCashPayment = async (
           redirect_url: paymentData.redirect_url,
           txnNo: r.pp_TxnRefNo,
           txnDateTime: r.pp_TxnDateTime,
+          statusCode: r.pp_ResponseCode
         };
       } else {
         throw new CustomError(
@@ -501,11 +504,11 @@ const initiateJazzCashPayment = async (
     }
   } catch (error: any) {
     console.log("🚀 ~ error:", error?.response?.data)
-    // console.error(error);
-    throw new CustomError(
-      error?.message || "An error occurred",
-      error?.statusCode || 500
-    );
+    return {
+      message: error?.message || "An Error Occured",
+      statusCode: error?.statusCode || 500,
+      txnNo: refNo
+    }
   }
 };
 

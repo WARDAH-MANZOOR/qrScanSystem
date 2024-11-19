@@ -93,6 +93,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
   }
 }
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
+  let saveTxn;
   try {
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
@@ -148,7 +149,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       data: data,
     };
 
-    const saveTxn = await transactionService.createTxn({
+    saveTxn = await transactionService.createTxn({
       order_id: params.order_id,
       transaction_id: id,
       amount: params.amount,
@@ -189,10 +190,10 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       return {
         txnNo: saveTxn.transaction_id,
         txnDateTime: saveTxn.date_time,
+        statusCode: response?.data.responseCode
       };
     } else {
       console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
-
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
@@ -208,10 +209,11 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       );
     }
   } catch (error: any) {
-    throw new CustomError(
-      error?.message || "An error occurred while initiating the transaction",
-      error?.statusCode || 500
-    );
+    return {
+      message: error?.message || "An error occurred while initiating the transaction",
+      statusCode: error?.statusCode || 500,
+      txnNo: saveTxn?.transaction_id
+    }
   }
 };
 
