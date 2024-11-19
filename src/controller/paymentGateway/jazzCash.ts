@@ -151,7 +151,7 @@ const initiateMWDisbursement = async (req: Request, res: Response, next: NextFun
 const dummyCallback = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = jazzCashService.callback(req.body);
-    return res.status(200).json(ApiResponse.success(result));
+    return res.status(200).send(result);
   }
   catch (err) {
     next(err);
