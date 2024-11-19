@@ -7,22 +7,22 @@ export default function (router: Router) {
     router.post("/initiate-zid",zindigiController.debitInquiryController)
     router.post("/inquiry-zi",zindigiController.transactionInquiryController)
     router.post(
-        "/sw-merchant",
+        "/zi-merchant",
         [isLoggedIn, isAdmin],
         zindigiController.createZindigiMerchant
       );
       router.get(
-        "/sw-merchant",
+        "/zi-merchant",
         [isLoggedIn, isAdmin],
         zindigiController.getZindigiMerchant
       );
       router.put(
-        "/sw-merchant/:merchantId",
+        "/zi-merchant/:merchantId",
         [isLoggedIn, isAdmin],
         zindigiController.updateZindigiMerchant
       );
       router.delete(
-        "/sw-merchant/:merchantId",
+        "/zi-merchant/:merchantId",
         [isLoggedIn, isAdmin],
         zindigiController.deleteZindigiMerchant
       );
