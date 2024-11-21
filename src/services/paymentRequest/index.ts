@@ -123,7 +123,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             type: "wallet",
             phone: paymentRequestObj.accountNo,
             email: paymentRequest.email,
-            orderId: `SPAY-PR-${paymentRequest.id}`,
+            // orderId: `SPAY-PR-${paymentRequest.id}`,
           }
         );
 
@@ -141,7 +141,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             amount: paymentRequest.amount,
             phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
             email: paymentRequest.email,
-            order_id: `SPAY-PR-${paymentRequest.id}`,
+            // order_id: `SPAY-PR-${paymentRequest.id}`,
             type: "wallet",
           },
           merchant.uid
