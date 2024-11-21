@@ -100,11 +100,11 @@ app.listen(process.env.PORT || 3001, () => {
 //   "type": "payin"
 // }),5);
 // console.log('Encrypted Data:', encryptedData);
-const encryptedData =  {
-  encrypted_data: '218xAxfhkR/w996FGSsZrFyNzm/0aexghT64o+GdI9YHesyFOXGsqpN/i6G4zvN/EuA0PG1wljn69C28NLyscBfPtnOzBcOwan0qex6cnVqyMUpuqyPddqLxxGBalqecxDujudMVtO3/95O1SuM1legXUq7ryGsksgw+mBOjnvXdBYX8P5w+tqY=',
-  iv: '6xzsQbcvS/MuESzS',
-  tag: '/q5sMh2MCR9LwdbUwH6vHw=='
-}
-const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
-console.log('Decrypted Data:', decryptedData);
-export default app;
+// const encryptedData =  {
+//   encrypted_data: '218xAxfhkR/w996FGSsZrFyNzm/0aexghT64o+GdI9YHesyFOXGsqpN/i6G4zvN/EuA0PG1wljn69C28NLyscBfPtnOzBcOwan0qex6cnVqyMUpuqyPddqLxxGBalqecxDujudMVtO3/95O1SuM1legXUq7ryGsksgw+mBOjnvXdBYX8P5w+tqY=',
+//   iv: '6xzsQbcvS/MuESzS',
+//   tag: '/q5sMh2MCR9LwdbUwH6vHw=='
+// }
+// const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
+// console.log('Decrypted Data:', decryptedData);
+// export default app;
