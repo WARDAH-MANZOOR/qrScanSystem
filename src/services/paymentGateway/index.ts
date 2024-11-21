@@ -37,7 +37,7 @@ async function initiateTransaction(token: string, body: any) {
   try {
     let id = transactionService.createTransactionId();
     console.log("Initiate Request: ",{...body, referenceId: id})
-    let payload = encryptData({...body, referenceId: id}, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn")
+    let payload = encryptData({...body, referenceId: id}, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT")
     let requestData = {
       data: payload,
     };
@@ -52,7 +52,7 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     });
 
-    let data = decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
+    let data = decryptData((await response.json())?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
     console.log("Initiate Response: ",data)
 
     if (data.responseCode != "G2P-T-0") {
@@ -69,7 +69,7 @@ async function initiateTransaction(token: string, body: any) {
     payload = encryptData({
       "Init_transactionID": data.transactionID,
       "referenceID": id
-    }, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn")
+    }, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT")
 
     requestData = {
       data: payload
@@ -85,7 +85,7 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     })
 
-    data = decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
+    data = decryptData((await response.json())?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
 
     return data;
   }
@@ -113,7 +113,7 @@ async function initiateTransaction(token: string, body: any) {
 // }
 
 async function mwTransaction(token: string, body: any) {
-  const payload = encryptData(body, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn")
+  const payload = encryptData(body, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT")
 
   const requestData = {
     data: payload
@@ -130,7 +130,7 @@ async function mwTransaction(token: string, body: any) {
   });
   let res = await response.json();
   console.log("MW Response",res);
-  return decryptData(res?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
+  return decryptData(res?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
 }
 
 async function checkTransactionStatus(token: string, body: any) {
@@ -139,8 +139,7 @@ async function checkTransactionStatus(token: string, body: any) {
   for (const id of body.transactionIds) {
     const payload = encryptData(
       { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
-      "6w9z$C&F)H@McQfT",
-      "z%C*F-J@NcRfUjXn"
+      "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT"
     );
 
     const requestData = {
@@ -156,7 +155,7 @@ async function checkTransactionStatus(token: string, body: any) {
         },
         body: JSON.stringify(requestData)
       });
-      const jsonResponse = decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
+      const jsonResponse = decryptData((await response.json())?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results
