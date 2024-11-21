@@ -161,7 +161,7 @@ model User {
   customerTransactions Transaction[] @relation("CustomerTransactions")
 
   apiKey String? @unique
-
+  decryptionKey String? @unique
   @@index([email])
 }
 

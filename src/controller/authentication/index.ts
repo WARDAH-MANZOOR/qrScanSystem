@@ -186,6 +186,21 @@ const getAPIKey = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
+const getDecryptionKey = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    if (!id) {
+      throw new CustomError("Invalid user id", 400);
+    }
+
+    const result = await authenticationService.getDecryptionKey(id);
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createAPIKey = async (
   req: Request,
   res: Response,
@@ -199,6 +214,25 @@ const createAPIKey = async (
     }
 
     const result = await authenticationService.createAPIKey(id);
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createDecryptionKey = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    if (!id) {
+      throw new CustomError("Invalid user id", 400);
+    }
+
+    const result = await authenticationService.createDecryptionKey(id);
     return res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
@@ -225,5 +259,7 @@ export { logout, login, signup, getAPIKey };
 export default {
   getAPIKey,
   createAPIKey,
-  updatePassword
+  updatePassword,
+  createDecryptionKey,
+  getDecryptionKey
 };

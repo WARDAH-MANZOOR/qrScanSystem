@@ -6,7 +6,7 @@ import CustomError from "../../utils/custom_error.js";
 import { login, logout, signup } from "controller/authentication/index.js";
 import { validateLoginData } from "services/authentication/index.js";
 import { isLoggedIn, isAdmin } from "utils/middleware.js";
-import { populateEncryptedApiKeysForExistingUsers } from "scripts/populateEncryptedApiKeys.js";
+import { populateEncryptedApiKeysForExistingUsers, populateEncryptedDecryptionKeysForExistingUsers } from "scripts/populateEncryptedApiKeys.js";
 import { authenticationController } from "controller/index.js";
 
 const router = Router();
@@ -17,9 +17,15 @@ router.get(
   [isLoggedIn],
   authenticationController.createAPIKey
 );
+router.get(
+  "/generate-api-key/:id",
+  [isLoggedIn],
+  authenticationController.createDecryptionKey
+);
 router.post("/login", validateLoginData, login);
 router.post("/signup", validateLoginData, signup);
 router.get("/get-key/:id", [isLoggedIn], authenticationController.getAPIKey);
+router.get("/get-api-key/:id", [isLoggedIn], authenticationController.getDecryptionKey);
 router.post(
   "/populate_encrypted_api_keys",
   [isLoggedIn, isAdmin],
@@ -28,6 +34,22 @@ router.post(
       await populateEncryptedApiKeysForExistingUsers();
       res.status(200).json({
         message: "Encrypted API keys populated for all existing users.",
+      });
+    } catch (error: any) {
+      res
+        .status(500)
+        .json({ message: error?.message || "Internal server error" });
+    }
+  }
+);
+router.post(
+  "/populate_encrypted_decryption_keys",
+  [isLoggedIn, isAdmin],
+  async (req: Request, res: Response) => {
+    try {
+      await populateEncryptedDecryptionKeysForExistingUsers();
+      res.status(200).json({
+        message: "Encrypted Decryption keys populated for all existing users.",
       });
     } catch (error: any) {
       res

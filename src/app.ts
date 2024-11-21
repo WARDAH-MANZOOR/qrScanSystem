@@ -23,7 +23,7 @@ import completeTransactionRouter from "./routes/transaction/complete.js"
 import adminTransactionRouter from "./routes/user/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
-import { decrypt, decryptData } from 'utils/enc_dec.js';
+import { callbackDecrypt, callbackEncrypt, decrypt, decryptData } from 'utils/enc_dec.js';
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 
@@ -91,6 +91,20 @@ app.listen(process.env.PORT || 3001, () => {
  
 // Example usage
 
-// const encryptedData = encryptWithPublicKey(publicKey, data);
+// const encryptedData = await callbackEncrypt(JSON.stringify({
+//   "amount": "amount",
+//   "msisdn": "phone",
+//   "time": "date",
+//   "order_id": "transaction_id",
+//   "status": "success",
+//   "type": "payin"
+// }),5);
 // console.log('Encrypted Data:', encryptedData);
+const encryptedData =  {
+  encrypted_data: '218xAxfhkR/w996FGSsZrFyNzm/0aexghT64o+GdI9YHesyFOXGsqpN/i6G4zvN/EuA0PG1wljn69C28NLyscBfPtnOzBcOwan0qex6cnVqyMUpuqyPddqLxxGBalqecxDujudMVtO3/95O1SuM1legXUq7ryGsksgw+mBOjnvXdBYX8P5w+tqY=',
+  iv: '6xzsQbcvS/MuESzS',
+  tag: '/q5sMh2MCR9LwdbUwH6vHw=='
+}
+const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
+console.log('Decrypted Data:', decryptedData);
 export default app;

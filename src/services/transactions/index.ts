@@ -10,6 +10,7 @@ import type {
 import { addWeekdays } from "utils/date_method.js";
 import axios from "axios";
 import { transactionService } from "services/index.js";
+import { callbackEncrypt } from "utils/enc_dec.js";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -322,13 +323,17 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
         }
       });
     }
+  },{
+    timeout: 60000,
+    maxWait: 60000
   });
 
 };
 
-const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string) => {
+const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean) => {
   setTimeout(async () => {
     try {
+      console.log("Callback Payload: ",payload);
       let data = JSON.stringify({
         "amount": payload.original_amount,
         "msisdn": msisdn,
@@ -337,7 +342,10 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         "status": "success",
         "type": type
       });
-
+      if (doEncryption) {
+        data = JSON.stringify(await callbackEncrypt(data,payload?.merchant_id));
+      }
+      
       let config = {
         method: 'post',
         maxBodyLength: Infinity,

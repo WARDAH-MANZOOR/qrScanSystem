@@ -34,6 +34,34 @@ const initiateJazzCash = async (
   }
 };
 
+const initiateJazzCashAsync = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    }
+    const paymentData = req.body;
+
+    let merchantId = req.params?.merchantId;
+
+    if (!merchantId) {
+      return res.status(400).json(ApiResponse.error("Merchant ID is required"));
+    }
+
+    const result: any = await jazzCashService.initiateJazzCashPaymentAsync(paymentData, merchantId);
+    if (result.statusCode != "pending") {
+      return res.status(result?.statusCode).send(ApiResponse.error(result));
+    }
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getJazzCashMerchant = async (
   req: Request,
   res: Response,
@@ -154,7 +182,7 @@ const initiateMWDisbursement = async (req: Request, res: Response, next: NextFun
 
 const dummyCallback = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = jazzCashService.callback(req.body);
+    const result = await jazzCashService.callback(req.body);
     return res.status(200).send(result);
   }
   catch (err) {
@@ -184,5 +212,6 @@ export default {
   initiateDisbursment,
   initiateMWDisbursement,
   dummyCallback,
-  disburseInquiryController
+  disburseInquiryController,
+  initiateJazzCashAsync
 };
