@@ -2,8 +2,8 @@ import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 import { decryptData, encryptData } from "utils/enc_dec.js";
 
-const baseUrl = 'https://gateway-sandbox.jazzcash.com.pk';
-const tokenKey = 'RkR5Y250MXNTRWh5QXZvcnMyN2tLRDU1WE9jYTpBS2NCaTYyZ0Vmdl95YVZTQ0FCaHo2UnNKYWth';
+const baseUrl = 'https://gateway.jazzcash.com.pk';
+const tokenKey = 'RWlNV1JPYkhJekNIWHRLM1lRdnZFXzhYVU5JYTpVMkdaazhHNWE0UW5DSFRXTnZGeXhFR2JFbXNh';
 
 async function getToken() {
   try {
@@ -37,7 +37,7 @@ async function initiateTransaction(token: string, body: any) {
   try {
     let id = transactionService.createTransactionId();
     console.log("Initiate Request: ",{...body, referenceId: id})
-    let payload = encryptData({...body, referenceId: id}, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+    let payload = encryptData({...body, referenceId: id}, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn")
     let requestData = {
       data: payload,
     };
@@ -52,7 +52,7 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     });
 
-    let data = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+    let data = decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
     console.log("Initiate Response: ",data)
 
     if (data.responseCode != "G2P-T-0") {
@@ -69,7 +69,7 @@ async function initiateTransaction(token: string, body: any) {
     payload = encryptData({
       "Init_transactionID": data.transactionID,
       "referenceID": id
-    }, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+    }, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn")
 
     requestData = {
       data: payload
@@ -85,7 +85,7 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     })
 
-    data = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+    data = decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
 
     return data;
   }
@@ -113,7 +113,7 @@ async function initiateTransaction(token: string, body: any) {
 // }
 
 async function mwTransaction(token: string, body: any) {
-  const payload = encryptData(body, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@")
+  const payload = encryptData(body, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn")
 
   const requestData = {
     data: payload
@@ -128,7 +128,7 @@ async function mwTransaction(token: string, body: any) {
     },
     body: JSON.stringify(requestData)
   });
-  return decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+  return decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
 }
 
 async function checkTransactionStatus(token: string, body: any) {
@@ -137,8 +137,8 @@ async function checkTransactionStatus(token: string, body: any) {
   for (const id of body.transactionIds) {
     const payload = encryptData(
       { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
-      "mYjC!nc3dibleY3k",
-      "Myin!tv3ctorjCM@"
+      "6w9z$C&F)H@McQfT",
+      "z%C*F-J@NcRfUjXn"
     );
 
     const requestData = {
@@ -154,7 +154,7 @@ async function checkTransactionStatus(token: string, body: any) {
         },
         body: JSON.stringify(requestData)
       });
-      const jsonResponse = decryptData((await response.json())?.data, "mYjC!nc3dibleY3k", "Myin!tv3ctorjCM@");
+      const jsonResponse = decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results

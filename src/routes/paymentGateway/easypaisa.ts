@@ -22,6 +22,18 @@ export default function (router: Router) {
     easyPaisaController.disburseThroughBank
   );
 
+  router.get(
+    "/ep-bal/:merchantId",
+    [apiKeyAuth],
+    easyPaisaController.accountBalance
+  );
+
+  router.post(
+    "/epd-inquiry/:merchantId",
+    [apiKeyAuth],
+    easyPaisaController.transactionInquiry
+  );
+
   router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
