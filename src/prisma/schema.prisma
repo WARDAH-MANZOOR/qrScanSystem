@@ -99,6 +99,8 @@ model Merchant {
 
   EasyPaisaDisburseAccountId Int?
   EasyPaisaDisburseAccount   EasyPaisaDisburseAccount? @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
+  JazzCashDisburseAccountId Int?
+  JazzCashDisburseAccount   JazzCashDisburseAccount? @relation(fields: [JazzCashDisburseAccountId], references: [id])
 
   // New column for Easypaisa payment method selection
   easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(SWITCH)
@@ -312,6 +314,18 @@ model EasyPaisaDisburseAccount {
   clientSecret String
   xChannel     String
   pin          String
+  merchant     Merchant[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model JazzCashDisburseAccount {
+  id             Int        @id @default(autoincrement())
+  tokenKey       String
+  initialVector  String
+  key            String
   merchant     Merchant[]
 
   createdAt DateTime  @default(now())

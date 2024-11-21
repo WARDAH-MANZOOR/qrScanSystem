@@ -4,6 +4,7 @@ import easypaisaRouter from "./easypaisa.js";
 import swichRouter from "./swich.js"
 import easyPaisaDisburse from "./easyPaisaDisburse.js";
 import zindigiRouter from "./zindigi.js"
+import jazzcashDisburse from "./jazzcashDisburse.js";
 
 const router = Router();
  
@@ -12,5 +13,6 @@ easypaisaRouter(router);
 swichRouter(router);
 easyPaisaDisburse(router);
 zindigiRouter(router);
+jazzcashDisburse(router);
 
 export default router;
