@@ -128,7 +128,9 @@ async function mwTransaction(token: string, body: any) {
     },
     body: JSON.stringify(requestData)
   });
-  return decryptData((await response.json())?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
+  let res = await response.json();
+  console.log("MW Response",res);
+  return decryptData(res?.data, "6w9z$C&F)H@McQfT", "z%C*F-J@NcRfUjXn");
 }
 
 async function checkTransactionStatus(token: string, body: any) {

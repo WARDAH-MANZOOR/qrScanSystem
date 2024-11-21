@@ -24,7 +24,7 @@ export default function (router: Router) {
 
   router.get(
     "/ep-bal/:merchantId",
-    [apiKeyAuth],
+    [isLoggedIn, isAdmin],
     easyPaisaController.accountBalance
   );
 
