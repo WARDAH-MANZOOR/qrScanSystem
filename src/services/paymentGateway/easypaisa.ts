@@ -61,8 +61,8 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
         merchant_id: true
       }
     })
-    if(!id) {
-      throw new CustomError("Merchant not found",400);
+    if (!id) {
+      throw new CustomError("Merchant not found", 400);
     }
     const txn = await prisma.transaction.findFirst({
       where: {
@@ -71,11 +71,11 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
         providerDetails: {
           path: ['name'],
           equals: "Easypaisa"
-        } 
+        }
       },
     })
-    if(!txn) {
-      throw new CustomError("Transaction not found",400);
+    if (!txn) {
+      throw new CustomError("Transaction not found", 400);
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
     let data = {
@@ -89,8 +89,8 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
     }
     return data;
   }
-  catch(err: any) {
-    throw new CustomError(err?.message || "Error getting transaction",500);
+  catch (err: any) {
+    throw new CustomError(err?.message || "Error getting transaction", 500);
   }
 }
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
@@ -709,17 +709,17 @@ const createDisbursement = async (
 
         let id = transactionService.createTransactionId();
         let data: { transaction_id?: string } = {};
-        if (obj.order_id) {
-          data["transaction_id"] = obj.order_id;
-        } else {
-          data["transaction_id"] = transactionService.createTransactionId();
-        }
+        // if (obj.order_id) {
+        //   data["transaction_id"] = obj.order_id;
+        // } else {
+        data["transaction_id"] = ma2ma.TransactionReference;
+        // }
         let date = new Date();
         // Create disbursement record
         let disbursement = await tx.disbursement.create({
           data: {
             ...data,
-            transaction_id: id,
+            // transaction_id: id,
             merchant_id: Number(findMerchant.merchant_id),
             disbursementDate: date,
             transactionAmount: amountDecimal,
@@ -789,7 +789,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
       };
     }
 
-    if(params.transaction_id) {
+    if (params.transaction_id) {
       customWhere["transaction_id"] = {
         contains: params.transaction_id
       }
@@ -933,7 +933,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     const getTimeStamp: IEasyLoginPayload = await corporateLogin(
       findDisbureMerch
     );
-    
+
     const creatHashKey = await createRSAEncryptedPayload(
       `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
     );
@@ -965,7 +965,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
 
     let res = await axios.request(config);
     if (res.data.ResponseCode != "0") {
-      console.log("Transfer Inquiry Error: ",res.data);
+      console.log("Transfer Inquiry Error: ", res.data);
       throw new CustomError("Error conducting transfer inquiry", 500);
     }
 
@@ -1059,6 +1059,142 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     throw new CustomError("Disbursement Failed", 500);
   }
 };
+
+const accountBalance = async (merchantId: string) => {
+  try {
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.EasyPaisaDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await easyPaisaDisburse
+      .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    const getTimeStamp: IEasyLoginPayload = await corporateLogin(
+      findDisbureMerch
+    );
+    const creatHashKey = await createRSAEncryptedPayload(
+      `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
+    );
+    console.log(creatHashKey)
+
+    let data = JSON.stringify({
+      "msisdn": findDisbureMerch.MSISDN
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/account-balance/account-bal',
+      headers: {
+        "X-Hash-Value": creatHashKey,
+        "X-IBM-Client-Id": findDisbureMerch.clientId,
+        "X-IBM-Client-Secret": findDisbureMerch.clientSecret,
+        "X-Channel": findDisbureMerch.xChannel,
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      data: data
+    };
+
+    let response = await axios.request(config);
+    if (response?.data?.ResponseCode != "0") {
+      console.log(response?.data)
+      throw new CustomError("Error while getting balance", 500);
+    }
+    console.log(response?.data)
+    return { 
+      amount: response?.data?.amount
+    };
+  }
+  catch (err: any) {
+    throw new CustomError(
+      err?.message || "An error occurred while initiating the transaction",
+      500
+    );
+  }
+}
+
+const transactionInquiry = async (obj: any,merchantId: string) => {
+  try {
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.EasyPaisaDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await easyPaisaDisburse
+      .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    const getTimeStamp: IEasyLoginPayload = await corporateLogin(
+      findDisbureMerch
+    );
+    const creatHashKey = await createRSAEncryptedPayload(
+      `${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`
+    );
+
+    let data = JSON.stringify({
+      "transactionID": obj.transactionId
+    });
+    
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/transaction-status-inquiry/TransactionStatusInquiry',
+      headers: { 
+        'X-Hash-Value': creatHashKey, 
+        'X-IBM-Client-Id': findDisbureMerch.clientId, 
+        'X-IBM-Client-Secret': findDisbureMerch.clientSecret, 
+        'X-Channel': findDisbureMerch.xChannel, 
+      },
+      data : data
+    };
+    
+    let response = await axios.request(config)
+    if (response?.data?.ResponseCode != "0") {
+      console.log(response?.data)
+      throw new CustomError("Error while getting balance", 500);
+    }
+    console.log(response?.data)
+    return response?.data;
+  }
+  catch (err: any) {
+    throw new CustomError(
+      err?.message || "An error occurred while initiating the transaction",
+      500
+    );
+  }
+}
+
+// const transactionINquiry
+
 export default {
   getMerchantChannel,
   initiateEasyPaisa,
@@ -1071,8 +1207,10 @@ export default {
   getDisbursement,
   disburseThroughBank,
   getMerchantInquiryMethod,
-getTransaction,
-initiateEasyPaisaAsync
+  getTransaction,
+  initiateEasyPaisaAsync,
+  accountBalance,
+  transactionInquiry
 };
 
 // const axios = require('axios');
