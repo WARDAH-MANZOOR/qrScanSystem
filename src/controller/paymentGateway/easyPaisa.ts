@@ -53,6 +53,53 @@ const initiateEasyPaisa = async (
   }
 };
 
+const initiateEasyPaisaAsync = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let merchantId = req.params?.merchantId;
+
+    if (!merchantId) {
+      return res.status(400).json(ApiResponse.error("Merchant ID is required"));
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+    }
+
+    const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    let result: any;
+    if (channel == "DIRECT") {
+      result = await easyPaisaService.initiateEasyPaisaAsync(
+        merchantId,
+        req.body 
+      );
+      if(result.statusCode != "pending") {
+        return res.status(result.statusCode).send(ApiResponse.error(result))
+      }
+    }
+    else {
+      result = await swichService.initiateSwichAsync({
+        channel: 1749,
+        amount: req.body.amount,
+        phone: transactionService.convertPhoneNumber(req.body.phone),
+        email: req.body.email,
+        order_id: req.body.order_id,
+        type: req.body.type
+      }, merchantId)
+      if (result.statusCode != "pending") {
+        return res.status(result.statusCode).send(ApiResponse.error(result));
+      }
+    }
+    return res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getEasyPaisaMerchant = async (
   req: Request,
   res: Response,
@@ -218,5 +265,6 @@ export default {
   statusInquiry,
   createDisbursement,
   getDisbursement,
-  disburseThroughBank
+  disburseThroughBank,
+  initiateEasyPaisaAsync
 };

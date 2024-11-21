@@ -8,6 +8,7 @@ import {
   validateJazzcashRequest,
   validateUpdateJazzcashMerchant,
 } from "validators/paymentGateway/jazzCash.js";
+import { apiKeyAuth } from "middleware/auth.js";
 
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
@@ -24,6 +25,13 @@ export default function (router: Router) {
     validateJazzcashRequest,
     jazzCashController.initiateJazzCash
   );
+
+  router.post(
+    "/initiate-jza/:merchantId",
+    [apiKeyAuth, ...validateJazzcashRequest],
+    jazzCashController.initiateJazzCashAsync
+  );
+
   // Merchant Config
   router.get(
     "/merchant-config",

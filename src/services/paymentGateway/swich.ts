@@ -7,6 +7,7 @@ import { decrypt, encrypt } from "utils/enc_dec.js";
 import { transactionService } from "services/index.js";
 import qs from "qs";
 import { PROVIDERS } from "constants/providers.js";
+import { Prisma } from "@prisma/client";
 dotenv.config();
 
 const getAuthToken = async (id: number) => {
@@ -123,7 +124,8 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         findMerchant.webhook_url as string,
         saveTxn,
         payload.phone,
-        "payin"
+        "payin",
+        false
       );
       return {
         txnNo: saveTxn.transaction_id,
@@ -163,6 +165,158 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     }
   }
 };
+
+const initiateSwichAsync = async (payload: any, merchantId: string) => {
+  let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
+  let findMerchant: any;
+
+  try {
+    if (!merchantId) {
+      throw new CustomError("Merchant ID is required", 400);
+    }
+
+    // Fetch the merchant details
+    findMerchant = await prisma.merchant.findFirst({
+      where: {
+        uid: merchantId,
+      },
+      include: {
+        commissions: true,
+      },
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    const id = transactionService.createTransactionId();
+
+    // Save transaction immediately with pending status
+    saveTxn = await transactionService.createTxn({
+      order_id: payload.order_id,
+      transaction_id: id,
+      amount: payload.amount,
+      status: "pending",
+      type: payload.type,
+      merchant_id: findMerchant.merchant_id,
+      commission:
+        +findMerchant.commissions[0].commissionGST +
+        +findMerchant.commissions[0].commissionRate +
+        +findMerchant.commissions[0].commissionWithHoldingTax,
+      settlementDuration: findMerchant.commissions[0].settlementDuration,
+      providerDetails: {
+        id: findMerchant.swichMerchantId as number,
+        name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+        msisdn: payload.phone,
+      },
+    });
+
+    // Return pending status and transaction ID immediately
+    setImmediate(async () => {
+      try {
+        // Prepare the payload for the external API
+        const data = JSON.stringify({
+          customerTransactionId: id,
+          categoryId: "2",
+          channelId: payload.channel === 5624 ? 10 : 8,
+          item: "1",
+          amount: payload.amount,
+          remoteIPAddress: "139.59.40.220",
+          msisdn: payload.phone,
+          email: payload.email,
+        });
+
+        // Fetch the auth token
+        const authToken = await getAuthToken(
+          findMerchant.swichMerchantId as number
+        );
+
+        // API config
+        const config = {
+          method: "post",
+          maxBodyLength: Infinity,
+          url: "https://api.swichnow.com/gateway/payin/purchase/ewallet",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          data: data,
+        };
+
+        // Make the API call
+        const res = await axios.request(config);
+
+        // Process API response
+        if (res.data.code === "0000") {
+          await transactionService.updateTxn(
+            saveTxn?.transaction_id as string,
+            {
+              status: "completed",
+              response_message: res.data.message,
+            },
+            findMerchant.commissions[0].settlementDuration
+          );
+
+          transactionService.sendCallback(
+            findMerchant.webhook_url as string,
+            saveTxn,
+            payload.phone,
+            "payin",
+            true
+          );
+        } else {
+          await transactionService.updateTxn(
+            saveTxn?.transaction_id as string,
+            {
+              status: "failed",
+              response_message: res.data.message,
+            },
+            findMerchant.commissions[0].settlementDuration
+          );
+        }
+      } catch (error: any) {
+        console.error("Error during Swich API call:", error);
+
+        if (saveTxn) {
+          await transactionService.updateTxn(
+            saveTxn.transaction_id,
+            {
+              status: "failed",
+              response_message: error?.response?.data?.message || error.message,
+            },
+            findMerchant?.commissions[0]?.settlementDuration || 0
+          );
+        }
+      }
+    });
+
+    return {
+      txnNo: saveTxn.transaction_id,
+      txnDateTime: saveTxn.date_time,
+      statusCode: "pending",
+    };
+  } catch (err: any) {
+    console.error("Error during transaction initiation:", err);
+
+    if (saveTxn) {
+      await transactionService.updateTxn(
+        saveTxn.transaction_id,
+        {
+          status: "failed",
+          response_message: err?.response?.data?.message || err.message,
+        },
+        findMerchant?.commissions[0]?.settlementDuration || 0
+      );
+    }
+
+    return {
+      message: err?.message || "An error occurred while initiating the transaction",
+      statusCode: err?.statusCode || 500,
+      txnNo: saveTxn?.transaction_id || null,
+    };
+  }
+};
+
 
 const createMerchant = async (merchantData: ISwichPayload) => {
   try {
@@ -404,4 +558,5 @@ export default {
   updateMerchant,
   deleteMerchant,
   swichTxInquiry,
+  initiateSwichAsync
 };

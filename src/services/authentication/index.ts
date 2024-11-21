@@ -5,6 +5,8 @@ import { Response } from "express";
 import { body } from "express-validator";
 import CustomError from "utils/custom_error.js";
 import { generateApiKey, hashApiKey } from "utils/authentication.js";
+import crypto from "crypto"
+import { decrypt, encrypt } from "utils/enc_dec.js";
 
 const getUserByEmail = async (email: string) => {
   return prisma.user.findUnique({
@@ -97,6 +99,14 @@ const getAPIKey = async (userId: number) => {
   return user?.apiKey;
 };
 
+const getDecryptionKey = async (userId: number) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { decryptionKey: true },
+  });
+  return user?.decryptionKey?.toString() as string;
+};
+
 const createAPIKey = async (userId: number) => {
   try {
     const createKey = generateApiKey();
@@ -118,6 +128,34 @@ const createAPIKey = async (userId: number) => {
 
     return {
       key: createKey,
+      message:"API key created successfully",
+    };
+  } catch (error) {
+    console.error("Transaction rolled back due to error:", error);
+  }
+};
+
+const createDecryptionKey = async (userId: number) => {
+  try {
+    const createKey = crypto.randomBytes(32);
+    const hashedKey = createKey.toString('hex');
+
+    const result = await prisma.$transaction(async (transaction) => {
+      const user = await transaction.user
+        .update({
+          where: { id: userId },
+          data: { decryptionKey: hashedKey },
+        })
+        .catch((error) => {
+          throw new CustomError(
+            "An error occured while creating the API key",
+            500
+          );
+        });
+    });
+
+    return {
+      key: hashedKey,
       message:"API key created successfully",
     };
   } catch (error) {
@@ -153,4 +191,6 @@ export {
 export default {
   getAPIKey,
   createAPIKey,
+  createDecryptionKey,
+  getDecryptionKey
 };
