@@ -143,8 +143,20 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       totalDisbursed = result.totalDisbursed;
     }
     let id = transactionService.createTransactionId();
-    console.log("Initiate Request: ", { ...body, referenceId: id })
-    let payload = encryptData({ ...body, referenceId: id }, findDisbureMerch.key, findDisbureMerch.initialVector)
+    console.log("Initiate Request: ", { 
+      bankAccountNumber: body.iban, 
+      bankCode: body.bankCode,
+      amount: body.amount,
+      recieverMSISDN: body.phone,
+      referenceId: id })
+    let payload = encryptData(
+      { 
+        bankAccountNumber: body.iban, 
+        bankCode: body.bankCode,
+        amount: body.amount,
+        recieverMSISDN: body.phone,
+        referenceId: id }
+      , findDisbureMerch.key, findDisbureMerch.initialVector)
     let requestData = {
       data: payload,
     };
@@ -158,8 +170,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       },
       body: JSON.stringify(requestData)
     });
-
-    let data = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    let res = await response.json();
+    let data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
 
     if (data.responseCode != "G2P-T-0") {
@@ -191,9 +203,9 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       },
       body: JSON.stringify(requestData)
     })
-    let res = await response.json();
+    res = await response.json();
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    if(data.responseCode != "G2P-T-0") {
+    if(res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       throw new CustomError("Error with ibft confirmation", 500)
     }
@@ -202,7 +214,6 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         // Update transactions to adjust balances
         await updateTransactions(updates, tx);
   
-        let id = transactionService.createTransactionId();
         let data: { transaction_id?: string } = {};
         // if (obj.order_id) {
         //   data["transaction_id"] = obj.order_id;
