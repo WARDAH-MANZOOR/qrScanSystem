@@ -12,11 +12,12 @@ import { apiKeyAuth } from "middleware/auth.js";
 
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
-  router.post("/jzw-disburse",jazzCashController.initiateMWDisbursement)
-  router.post("/jz-disburse-status",jazzCashController.disburseInquiryController);
+  router.post("/jzw-disburse",[apiKeyAuth],jazzCashController.initiateMWDisbursement)
+  router.post("/jz-disburse-status",[apiKeyAuth],jazzCashController.disburseInquiryController);
   // Define routes using arrow functions
   router.post(
     "/jz-disburse",
+    [apiKeyAuth],
     jazzCashController.initiateDisbursment
   )
 

@@ -106,6 +106,8 @@ model Merchant {
   easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(SWITCH)
   easypaisaInquiryMethod EasypaisaInquiryMethod     @default(DATABASE)
 
+  encrypted Boolean @default(false)
+
   createdAt         DateTime         @default(now())
   updatedAt         DateTime?        @updatedAt
   ZindigiMerchant   ZindigiMerchant? @relation(fields: [zindigiMerchantId], references: [id])

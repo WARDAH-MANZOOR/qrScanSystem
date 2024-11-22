@@ -129,7 +129,7 @@ async function initiateTransaction(token: string, body: any) {
 async function mwTransaction(token: string, body: any) {
   const credentials = body.type == "s" ? sandboxDetails : productionDetails;
   const url = body.type == "s" ? sandboxUrl : productionUrl;
-  const payload = encryptData({...body, referenceID: transactionService.createTransactionId()}, credentials.key, credentials.initialVector)
+  const payload = encryptData({...body, referenceId: transactionService.createTransactionId()}, credentials.key, credentials.initialVector)
 
   const requestData = {
     data: payload

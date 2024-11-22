@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Merchant" ADD COLUMN     "encrypted" BOOLEAN NOT NULL DEFAULT false;
