@@ -158,6 +158,7 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
 
 const initiateDisbursment = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
     const token = await getToken(req.body.type);
     const initTransaction = await initiateTransaction(token?.access_token, req.body, req.params.merchantId);
