@@ -191,8 +191,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       },
       body: JSON.stringify(requestData)
     })
-
-    let res = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    let res = await response.json();
+    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     if(data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       throw new CustomError("Error with ibft confirmation", 500)
