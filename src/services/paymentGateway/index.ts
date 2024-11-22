@@ -2,13 +2,25 @@ import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 import { decryptData, encryptData } from "utils/enc_dec.js";
 
-const baseUrl = 'https://gateway.jazzcash.com.pk';
-const tokenKey = 'RWlNV1JPYkhJekNIWHRLM1lRdnZFXzhYVU5JYTpVMkdaazhHNWE0UW5DSFRXTnZGeXhFR2JFbXNh';
+const productionUrl = 'https://gateway.jazzcash.com.pk';
+const sandboxUrl = 'https://gateway-sandbox.jazzcash.com.pk'
+const sandboxDetails = {
+  tokenKey: "RkR5Y250MXNTRWh5QXZvcnMyN2tLRDU1WE9jYTpBS2NCaTYyZ0Vmdl95YVZTQ0FCaHo2UnNKYWth",
+  key: "mYjC!nc3dibleY3k",
+  initialVector: "Myin!tv3ctorjCM@"
+}
+const productionDetails = {
+  tokenKey: "RWlNV1JPYkhJekNIWHRLM1lRdnZFXzhYVU5JYTpVMkdaazhHNWE0UW5DSFRXTnZGeXhFR2JFbXNh",
+  key: "z%C*F-J@NcRfUjXn",
+  initialVector: "6w9z$C&F)H@McQfT"
+}
 
-async function getToken() {
+async function getToken(type: string) {
   try {
+    const credentials = type == "s" ? sandboxDetails : productionDetails;
+    const url = type == "s" ? sandboxUrl : productionUrl;
     const myHeaders = new Headers();
-    myHeaders.append("Authorization", `Basic ${tokenKey}`);
+    myHeaders.append("Authorization", `Basic ${credentials.tokenKey}`);
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
 
     const urlencoded = new URLSearchParams();
@@ -21,7 +33,7 @@ async function getToken() {
       // redirect: "follow"
     };
 
-    const token = await fetch(`${baseUrl}/token`, requestOptions)
+    const token = await fetch(`${url}/token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -35,14 +47,16 @@ async function getToken() {
 
 async function initiateTransaction(token: string, body: any) {
   try {
+    const credentials = body.type == "s" ? sandboxDetails : productionDetails;
+    const url = body.type == "s" ? sandboxUrl : productionUrl;
     let id = transactionService.createTransactionId();
-    console.log("Initiate Request: ",{...body, referenceId: id})
-    let payload = encryptData({...body, referenceId: id}, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT")
+    console.log("Initiate Request: ", { ...body, referenceId: id })
+    let payload = encryptData({ ...body, referenceId: id }, credentials.key, credentials.initialVector)
     let requestData = {
       data: payload,
     };
 
-    let response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`${url}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -52,30 +66,30 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     });
 
-    let data = decryptData((await response.json())?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
-    console.log("Initiate Response: ",data)
+    let data = decryptData((await response.json())?.data, credentials.key, credentials.initialVector);
+    console.log("Initiate Response: ", data)
 
     if (data.responseCode != "G2P-T-0") {
-      console.log("IBFT Response: ",data);
+      console.log("IBFT Response: ", data);
       throw new CustomError("Error with ibft inquiry", 500)
     }
 
     id = transactionService.createTransactionId();
-    console.log("Confirm Request: ",{
+    console.log("Confirm Request: ", {
       "Init_transactionID": data.transactionID,
       "referenceID": id
     })
-    
+
     payload = encryptData({
       "Init_transactionID": data.transactionID,
       "referenceID": id
-    }, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT")
+    }, credentials.key, credentials.initialVector)
 
     requestData = {
       data: payload
     }
 
-    response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`${url}/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -85,7 +99,7 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     })
 
-    data = decryptData((await response.json())?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
+    data = decryptData((await response.json())?.data, credentials.key, credentials.initialVector);
 
     return data;
   }
@@ -113,13 +127,15 @@ async function initiateTransaction(token: string, body: any) {
 // }
 
 async function mwTransaction(token: string, body: any) {
-  const payload = encryptData(body, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT")
+  const credentials = body.type == "s" ? sandboxDetails : productionDetails;
+  const url = body.type == "s" ? sandboxUrl : productionUrl;
+  const payload = encryptData({...body, referenceID: transactionService.createTransactionId()}, credentials.key, credentials.initialVector)
 
   const requestData = {
     data: payload
   };
 
-  const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+  const response = await fetch(`${url}/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -129,17 +145,19 @@ async function mwTransaction(token: string, body: any) {
     body: JSON.stringify(requestData)
   });
   let res = await response.json();
-  console.log("MW Response",res);
-  return decryptData(res?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
+  console.log("MW Response", res);
+  return decryptData(res?.data, credentials.key, credentials.initialVector);
 }
 
 async function checkTransactionStatus(token: string, body: any) {
+  const credentials = body.type == "s" ? sandboxDetails : productionDetails;
+  const url = body.type == "s" ? sandboxUrl : productionUrl;
   const results = [];
 
   for (const id of body.transactionIds) {
     const payload = encryptData(
       { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
-      "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT"
+      credentials.key, credentials.initialVector
     );
 
     const requestData = {
@@ -147,7 +165,7 @@ async function checkTransactionStatus(token: string, body: any) {
     };
     console.log(requestData)
     try {
-      const response = await fetch(`${baseUrl}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+      const response = await fetch(`${url}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -155,7 +173,7 @@ async function checkTransactionStatus(token: string, body: any) {
         },
         body: JSON.stringify(requestData)
       });
-      const jsonResponse = decryptData((await response.json())?.data, "z%C*F-J@NcRfUjXn", "6w9z$C&F)H@McQfT");
+      const jsonResponse = decryptData((await response.json())?.data, credentials.key, credentials.initialVector);
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results
