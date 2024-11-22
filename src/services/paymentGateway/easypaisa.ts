@@ -739,6 +739,7 @@ const createDisbursement = async (
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: date,
             transaction_id: disbursement.transaction_id,
+            merchant_id: findMerchant.merchant_id
           },
           obj.phone,
           "payout",
@@ -1031,6 +1032,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: date,
             transaction_id: disbursement.transaction_id,
+            merchant_id: findMerchant.merchant_id
           },
           obj.phone,
           "payout",
