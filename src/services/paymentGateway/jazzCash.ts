@@ -2,7 +2,7 @@ import CustomError from "../../utils/custom_error.js";
 import crypto from "crypto";
 import { format } from "date-fns";
 import axios from "axios";
-import { transactionService } from "services/index.js";
+import { easyPaisaDisburse, merchantService, transactionService } from "services/index.js";
 import { callbackDecrypt, decrypt, encrypt } from "utils/enc_dec.js";
 import prisma from "prisma/client.js";
 import type { IjazzCashConfigParams } from "types/merchant.js";
@@ -1063,6 +1063,10 @@ const callback = async (body: any) => {
   }
 };
 
+const afterDisbursement = async (obj: any, merchantId: string) => {
+  
+}
+
 export default {
   initiateJazzCashPayment,
   getJazzCashMerchant,
@@ -1071,5 +1075,5 @@ export default {
   deleteJazzCashMerchant,
   statusInquiry,
   callback,
-  initiateJazzCashPaymentAsync
+  initiateJazzCashPaymentAsync,
 };

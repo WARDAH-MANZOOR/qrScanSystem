@@ -1,6 +1,11 @@
-import { transactionService } from "services/index.js";
+import { easyPaisaDisburse, merchantService, transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 import { decryptData, encryptData } from "utils/enc_dec.js";
+import { calculateDisbursement, getEligibleTransactions, getMerchantRate, updateTransactions } from "./disbursement.js";
+import prisma from "prisma/client.js";
+import { Decimal } from "@prisma/client/runtime/library";
+import { PROVIDERS } from "constants/providers.js";
+import jazzcashDisburse from "./jazzcashDisburse.js";
 
 const productionUrl = 'https://gateway.jazzcash.com.pk';
 const sandboxUrl = 'https://gateway-sandbox.jazzcash.com.pk'
@@ -15,12 +20,31 @@ const productionDetails = {
   initialVector: "6w9z$C&F)H@McQfT"
 }
 
-async function getToken(type: string) {
+async function getToken(merchantId: string) {
   try {
-    const credentials = type == "s" ? sandboxDetails : productionDetails;
-    const url = type == "s" ? sandboxUrl : productionUrl;
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.EasyPaisaDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await jazzcashDisburse
+      .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
     const myHeaders = new Headers();
-    myHeaders.append("Authorization", `Basic ${credentials.tokenKey}`);
+    myHeaders.append("Authorization", `Basic ${findDisbureMerch.tokenKey}`);
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
 
     const urlencoded = new URLSearchParams();
@@ -33,7 +57,7 @@ async function getToken(type: string) {
       // redirect: "follow"
     };
 
-    const token = await fetch(`${url}/token`, requestOptions)
+    const token = await fetch(`${productionUrl}/token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -45,18 +69,87 @@ async function getToken(type: string) {
   }
 }
 
-async function initiateTransaction(token: string, body: any) {
+async function initiateTransaction(token: string, body: any, merchantId: string) {
   try {
-    const credentials = body.type == "s" ? sandboxDetails : productionDetails;
-    const url = body.type == "s" ? sandboxUrl : productionUrl;
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.EasyPaisaDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await jazzcashDisburse
+      .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    // Fetch merchant financial terms
+    let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
+
+    const transactions = await getEligibleTransactions(
+      findMerchant.merchant_id,
+      prisma
+    );
+    if (transactions.length === 0) {
+      throw new CustomError("No eligible transactions to disburse", 400);
+    }
+    let updates: TransactionUpdate[] = [];
+    let totalDisbursed = new Decimal(0);
+    let amountDecimal;
+    if (body.amount) {
+      amountDecimal = new Decimal(body.amount);
+    } else {
+      updates = transactions.map((t: any) => ({
+        transaction_id: t.transaction_id,
+        disbursed: true,
+        balance: new Decimal(0),
+        settled_amount: t.settled_amount,
+        original_amount: t.original_amount,
+      }));
+      totalDisbursed = transactions.reduce(
+        (sum: Decimal, t: any) => sum.plus(t.balance),
+        new Decimal(0)
+      );
+      amountDecimal = totalDisbursed;
+    }
+    // Calculate total deductions and merchant amount
+    const totalCommission = amountDecimal.mul(rate.disbursementRate);
+    const totalGST = amountDecimal.mul(rate.disbursementGST);
+    const totalWithholdingTax = amountDecimal.mul(
+      rate.disbursementWithHoldingTax
+    );
+    const totalDeductions = totalCommission
+      .plus(totalGST)
+      .plus(totalWithholdingTax);
+    const merchantAmount = body.amount
+      ? amountDecimal.plus(totalDeductions)
+      : amountDecimal.minus(totalDeductions);
+
+    // Get eligible transactions
+
+    if (body.amount) {
+      const result = calculateDisbursement(transactions, merchantAmount);
+      updates = result.updates;
+      totalDisbursed = result.totalDisbursed;
+    }
     let id = transactionService.createTransactionId();
     console.log("Initiate Request: ", { ...body, referenceId: id })
-    let payload = encryptData({ ...body, referenceId: id }, credentials.key, credentials.initialVector)
+    let payload = encryptData({ ...body, referenceId: id }, findDisbureMerch.key, findDisbureMerch.initialVector)
     let requestData = {
       data: payload,
     };
 
-    let response = await fetch(`${url}/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -66,7 +159,7 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     });
 
-    let data = decryptData((await response.json())?.data, credentials.key, credentials.initialVector);
+    let data = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
 
     if (data.responseCode != "G2P-T-0") {
@@ -83,13 +176,13 @@ async function initiateTransaction(token: string, body: any) {
     payload = encryptData({
       "Init_transactionID": data.transactionID,
       "referenceID": id
-    }, credentials.key, credentials.initialVector)
+    }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
     requestData = {
       data: payload
     }
 
-    response = await fetch(`${url}/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -99,9 +192,72 @@ async function initiateTransaction(token: string, body: any) {
       body: JSON.stringify(requestData)
     })
 
-    data = decryptData((await response.json())?.data, credentials.key, credentials.initialVector);
-
-    return data;
+    let res = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    if(data.responseCode != "G2P-T-0") {
+      console.log("IBFT Response: ", data);
+      throw new CustomError("Error with ibft confirmation", 500)
+    }
+    return await prisma.$transaction(
+      async (tx) => {
+        // Update transactions to adjust balances
+        await updateTransactions(updates, tx);
+  
+        let id = transactionService.createTransactionId();
+        let data: { transaction_id?: string } = {};
+        // if (obj.order_id) {
+        //   data["transaction_id"] = obj.order_id;
+        // } else {
+        data["transaction_id"] = res.transactionID;
+        // }
+        let date = new Date();
+        // Create disbursement record
+        let disbursement = await tx.disbursement.create({
+          data: {
+            ...data,
+            // transaction_id: id,
+            merchant_id: Number(findMerchant.merchant_id),
+            disbursementDate: date,
+            transactionAmount: amountDecimal,
+            commission: totalCommission,
+            gst: totalGST,
+            withholdingTax: totalWithholdingTax,
+            merchantAmount: body.amount ? body.amount : merchantAmount,
+            platform: 0,
+            account: body.phone,
+            provider: PROVIDERS.JAZZ_CASH,
+          },
+        });
+  
+        transactionService.sendCallback(
+          findMerchant.webhook_url as string,
+          {
+            original_amount: body.amount ? body.amount : merchantAmount,
+            date_time: date,
+            transaction_id: disbursement.transaction_id,
+            merchant_id: findMerchant.merchant_id
+          },
+          body.phone,
+          "payout",
+          findMerchant.encrypted
+        );
+  
+        return {
+          message: "Disbursement created successfully",
+          merchantAmount: body.amount
+            ? body.amount.toString()
+            : merchantAmount.toString(),
+          order_id: disbursement.transaction_id,
+          externalApiResponse: {
+            TransactionReference: res.transactionID,
+            TransactionStatus: "success",
+          },
+        };
+      },
+      {
+        maxWait: 5000,
+        timeout: 60000,
+      }
+    );
   }
   catch (err) {
     console.log("Initiate Transaction Error", err);
@@ -126,16 +282,96 @@ async function initiateTransaction(token: string, body: any) {
 //   return await response.json();
 // }
 
-async function mwTransaction(token: string, body: any) {
-  const credentials = body.type == "s" ? sandboxDetails : productionDetails;
-  const url = body.type == "s" ? sandboxUrl : productionUrl;
-  const payload = encryptData({...body, referenceId: transactionService.createTransactionId()}, credentials.key, credentials.initialVector)
+async function mwTransaction(token: string, body: any, merchantId: string) {
+  // validate Merchant
+  const findMerchant = await merchantService.findOne({
+    uid: merchantId,
+  });
+
+  if (!findMerchant) {
+    throw new CustomError("Merchant not found", 404);
+  }
+
+  if (!findMerchant.EasyPaisaDisburseAccountId) {
+    throw new CustomError("Disbursement account not assigned.", 404);
+  }
+
+  // find disbursement merchant
+  const findDisbureMerch: any = await jazzcashDisburse
+    .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+    .then((res) => res?.data);
+
+  if (!findDisbureMerch) {
+    throw new CustomError("Disbursement account not found", 404);
+  }
+
+  // Phone number validation (must start with 92)
+  if (!body.phone.startsWith("92")) {
+    throw new CustomError("Number should start with 92", 400);
+  }
+
+  // Fetch merchant financial terms
+  let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
+
+  const transactions = await getEligibleTransactions(
+    findMerchant.merchant_id,
+    prisma
+  );
+  if (transactions.length === 0) {
+    throw new CustomError("No eligible transactions to disburse", 400);
+  }
+  let updates: TransactionUpdate[] = [];
+  let totalDisbursed = new Decimal(0);
+  let amountDecimal;
+  if (body.amount) {
+    amountDecimal = new Decimal(body.amount);
+  } else {
+    updates = transactions.map((t: any) => ({
+      transaction_id: t.transaction_id,
+      disbursed: true,
+      balance: new Decimal(0),
+      settled_amount: t.settled_amount,
+      original_amount: t.original_amount,
+    }));
+    totalDisbursed = transactions.reduce(
+      (sum: Decimal, t: any) => sum.plus(t.balance),
+      new Decimal(0)
+    );
+    amountDecimal = totalDisbursed;
+  }
+  // Calculate total deductions and merchant amount
+  const totalCommission = amountDecimal.mul(rate.disbursementRate);
+  const totalGST = amountDecimal.mul(rate.disbursementGST);
+  const totalWithholdingTax = amountDecimal.mul(
+    rate.disbursementWithHoldingTax
+  );
+  const totalDeductions = totalCommission
+    .plus(totalGST)
+    .plus(totalWithholdingTax);
+  const merchantAmount = body.amount
+    ? amountDecimal.plus(totalDeductions)
+    : amountDecimal.minus(totalDeductions);
+
+  // Get eligible transactions
+
+  if (body.amount) {
+    const result = calculateDisbursement(transactions, merchantAmount);
+    updates = result.updates;
+    totalDisbursed = result.totalDisbursed;
+  }
+  const payload = encryptData(
+    {
+      receiverCNIC: body.cnic,
+      receiverMSISDN: body.phone,
+      amount: body.amount ? body.amount : merchantAmount,
+      referenceId: transactionService.createTransactionId()
+    }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
   const requestData = {
     data: payload
   };
 
-  const response = await fetch(`${url}/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+  const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -146,7 +382,71 @@ async function mwTransaction(token: string, body: any) {
   });
   let res = await response.json();
   console.log("MW Response", res);
-  return decryptData(res?.data, credentials.key, credentials.initialVector);
+  res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+  if (res.responseCode != "G2P-T-0") {
+    throw new CustomError(res.responseDescription, 500);
+  }
+  return await prisma.$transaction(
+    async (tx) => {
+      // Update transactions to adjust balances
+      await updateTransactions(updates, tx);
+
+      let id = transactionService.createTransactionId();
+      let data: { transaction_id?: string } = {};
+      // if (obj.order_id) {
+      //   data["transaction_id"] = obj.order_id;
+      // } else {
+      data["transaction_id"] = res.transactionID;
+      // }
+      let date = new Date();
+      // Create disbursement record
+      let disbursement = await tx.disbursement.create({
+        data: {
+          ...data,
+          // transaction_id: id,
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: date,
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: body.amount ? body.amount : merchantAmount,
+          platform: 0,
+          account: body.phone,
+          provider: PROVIDERS.JAZZ_CASH,
+        },
+      });
+
+      transactionService.sendCallback(
+        findMerchant.webhook_url as string,
+        {
+          original_amount: body.amount ? body.amount : merchantAmount,
+          date_time: date,
+          transaction_id: disbursement.transaction_id,
+          merchant_id: findMerchant.merchant_id
+        },
+        body.phone,
+        "payout",
+        findMerchant.encrypted
+      );
+
+      return {
+        message: "Disbursement created successfully",
+        merchantAmount: body.amount
+          ? body.amount.toString()
+          : merchantAmount.toString(),
+        order_id: disbursement.transaction_id,
+        externalApiResponse: {
+          TransactionReference: res.transactionID,
+          TransactionStatus: "success",
+        },
+      };
+    },
+    {
+      maxWait: 5000,
+      timeout: 60000,
+    }
+  );
 }
 
 async function checkTransactionStatus(token: string, body: any) {
