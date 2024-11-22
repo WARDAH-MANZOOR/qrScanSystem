@@ -23,6 +23,7 @@ export interface Merchant {
   EasyPaisaDisburseAccountId?: number | null;
   easypaisaPaymentMethod: "DIRECT" | "SWITCH";
   easypaisaInquiryMethod: "DATABASE" | "WALLET";
+  JazzCashDisburseAccountId: number;
 }
 
 export interface IjazzCashConfigParams {
