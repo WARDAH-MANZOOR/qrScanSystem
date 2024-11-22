@@ -742,7 +742,7 @@ const createDisbursement = async (
           },
           obj.phone,
           "payout",
-          false
+          findMerchant.encrypted
         );
 
         return {
@@ -1034,7 +1034,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
           },
           obj.phone,
           "payout",
-          false
+          findMerchant.encrypted
         );
 
         return {
