@@ -22,7 +22,7 @@ import {
 import { easyPaisaDisburse } from "services/index.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import ApiResponse from "utils/ApiResponse.js";
-import bankDetails from "../../data/banks.json";
+import bankDetails from "data/banks.json";
 import { parse, parseISO } from "date-fns";
 import { decrypt, encrypt } from "utils/enc_dec.js";
 import { Prisma } from "@prisma/client";
