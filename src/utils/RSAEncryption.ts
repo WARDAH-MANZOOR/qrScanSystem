@@ -15,10 +15,10 @@ class RSAEncryption {
   public static encrypt(data: string, publicKey: crypto.KeyObject): string {
     const encrypted = crypto.publicEncrypt(
       {
-        key: publicKey,
-        padding: crypto.constants.RSA_PKCS1_PADDING,
+      key: publicKey,
+      padding: crypto.constants.RSA_PKCS1_PADDING,
       },
-      Buffer.from(data)
+      new Uint8Array(Buffer.from(data))
     );
     return encrypted.toString('base64');
   }
