@@ -1,6 +1,5 @@
 import CustomError from "../../utils/custom_error.js";
 import crypto from "crypto";
-import { format } from "date-fns";
 import axios from "axios";
 import { easyPaisaDisburse, merchantService, transactionService } from "services/index.js";
 import { callbackDecrypt, decrypt, encrypt } from "utils/enc_dec.js";
@@ -9,6 +8,7 @@ import type { IjazzCashConfigParams } from "types/merchant.js";
 import { addWeekdays } from "utils/date_method.js";
 import { PROVIDERS } from "constants/providers.js";
 import { JsonObject } from "@prisma/client/runtime/library";
+import { format, toZonedTime } from 'date-fns-tz';
 
 // const MERCHANT_ID = "12478544";
 // const PASSWORD = "uczu5269d1";
@@ -140,7 +140,19 @@ const initiateJazzCashPayment = async (
   let refNo: string = "";
   try {
     var JAZZ_CASH_MERCHANT_ID: any = null;
-    const txnDateTime = format(new Date(), "yyyyMMddHHmmss");
+    // Get the current date
+    const date2 = new Date();
+
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(date2, timeZone);
+
+    // Format the date in the desired format
+    const formattedDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone });
+
+    console.log(formattedDate); // Outputs date in "yyyyMMddHHmmss" format in PKT
     let jazzCashMerchantIntegritySalt = "";
     const jazzCashCredentials = {
       pp_MerchantID: "",
@@ -233,7 +245,7 @@ const initiateJazzCashPayment = async (
           );
         }
       } else {
-        txnRefNo = `T${txnDateTime}${fractionalMilliseconds
+        txnRefNo = `T${formattedDate}${fractionalMilliseconds
           .toString()
           .padStart(5, "0")}`;
 
@@ -297,7 +309,7 @@ const initiateJazzCashPayment = async (
       pp_Amount: amount * 100,
       pp_DiscountedAmount: "",
       pp_TxnCurrency: "PKR",
-      pp_TxnDateTime: txnDateTime,
+      pp_TxnDateTime: formattedDate,
       pp_BillReference: "billRef",
       pp_Description: "buy",
       pp_TxnExpiryDateTime: date, // +1 hour
@@ -484,7 +496,7 @@ const initiateJazzCashPayment = async (
             false
           );
         }
-      },{
+      }, {
         timeout: 60000,
         maxWait: 60000
       });
@@ -521,7 +533,18 @@ const initiateJazzCashPaymentAsync = async (
   merchant_uid?: string
 ) => {
   let refNo: string = "";
-  let txnDateTime = format(new Date(), "yyyyMMddHHmmss");
+  const date2 = new Date();
+
+  // Define the Pakistan timezone
+  const timeZone = 'Asia/Karachi';
+
+  // Convert the date to the Pakistan timezone
+  const zonedDate = toZonedTime(date2, timeZone);
+
+  // Format the date in the desired format
+  const formattedDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone });
+
+  console.log(formattedDate); // Outputs date in "yyyyMMddHHmmss" format in PKT
   try {
     // Validate Input Data
     validatePaymentData(paymentData);
@@ -550,7 +573,7 @@ const initiateJazzCashPaymentAsync = async (
       const fractionalMilliseconds = Math.floor(
         (currentTime - Math.floor(currentTime)) * 1000
       );
-      refNo = createTransactionReferenceNumber(paymentData, txnDateTime, fractionalMilliseconds);
+      refNo = createTransactionReferenceNumber(paymentData, formattedDate, fractionalMilliseconds);
 
       const settledAmount = calculateSettledAmount(
         parseFloat(paymentData.amount),
@@ -590,13 +613,13 @@ const initiateJazzCashPaymentAsync = async (
           paymentData,
           jazzCashCredentials,
           integritySalt,
-          txnDateTime,
+          formattedDate,
           refNo
         );
         if (paymentData.type.toUpperCase() === "CARD") {
           await processCardPayment(sendData, paymentData.redirect_url);
         } else if (paymentData.type.toUpperCase() === "WALLET") {
-          await processWalletPayment(sendData, refNo, result?.merchant?.merchant, phone,date);
+          await processWalletPayment(sendData, refNo, result?.merchant?.merchant, phone, date);
         } else {
           throw new CustomError("Invalid payment type", 400);
         }
@@ -615,7 +638,7 @@ const initiateJazzCashPaymentAsync = async (
 
     return {
       txnNo: refNo,
-      txnDateTime,
+      txnDateTime: formattedDate,
       statusCode: "pending",
       message: "Transaction is being processed",
     };
@@ -764,7 +787,7 @@ const processWalletPayment = async (
 
     transactionService.sendCallback(
       merchant.webhook_url,
-      { transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date  },
+      { transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date },
       phone,
       "payin",
       true
@@ -1008,8 +1031,8 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     }
   })
 
-  if(!txn) {
-    throw new CustomError("Transaction Not Found",400)
+  if (!txn) {
+    throw new CustomError("Transaction Not Found", 400)
   }
   let sendData = {
     pp_TxnRefNo: payload.transactionId,
@@ -1054,9 +1077,9 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
 const callback = async (body: any) => {
   try {
-    console.log("Encrypted Body: ",body);
-    const payload = await callbackDecrypt(body.encrypted_data,body.iv,body.tag)
-    console.log("Callback Body: ",payload);
+    console.log("Encrypted Body: ", body);
+    const payload = await callbackDecrypt(body.encrypted_data, body.iv, body.tag)
+    console.log("Callback Body: ", payload);
     return "success";
   } catch {
     return "error";
@@ -1064,7 +1087,7 @@ const callback = async (body: any) => {
 };
 
 const afterDisbursement = async (obj: any, merchantId: string) => {
-  
+
 }
 
 export default {
