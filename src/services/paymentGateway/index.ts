@@ -20,6 +20,11 @@ const productionDetails = {
   initialVector: "6w9z$C&F)H@McQfT"
 }
 
+function formatAmount(amount: number): string {
+  // Ensure the number is fixed to two decimal places
+  return amount.toFixed(2);
+}
+
 async function getToken(merchantId: string) {
   try {
     // validate Merchant
@@ -146,14 +151,14 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     console.log("Initiate Request: ", { 
       bankAccountNumber: body.iban, 
       bankCode: body.bankCode,
-      amount: body.amount,
+      amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
       recieverMSISDN: body.phone,
       referenceId: id })
     let payload = encryptData(
       { 
         bankAccountNumber: body.iban, 
         bankCode: body.bankCode,
-        amount: body.amount,
+        amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
         recieverMSISDN: body.phone,
         referenceId: id }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
@@ -374,7 +379,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     {
       receiverCNIC: body.cnic,
       receiverMSISDN: body.phone,
-      amount: body.amount ? body.amount : merchantAmount,
+      amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
       referenceId: transactionService.createTransactionId()
     }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
