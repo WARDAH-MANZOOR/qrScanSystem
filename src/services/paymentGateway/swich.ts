@@ -327,7 +327,7 @@ const createMerchant = async (merchantData: ISwichPayload) => {
     const swichMerchant = await prisma.$transaction(async (tx) => {
       return tx.swichMerchant.create({
         data: {
-          clientId: encrypt(merchantData.clientId),
+          clientId: encrypt(merchantData.clientId) as string,
           clientSecret: encrypt(merchantData.clientSecret),
         },
       });
@@ -367,8 +367,8 @@ const getMerchant = async (merchantId: string) => {
     });
 
     merchant = merchant.map((obj) => {
-      obj["clientId"] = decrypt(obj["clientId"]);
-      obj["clientSecret"] = decrypt(obj["clientSecret"] as string);
+      obj["clientId"] = decrypt(obj["clientId"]) as string;
+      obj["clientSecret"] = decrypt(obj["clientSecret"] as string) as string;
       return obj;
     });
 

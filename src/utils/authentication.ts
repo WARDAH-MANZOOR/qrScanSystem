@@ -1,5 +1,5 @@
 import { AUTH } from "constants/auth.js";
-import crypto from "crypto";
+import crypto, { CipherKey } from "crypto";
 
 const encryptionKey = Buffer.from(AUTH.ENCRYPTION_KEY!, "hex"); // 32 bytes key for AES-256
 const ivLength = Buffer.alloc(16, 0); // Static 16-byte IV
@@ -19,7 +19,7 @@ const generateApiKey = () => {
 
 // Encrypt the API key
 const encryptApiKey = (apiKey: string): string => {
-  const cipher = crypto.createCipheriv("aes-256-cbc", encryptionKey, ivLength);
+  const cipher = crypto.createCipheriv("aes-256-cbc", encryptionKey as CipherKey, ivLength.toString("hex"));
   let encrypted = cipher.update(apiKey, "utf8", "hex");
   encrypted += cipher.final("hex");
   return encrypted;
@@ -29,8 +29,8 @@ const encryptApiKey = (apiKey: string): string => {
 const decryptApiKey = (encryptedApiKey: string): string => {
   const decipher = crypto.createDecipheriv(
     "aes-256-cbc",
-    encryptionKey,
-    ivLength
+    encryptionKey as CipherKey,
+    ivLength.toString("hex")
   );
   let decrypted = decipher.update(encryptedApiKey, "hex", "utf8");
   decrypted += decipher.final("utf8");
@@ -45,8 +45,8 @@ const hashApiKey = (apiKey: string): string => {
 const verifyHashedKey = (apiKey: string, storedHash: string): boolean => {
   const hashedKey = hashApiKey(apiKey);
   return crypto.timingSafeEqual(
-    Buffer.from(hashedKey),
-    Buffer.from(storedHash)
+    new Uint8Array(Buffer.from(hashedKey)),
+    new Uint8Array(Buffer.from(storedHash))
   );
 };
 

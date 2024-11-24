@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto, { CipherKey } from "crypto";
 import dotenv from "dotenv";
 import { authenticationService } from "services/index.js";
 dotenv.config();
@@ -10,23 +10,33 @@ const iv = crypto.randomBytes(12);
 
 // Encrypt function
 function encrypt(text: string) {
+  try {
   const iv = crypto.randomBytes(16); // Initialization vector
-  const cipher = crypto.createCipheriv(algorithm, key, iv);
-  let encrypted = cipher.update(text, 'utf8');
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  const cipher = crypto.createCipheriv(algorithm, key as CipherKey, new Uint8Array(iv));
+  let encrypted = cipher.update(text, 'hex');
+  encrypted = Buffer.concat([new Uint8Array(encrypted), new Uint8Array(cipher.final())]);
   // Return iv and encrypted data combined
   return iv.toString('hex') + ':' + encrypted.toString('hex');
+  }
+  catch(err) {
+    console.log("Encryption Error: ",err);
+  }
 }
-
-// Decrypt function
+ 
+// Decrypt function 
 function decrypt(text: string) {
-  const [ivHex, encryptedHex] = text.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const encryptedText = Buffer.from(encryptedHex, 'hex');
-  const decipher = crypto.createDecipheriv(algorithm, key, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString('utf8');
+  try {
+    const [ivHex, encryptedHex] = text.split(':');
+    const iv = Buffer.from(ivHex as string,"hex");
+    const encryptedText = Buffer.from(encryptedHex as string,"hex");
+    const decipher = crypto.createDecipheriv(algorithm, key as CipherKey, new Uint8Array(iv));
+    let decrypted = decipher.update(new Uint8Array(encryptedText));
+    decrypted = Buffer.concat([new Uint8Array(decrypted), new Uint8Array(decipher.final())]);
+    return decrypted.toString('hex');
+  }
+  catch (err) {
+    console.log("Decryption Error: ", err);
+  }
 }
 
 function encryptData(payload: any, secretKey: string, iv: string) {
@@ -34,7 +44,7 @@ function encryptData(payload: any, secretKey: string, iv: string) {
   const jsonString = JSON.stringify(payload);
 
   // Create a cipher instance
-  const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(secretKey), Buffer.from(iv));
+  const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(secretKey) as CipherKey, new Uint8Array(Buffer.from(iv)));
 
   // Encrypt the data
   let encryptedData = cipher.update(jsonString, 'utf8', 'hex');
@@ -45,7 +55,7 @@ function encryptData(payload: any, secretKey: string, iv: string) {
 
 function decryptData(encryptedData: string, secretKey: string, iv: string) {
   // Create a decipher instance
-  const decipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(secretKey), Buffer.from(iv));
+  const decipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(secretKey) as CipherKey, new Uint8Array(Buffer.from(iv)));
 
   // Decrypt the data
   let decryptedData = decipher.update(encryptedData, 'hex', 'utf8');
@@ -62,8 +72,8 @@ async function callbackEncrypt(payload: string, userId: number) {
     console.log("User Id: ", userId);
     const key = await authenticationService.getDecryptionKey(userId);
     console.log("Key: ", key);
-    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key, 'hex'), iv);
-    const encrypted = Buffer.concat([cipher.update(payload, 'utf8'), cipher.final()]);
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key, 'hex') as CipherKey, new Uint8Array(iv));
+    const encrypted = Buffer.concat([new Uint8Array(cipher.update(payload, 'utf8')), new Uint8Array(cipher.final())]);
     const tag = cipher.getAuthTag();
     return {
       encrypted_data: encrypted.toString('base64'),
@@ -86,15 +96,15 @@ async function callbackDecrypt(encryptedData: string, iv: string, tag: string) {
     const key = await authenticationService.getDecryptionKey(5);
 
     // Create decipher
-    const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(key,"hex"), ivBuffer);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(key, "hex") as CipherKey, new Uint8Array(ivBuffer));
 
     // Set the authentication tag
-    decipher.setAuthTag(tagBuffer);
+    decipher.setAuthTag(new Uint8Array(tagBuffer));
 
     // Decrypt the ciphertext
     const decrypted = Buffer.concat([
-      decipher.update(encryptedBuffer),
-      decipher.final()
+      new Uint8Array(decipher.update(new Uint8Array(encryptedBuffer))),
+      new Uint8Array(decipher.final())
     ]);
 
     // Return plaintext as a string

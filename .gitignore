@@ -5,3 +5,4 @@ dist
 /index.html
 /index.js 
 .DS_Store 
+/.vscode
