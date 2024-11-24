@@ -433,21 +433,21 @@ const initiateJazzCashPayment = async (
         });
 
         // Create AdditionalInfo record
-        await tx.additionalInfo.create({
-          data: {
-            bank_id: r.pp_BankID,
-            bill_reference: r.pp_BillReference,
-            retrieval_ref: r.pp_RetrievalReferenceNo,
-            sub_merchant_id: r.pp_SubMerchantID
-              ? encrypt(r.pp_SubMerchantID)
-              : "",
-            custom_field_1: encrypt(r.ppmpf_1),
-            // Add other fields as necessary
-            transaction: {
-              connect: { transaction_id: refNo },
-            },
-          },
-        });
+        // await tx.additionalInfo.create({
+        //   data: {
+        //     bank_id: r.pp_BankID,
+        //     bill_reference: r.pp_BillReference,
+        //     retrieval_ref: r.pp_RetrievalReferenceNo,
+        //     sub_merchant_id: r.pp_SubMerchantID
+        //       ? encrypt(r.pp_SubMerchantID)
+        //       : "",
+        //     custom_field_1: encrypt(r.ppmpf_1),
+        //     // Add other fields as necessary
+        //     transaction: {
+        //       connect: { transaction_id: refNo },
+        //     },
+        //   },
+        // });
 
         // Update Provider info if necessary
         const provider = await tx.provider.upsert({

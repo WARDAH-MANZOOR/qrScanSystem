@@ -218,9 +218,9 @@ const createMerchant = async (merchantData: IZindigiPayload) => {
         const zindigiMerchant = await prisma.$transaction(async (tx) => {
             return tx.zindigiMerchant.create({
                 data: {
-                    clientId: encrypt(merchantData.clientId),
-                    clientSecret: encrypt(merchantData.clientSecret),
-                    organizationId: encrypt(merchantData.organizationId)
+                    clientId: encrypt(merchantData.clientId) as string,
+                    clientSecret: encrypt(merchantData.clientSecret) as string,
+                    organizationId: encrypt(merchantData.organizationId) as string
                 },
             });
         });
@@ -259,9 +259,9 @@ const getMerchant = async (merchantId: string) => {
         });
 
         merchant = merchant.map((obj) => {
-            obj["clientId"] = decrypt(obj["clientId"] as string);
-            obj["clientSecret"] = decrypt(obj["clientSecret"] as string);
-            obj["organizationId"] = decrypt(obj["organizationId"] as string);
+            obj["clientId"] = decrypt(obj["clientId"] as string) as string;
+            obj["clientSecret"] = decrypt(obj["clientSecret"] as string) as string;
+            obj["organizationId"] = decrypt(obj["organizationId"] as string) as string;
             return obj;
         });
 
