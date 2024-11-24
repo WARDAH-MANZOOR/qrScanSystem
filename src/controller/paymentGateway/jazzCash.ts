@@ -196,7 +196,7 @@ const disburseInquiryController = async (req: Request, res: Response, next: Next
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
     const token = await getToken(req.params.merchantId);
-    const inquiry = await checkTransactionStatus(token?.access_token, req.body);
+    const inquiry = await checkTransactionStatus(token?.access_token, req.body, req.params.merchantId);
     return res.status(200).json(ApiResponse.success(inquiry));
   }
   catch (err) {

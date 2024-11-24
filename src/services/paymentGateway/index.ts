@@ -7,19 +7,6 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
 import jazzcashDisburse from "./jazzcashDisburse.js";
 
-const productionUrl = 'https://gateway.jazzcash.com.pk';
-const sandboxUrl = 'https://gateway-sandbox.jazzcash.com.pk'
-const sandboxDetails = {
-  tokenKey: "RkR5Y250MXNTRWh5QXZvcnMyN2tLRDU1WE9jYTpBS2NCaTYyZ0Vmdl95YVZTQ0FCaHo2UnNKYWth",
-  key: "mYjC!nc3dibleY3k",
-  initialVector: "Myin!tv3ctorjCM@"
-}
-const productionDetails = {
-  tokenKey: "RWlNV1JPYkhJekNIWHRLM1lRdnZFXzhYVU5JYTpVMkdaazhHNWE0UW5DSFRXTnZGeXhFR2JFbXNh",
-  key: "z%C*F-J@NcRfUjXn",
-  initialVector: "6w9z$C&F)H@McQfT"
-}
-
 function formatAmount(amount: number): string {
   // Ensure the number is fixed to two decimal places
   return amount.toFixed(2);
@@ -62,7 +49,7 @@ async function getToken(merchantId: string) {
       // redirect: "follow"
     };
 
-    const token = await fetch(`${productionUrl}/token`, requestOptions)
+    const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -465,15 +452,35 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   );
 }
 
-async function checkTransactionStatus(token: string, body: any) {
-  const credentials = body.type == "s" ? sandboxDetails : productionDetails;
-  const url = body.type == "s" ? sandboxUrl : productionUrl;
+async function checkTransactionStatus(token: string, body: any, merchantId: string) {
+  // validate Merchant
+  const findMerchant = await merchantService.findOne({
+    uid: merchantId,
+  });
+
+  if (!findMerchant) {
+    throw new CustomError("Merchant not found", 404);
+  }
+
+  if (!findMerchant.JazzCashDisburseAccountId) {
+    throw new CustomError("Disbursement account not assigned.", 404);
+  }
+
+  // find disbursement merchant
+  const findDisbureMerch: any = await jazzcashDisburse
+    .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+    .then((res) => res?.data);
+
+  if (!findDisbureMerch) {
+    throw new CustomError("Disbursement account not found", 404);
+  }
+
   const results = [];
 
   for (const id of body.transactionIds) {
     const payload = encryptData(
       { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
-      credentials.key, credentials.initialVector
+      findDisbureMerch.key, findDisbureMerch.initialVector
     );
 
     const requestData = {
@@ -481,7 +488,7 @@ async function checkTransactionStatus(token: string, body: any) {
     };
     console.log(requestData)
     try {
-      const response = await fetch(`${url}/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+      const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -489,7 +496,7 @@ async function checkTransactionStatus(token: string, body: any) {
         },
         body: JSON.stringify(requestData)
       });
-      const jsonResponse = decryptData((await response.json())?.data, credentials.key, credentials.initialVector);
+      const jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results
