@@ -152,14 +152,14 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       bankAccountNumber: body.iban, 
       bankCode: body.bankCode,
       amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
-      recieverMSISDN: body.phone,
+      receiverMSISDN: body.phone,
       referenceId: id })
     let payload = encryptData(
       { 
         bankAccountNumber: body.iban, 
         bankCode: body.bankCode,
         amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
-        recieverMSISDN: body.phone,
+        receiverMSISDN: body.phone,
         referenceId: id }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
     let requestData = {
