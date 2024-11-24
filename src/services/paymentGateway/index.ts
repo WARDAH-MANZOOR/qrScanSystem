@@ -138,14 +138,14 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     console.log("Initiate Request: ", { 
       bankAccountNumber: body.iban, 
       bankCode: body.bankCode,
-      amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
+      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
       receiverMSISDN: body.phone,
       referenceId: id })
     let payload = encryptData(
       { 
         bankAccountNumber: body.iban, 
         bankCode: body.bankCode,
-        amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
+        amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
         receiverMSISDN: body.phone,
         referenceId: id }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
@@ -366,7 +366,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     {
       receiverCNIC: body.cnic,
       receiverMSISDN: body.phone,
-      amount: body.amount ? formatAmount(body.amount) : formatAmount(+merchantAmount),
+      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
       referenceId: transactionService.createTransactionId()
     }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
