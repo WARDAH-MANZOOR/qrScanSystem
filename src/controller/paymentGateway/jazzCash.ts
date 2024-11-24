@@ -160,7 +160,7 @@ const initiateDisbursment = async (req: Request, res: Response, next: NextFuncti
   try {
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await getToken(req.body.type);
+    const token = await getToken(req.params.merchantId);
     const initTransaction = await initiateTransaction(token?.access_token, req.body, req.params.merchantId);
     return res.status(200).json(ApiResponse.success(initTransaction));
   }
@@ -172,7 +172,7 @@ const initiateDisbursment = async (req: Request, res: Response, next: NextFuncti
 const initiateMWDisbursement = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await getToken(req.body.type);
+    const token = await getToken(req.params.merchantId);
     const initTransaction = await mwTransaction(token?.access_token, req.body, req.params.merchantId);
     
     return res.status(200).json(ApiResponse.success(initTransaction));
@@ -195,7 +195,7 @@ const dummyCallback = async (req: Request, res: Response, next: NextFunction) =>
 const disburseInquiryController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await getToken(req.body.type);
+    const token = await getToken(req.params.merchantId);
     const inquiry = await checkTransactionStatus(token?.access_token, req.body);
     return res.status(200).json(ApiResponse.success(inquiry));
   }
