@@ -1,22 +1,29 @@
 import CustomError from "./custom_error.js";
-
+import { toZonedTime } from "date-fns-tz";
 const addWeekdays = (date: Date, days: number) => { 
-  let result = new Date(date);
+  // Get the current date
+  const date2 = new Date(date);
+
+  // Define the Pakistan timezone
+  const timeZone = 'Asia/Karachi';
+
+  // Convert the date to the Pakistan timezone
+  const zonedDate = toZonedTime(date2, timeZone);
   let addedDays = 0;
 
   while (addedDays < days) { 
-    result.setDate(result.getDate() + 1);
+    zonedDate.setDate(zonedDate.getDate() + 1);
 
     // Skip weekends
-    const dayOfWeek = result.getDay();
+    const dayOfWeek = zonedDate.getDay();
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
       addedDays++;
     }
   }
   // Set a random time before 4:00 pm (16:00)
-  result.setHours(0, 0, 0, 0);
+  zonedDate.setHours(0, 0, 0, 0);
 
-  return result;
+  return zonedDate;
 };
 
 const getDateRange = (range: string, startDate?: string, endDate?: string) => {
