@@ -142,15 +142,20 @@ const initiateJazzCashPayment = async (
     var JAZZ_CASH_MERCHANT_ID: any = null;
     // Get the current date
     const date2 = new Date();
+    const date3 = new Date(Date.now() + (60 * 60 * 1000))
 
     // Define the Pakistan timezone
     const timeZone = 'Asia/Karachi';
 
     // Convert the date to the Pakistan timezone
     const zonedDate = toZonedTime(date2, timeZone);
+    const zonedDate2 = toZonedTime(date3, timeZone);
+
 
     // Format the date in the desired format
     const formattedDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone });
+
+    const expiryDate = format(zonedDate2,'yyyyMMddHHmmss',{timeZone})
 
     console.log(formattedDate); // Outputs date in "yyyyMMddHHmmss" format in PKT
     let jazzCashMerchantIntegritySalt = "";
@@ -312,7 +317,7 @@ const initiateJazzCashPayment = async (
       pp_TxnDateTime: formattedDate,
       pp_BillReference: "billRef",
       pp_Description: "buy",
-      pp_TxnExpiryDateTime: date, // +1 hour
+      pp_TxnExpiryDateTime: expiryDate, // +1 hour
       pp_ReturnURL: jazzCashCredentials.pp_ReturnURL,
       ppmpf_1: phone,
       ppmpf_2: "",
@@ -722,7 +727,17 @@ const prepareJazzCashPayload = (
   txnDateTime: string,
   refNo: string
 ) => {
-  const date = format(new Date(Date.now() + 60 * 60 * 1000), "yyyyMMddHHmmss");
+  // Get the current date
+  const date3 = new Date(Date.now() + (60 * 60 * 1000))
+
+  // Define the Pakistan timezone
+  const timeZone = 'Asia/Karachi';
+
+  // Convert the date to the Pakistan timezone
+  const zonedDate = toZonedTime(date3, timeZone);
+
+  const expiryDate = format(zonedDate,'yyyyMMddHHmmss',{timeZone})
+
   const sendData: any = {
     pp_Version: "1.1",
     pp_TxnType: "MWALLET",
@@ -733,7 +748,7 @@ const prepareJazzCashPayload = (
     pp_Amount: paymentData.amount * 100,
     pp_TxnCurrency: "PKR",
     pp_TxnDateTime: txnDateTime,
-    pp_TxnExpiryDateTime: date,
+    pp_TxnExpiryDateTime: expiryDate,
     pp_ReturnURL: credentials.pp_ReturnURL,
     pp_BillReference: "billRef",
     pp_Description: "buy",
