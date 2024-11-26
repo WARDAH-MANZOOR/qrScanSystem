@@ -6,6 +6,7 @@ import prisma from "prisma/client.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
 import jazzcashDisburse from "./jazzcashDisburse.js";
+import { toZonedTime } from "date-fns-tz";
 
 function formatAmount(amount: number): string {
   // Ensure the number is fixed to two decimal places
@@ -135,19 +136,21 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       totalDisbursed = result.totalDisbursed;
     }
     let id = transactionService.createTransactionId();
-    console.log("Initiate Request: ", { 
-      bankAccountNumber: body.iban, 
+    console.log("Initiate Request: ", {
+      bankAccountNumber: body.iban,
       bankCode: body.bankCode,
       amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
       receiverMSISDN: body.phone,
-      referenceId: id })
+      referenceId: id
+    })
     let payload = encryptData(
-      { 
-        bankAccountNumber: body.iban, 
+      {
+        bankAccountNumber: body.iban,
         bankCode: body.bankCode,
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
         receiverMSISDN: body.phone,
-        referenceId: id }
+        referenceId: id
+      }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
     let requestData = {
       data: payload,
@@ -197,7 +200,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     })
     res = await response.json();
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    if(res.responseCode != "G2P-T-0") {
+    if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       throw new CustomError("Error with ibft confirmation", 500)
     }
@@ -205,21 +208,28 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       async (tx) => {
         // Update transactions to adjust balances
         await updateTransactions(updates, tx);
-  
+
         let data: { transaction_id?: string } = {};
         // if (obj.order_id) {
         //   data["transaction_id"] = obj.order_id;
         // } else {
         data["transaction_id"] = res.transactionID;
         // }
-        let date = new Date();
+        // Get the current date
+        const date = new Date();
+
+        // Define the Pakistan timezone
+        const timeZone = 'Asia/Karachi';
+
+        // Convert the date to the Pakistan timezone
+        const zonedDate = toZonedTime(date, timeZone);
         // Create disbursement record
         let disbursement = await tx.disbursement.create({
           data: {
             ...data,
             // transaction_id: id,
             merchant_id: Number(findMerchant.merchant_id),
-            disbursementDate: date,
+            disbursementDate: zonedDate,
             transactionAmount: amountDecimal,
             commission: totalCommission,
             gst: totalGST,
@@ -230,12 +240,12 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
             provider: PROVIDERS.JAZZ_CASH,
           },
         });
-  
+
         transactionService.sendCallback(
           findMerchant.webhook_url as string,
           {
             original_amount: body.amount ? body.amount : merchantAmount,
-            date_time: date,
+            date_time: zonedDate,
             transaction_id: disbursement.transaction_id,
             merchant_id: findMerchant.merchant_id
           },
@@ -243,7 +253,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           "payout",
           findMerchant.encrypted
         );
-  
+
         return {
           message: "Disbursement created successfully",
           merchantAmount: body.amount
@@ -401,14 +411,21 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       // } else {
       data["transaction_id"] = res.transactionID;
       // }
-      let date = new Date();
+      // Get the current date
+      const date = new Date();
+
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
+
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
       // Create disbursement record
       let disbursement = await tx.disbursement.create({
         data: {
           ...data,
           // transaction_id: id,
           merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: date,
+          disbursementDate: zonedDate,
           transactionAmount: amountDecimal,
           commission: totalCommission,
           gst: totalGST,
@@ -424,7 +441,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         findMerchant.webhook_url as string,
         {
           original_amount: body.amount ? body.amount : merchantAmount,
-          date_time: date,
+          date_time: zonedDate,
           transaction_id: disbursement.transaction_id,
           merchant_id: findMerchant.merchant_id
         },
