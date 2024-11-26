@@ -1,5 +1,6 @@
 import { MerchantFinancialTerms, Prisma, PrismaClient, Transaction } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
+import { toZonedTime } from "date-fns-tz";
 import prisma from "prisma/client.js";
 
 const task = async () => {
@@ -32,7 +33,7 @@ const task = async () => {
           transactionIdToTaskIdMap
         );
       }
-    },{
+    }, {
       timeout: 3600000,
       maxWait: 3600000
     });
@@ -128,7 +129,13 @@ async function processMerchantSettlement(
   const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
 
   const today = new Date();
-  const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Define the Pakistan timezone
+  const timeZone = 'Asia/Karachi';
+
+  // Convert the date to the Pakistan timezone
+  const zonedDate = toZonedTime(today, timeZone);
+  const settlementDate = new Date(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
 
   // Upsert SettlementReport for the day
   await tx.settlementReport.upsert({
@@ -223,9 +230,16 @@ async function updateTransactionsAndTasks(
     .map((tid) => transactionIdToTaskIdMap.get(tid))
     .filter((id): id is number => id !== undefined);
 
+  const today = new Date();
+
+  // Define the Pakistan timezone
+  const timeZone = 'Asia/Karachi';
+
+  // Convert the date to the Pakistan timezone
+  const zonedDate = toZonedTime(today, timeZone);
   await prisma.scheduledTask.updateMany({
     where: { id: { in: taskIds }, status: 'pending' },
-    data: { status: 'completed', executedAt: new Date() },
+    data: { status: 'completed', executedAt: zonedDate },
   });
 }
 

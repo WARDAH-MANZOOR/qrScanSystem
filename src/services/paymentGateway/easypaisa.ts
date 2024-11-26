@@ -26,6 +26,7 @@ import bankDetails from "data/banks.json" assert { type: 'json' };
 import { parse, parseISO } from "date-fns";
 import { decrypt, encrypt } from "utils/enc_dec.js";
 import { Prisma } from "@prisma/client";
+import { toZonedTime } from "date-fns-tz";
 
 dotenv.config();
 
@@ -714,14 +715,21 @@ const createDisbursement = async (
         // } else {
         data["transaction_id"] = ma2ma.TransactionReference;
         // }
-        let date = new Date();
+        // Get the current date
+        const date = new Date();
+
+        // Define the Pakistan timezone
+        const timeZone = 'Asia/Karachi';
+
+        // Convert the date to the Pakistan timezone
+        const zonedDate = toZonedTime(date, timeZone);
         // Create disbursement record
         let disbursement = await tx.disbursement.create({
           data: {
             ...data,
             // transaction_id: id,
             merchant_id: Number(findMerchant.merchant_id),
-            disbursementDate: date,
+            disbursementDate: zonedDate,
             transactionAmount: amountDecimal,
             commission: totalCommission,
             gst: totalGST,
@@ -737,7 +745,7 @@ const createDisbursement = async (
           findMerchant.webhook_url as string,
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
-            date_time: date,
+            date_time: zonedDate,
             transaction_id: disbursement.transaction_id,
             merchant_id: findMerchant.merchant_id
           },
@@ -1007,14 +1015,21 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         } else {
           data2["transaction_id"] = id;
         }
-        let date = new Date();
+        // Get the current date
+        const date = new Date();
+
+        // Define the Pakistan timezone
+        const timeZone = 'Asia/Karachi';
+
+        // Convert the date to the Pakistan timezone
+        const zonedDate = toZonedTime(date, timeZone);
         // Create disbursement record
         let disbursement = await tx.disbursement.create({
           data: {
             ...data2,
             transaction_id: id,
             merchant_id: Number(findMerchant.merchant_id),
-            disbursementDate: date,
+            disbursementDate: zonedDate,
             transactionAmount: amountDecimal,
             commission: totalCommission,
             gst: totalGST,
@@ -1030,7 +1045,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
           findMerchant.webhook_url as string,
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
-            date_time: date,
+            date_time: zonedDate,
             transaction_id: disbursement.transaction_id,
             merchant_id: findMerchant.merchant_id
           },
@@ -1119,7 +1134,7 @@ const accountBalance = async (merchantId: string) => {
       throw new CustomError("Error while getting balance", 500);
     }
     console.log(response?.data)
-    return { 
+    return {
       amount: response?.data?.amount
     };
   }
@@ -1131,7 +1146,7 @@ const accountBalance = async (merchantId: string) => {
   }
 }
 
-const transactionInquiry = async (obj: any,merchantId: string) => {
+const transactionInquiry = async (obj: any, merchantId: string) => {
   try {
     // validate Merchant
     const findMerchant = await merchantService.findOne({
@@ -1165,20 +1180,20 @@ const transactionInquiry = async (obj: any,merchantId: string) => {
     let data = JSON.stringify({
       "transactionID": obj.transactionId
     });
-    
+
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
       url: 'https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/transaction-status-inquiry/TransactionStatusInquiry',
-      headers: { 
-        'X-Hash-Value': creatHashKey, 
-        'X-IBM-Client-Id': findDisbureMerch.clientId, 
-        'X-IBM-Client-Secret': findDisbureMerch.clientSecret, 
-        'X-Channel': findDisbureMerch.xChannel, 
+      headers: {
+        'X-Hash-Value': creatHashKey,
+        'X-IBM-Client-Id': findDisbureMerch.clientId,
+        'X-IBM-Client-Secret': findDisbureMerch.clientSecret,
+        'X-Channel': findDisbureMerch.xChannel,
       },
-      data : data
+      data: data
     };
-    
+
     let response = await axios.request(config)
     if (response?.data?.ResponseCode != "0") {
       console.log(response?.data)

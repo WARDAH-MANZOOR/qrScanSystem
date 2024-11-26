@@ -28,7 +28,8 @@ const updateMerchant = async (payload: Merchant) => {
     EasyPaisaDisburseAccountId,
     easypaisaPaymentMethod,
     easypaisaInquiryMethod,
-    JazzCashDisburseAccountId
+    JazzCashDisburseAccountId,
+    encrypted
   } = payload;
   try {
     let result = await prisma.$transaction(async (tx) => {
@@ -64,7 +65,8 @@ const updateMerchant = async (payload: Merchant) => {
           EasyPaisaDisburseAccountId,
           easypaisaPaymentMethod: method,
           easypaisaInquiryMethod,
-          JazzCashDisburseAccountId
+          JazzCashDisburseAccountId,
+          encrypted
         },
         where: { merchant_id: +merchantId },
       });
@@ -161,7 +163,8 @@ const addMerchant = async (payload: Merchant) => {
     webhook_url,
     easypaisaPaymentMethod,
     easypaisaInquiryMethod,
-    JazzCashDisburseAccountId
+    JazzCashDisburseAccountId,
+    encrypted
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -198,7 +201,8 @@ const addMerchant = async (payload: Merchant) => {
           webhook_url,
           easypaisaPaymentMethod: easypaisaPaymentMethod,
           easypaisaInquiryMethod,
-          JazzCashDisburseAccountId
+          JazzCashDisburseAccountId,
+          encrypted: encrypted
         },
       });
 

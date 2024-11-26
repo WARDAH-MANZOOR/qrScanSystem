@@ -4,6 +4,7 @@ import CustomError from "utils/custom_error.js";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client/extension";
 import { transactionService } from "services/index.js";
+import { toZonedTime } from "date-fns-tz";
 
 async function getMerchantCommission(merchantId: number, prisma: PrismaClient): Promise<number> {
     console.log(merchantId);
@@ -80,17 +81,25 @@ async function createTransactionRecord({
     if (type != "wallet" && type != "card" && type != "bank") {
         return;
     }
-    let data: {transaction_id?: string} = {};
-    if(order_id) {
+    let data: { transaction_id?: string } = {};
+    if (order_id) {
         data["transaction_id"] = order_id;
     }
     else {
         data["transaction_id"] = transactionService.createTransactionId();
     }
+    // Get the current date
+    const date = new Date();
+
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(date, timeZone);
     const transaction = await prisma.transaction.create({
         data: {
             ...data,
-            date_time: new Date(),
+            date_time: zonedDate,
             original_amount: originalAmount,
             status: 'pending', // Ensure this matches your enum
             type,
