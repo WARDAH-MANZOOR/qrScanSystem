@@ -141,7 +141,7 @@ const findOne = async (params: any) => {
 };
 
 const addMerchant = async (payload: Merchant) => {
-  const {
+  let {
     username,
     email,
     password,
@@ -168,7 +168,7 @@ const addMerchant = async (payload: Merchant) => {
   } = payload;
 
   if (settlementDuration == undefined) {
-    throw new CustomError("Settlement Duration Required", 400);
+    settlementDuration = 0;
   }
 
   try {
