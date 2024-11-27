@@ -3,6 +3,10 @@ import CustomError from "utils/custom_error.js";
 import type { Merchant } from "types/merchant.js";
 import { hashPassword } from "services/authentication/index.js";
 
+function stringToBoolean(value: string): boolean {
+  return value.toLowerCase() === "true";
+}
+
 const updateMerchant = async (payload: Merchant) => {
   const {
     username,
@@ -32,6 +36,7 @@ const updateMerchant = async (payload: Merchant) => {
     encrypted
   } = payload;
   try {
+    let enc = stringToBoolean(encrypted);
     let result = await prisma.$transaction(async (tx) => {
       let hashedPassword;
       if (password) {
@@ -66,7 +71,7 @@ const updateMerchant = async (payload: Merchant) => {
           easypaisaPaymentMethod: method,
           easypaisaInquiryMethod,
           JazzCashDisburseAccountId,
-          encrypted
+          encrypted: enc
         },
         where: { merchant_id: +merchantId },
       });
@@ -172,6 +177,7 @@ const addMerchant = async (payload: Merchant) => {
   }
 
   try {
+    let enc = stringToBoolean(encrypted)
     const hashedPassword = await hashPassword(password as string);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -202,7 +208,7 @@ const addMerchant = async (payload: Merchant) => {
           easypaisaPaymentMethod: easypaisaPaymentMethod,
           easypaisaInquiryMethod,
           JazzCashDisburseAccountId,
-          encrypted: encrypted
+          encrypted: enc
         },
       });
 
