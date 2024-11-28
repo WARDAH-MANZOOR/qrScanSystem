@@ -524,21 +524,25 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
         params: {
           ClientId: clientId,
           CustomerTransactionId: transactionId,
-          RemoteIPAddress: "167.71.225.46",
+          RemoteIPAddress: "139.59.40.220",
         },
       })
       .catch((err) => {
         return err.response.data;
       });
 
+    if (!txnInquiry.transaction) {
+      throw new CustomError("Transaction not found", 400);
+    }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
+    console.log(txnInquiry)
     return {
-      "orderId": txnInquiry.transaction.transaction_id,
-      "transactionStatus": txnInquiry.transaction.transactionStatus,
-      "transactionAmount": txnInquiry.transaction.amount,
-      "transactionDateTime": txnInquiry.transaction.createdDateTime,
-      "msisdn": txnInquiry.transaction.msisdn,
-      "responseDesc": txnInquiry.transaction.transactionStatus,
+      "orderId": txnInquiry.transaction?.transaction_id,
+      "transactionStatus": txnInquiry.transaction?.transactionStatus,
+      "transactionAmount": txnInquiry.transaction?.amount,
+      "transactionDateTime": txnInquiry.transaction?.createdDateTime,
+      "msisdn": txnInquiry.transaction?.msisdn,
+      "responseDesc": txnInquiry.transaction?.transactionStatus,
       "responseMode": "MA"
     };
   } catch (err: any) {
