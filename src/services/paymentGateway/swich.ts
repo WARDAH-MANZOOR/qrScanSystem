@@ -530,12 +530,11 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
       .catch((err) => {
         return err.response.data;
       });
-
+    console.log(txnInquiry)
     if (!txnInquiry.transaction) {
       throw new CustomError("Transaction not found", 400);
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
-    console.log(txnInquiry)
     return {
       "orderId": txnInquiry.transaction?.transaction_id,
       "transactionStatus": txnInquiry.transaction?.transactionStatus,
