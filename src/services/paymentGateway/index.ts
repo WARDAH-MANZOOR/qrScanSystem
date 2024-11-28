@@ -8,6 +8,11 @@ import { PROVIDERS } from "constants/providers.js";
 import jazzcashDisburse from "./jazzcashDisburse.js";
 import { toZonedTime } from "date-fns-tz";
 
+
+function stringToBoolean(value: string): boolean {
+  return value.toLowerCase() === "true";
+}
+
 function formatAmount(amount: number): string {
   // Ensure the number is fixed to two decimal places
   return amount.toFixed(2);
@@ -251,7 +256,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           },
           body.phone,
           "payout",
-          findMerchant.encrypted
+          stringToBoolean(findMerchant.encrypted as string)
         );
 
         return {
@@ -447,7 +452,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         },
         body.phone,
         "payout",
-        findMerchant.encrypted
+        stringToBoolean(findMerchant.encrypted as string)
       );
 
       return {

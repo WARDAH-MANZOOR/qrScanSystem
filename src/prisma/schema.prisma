@@ -106,7 +106,7 @@ model Merchant {
   easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(SWITCH)
   easypaisaInquiryMethod EasypaisaInquiryMethod     @default(DATABASE)
 
-  encrypted Boolean @default(false)
+  encrypted String? @default("false")
 
   createdAt         DateTime         @default(now())
   updatedAt         DateTime?        @updatedAt
