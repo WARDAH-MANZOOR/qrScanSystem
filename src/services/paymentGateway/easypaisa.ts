@@ -30,6 +30,10 @@ import { toZonedTime } from "date-fns-tz";
 
 dotenv.config();
 
+function stringToBoolean(value: string): boolean {
+  return value.toLowerCase() === "true";
+}
+
 const getMerchantChannel = async (merchantId: string) => {
   return await prisma.merchant.findFirst({
     where: {
@@ -751,7 +755,7 @@ const createDisbursement = async (
           },
           obj.phone,
           "payout",
-          findMerchant.encrypted
+          stringToBoolean(findMerchant.encrypted as string)
         );
 
         return {
@@ -1051,7 +1055,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
           },
           obj.phone,
           "payout",
-          findMerchant.encrypted
+          stringToBoolean(findMerchant.encrypted as string)
         );
 
         return {
