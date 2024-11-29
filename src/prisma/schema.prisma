@@ -177,8 +177,6 @@ model Transaction {
   settled_amount          Decimal?
   balance                 Decimal           @default(0)
   merchant_transaction_id String?           @unique // Unique ID for merchant
-  system_transaction_id   String?           @unique // Unique ID for system
-  payin_transaction_id    String? // ID for payin-specific transactions
 
   merchant_id Int
   customer_id Int?
@@ -301,6 +299,7 @@ model Disbursement {
   account                  String?
   provider                 String?
   merchant_custom_order_id String?  @unique // Added for custom inquiries
+  system_order_id    String? // ID for payin-specific transactions
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
