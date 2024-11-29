@@ -713,10 +713,11 @@ const createDisbursement = async (
         await updateTransactions(updates, tx);
 
         let id = transactionService.createTransactionId();
-        let data: { transaction_id?: string } = {};
-        // if (obj.order_id) {
-        //   data["transaction_id"] = obj.order_id;
-        // } else {
+        let data: { transaction_id?: string, merchant_custom_order_id?: string } = {};
+        if (obj.order_id) {
+          data["merchant_custom_order_id"] = obj.order_id;
+        } 
+        // else {
         data["transaction_id"] = ma2ma.TransactionReference;
         // }
         // Get the current date
