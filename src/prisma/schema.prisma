@@ -9,33 +9,32 @@ generator client {
 }
 
 enum TransactionStatus {
-  completed
-  pending
-  failed
-  paid
+  completed // Payment completed successfully
+  pending // Payment is pending
+  failed // Payment failed
+  paid // Payment is marked as paid
 }
 
 enum TransactionType {
-  wallet
-  card
-  bank
+  wallet // Wallet-based payment
+  card // Card-based payment
+  bank // Bank transfer
 }
 
 enum ProviderEnum {
-  JAZZCASH
-  EASYPAISA
-  // Add other providers as needed
+  JAZZCASH // JazzCash payment provider
+  EASYPAISA // Easypaisa payment provider
 }
 
 // Define Enum for Easypaisa Payment Method
 enum EasypaisaPaymentMethodEnum {
-  DIRECT
-  SWITCH
+  DIRECT // Direct Easypaisa payment
+  SWITCH // Easypaisa payment via Switch
 }
 
 enum EasypaisaInquiryMethod {
-  DATABASE
-  WALLET
+  DATABASE // Inquiry through database records
+  WALLET // Inquiry through wallet service
 }
 
 model Group {
@@ -71,47 +70,44 @@ model GroupPermission {
 }
 
 model Merchant {
-  uid            String?     @default(uuid())
-  merchant_id    Int         @id @default(autoincrement())
-  full_name      String
-  phone_number   String
-  company_name   String
-  company_url    String?
-  city           String
-  payment_volume Decimal?
-  user_id        Int
-  webhook_url    String?
-  user_groups    UserGroup[] // Associate UserGroups with Merchant
+  uid                 String    @default(uuid())
+  merchant_id         Int       @id @default(autoincrement())
+  full_name           String
+  phone_number        String
+  company_name        String
+  company_url         String?
+  city                String
+  payment_volume      Decimal?
+  user_id             Int
+  webhook_url         String?
+  jazzCashMerchantId  Int?
+  easyPaisaMerchantId Int?
+  swichMerchantId     Int?
+  zindigiMerchantId   Int?
+  encrypted           String?   @default("false")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime? @updatedAt
 
-  // New relation to MerchantCommission
+  // Relations
+  user_groups                UserGroup[]
   commissions                MerchantFinancialTerms[]
   MerchantProviderCredential MerchantProviderCredential[]
+  Disbursement               Disbursement[]
+  SettlementReport           SettlementReport[]
+  EasyPaisaDisburseAccount   EasyPaisaDisburseAccount?    @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
+  JazzCashDisburseAccount    JazzCashDisburseAccount?     @relation(fields: [JazzCashDisburseAccountId], references: [id])
+  ZindigiMerchant            ZindigiMerchant?             @relation(fields: [zindigiMerchantId], references: [id])
 
-  jazzCashMerchantId Int?
-  jazzCashMerchant   JazzCashMerchant?  @relation(fields: [jazzCashMerchantId], references: [id])
-  SettlementReport   SettlementReport[]
-
-  easyPaisaMerchantId Int?
-  easyPaisaMerchant   EasyPaisaMerchant? @relation(fields: [easyPaisaMerchantId], references: [id])
-  SwichMerchant       SwichMerchant?     @relation(fields: [swichMerchantId], references: [id])
-  swichMerchantId     Int?
-  Disbursement        Disbursement[]
-
+  // Easypaisa-specific
+  easypaisaPaymentMethod     EasypaisaPaymentMethodEnum @default(SWITCH)
+  easypaisaInquiryMethod     EasypaisaInquiryMethod     @default(DATABASE)
   EasyPaisaDisburseAccountId Int?
-  EasyPaisaDisburseAccount   EasyPaisaDisburseAccount? @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
-  JazzCashDisburseAccountId Int?
-  JazzCashDisburseAccount   JazzCashDisburseAccount? @relation(fields: [JazzCashDisburseAccountId], references: [id])
+  JazzCashDisburseAccountId  Int?
+  jazzCashMerchant           JazzCashMerchant?          @relation(fields: [jazzCashMerchantId], references: [id])
+  easyPaisaMerchant          EasyPaisaMerchant?         @relation(fields: [easyPaisaMerchantId], references: [id])
+  SwichMerchant              SwichMerchant?             @relation(fields: [swichMerchantId], references: [id])
 
-  // New column for Easypaisa payment method selection
-  easypaisaPaymentMethod EasypaisaPaymentMethodEnum @default(SWITCH)
-  easypaisaInquiryMethod EasypaisaInquiryMethod     @default(DATABASE)
-
-  encrypted String? @default("false")
-
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime?        @updatedAt
-  ZindigiMerchant   ZindigiMerchant? @relation(fields: [zindigiMerchantId], references: [id])
-  zindigiMerchantId Int?
+  @@index([phone_number])
 }
 
 model MerchantProviderCredential {
@@ -164,56 +160,59 @@ model User {
   // Transactions as Customer
   customerTransactions Transaction[] @relation("CustomerTransactions")
 
-  apiKey String? @unique
+  apiKey        String? @unique
   decryptionKey String? @unique
+
   @@index([email])
 }
 
 model Transaction {
-  transaction_id   String            @id @unique
-  date_time        DateTime
-  original_amount  Decimal?
-  status           TransactionStatus
-  type             TransactionType
-  response_message String?
-  settlement       Boolean           @default(false)
-  settled_amount   Decimal?
-  balance          Decimal           @default(0)
+  transaction_id          String            @id @default(uuid())
+  date_time               DateTime
+  original_amount         Decimal?
+  status                  TransactionStatus
+  type                    TransactionType
+  response_message        String?
+  settlement              Boolean           @default(false)
+  settled_amount          Decimal?
+  balance                 Decimal           @default(0)
+  merchant_transaction_id String?           @unique // Unique ID for merchant
+  system_transaction_id   String?           @unique // Unique ID for system
+  payin_transaction_id    String? // ID for payin-specific transactions
 
   merchant_id Int
-  merchant    User @relation("MerchantTransactions", fields: [merchant_id], references: [id])
-
   customer_id Int?
-  customer    User? @relation("CustomerTransactions", fields: [customer_id], references: [id])
 
-  additionalInfoId Int?            @unique
-  AdditionalInfo   AdditionalInfo? @relation(fields: [additionalInfoId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 
-  providerId     Int?
-  Provider       Provider?       @relation(fields: [providerId], references: [id])
-  scheduledTasks ScheduledTask[]
-
-  deletedAt       DateTime?
-  createdAt       DateTime? @default(now())
-  updatedAt       DateTime? @updatedAt
+  // Relations
+  merchant        User             @relation("MerchantTransactions", fields: [merchant_id], references: [id])
+  customer        User?            @relation("CustomerTransactions", fields: [customer_id], references: [id])
+  AdditionalInfo  AdditionalInfo[]
+  Provider        Provider?        @relation(fields: [providerId], references: [id])
+  providerId      Int?
+  ScheduledTask   ScheduledTask?
+  PaymentRequest  PaymentRequest?
   providerDetails Json?
 
-  paymentRequest PaymentRequest?
+  @@index([merchant_transaction_id])
 }
 
 model AdditionalInfo {
-  id                Int          @id @default(autoincrement())
-  bank_id           String? // Bank ID for JazzCash
-  bill_reference    String? // Bill reference number
-  retrieval_ref     String? // Retrieval reference number
-  sub_merchant_id   String? // Optional sub-merchant ID
-  settlement_expiry String? // Optional settlement expiry time
-  custom_field_1    String? // Optional custom field
-  custom_field_2    String?
-  custom_field_3    String?
-  custom_field_4    String?
-  custom_field_5    String?
-  transaction       Transaction? // One-to-many relation to transactions
+  id                        Int          @id @default(autoincrement())
+  bank_id                   String? // Bank ID for JazzCash
+  bill_reference            String? // Bill reference number
+  retrieval_ref             String? // Retrieval reference number
+  sub_merchant_id           String? // Optional sub-merchant ID
+  settlement_expiry         String? // Optional settlement expiry time
+  custom_field_1            String? // Optional custom field
+  custom_field_2            String?
+  custom_field_3            String?
+  custom_field_4            String?
+  custom_field_5            String?
+  transaction               Transaction? @relation(fields: [transactionTransaction_id], references: [transaction_id]) // One-to-many relation to transactions
+  transactionTransaction_id String?
 }
 
 model Provider {
@@ -289,22 +288,26 @@ model ZindigiMerchant {
 }
 
 model Disbursement {
-  id                Int       @id @default(autoincrement())
-  transaction_id    String?   @unique @default(uuid())
-  merchant_id       Int
-  merchant          Merchant  @relation(fields: [merchant_id], references: [merchant_id])
-  disbursementDate  DateTime
-  transactionAmount Decimal
-  commission        Decimal
-  gst               Decimal
-  withholdingTax    Decimal
-  platform          Decimal?
-  merchantAmount    Decimal
-  account           String?
-  provider          String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime?
+  id                       Int      @id @default(autoincrement())
+  transaction_id           String   @unique @default(uuid())
+  merchant_id              Int
+  disbursementDate         DateTime
+  transactionAmount        Decimal
+  merchantAmount           Decimal
+  commission               Decimal
+  gst                      Decimal
+  withholdingTax           Decimal
+  platform                 Decimal?
+  account                  String?
+  provider                 String?
+  merchant_custom_order_id String?  @unique // Added for custom inquiries
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
 
   @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
 }
@@ -324,11 +327,11 @@ model EasyPaisaDisburseAccount {
 }
 
 model JazzCashDisburseAccount {
-  id             Int        @id @default(autoincrement())
-  tokenKey       String
-  initialVector  String
-  key            String
-  merchant     Merchant[]
+  id            Int        @id @default(autoincrement())
+  tokenKey      String
+  initialVector String
+  key           String
+  merchant      Merchant[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
