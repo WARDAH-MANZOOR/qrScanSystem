@@ -713,12 +713,16 @@ const createDisbursement = async (
         await updateTransactions(updates, tx);
 
         let id = transactionService.createTransactionId();
-        let data: { transaction_id?: string, merchant_custom_order_id?: string } = {};
+        let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
         if (obj.order_id) {
           data["merchant_custom_order_id"] = obj.order_id;
-        } 
+        }
+        else {
+          data["merchant_custom_order_id"] = id;
+        }
         // else {
         data["transaction_id"] = ma2ma.TransactionReference;
+        data["system_order_id"] = id;
         // }
         // Get the current date
         const date = new Date();
@@ -764,9 +768,9 @@ const createDisbursement = async (
           merchantAmount: obj.amount
             ? obj.amount.toString()
             : merchantAmount.toString(),
-          order_id: disbursement.transaction_id,
+          order_id: disbursement.merchant_custom_order_id,
           externalApiResponse: {
-            TransactionReference: ma2ma.TransactionReference,
+            TransactionReference: disbursement.merchant_custom_order_id,
             TransactionStatus: ma2ma.TransactionStatus,
           },
         };
@@ -1014,12 +1018,16 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         await updateTransactions(updates, tx);
 
         let id = transactionService.createTransactionId();
-        let data2: { transaction_id?: string } = {};
+        let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string;  } = {};
         if (obj.order_id) {
-          data2["transaction_id"] = obj.order_id;
-        } else {
-          data2["transaction_id"] = id;
+          data2["merchant_custom_order_id"] = obj.order_id;
         }
+        else {
+          data2["merchant_custom_order_id"] = id;
+        }
+        // else {
+        data2["transaction_id"] = res2.data.TransactionReference;
+        data2["system_order_id"] = id;
         // Get the current date
         const date = new Date();
 
@@ -1032,7 +1040,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         let disbursement = await tx.disbursement.create({
           data: {
             ...data2,
-            transaction_id: id,
+            // transaction_id: id,
             merchant_id: Number(findMerchant.merchant_id),
             disbursementDate: zonedDate,
             transactionAmount: amountDecimal,
@@ -1064,9 +1072,9 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
           merchantAmount: obj.amount
             ? obj.amount.toString()
             : merchantAmount.toString(),
-          order_id: disbursement.transaction_id,
+          order_id: disbursement.merchant_custom_order_id,
           externalApiResponse: {
-            TransactionReference: res2.data.TransactionReference,
+            TransactionReference: disbursement.merchant_custom_order_id,
             TransactionStatus: res2.data.TransactionStatus,
           },
         };
@@ -1174,7 +1182,15 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
     if (!findDisbureMerch) {
       throw new CustomError("Disbursement account not found", 404);
     }
-
+    const transaction = await prisma.disbursement.findFirst({
+      where: {
+        merchant_custom_order_id: obj.transactionId,
+        merchant_id: findMerchant.merchant_id
+      }
+    });
+    if(!transaction || !transaction?.transaction_id) {
+      throw new CustomError("Transaction not found",500)
+    }
     const getTimeStamp: IEasyLoginPayload = await corporateLogin(
       findDisbureMerch
     );
@@ -1183,7 +1199,7 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
     );
 
     let data = JSON.stringify({
-      "transactionID": obj.transactionId
+      "transactionID": transaction.transaction_id
     });
 
     let config = {
@@ -1205,7 +1221,11 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
       throw new CustomError("Error while getting balance", 500);
     }
     console.log(response?.data)
-    return response?.data;
+    let data3 = response?.data;
+    return {
+      ...data3,
+      transactionID: obj.transactionId
+    };
   }
   catch (err: any) {
     throw new CustomError(

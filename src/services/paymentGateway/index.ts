@@ -214,10 +214,15 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         // Update transactions to adjust balances
         await updateTransactions(updates, tx);
 
-        let data: { transaction_id?: string } = {};
-        // if (obj.order_id) {
-        //   data["transaction_id"] = obj.order_id;
-        // } else {
+        let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
+        if (body.order_id) {
+          data["merchant_custom_order_id"] = body.order_id;
+        }
+        else {
+          data["merchant_custom_order_id"] = id;
+        }
+        // else {
+        data["system_order_id"] = id;
         data["transaction_id"] = res.transactionID;
         // }
         // Get the current date
@@ -264,9 +269,9 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           merchantAmount: body.amount
             ? body.amount.toString()
             : merchantAmount.toString(),
-          order_id: disbursement.transaction_id,
+          order_id: disbursement.merchant_custom_order_id,
           externalApiResponse: {
-            TransactionReference: res.transactionID,
+            TransactionReference: disbursement.merchant_custom_order_id,
             TransactionStatus: "success",
           },
         };
@@ -410,10 +415,15 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       await updateTransactions(updates, tx);
 
       let id = transactionService.createTransactionId();
-      let data: { transaction_id?: string } = {};
-      // if (obj.order_id) {
-      //   data["transaction_id"] = obj.order_id;
-      // } else {
+      let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
+      if (body.order_id) {
+        data["merchant_custom_order_id"] = body.order_id;
+      }
+      else {
+        data["merchant_custom_order_id"] = id;
+      }
+      // else {
+      data["system_order_id"] = id;
       data["transaction_id"] = res.transactionID;
       // }
       // Get the current date
@@ -460,7 +470,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         merchantAmount: body.amount
           ? body.amount.toString()
           : merchantAmount.toString(),
-        order_id: disbursement.transaction_id,
+        order_id: disbursement.merchant_custom_order_id,
         externalApiResponse: {
           TransactionReference: res.transactionID,
           TransactionStatus: "success",
@@ -500,6 +510,16 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
   const results = [];
 
   for (const id of body.transactionIds) {
+    const transaction = await prisma.disbursement.findFirst({
+      where: {
+        merchant_custom_order_id: id,
+        merchant_id: findMerchant.merchant_id
+      }
+    });
+    if(!transaction || !transaction?.transaction_id) {
+      results.push({id, status: "Transaction not found"});
+      continue;
+    }
     const payload = encryptData(
       { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
       findDisbureMerch.key, findDisbureMerch.initialVector
