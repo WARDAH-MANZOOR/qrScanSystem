@@ -37,6 +37,11 @@ enum EasypaisaInquiryMethod {
   WALLET // Inquiry through wallet service
 }
 
+enum CallbackMode {
+  SINGLE
+  DOUBLE
+}
+
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            @unique
@@ -80,6 +85,8 @@ model Merchant {
   payment_volume      Decimal?
   user_id             Int
   webhook_url         String?
+  callback_mode       CallbackMode @default(SINGLE)
+  payout_callback     String?
   jazzCashMerchantId  Int?
   easyPaisaMerchantId Int?
   swichMerchantId     Int?
