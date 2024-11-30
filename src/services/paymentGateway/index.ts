@@ -250,9 +250,15 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
             provider: PROVIDERS.JAZZ_CASH,
           },
         });
-
+        let webhook_url: string;
+        if (findMerchant.callback_mode == "DOUBLE") {
+          webhook_url = findMerchant.payout_callback as string;
+        }
+        else {
+          webhook_url = findMerchant.webhook_url as string;
+        }
         transactionService.sendCallback(
-          findMerchant.webhook_url as string,
+          webhook_url,
           {
             original_amount: body.amount ? body.amount : merchantAmount,
             date_time: zonedDate,
@@ -451,9 +457,15 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           provider: PROVIDERS.JAZZ_CASH,
         },
       });
-
+      let webhook_url: string;
+      if (findMerchant.callback_mode == "DOUBLE") {
+        webhook_url = findMerchant.payout_callback as string;
+      }
+      else {
+        webhook_url = findMerchant.webhook_url as string;
+      }
       transactionService.sendCallback(
-        findMerchant.webhook_url as string,
+        webhook_url,
         {
           original_amount: body.amount ? body.amount : merchantAmount,
           date_time: zonedDate,

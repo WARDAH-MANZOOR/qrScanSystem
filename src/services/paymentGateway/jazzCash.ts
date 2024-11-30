@@ -230,7 +230,7 @@ const initiateJazzCashPayment = async (
         throw new CustomError("Merchant UID is required", 400);
       }
 
-      let data: { transaction_id: string } = { transaction_id: "" };
+      let data: { transaction_id?: string, merchant_transaction_id?: string;  } = {};
 
       // Transaction Reference Number
       if (paymentData.transaction_id) {
@@ -254,12 +254,20 @@ const initiateJazzCashPayment = async (
           .toString()
           .padStart(5, "0")}`;
 
+        // if (paymentData.order_id) {
+        //   data["transaction_id"] = paymentData.order_id;
+        // }
+        // else {
+        //   data["transaction_id"] = txnRefNo;
+        // }
         if (paymentData.order_id) {
-          data["transaction_id"] = paymentData.order_id;
+          data["merchant_transaction_id"] = paymentData.order_id;
         }
         else {
-          data["transaction_id"] = txnRefNo;
+          data["merchant_transaction_id"] = txnRefNo;
         }
+        data["transaction_id"] = txnRefNo;
+        // else {
         const settled_amount = parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number)
         // Create Transaction within the transaction
         await tx.transaction.create({
@@ -286,7 +294,7 @@ const initiateJazzCashPayment = async (
       return {
         merchant,
         integritySalt: jazzCashMerchantIntegritySalt,
-        refNo: data["transaction_id"],
+        refNo: data.merchant_transaction_id as string,
       };
     }, {
       maxWait: 5000,
@@ -566,6 +574,7 @@ const initiateJazzCashPaymentAsync = async (
 
     let date = new Date();
     // Start Prisma Transaction
+    let data: {transaction_id?: string; merchant_transaction_id?: string} = {};
     const result = await prisma.$transaction(async (tx) => {
       const merchant = await fetchMerchantAndJazzCash(tx, merchant_uid as string);
       jazzCashCredentials.pp_MerchantID = merchant.jazzCashMerchant.jazzMerchantId;
@@ -579,7 +588,13 @@ const initiateJazzCashPaymentAsync = async (
         (currentTime - Math.floor(currentTime)) * 1000
       );
       refNo = createTransactionReferenceNumber(paymentData, formattedDate, fractionalMilliseconds);
-
+      if (paymentData.order_id) {
+        data["merchant_transaction_id"] = paymentData.order_id;
+      }
+      else {
+        data["merchant_transaction_id"] = refNo;
+      }
+      data["transaction_id"] = refNo;
       const settledAmount = calculateSettledAmount(
         parseFloat(paymentData.amount),
         merchant.merchant.commissions
@@ -588,6 +603,7 @@ const initiateJazzCashPaymentAsync = async (
       // Create Transaction
       await tx.transaction.create({
         data: {
+          ...data,
           transaction_id: refNo,
           date_time: date,
           original_amount: paymentData.amount,

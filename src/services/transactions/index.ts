@@ -95,7 +95,7 @@ const createTransaction = async (obj: any) => {
   });
   try {
     console.log(new Date().toLocaleDateString());
-    let data:{transaction_id?: string} = {};
+    let data: { transaction_id?: string } = {};
     if (order_id) {
       data["transaction_id"] = order_id;
     }
@@ -260,13 +260,14 @@ const createTransactionId = () => {
 }
 const createTxn = async (obj: any) => {
   let settledAmount = obj.amount * (1 - obj.commission);
-  let data:{transaction_id: string} = {transaction_id: ""};
-  if(obj.order_id) {
-    data["transaction_id"] = obj.order_id;
-  }
-  else {
-    data["transaction_id"] = transactionService.createTransactionId();
-  }
+  let data: { transaction_id?: string; merchant_transaction_id?: string; } = {}
+  // if (params.order_id) {
+  data["merchant_transaction_id"] = params.order_id;
+  // }
+  // else {
+  // data["merchant_transaction_id"] = id;
+  // }
+  data["transaction_id"] = params.transaction_id;
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
@@ -323,7 +324,7 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
         }
       });
     }
-  },{
+  }, {
     timeout: 60000,
     maxWait: 60000
   });
@@ -333,7 +334,7 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
 const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean) => {
   setTimeout(async () => {
     try {
-      console.log("Callback Payload: ",payload);
+      console.log("Callback Payload: ", payload);
       let data = JSON.stringify({
         "amount": payload.original_amount,
         "msisdn": msisdn,
@@ -343,9 +344,9 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         "type": type
       });
       if (doEncryption) {
-        data = JSON.stringify(await callbackEncrypt(data,payload?.merchant_id));
+        data = JSON.stringify(await callbackEncrypt(data, payload?.merchant_id));
       }
-      
+
       let config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -365,7 +366,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       }
     }
     catch (err) {
-      return {"message": "Error calling callback"}
+      return { "message": "Error calling callback" }
     }
   }, 10000)
 }
@@ -373,9 +374,9 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
 function convertPhoneNumber(phoneNumber: string): string {
   // Remove any '+' at the start of the number
   if (phoneNumber.startsWith("+92")) {
-      return "0" + phoneNumber.slice(3);
+    return "0" + phoneNumber.slice(3);
   } else if (phoneNumber.startsWith("92")) {
-      return "0" + phoneNumber.slice(2);
+    return "0" + phoneNumber.slice(2);
   }
   // Return the phone number unchanged if it doesn't start with '92' or '+92'
   return phoneNumber;

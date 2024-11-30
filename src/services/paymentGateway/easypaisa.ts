@@ -129,8 +129,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     }
     const phone = transactionService.convertPhoneNumber(params.phone)
     let id = transactionService.createTransactionId();
+    let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
-      orderId: id,
+      orderId: id2,
       storeId: easyPaisaMerchant.storeId,
       transactionAmount: params.amount,
       transactionType: "MA",
@@ -156,7 +157,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     };
 
     saveTxn = await transactionService.createTxn({
-      order_id: params.order_id,
+      order_id: id2,
       transaction_id: id,
       amount: params.amount,
       status: "pending",
@@ -256,8 +257,9 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
 
     const phone = transactionService.convertPhoneNumber(params.phone);
     let id = transactionService.createTransactionId();
+    let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
-      orderId: id,
+      orderId: id2,
       storeId: easyPaisaMerchant.storeId,
       transactionAmount: params.amount,
       transactionType: "MA",
@@ -284,7 +286,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
 
     // Save transaction immediately with "pending" status
     saveTxn = await transactionService.createTxn({
-      order_id: params.order_id,
+      order_id: id2,
       transaction_id: id,
       amount: params.amount,
       status: "pending",
@@ -749,9 +751,15 @@ const createDisbursement = async (
             provider: PROVIDERS.EASYPAISA,
           },
         });
-
+        let webhook_url: string;
+        if (findMerchant.callback_mode == "DOUBLE") {
+          webhook_url = findMerchant.payout_callback as string;
+        }
+        else {
+          webhook_url = findMerchant.webhook_url as string;
+        }
         transactionService.sendCallback(
-          findMerchant.webhook_url as string,
+          webhook_url,
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: zonedDate,
@@ -1053,9 +1061,15 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             provider: obj.bankName
           },
         });
-
+        let webhook_url;
+        if (findMerchant.callback_mode == "DOUBLE") {
+          webhook_url = findMerchant.payout_callback as string;
+        }
+        else {
+          webhook_url = findMerchant.webhook_url as string;
+        }
         transactionService.sendCallback(
-          findMerchant.webhook_url as string,
+          webhook_url,
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: zonedDate,
