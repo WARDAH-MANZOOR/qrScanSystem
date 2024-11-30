@@ -25,6 +25,8 @@ export interface Merchant {
   easypaisaInquiryMethod: "DATABASE" | "WALLET";
   JazzCashDisburseAccountId: number;
   encrypted: string;
+  callback_mode: "SINGLE" | "DOUBLE";
+  payout_callback: string;
 }
 
 export interface IjazzCashConfigParams {

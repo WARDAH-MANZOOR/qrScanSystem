@@ -65,8 +65,9 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     }
 
     let id = transactionService.createTransactionId();
+    let id2 = payload.order_id || id;
     let data = JSON.stringify({
-      customerTransactionId: id,
+      customerTransactionId: id2,
       categoryId: "2",
       channelId: payload.channel == 5624 ? 10 : 8,
       item: "1",
@@ -91,7 +92,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     };
 
     saveTxn = await transactionService.createTxn({
-      order_id: payload.order_id,
+      order_id: id2,
       transaction_id: id,
       amount: payload.amount,
       status: "pending",
@@ -190,10 +191,10 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
     }
 
     const id = transactionService.createTransactionId();
-
+    const id2 = payload.order_id || id;
     // Save transaction immediately with pending status
     saveTxn = await transactionService.createTxn({
-      order_id: payload.order_id,
+      order_id: id2,
       transaction_id: id,
       amount: payload.amount,
       status: "pending",
@@ -216,7 +217,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
       try {
         // Prepare the payload for the external API
         const data = JSON.stringify({
-          customerTransactionId: id,
+          customerTransactionId: id2,
           categoryId: "2",
           channelId: payload.channel === 5624 ? 10 : 8,
           item: "1",

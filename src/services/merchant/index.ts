@@ -30,7 +30,9 @@ const updateMerchant = async (payload: Merchant) => {
     easypaisaPaymentMethod,
     easypaisaInquiryMethod,
     JazzCashDisburseAccountId,
-    encrypted
+    encrypted,
+    callback_mode,
+    payout_callback
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
@@ -50,8 +52,9 @@ const updateMerchant = async (payload: Merchant) => {
       }
       let method = easypaisaPaymentMethod?.toUpperCase();
       if (method != "DIRECT" && method != "SWITCH") {
-        throw new CustomError("Easy Paisa Method not valid",400);
+        throw new CustomError("Easy Paisa Method not valid", 400);
       }
+      let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
       const user = await tx.merchant.update({
         data: {
           full_name: username,
@@ -68,7 +71,9 @@ const updateMerchant = async (payload: Merchant) => {
           easypaisaPaymentMethod: method,
           easypaisaInquiryMethod,
           JazzCashDisburseAccountId,
-          encrypted
+          encrypted,
+          callback_mode,
+          payout_callback: payoutCallbackUrl
         },
         where: { merchant_id: +merchantId },
       });
@@ -166,7 +171,9 @@ const addMerchant = async (payload: Merchant) => {
     easypaisaPaymentMethod,
     easypaisaInquiryMethod,
     JazzCashDisburseAccountId,
-    encrypted
+    encrypted,
+    callback_mode,
+    payout_callback
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -185,7 +192,7 @@ const addMerchant = async (payload: Merchant) => {
           username,
         },
       });
-
+      let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
       // Create Merchant
       const merchant = await tx.merchant.create({
         data: {
@@ -204,7 +211,9 @@ const addMerchant = async (payload: Merchant) => {
           easypaisaPaymentMethod: easypaisaPaymentMethod,
           easypaisaInquiryMethod,
           JazzCashDisburseAccountId,
-          encrypted
+          encrypted,
+          callback_mode,
+          payout_callback: payoutCallbackUrl
         },
       });
 
