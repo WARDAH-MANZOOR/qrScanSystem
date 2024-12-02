@@ -9,11 +9,11 @@ const merchantDashboardDetails = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
-      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
     }
     const queryParameters = req.query;
     const user = req.user as JwtPayload;
@@ -21,9 +21,9 @@ const merchantDashboardDetails = async (
       queryParameters,
       user
     );
-    return res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error: any) {
-    return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
+    res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
   }
 };
 
@@ -31,19 +31,19 @@ const adminDashboardDetails = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
-      return res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
     }
     const queryParameters = req.query;
     const result = await dashboardService.adminDashboardDetails(
       queryParameters
     );
-    return res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error: any) {
-    return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
+    res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
   }
 };
 

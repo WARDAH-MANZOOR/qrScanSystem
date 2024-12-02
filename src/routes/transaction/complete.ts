@@ -55,7 +55,7 @@ export const completeTransaction = async (req: Request, res: Response) => {
     // Validate data
     const validationErrors = isValidTransactionCompletion(req.body);
     if (validationErrors.length > 0) {
-        return res.status(400).json({ errors: validationErrors });
+         res.status(400).json({ errors: validationErrors });
     }
 
     try {
@@ -132,15 +132,15 @@ export const completeTransaction = async (req: Request, res: Response) => {
 
 
             // Send the response with the updated transaction
-            return res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask });
+             res.status(200).json({ message: `Transaction ${status} successfully`, transaction: updatedTransaction, task: scheduledTask });
         }
         else {
-            return res.status(404).json({ message: "Transaction not found" });
+             res.status(404).json({ message: "Transaction not found" });
         }
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
+         res.status(500).json({ message: "Internal server error" });
     }
 };
 

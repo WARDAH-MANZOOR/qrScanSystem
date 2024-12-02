@@ -25,12 +25,12 @@ const logout = async (req: Request, res: Response) => {
   res.status(200).send({ message: "Logged out Successfully" });
 };
 
-const login = async (req: Request, res: Response, next: NextFunction) => {
+const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   // Validate request data
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // Return validation errors
-    return res.status(400).json({ errors: errors.array() });
+    res.status(400).json({ errors: errors.array() });
   }
 
   const { email, password } = req.body;
@@ -112,7 +112,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const signup = async (req: Request, res: Response, next: NextFunction) => {
+const signup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Step 1: Validate Request Data
     validationResult(req);
@@ -162,16 +162,16 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
     console.error("Error during signup:", error);
 
     if (error instanceof CustomError) {
-      return res
+      res
         .status(error.statusCode)
         .json(ApiResponse.error(error.message));
     }
 
-    return res.status(500).json(ApiResponse.error("Internal server error"));
+    res.status(500).json(ApiResponse.error("Internal server error"));
   }
 };
 
-const getAPIKey = async (req: Request, res: Response, next: NextFunction) => {
+const getAPIKey = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
 
@@ -180,13 +180,13 @@ const getAPIKey = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const result = await authenticationService.getAPIKey(id);
-    return res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
 };
 
-const getDecryptionKey = async (req: Request, res: Response, next: NextFunction) => {
+const getDecryptionKey = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
 
@@ -195,7 +195,7 @@ const getDecryptionKey = async (req: Request, res: Response, next: NextFunction)
     }
 
     const result = await authenticationService.getDecryptionKey(id);
-    return res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -205,7 +205,7 @@ const createAPIKey = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+) : Promise<void>=> {
   try {
     const id = parseInt(req.params.id);
 
@@ -214,7 +214,8 @@ const createAPIKey = async (
     }
 
     const result = await authenticationService.createAPIKey(id);
-    return res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
+    return;
   } catch (error) {
     next(error);
   }
@@ -224,7 +225,7 @@ const createDecryptionKey = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
 
@@ -233,13 +234,13 @@ const createDecryptionKey = async (
     }
 
     const result = await authenticationService.createDecryptionKey(id);
-    return res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
 };
 
-const updatePassword = async (req: Request, res: Response, next: NextFunction) => {
+const updatePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const old_password = await getUserPassword((req.user as JwtPayload)?.merchant_id);
     if(!(await comparePasswords(req.body.old_password, old_password?.password as string))) {
@@ -247,7 +248,7 @@ const updatePassword = async (req: Request, res: Response, next: NextFunction) =
     }
     let new_password = await hashPassword(req.body.new_password);
     updateUserPassword((req.user as JwtPayload)?.merchant_id,new_password);
-    return res.status(200).json(ApiResponse.success({"message": "Password updated successfully"}))
+    res.status(200).json(ApiResponse.success({"message": "Password updated successfully"}))
   }
   catch(err) {
     next(err);

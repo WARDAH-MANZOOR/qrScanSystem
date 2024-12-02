@@ -37,14 +37,14 @@ export const transactionReport = async (req: Request, res: Response) => {
     }
 
     // Default JSON response
-    return res.json({
+     res.json({
       transactions,
       total_amount: totalAmount,
     });
   }
   catch (err) {
     error = new CustomError("Something went wrong. Please try again later!", 500)
-    return res.status(500).json(error);
+     res.status(500).json(error);
   }
 };
 

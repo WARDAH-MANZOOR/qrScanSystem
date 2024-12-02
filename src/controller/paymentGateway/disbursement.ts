@@ -17,10 +17,10 @@ const getWalletBalanceController = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   const merchantId = (req.user as JwtPayload)?.id;
   if (!merchantId) {
-    return res.status(401).json({ message: "Unauthorized" });
+     res.status(401).json({ message: "Unauthorized" });
   }
   try {
     const balance: any = await getWalletBalance(merchantId);
@@ -34,12 +34,12 @@ const disburseTransactions = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   // Validate request data
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // Return validation errors
-    return res
+     res
       .status(400)
       .json(ApiResponse.error(errors.array()[0] as unknown as string));
   }
@@ -49,7 +49,7 @@ const disburseTransactions = async (
   let rate = await getMerchantRate(prisma, merchantId);
   amount *= (1 - +rate);
   if (!merchantId) {
-    return res.status(401).json({ message: 'Unauthorized' });
+     res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {

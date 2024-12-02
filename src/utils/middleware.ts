@@ -1,14 +1,14 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler, ErrorRequestHandler } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import CustomError from "./custom_error.js";
 import prisma from "../prisma/client.js";
 import ApiResponse from "utils/ApiResponse.js";
 
-const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
+const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Check if the token exists
     if (!req.cookies.token) {
-      return res.status(401).send("You must be logged in");
+      res.status(401).send("You must be logged in");
     }
 
     // Verify the JWT token
@@ -22,7 +22,7 @@ const isLoggedIn = async (req: Request, res: Response, next: NextFunction) => {
     // Proceed to the next middleware
     return next();
   } catch (error) {
-    return res.status(401).json(ApiResponse.error("You must be logged in", 401));
+    res.status(401).json(ApiResponse.error("You must be logged in", 401));
   }
 };
 
@@ -54,33 +54,34 @@ const restrictMultiple = (...role: string[]) => {
   };
 };
 
-const errorHandler = (
+const errorHandler: ErrorRequestHandler = (
   err: CustomError,
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   // Check if the error is operational (CustomError)
   if (err.isOperational) {
     console.log(err.statusCode);
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       statusText: err.statusText,
       status: err.statusCode,
       message: err.message,
     });
+    return; // No need to return anything after sending the response
   }
 
   // For non-operational or unknown errors, send a generic message
   console.error("An unexpected error occurred:", err); // Log the error for debugging
 
-  return res.status(500).json({
+  res.status(500).json({
     status: "error",
     message: "Something went wrong",
   });
 };
 
 const authorize = (permissionName: string) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const userId = (req.user as JwtPayload)?.id; // Assume user ID is set in req.user
 
     const userGroups = await prisma.userGroup.findMany({
@@ -99,24 +100,21 @@ const authorize = (permissionName: string) => {
     );
 
     if (!hasPermission) {
-      return res.status(403).json({ message: "Forbidden" });
+      res.status(403).json({ message: "Forbidden" });
     }
 
     next();
   };
 };
 
-const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-  return (req.user as JwtPayload)?.role == "Admin"
-    ? next()
-    : res
-        .status(200)
-        .json(
-          ApiResponse.error(
-            "You are not authorized to perform this action",
-            403
-          )
-        );
+const isAdmin: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  if ((req.user as JwtPayload)?.role === "Admin") {
+    return next(); // Correctly calls the next middleware
+  }
+
+  res.status(403).json(
+    ApiResponse.error("You are not authorized to perform this action", 403)
+  );
 };
 
 export {
