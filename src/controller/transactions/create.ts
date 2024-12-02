@@ -58,12 +58,12 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     // Validate data
     const validationErrors = validationResult(req);
     if (!validationErrors.isEmpty()) {
-        return res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
+         res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
     }
     let merchant_id = (req.user as JwtPayload)?.id;
     
     if (!merchant_id) {
-        return res.status(401).json(ApiResponse.error("Unauthorized"));
+         res.status(401).json(ApiResponse.error("Unauthorized"));
     }
     let data:{transaction_id?:string} = {};
     if(order_id) {
@@ -86,14 +86,14 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
             customerEmail
         });
         // Send the response with the created transaction
-        return res.status(201).json(ApiResponse.success(result));
+         res.status(201).json(ApiResponse.success(result));
     } catch (error) {
         console.error('Error creating transaction request:', error);
 
         if (error instanceof CustomError) {
-            return res.status(error.statusCode).json(ApiResponse.error(error.message));
+             res.status(error.statusCode).json(ApiResponse.error(error.message));
         }
 
-        return res.status(500).json(ApiResponse.error("Internal Server Error"));
+         res.status(500).json(ApiResponse.error("Internal Server Error"));
     }
 };

@@ -8,7 +8,7 @@ const filterTransactions = async (req: Request, res: Response, next: NextFunctio
     const queryParameters = req.query;
     const user = req.user;
     const result = await transactionService.filterTransactions(queryParameters, user);
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -18,7 +18,7 @@ const getDashboardSummary = async (req: Request, res: Response, next: NextFuncti
   try {
     const queryParameters = req.query;
     const result = await transactionService.getDashboardSummary(queryParameters);
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
