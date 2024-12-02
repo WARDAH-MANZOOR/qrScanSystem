@@ -262,12 +262,12 @@ const createTxn = async (obj: any) => {
   let settledAmount = obj.amount * (1 - obj.commission);
   let data: { transaction_id?: string; merchant_transaction_id?: string; } = {}
   // if (params.order_id) {
-  data["merchant_transaction_id"] = params.order_id;
+  data["merchant_transaction_id"] = obj.order_id;
   // }
   // else {
   // data["merchant_transaction_id"] = id;
   // }
-  data["transaction_id"] = params.transaction_id;
+  data["transaction_id"] = obj.transaction_id;
   return await prisma.$transaction(async (tx) => {
     return await tx.transaction.create({
       data: {
