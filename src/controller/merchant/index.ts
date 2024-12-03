@@ -8,15 +8,15 @@ const updateMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+):Promise<void> => {
   try {
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
-      return res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+       res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
     }
     const payload = req.body;
     const result = await merchantService.updateMerchant(payload);
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error: any) {
     res.status(error.statusCode).send(ApiResponse.error(error.message))
   }
@@ -26,30 +26,30 @@ const getMerchants = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const queryParameters = req.query;
     const result = await merchantService.getMerchants(queryParameters);
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
 };
 
-const addMerchant = async (req: Request, res: Response, next: NextFunction) => {
+const addMerchant = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
-      return res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+       res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
     }
     const payload = req.body;
     const result = await merchantService.addMerchant(payload);
     if (result == "Settlment Duration Required") {
       throw new CustomError(result,400)
     }
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error: any) {
-    return res.status(error.statusCode).send(ApiResponse.error(error.message));
+     res.status(error.statusCode).send(ApiResponse.error(error.message));
   }
 };
 export default { updateMerchant, getMerchants, addMerchant };

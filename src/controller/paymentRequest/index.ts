@@ -13,7 +13,7 @@ const createPaymentRequest = async (
       req.body,
       req.user
     );
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -27,7 +27,7 @@ const getPaymentRequest = async (
   try {
     req.query.user = req.user;
     const result = await paymentRequestService.getPaymentRequest(req.query);
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -56,7 +56,7 @@ const updatePaymentRequest = async (
       req.body,
       user
     );
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -77,7 +77,7 @@ const getPaymentRequestbyId = async (
     const result = await paymentRequestService.getPaymentRequestbyId(
       id as string
     );
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -98,7 +98,7 @@ const deletePaymentRequest = async (
     const result = await paymentRequestService.deletePaymentRequest(
       paymentRequestId
     );
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -120,7 +120,7 @@ const payRequestedPayment = async (
     }
 
     const result = await paymentRequestService.payRequestedPayment(req.body);
-    return res.status(200).json(ApiResponse.success(result));
+     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }

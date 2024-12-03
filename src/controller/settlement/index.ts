@@ -11,9 +11,9 @@ const getSettlements = async (req: Request, res: Response, next: NextFunction) =
             queryParameters,
             user
         );
-        return res.status(200).json(ApiResponse.success(result));
+         res.status(200).json(ApiResponse.success(result));
     } catch (error: any) {
-        return res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
+         res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
     }
 }
 

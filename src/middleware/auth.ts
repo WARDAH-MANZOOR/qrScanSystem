@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import {
   decryptApiKey,
   encryptApiKey,
@@ -8,7 +8,7 @@ import prisma from "prisma/client.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-export const apiKeyAuth = async (
+export const apiKeyAuth: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -18,12 +18,12 @@ export const apiKeyAuth = async (
   const { merchantId } = req.params;
 
   if (!merchantId) {
-    return res.status(400).json({ error: "Merchant ID is required" });
+     res.status(400).json({ error: "Merchant ID is required" });
   }
 
   // Check if API key is missing
   if (!apiKey) {
-    return res.status(401).json({ error: "API key is missing" });
+     res.status(401).json({ error: "API key is missing" });
   }
 
   try {
@@ -35,28 +35,28 @@ export const apiKeyAuth = async (
     });
 
     if (!merchant) {
-      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+       res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
 
     const user = await prisma.user.findFirst({
       where: {
-        id: merchant.user_id,
+        id: merchant?.user_id,
       },
     });
 
     if (!user) {
-      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+       res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
 
-    const hashedKey = user.apiKey;
+    const hashedKey = user?.apiKey;
 
     if (!hashedKey) {
-      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+       res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
 
-    const verify = verifyHashedKey(apiKey, hashedKey);
+    const verify = verifyHashedKey(apiKey, hashedKey as string);
     if (!verify) {
-      return res.status(403).json({ error: "Unauthorized: Invalid API key" });
+       res.status(403).json({ error: "Unauthorized: Invalid API key" });
     }
     next();
   } catch (error) {
