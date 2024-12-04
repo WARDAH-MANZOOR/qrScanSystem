@@ -294,7 +294,8 @@ const initiateJazzCashPayment = async (
       return {
         merchant,
         integritySalt: jazzCashMerchantIntegritySalt,
-        refNo: data.transaction_id as string,
+        refNo: data.merchant_transaction_id as string,
+        txnRefNo: data.transaction_id as string
       };
     }, {
       maxWait: 5000,
@@ -304,6 +305,7 @@ const initiateJazzCashPayment = async (
     // Prepare Data for JazzCash
     const { merchant, integritySalt } = result;
     refNo = result.refNo;
+    txnRefNo = result.txnRefNo;
     console.log("Ref No: ",refNo)
     jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
@@ -438,7 +440,7 @@ const initiateJazzCashPayment = async (
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
-            transaction_id: refNo,
+            merchant_transaction_id: refNo,
           },
           data: {
             status,
@@ -484,7 +486,7 @@ const initiateJazzCashPayment = async (
         // Update transaction with providerId
         await tx.transaction.update({
           where: {
-            transaction_id: refNo,
+            merchant_transaction_id: refNo,
           },
           data: {
             providerId: provider.id,
@@ -497,7 +499,7 @@ const initiateJazzCashPayment = async (
           ); // Call the function to get the next 2 weekdays
           let scheduledTask = await tx.scheduledTask.create({
             data: {
-              transactionId: refNo,
+              transactionId: txnRefNo,
               status: "pending",
               scheduledAt: scheduledAt, // Assign the calculated weekday date
               executedAt: null, // Assume executedAt is null when scheduling
@@ -547,6 +549,7 @@ const initiateJazzCashPaymentAsync = async (
   paymentData: any,
   merchant_uid?: string
 ) => {
+  let txnRefNo;
   let refNo: string = "";
   const date2 = new Date();
 
@@ -606,7 +609,6 @@ const initiateJazzCashPaymentAsync = async (
       await tx.transaction.create({
         data: {
           ...data,
-          // transaction_id: refNo,
           date_time: date,
           original_amount: paymentData.amount,
           type: paymentData.type.toLowerCase(),
@@ -622,8 +624,9 @@ const initiateJazzCashPaymentAsync = async (
         },
       });
 
-      return { refNo: data.transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant };
+      return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
     });
+    txnRefNo = result.txnRefNo as string;
 
     // Immediately Return Pending Status and Transaction ID
     setImmediate(async () => {
@@ -660,7 +663,7 @@ const initiateJazzCashPaymentAsync = async (
     });
 
     return {
-      txnNo: refNo,
+      txnNo: data["merchant_transaction_id"],
       txnDateTime: formattedDate,
       statusCode: "pending",
       message: "Transaction is being processed",
@@ -803,7 +806,7 @@ const processWalletPayment = async (
 
   // Update transaction status in the database
   await prisma.transaction.update({
-    where: { transaction_id: refNo },
+    where: { merchant_transaction_id: refNo },
     data: { status, response_message: r.pp_ResponseMessage },
   });
 
@@ -1055,7 +1058,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
   const txn = await prisma.transaction.findFirst({
     where: {
-      transaction_id: payload.transactionId,
+      merchant_transaction_id: payload.transactionId,
       merchant_id: merchant?.merchant_id,
       providerDetails: {
         path: ['name'],
@@ -1065,6 +1068,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   })
 
   if (!txn) {
+    console.log("Transaction");
     throw new CustomError("Transaction Not Found", 400)
   }
   let sendData = {
@@ -1091,6 +1095,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   };
 
   let res = await axios.request(config);
+  console.log("Response: ",res.data)
   if (res.data.pp_ResponseCode == "000") {
     delete res.data.pp_SecureHash;
     return {

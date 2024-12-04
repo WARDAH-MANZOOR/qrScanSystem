@@ -71,7 +71,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
     }
     const txn = await prisma.transaction.findFirst({
       where: {
-        transaction_id: transactionId,
+        merchant_transaction_id: transactionId,
         merchant_id: id?.merchant_id,
         providerDetails: {
           path: ['name'],
@@ -196,7 +196,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         false
       );
       return {
-        txnNo: saveTxn.transaction_id,
+        txnNo: saveTxn.merchant_transaction_id,
         txnDateTime: saveTxn.date_time,
         statusCode: response?.data.responseCode
       };
@@ -220,7 +220,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     return {
       message: error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,
-      txnNo: saveTxn?.transaction_id
+      txnNo: saveTxn?.merchant_transaction_id
     }
   }
 };
@@ -352,7 +352,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     });
 
     return {
-      txnNo: saveTxn.transaction_id,
+      txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
       statusCode: "pending",
     };
@@ -361,7 +361,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
       message:
         error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,
-      txnNo: saveTxn?.transaction_id || null,
+      txnNo: saveTxn?.merchant_transaction_id || null,
     };
   }
 };
@@ -513,7 +513,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
     storeId: merchant?.easyPaisaMerchant?.storeId,
     accountNum: merchant?.easyPaisaMerchant?.accountNumber,
   });
-  console.log(data);
+  console.log("Data: ",data);
 
   const base64Credentials = Buffer.from(
     `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`
@@ -541,6 +541,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
       "responseMode": "MA"
     }
   } else {
+    console.log(res.data.responseDesc);
     throw new CustomError(
       res?.data?.responseDesc || "Internal Server Error",
       500
