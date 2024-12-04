@@ -59,11 +59,15 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
     const validationErrors = validationResult(req);
     if (!validationErrors.isEmpty()) {
          res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
+      return
+
     }
     let merchant_id = (req.user as JwtPayload)?.id;
     
     if (!merchant_id) {
          res.status(401).json(ApiResponse.error("Unauthorized"));
+      return
+
     }
     let data:{transaction_id?:string} = {};
     if(order_id) {
@@ -92,6 +96,8 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
 
         if (error instanceof CustomError) {
              res.status(error.statusCode).json(ApiResponse.error(error.message));
+      return
+
         }
 
          res.status(500).json(ApiResponse.error("Internal Server Error"));

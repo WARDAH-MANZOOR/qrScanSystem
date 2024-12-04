@@ -289,12 +289,12 @@ const initiateJazzCashPayment = async (
         });
         transactionCreated = true;
       }
-
+      console.log("Data: ",data);
       // Return necessary data for further processing
       return {
         merchant,
         integritySalt: jazzCashMerchantIntegritySalt,
-        refNo: data.merchant_transaction_id as string,
+        refNo: data.transaction_id as string,
       };
     }, {
       maxWait: 5000,
@@ -304,6 +304,7 @@ const initiateJazzCashPayment = async (
     // Prepare Data for JazzCash
     const { merchant, integritySalt } = result;
     refNo = result.refNo;
+    console.log("Ref No: ",refNo)
     jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
 
@@ -433,6 +434,7 @@ const initiateJazzCashPayment = async (
         ) {
           return;
         }
+        console.log("Ref No: ",refNo)
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
@@ -604,7 +606,7 @@ const initiateJazzCashPaymentAsync = async (
       await tx.transaction.create({
         data: {
           ...data,
-          transaction_id: refNo,
+          // transaction_id: refNo,
           date_time: date,
           original_amount: paymentData.amount,
           type: paymentData.type.toLowerCase(),
@@ -620,14 +622,14 @@ const initiateJazzCashPaymentAsync = async (
         },
       });
 
-      return { refNo, integritySalt: jazzCashMerchantIntegritySalt, merchant };
+      return { refNo: data.transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant };
     });
 
     // Immediately Return Pending Status and Transaction ID
     setImmediate(async () => {
       try {
         const { integritySalt } = result;
-        refNo = result.refNo;
+        refNo = result.refNo as string;
 
         // Prepare JazzCash Payload
         const sendData = prepareJazzCashPayload(

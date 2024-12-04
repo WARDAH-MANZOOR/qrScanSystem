@@ -31,6 +31,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
   if (!errors.isEmpty()) {
     // Return validation errors
     res.status(400).json({ errors: errors.array() });
+    return;
   }
 
   const { email, password } = req.body;
@@ -165,6 +166,7 @@ const signup = async (req: Request, res: Response, next: NextFunction): Promise<
       res
         .status(error.statusCode)
         .json(ApiResponse.error(error.message));
+        return;
     }
 
     res.status(500).json(ApiResponse.error("Internal server error"));

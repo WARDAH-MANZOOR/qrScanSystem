@@ -44,11 +44,13 @@ const updatePaymentRequest = async (
 
     if (!id) {
       throw new CustomError("Payment request ID is required", 400);
+
     }
 
     // body must not be empty
     if (!Object.keys(req.body).length) {
       throw new CustomError("Request body is required", 400);
+
     }
 
     const result = await paymentRequestService.updatePaymentRequest(
@@ -72,6 +74,7 @@ const getPaymentRequestbyId = async (
 
     if (!id) {
       throw new CustomError("Payment request ID is required", 400);
+
     }
 
     const result = await paymentRequestService.getPaymentRequestbyId(

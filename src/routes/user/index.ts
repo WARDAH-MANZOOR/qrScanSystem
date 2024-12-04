@@ -102,12 +102,14 @@ router.post("/create-user",
         try {
             if (!email || typeof email !== 'string' || !email.includes('@')) {
                 error = new CustomError("Invalid input data. 'email' must be a valid email address.", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+                return;
             }
 
             if (!password || typeof password !== 'string' || password.length < 6) {
                 error = new CustomError("Invalid input data. 'password' must be at least 6 characters long.", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+                return;
             }
 
             // Check if the email already exists
@@ -117,36 +119,47 @@ router.post("/create-user",
 
             if (existingUser) {
                 error = new CustomError("Email already in use. Please choose another one.", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+                return;
             }
 
             bcrypt.genSalt(10, (err, salt) => {
                 if (err) {
                     error = new CustomError("An error occurred while generating the salt", 500);
-                     res.status(500).json(error);
+                    res.status(500).json(error);
+                    return
+
                 }
 
                 bcrypt.hash(password, salt, async (err, hash) => {
                     if (err) {
                         error = new CustomError("An error occurred while hashing the password", 500);
-                         res.status(500).json(error);
+                        res.status(500).json(error);
+                        return
+
                     }
 
                     try {
                         console.log(hash)
                         if (group !== 1 && group !== 2 && !(req.user as JwtPayload)?.merchant_id) {
                             error = new CustomError("Merchant ID is required if the group ID is not 1 or 2.", 400);
-                             res.status(400).json(error);
+                            res.status(400).json(error);
+                            return
+
                         }
-                        console.log("Role:",(req.user as JwtPayload)?.role);
+                        console.log("Role:", (req.user as JwtPayload)?.role);
                         if ((group == 1 || group == 2) && (req.user as JwtPayload)?.role != "Admin") {
-                            error = new CustomError("Forbidden" ,403);
-                             res.status(403).json(error);
+                            error = new CustomError("Forbidden", 403);
+                            res.status(403).json(error);
+                            return
+
                         }
 
                         if (group == 2 && (!commission || isNaN(parseFloat(commission)))) {
-                            error = new CustomError("Commission not given" ,400);
-                             res.status(400).json(error);
+                            error = new CustomError("Commission not given", 400);
+                            res.status(400).json(error);
+                            return
+
                         }
                         // Create the user
                         const user = await prisma.user.create({
@@ -185,24 +198,24 @@ router.post("/create-user",
 
                         // Check group and assign user to the correct group
                         // if (group === 1 || group === 2) {
-                            await prisma.userGroup.create({
-                                data: {
-                                    userId: user.id,
-                                    groupId: group,
-                                    merchantId: (req.user as JwtPayload)?.merchant_id // Group ID 1 or 2
-                                }
-                            });
+                        await prisma.userGroup.create({
+                            data: {
+                                userId: user.id,
+                                groupId: group,
+                                merchantId: (req.user as JwtPayload)?.merchant_id // Group ID 1 or 2
+                            }
+                        });
                         // }
 
                         // Generate token and respond
-                        let token = jwt.sign({ email, id: user.id, merchant_id: group == 2 ? user.id: null, role: group == 1 ? "Admin": group == 2 ? "Merchant": "User", }, "shhhhhhhhhhhhhh");
+                        let token = jwt.sign({ email, id: user.id, merchant_id: group == 2 ? user.id : null, role: group == 1 ? "Admin" : group == 2 ? "Merchant" : "User", }, "shhhhhhhhhhhhhh");
                         res.cookie("token", token, {
                             httpOnly: true
                         });
                         res.status(201).send({
                             message: "User created successfully.",
                             token: token,
-                            role: group == 1 ? "Admin": group == 2 ? "Merchant": "User",
+                            role: group == 1 ? "Admin" : group == 2 ? "Merchant" : "User",
                             username: user.username,
                             email: user.email,
                             id: user.id,
@@ -256,12 +269,16 @@ router.post('/create-group', isLoggedIn,
         try {
             if (!name || typeof name !== 'string' || name.trim().length === 0) {
                 error = new CustomError("Invalid input data. 'name' must be a non-empty string.", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+                return
+
             }
 
             if (!permissions || !Array.isArray(permissions) || permissions.some((id: any) => typeof id !== 'number')) {
                 error = new CustomError("Invalid input data. 'permissions' must be an array of permission IDs (numbers).", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+                return
+
             }
 
             // Check if all permission IDs exist in the Permission table
@@ -275,7 +292,9 @@ router.post('/create-group', isLoggedIn,
 
             if (existingPermissions.length !== permissions.length) {
                 error = new CustomError("One or more permissions provided do not exist.", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+                return
+
             }
 
             const group = await prisma.group.create({
@@ -290,7 +309,7 @@ router.post('/create-group', isLoggedIn,
         }
         catch (err) {
             error = new CustomError("Something went wrong, please try again later.", 500);
-             res.status(500).json(error);
+            res.status(500).json(error);
         }
     });
 
@@ -325,7 +344,9 @@ router.post('/create-permission', isLoggedIn, async (req: Request, res: Response
         // Validate input
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
             error = new CustomError("Invalid input data. 'name' must be a non-empty string.", 400);
-             res.status(400).json(error);
+            res.status(400).json(error);
+            return
+
         }
         const permission = await prisma.permission.create({
             data: { name },
@@ -334,7 +355,7 @@ router.post('/create-permission', isLoggedIn, async (req: Request, res: Response
     }
     catch (err) {
         error = new CustomError("Something went wrong, please try again later.", 500);
-         res.status(500).json(error);
+        res.status(500).json(error);
     }
 });
 
@@ -400,7 +421,9 @@ router.post("/assign", isLoggedIn,
             // Validate input
             if (!userId || !groupId || !Number.isInteger(userId) || !Number.isInteger(groupId)) {
                 error = new CustomError("Invalid userId or groupId", 400);
-                 res.status(400).json(error);
+                res.status(400).json(error);
+      return
+
             }
 
             // Check if user exists
@@ -410,7 +433,9 @@ router.post("/assign", isLoggedIn,
 
             if (!userExists) {
                 error = new CustomError("User not found", 404);
-                 res.status(404).json(error);
+                res.status(404).json(error);
+      return
+
             }
 
             // Check if group exists
@@ -420,7 +445,9 @@ router.post("/assign", isLoggedIn,
 
             if (!groupExists) {
                 error = new CustomError("Group Not Found", 404);
-                 res.status(404).json(error);
+                res.status(404).json(error);
+      return
+
             }
 
             console.log((req.user as JwtPayload)?.merchant_id)

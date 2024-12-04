@@ -56,6 +56,7 @@ export const completeTransaction = async (req: Request, res: Response) => {
     const validationErrors = isValidTransactionCompletion(req.body);
     if (validationErrors.length > 0) {
          res.status(400).json({ errors: validationErrors });
+         return
     }
 
     try {

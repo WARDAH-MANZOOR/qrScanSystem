@@ -14,6 +14,7 @@ const merchantDashboardDetails = async (
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      return;
     }
     const queryParameters = req.query;
     const user = req.user as JwtPayload;
@@ -36,6 +37,7 @@ const adminDashboardDetails = async (
     const errors = validationResult(req);
     if(!errors.isEmpty()) {
       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      return;
     }
     const queryParameters = req.query;
     const result = await dashboardService.adminDashboardDetails(

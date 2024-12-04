@@ -21,7 +21,7 @@ const walletToWalletPaymentController = async (req: Request, res: Response, next
                 throw new Error('Failed to use the new client secret with the API.');
             }
         }
-         res.status(200).json(ApiResponse.success(isValid.data));
+        res.status(200).json(ApiResponse.success(isValid.data));
     }
     catch (err) {
         next(err);
@@ -32,7 +32,7 @@ const debitInquiryController = async (req: Request, res: Response, next: NextFun
     try {
         const response = await zindigiService.debitInquiry(req.body);
         const response2 = await zindigiService.debitPayment(req.body, response);
-         res.status(200).json(ApiResponse.success(response2));
+        res.status(200).json(ApiResponse.success(response2));
     }
     catch (err) {
         next(err)
@@ -42,7 +42,7 @@ const debitInquiryController = async (req: Request, res: Response, next: NextFun
 const transactionInquiryController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const response = await zindigiService.transactionInquiry(req.body);
-         res.status(200).json(ApiResponse.success(response));
+        res.status(200).json(ApiResponse.success(response));
     }
     catch (err) {
         next(err);
@@ -57,7 +57,7 @@ const getZindigiMerchant = async (
     try {
         const merchantId = req.params.merchantId;
         const merchant = await zindigiService.getMerchant(merchantId);
-         res.status(200).json(ApiResponse.success(merchant));
+        res.status(200).json(ApiResponse.success(merchant));
     } catch (error) {
         next(error);
     }
@@ -70,7 +70,7 @@ const createZindigiMerchant = async (
 ) => {
     try {
         const newMerchant = await zindigiService.createMerchant(req.body);
-         res.status(201).json(ApiResponse.success(newMerchant));
+        res.status(201).json(ApiResponse.success(newMerchant));
     } catch (error) {
         next(error);
     }
@@ -88,9 +88,11 @@ const updateZindigiMerchant = async (
             req.body
         );
         if (!updatedMerchant) {
-             res.status(404).json(ApiResponse.error("Merchant not found"));
+            res.status(404).json(ApiResponse.error("Merchant not found"));
+            return
+
         }
-         res.status(200).json(ApiResponse.success(updatedMerchant));
+        res.status(200).json(ApiResponse.success(updatedMerchant));
     } catch (error) {
         next(error);
     }
@@ -105,9 +107,11 @@ const deleteZindigiMerchant = async (
         const merchantId = req.params.merchantId;
         const deletedMerchant = await zindigiService.deleteMerchant(merchantId);
         if (!deletedMerchant) {
-             res.status(404).json(ApiResponse.error("Merchant not found"));
+            res.status(404).json(ApiResponse.error("Merchant not found"));
+            return
+
         }
-         res
+        res
             .status(200)
             .json(ApiResponse.success({ message: "Merchant deleted successfully" }));
     } catch (error) {
@@ -115,4 +119,4 @@ const deleteZindigiMerchant = async (
     }
 };
 
-export default { walletToWalletPaymentController, debitInquiryController, transactionInquiryController, getZindigiMerchant, createZindigiMerchant, updateZindigiMerchant, deleteZindigiMerchant  }
+export default { walletToWalletPaymentController, debitInquiryController, transactionInquiryController, getZindigiMerchant, createZindigiMerchant, updateZindigiMerchant, deleteZindigiMerchant }
