@@ -9,6 +9,7 @@ const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: Nex
     // Check if the token exists
     if (!req.cookies.token) {
       res.status(401).send("You must be logged in");
+      return;
     }
 
     // Verify the JWT token
@@ -53,27 +54,32 @@ const restrictMultiple = (...role: string[]) => {
     next();
   };
 };
-
 const errorHandler: ErrorRequestHandler = (
   err: CustomError,
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  // Check if the error is operational (CustomError)
+  // Check if the response headers have already been sent
+  if (res.headersSent) {
+    return next(err); // Delegate to the default Express error handler
+  }
+
+  // Handle operational errors (CustomError)
   if (err.isOperational) {
-    console.log(err.statusCode);
+    console.log("Operational Error:", err.statusCode, err.message);
     res.status(err.statusCode).json({
       statusText: err.statusText,
       status: err.statusCode,
       message: err.message,
     });
-    return; // No need to return anything after sending the response
+    return;
   }
 
-  // For non-operational or unknown errors, send a generic message
-  console.error("An unexpected error occurred:", err); // Log the error for debugging
+  // Log non-operational or unknown errors for debugging
+  console.error("An unexpected error occurred:", err);
 
+  // Send a generic error response
   res.status(500).json({
     status: "error",
     message: "Something went wrong",
@@ -101,6 +107,7 @@ const authorize = (permissionName: string) => {
 
     if (!hasPermission) {
       res.status(403).json({ message: "Forbidden" });
+      return;
     }
 
     next();

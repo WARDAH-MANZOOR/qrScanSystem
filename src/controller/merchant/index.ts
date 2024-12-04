@@ -8,15 +8,16 @@ const updateMerchant = async (
   req: Request,
   res: Response,
   next: NextFunction
-):Promise<void> => {
+): Promise<void> => {
   try {
     const errors = validationResult(req);
-    if(!errors.isEmpty()) {
-       res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    if (!errors.isEmpty()) {
+      res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      return;
     }
     const payload = req.body;
     const result = await merchantService.updateMerchant(payload);
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error: any) {
     res.status(error.statusCode).send(ApiResponse.error(error.message))
   }
@@ -30,7 +31,7 @@ const getMerchants = async (
   try {
     const queryParameters = req.query;
     const result = await merchantService.getMerchants(queryParameters);
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -39,17 +40,18 @@ const getMerchants = async (
 const addMerchant = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const errors = validationResult(req);
-    if(!errors.isEmpty()) {
-       res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+    if (!errors.isEmpty()) {
+      res.status(404).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      return
     }
     const payload = req.body;
     const result = await merchantService.addMerchant(payload);
     if (result == "Settlment Duration Required") {
-      throw new CustomError(result,400)
+      throw new CustomError(result, 400)
     }
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error: any) {
-     res.status(error.statusCode).send(ApiResponse.error(error.message));
+    res.status(error.statusCode).send(ApiResponse.error(error.message));
   }
 };
 export default { updateMerchant, getMerchants, addMerchant };

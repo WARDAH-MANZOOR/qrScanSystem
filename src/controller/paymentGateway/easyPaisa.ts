@@ -15,12 +15,14 @@ const initiateEasyPaisa = async (
     let merchantId = req.params?.merchantId;
 
     if (!merchantId) {
-       res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
     }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
     }
 
     const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
@@ -28,10 +30,11 @@ const initiateEasyPaisa = async (
     if (channel == "DIRECT") {
       result = await easyPaisaService.initiateEasyPaisa(
         merchantId,
-        req.body 
+        req.body
       );
-      if(result.statusCode != "0000") {
-         res.status(result.statusCode).send(ApiResponse.error(result))
+      if (result.statusCode != "0000") {
+        res.status(result.statusCode).send(ApiResponse.error(result))
+        return;
       }
     }
     else {
@@ -44,10 +47,11 @@ const initiateEasyPaisa = async (
         type: req.body.type
       }, merchantId)
       if (result.statusCode != "0000") {
-         res.status(result.statusCode).send(ApiResponse.error(result));
+        res.status(result.statusCode).send(ApiResponse.error(result));
+        return;
       }
     }
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -62,12 +66,14 @@ const initiateEasyPaisaAsync = async (
     let merchantId = req.params?.merchantId;
 
     if (!merchantId) {
-       res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
     }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
     }
 
     const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
@@ -75,10 +81,11 @@ const initiateEasyPaisaAsync = async (
     if (channel == "DIRECT") {
       result = await easyPaisaService.initiateEasyPaisaAsync(
         merchantId,
-        req.body 
+        req.body
       );
-      if(result.statusCode != "pending") {
-         res.status(result.statusCode).send(ApiResponse.error(result))
+      if (result.statusCode != "pending") {
+        res.status(result.statusCode).send(ApiResponse.error(result))
+        return;
       }
     }
     else {
@@ -91,10 +98,11 @@ const initiateEasyPaisaAsync = async (
         type: req.body.type
       }, merchantId)
       if (result.statusCode != "pending") {
-         res.status(result.statusCode).send(ApiResponse.error(result));
+        res.status(result.statusCode).send(ApiResponse.error(result));
+        return;
       }
     }
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
   }
@@ -108,7 +116,7 @@ const getEasyPaisaMerchant = async (
   try {
     const merchantId = req.params.merchantId;
     const merchant = await easyPaisaService.getMerchant(merchantId);
-     res.status(200).json(ApiResponse.success(merchant));
+    res.status(200).json(ApiResponse.success(merchant));
   } catch (error) {
     next(error);
   }
@@ -122,10 +130,11 @@ const createEasyPaisaMerchant = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
     }
     const newMerchant = await easyPaisaService.createMerchant(req.body);
-     res.status(201).json(ApiResponse.success(newMerchant));
+    res.status(201).json(ApiResponse.success(newMerchant));
   } catch (error) {
     next(error);
   }
@@ -139,7 +148,8 @@ const updateEasyPaisaMerchant = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
     }
     const merchantId = req.params.merchantId;
     const updatedMerchant = await easyPaisaService.updateMerchant(
@@ -147,9 +157,10 @@ const updateEasyPaisaMerchant = async (
       req.body
     );
     if (!updatedMerchant) {
-       res.status(404).json(ApiResponse.error("Merchant not found"));
+      res.status(404).json(ApiResponse.error("Merchant not found"));
+      return;
     }
-     res.status(200).json(ApiResponse.success(updatedMerchant));
+    res.status(200).json(ApiResponse.success(updatedMerchant));
   } catch (error) {
     next(error);
   }
@@ -163,14 +174,16 @@ const deleteEasyPaisaMerchant = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
     }
     const merchantId = req.params.merchantId;
     const deletedMerchant = await easyPaisaService.deleteMerchant(merchantId);
     if (!deletedMerchant) {
-       res.status(404).json(ApiResponse.error("Merchant not found"));
+      res.status(404).json(ApiResponse.error("Merchant not found"));
+      return;
     }
-     res
+    res
       .status(200)
       .json(ApiResponse.success({ message: "Merchant deleted successfully" }));
   } catch (error) {
@@ -186,12 +199,14 @@ const statusInquiry = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
     }
     const merchantId = req.params.merchantId;
     const payload = req.query;
     if (!merchantId) {
-       res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
     }
     const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
     const method = (await easyPaisaService.getMerchantInquiryMethod(merchantId))?.easypaisaInquiryMethod;
@@ -212,7 +227,7 @@ const statusInquiry = async (
       result = await easyPaisaService.getTransaction(merchantId as string, req.query.orderId as string)
     }
     // const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (err) {
     next(err);
   }
@@ -238,7 +253,7 @@ const getDisbursement = async (req: Request, res: Response, next: NextFunction):
     const { query } = req;
     const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
     const merchant = await easyPaisaService.getDisbursement(id, query);
-     res.status(200).json(ApiResponse.success(merchant));
+    res.status(200).json(ApiResponse.success(merchant));
   } catch (error) {
     next(error);
   }
@@ -249,7 +264,7 @@ const disburseThroughBank = async (req: Request, res: Response, next: NextFuncti
     const merchantId = req.params?.merchantId;
     const payload: DisbursementPayload = req.body;
     const result = await easyPaisaService.disburseThroughBank(payload, merchantId);
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   }
   catch (err) {
     next(err);
@@ -264,7 +279,7 @@ const accountBalance = async (
   try {
     const merchantId = req.params?.merchantId;
     const result = await easyPaisaService.accountBalance(merchantId);
-     res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result));
   } catch (err) {
     next(err);
   }
@@ -279,7 +294,7 @@ const transactionInquiry = async (
   try {
     const merchantId = req.params?.merchantId;
     const payload = req?.body;
-    const result = await easyPaisaService.transactionInquiry(payload,merchantId);
+    const result = await easyPaisaService.transactionInquiry(payload, merchantId);
     res.status(200).json(ApiResponse.success(result));
   } catch (err) {
     next(err);

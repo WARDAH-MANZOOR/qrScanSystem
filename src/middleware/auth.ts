@@ -18,12 +18,16 @@ export const apiKeyAuth: RequestHandler = async (
   const { merchantId } = req.params;
 
   if (!merchantId) {
-     res.status(400).json({ error: "Merchant ID is required" });
+    res.status(400).json({ error: "Merchant ID is required" });
+    return
+
   }
 
   // Check if API key is missing
   if (!apiKey) {
-     res.status(401).json({ error: "API key is missing" });
+    res.status(401).json({ error: "API key is missing" });
+    return
+
   }
 
   try {
@@ -35,7 +39,9 @@ export const apiKeyAuth: RequestHandler = async (
     });
 
     if (!merchant) {
-       res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      return
+
     }
 
     const user = await prisma.user.findFirst({
@@ -45,18 +51,23 @@ export const apiKeyAuth: RequestHandler = async (
     });
 
     if (!user) {
-       res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      return
+
     }
 
     const hashedKey = user?.apiKey;
 
     if (!hashedKey) {
-       res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      return
+
     }
 
     const verify = verifyHashedKey(apiKey, hashedKey as string);
     if (!verify) {
-       res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      return
     }
     next();
   } catch (error) {

@@ -20,7 +20,8 @@ const getWalletBalanceController = async (
 ): Promise<void> => {
   const merchantId = (req.user as JwtPayload)?.id;
   if (!merchantId) {
-     res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
   try {
     const balance: any = await getWalletBalance(merchantId);
@@ -39,9 +40,10 @@ const disburseTransactions = async (
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // Return validation errors
-     res
+    res
       .status(400)
       .json(ApiResponse.error(errors.array()[0] as unknown as string));
+    return;
   }
 
   const merchantId = (req.user as JwtPayload)?.id;
@@ -49,7 +51,8 @@ const disburseTransactions = async (
   let rate = await getMerchantRate(prisma, merchantId);
   amount *= (1 - +rate);
   if (!merchantId) {
-     res.status(401).json({ message: 'Unauthorized' });
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
   }
 
   try {
@@ -96,9 +99,11 @@ const disburseTransactions = async (
   } catch (error) {
     if (error instanceof CustomError) {
       res.status(error.statusCode).json(ApiResponse.error(error.message));
+      return;
     } else {
       console.error("Error disbursing transactions:", error);
       res.status(500).json(ApiResponse.error("Internal Server Error"));
+      return;
     }
   }
 };

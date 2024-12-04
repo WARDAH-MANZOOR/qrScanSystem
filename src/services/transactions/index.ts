@@ -339,7 +339,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         "amount": payload.original_amount,
         "msisdn": msisdn,
         "time": payload.date_time,
-        "order_id": payload.transaction_id,
+        "order_id": payload.merchant_transaction_id,
         "status": "success",
         "type": type
       });
