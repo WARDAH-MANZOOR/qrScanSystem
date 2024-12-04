@@ -212,6 +212,7 @@ const statusInquiry = async (
     const method = (await easyPaisaService.getMerchantInquiryMethod(merchantId))?.easypaisaInquiryMethod;
     let result;
     console.log(req.ip)
+    console.log("channel: ",channel == "DIRECT")
     if (method == "WALLET") {
       if (channel == "DIRECT") {
         result = await easyPaisaService.easypaisainquiry(req.query, merchantId);

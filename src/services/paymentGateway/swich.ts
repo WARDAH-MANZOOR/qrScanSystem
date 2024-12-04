@@ -129,7 +129,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         false
       );
       return {
-        txnNo: saveTxn.transaction_id,
+        txnNo: saveTxn.merchant_transaction_id,
         txnDateTime: saveTxn.date_time,
         statusCode: res.data.code
       };
@@ -161,7 +161,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       return {
         message: err?.message || "An error occurred while initiating the transaction",
         statusCode: err?.statusCode || 500,
-        txnNo: saveTxn?.transaction_id
+        txnNo: saveTxn?.merchant_transaction_id
       }
     }
   }
@@ -292,7 +292,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
     });
 
     return {
-      txnNo: saveTxn.transaction_id,
+      txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
       statusCode: "pending",
     };
@@ -313,7 +313,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
     return {
       message: err?.message || "An error occurred while initiating the transaction",
       statusCode: err?.statusCode || 500,
-      txnNo: saveTxn?.transaction_id || null,
+      txnNo: saveTxn?.merchant_transaction_id || null,
     };
   }
 };
