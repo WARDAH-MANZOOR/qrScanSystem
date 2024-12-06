@@ -84,7 +84,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
     let data = {
-      "orderId": txn?.transaction_id,
+      "orderId": txn?.merchant_transaction_id,
       "transactionStatus": txn?.status,
       "transactionAmount": txn?.original_amount,
       "transactionDateTime": txn?.date_time,
@@ -533,7 +533,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   if (res.data.responseCode == "0000") {
     return {
       "orderId": res.data.orderId,
-      "transactionStatus": res.data.transactionStatus,
+      "transactionStatus": res.data.transactionStatus == "PAID" ? "Completed" : res.data.transactionStatus,
       "transactionAmount": res.data.transactionAmount,
       "transactionDateTime": res.data.transactionDateTime,
       "msisdn": res.data.msisdn,
@@ -831,10 +831,18 @@ const getDisbursement = async (merchantId: number, params: any) => {
         lt: todayEnd,
       };
     }
+
+    if (params.merchantTransactionId) {
+      customWhere["merchant_custom_order_id"] = {
+        contains: params.merchantTransactionId
+      }
+    }
+
     const disbursements = await prisma.disbursement
       .findMany({
         where: {
           ...customWhere,
+
         },
         orderBy: {
           disbursementDate: "desc",

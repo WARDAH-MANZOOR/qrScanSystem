@@ -32,7 +32,7 @@ const createTransaction = async (
  
 const getTransactions = async (req: Request, res: Response) => {
   try {
-    const { merchantId, transactionId, merchantName } = req.query;
+    const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
@@ -74,6 +74,10 @@ const getTransactions = async (req: Request, res: Response) => {
         path: ['msisdn'],
         equals: msisdn
       }
+    }
+
+    if (merchantTransactionId) {
+      customWhere["merchant_transaction_id"] = {contains: merchantTransactionId};
     }
 
     // Query based on provided parameters
