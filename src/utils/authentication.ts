@@ -1,4 +1,4 @@
-import { AUTH } from "constants/auth.js";
+import { AUTH } from "../constants/auth.js";
 import crypto, { CipherKey } from "crypto";
 
 const encryptionKey = Buffer.from(AUTH.ENCRYPTION_KEY!, "hex"); // 32 bytes key for AES-256
