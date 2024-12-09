@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
-import { swichService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { swichService } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const initiateSwichController = async (
   req: Request,

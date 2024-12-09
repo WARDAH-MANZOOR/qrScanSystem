@@ -1,13 +1,9 @@
 import { Request, Response, Router } from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import prisma from "../../prisma/client.js";
-import CustomError from "../../utils/custom_error.js";
-import { login, logout, signup } from "controller/authentication/index.js";
-import { validateLoginData } from "services/authentication/index.js";
-import { isLoggedIn, isAdmin } from "utils/middleware.js";
-import { populateEncryptedApiKeysForExistingUsers, populateEncryptedDecryptionKeysForExistingUsers } from "scripts/populateEncryptedApiKeys.js";
-import { authenticationController } from "controller/index.js";
+import { login, logout, signup } from "../../controller/authentication/index.js";
+import { validateLoginData } from "../../services/authentication/index.js";
+import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { populateEncryptedApiKeysForExistingUsers, populateEncryptedDecryptionKeysForExistingUsers } from "../../scripts/populateEncryptedApiKeys.js";
+import { authenticationController } from "../../controller/index.js";
 
 const router = Router();
 

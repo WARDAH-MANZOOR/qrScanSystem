@@ -2,15 +2,14 @@
 import { Request, Response, NextFunction } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import { jazzCashService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 import {
   getAllProfitsBalancesByMerchant,
-  getAllTransactionsOfMerchant,
   getProfitAndBalance,
 } from "@prisma/client/sql";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
-import { getDateRange } from "utils/date_method.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
+import { getDateRange } from "../../utils/date_method.js";
 import { parse } from "date-fns";
  
 import analytics from "./analytics.js";

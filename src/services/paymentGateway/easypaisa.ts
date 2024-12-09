@@ -1,17 +1,17 @@
 import dotenv from "dotenv";
 import axios from "axios";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
-import type { IEasyPaisaPayload } from "types/merchant.d.ts";
-import { transactionService } from "services/index.js";
-import { PROVIDERS } from "constants/providers.js";
-import RSAEncryption from "utils/RSAEncryption.js";
-import { merchantService } from "services/index.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
+import type { IEasyPaisaPayload } from "../../types/merchant.d.ts";
+import { transactionService } from "../../services/index.js";
+import { PROVIDERS } from "../../constants/providers.js";
+import RSAEncryption from "../../utils/RSAEncryption.js";
+import { merchantService } from "../../services/index.js";
 import type {
   DisbursementPayload,
   IEasyLoginPayload,
-} from "types/providers.js";
-import { IDisbursement } from "types/merchant.js";
+} from "../../types/providers.js";
+import { IDisbursement } from "../../types/merchant.js";
 
 import {
   calculateDisbursement,
@@ -19,13 +19,10 @@ import {
   getMerchantRate,
   updateTransactions,
 } from "./disbursement.js";
-import { easyPaisaDisburse } from "services/index.js";
+import { easyPaisaDisburse } from "../../services/index.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
-import ApiResponse from "utils/ApiResponse.js";
-import bankDetails from "data/banks.json" assert { type: 'json' };
+import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parse, parseISO } from "date-fns";
-import { decrypt, encrypt } from "utils/enc_dec.js";
-import { Prisma } from "@prisma/client";
 import { toZonedTime } from "date-fns-tz";
 
 dotenv.config();
@@ -201,22 +198,24 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         statusCode: response?.data.responseCode
       };
     } else {
+      console.log("Error Payload: ",response.data)
       console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
           status: "failed",
-          response_message: response.data.responseDesc,
+          response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond": response.data?.responseCode,
         },
         findMerchant.commissions[0].settlementDuration
       );
 
       throw new CustomError(
-        "An error occurred while initiating the transaction",
+        response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond": response.data?.responseCode,
         500
       );
     }
   } catch (error: any) {
+    console.log("Error: ",error)
     return {
       message: error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,

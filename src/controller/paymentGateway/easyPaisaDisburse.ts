@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { easyPaisaDisburse } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { easyPaisaDisburse } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const addDisburseAccount = async (
   req: Request,

@@ -1,10 +1,10 @@
 import {
   disburseTransactions,
   getWalletBalanceController,
-} from "controller/paymentGateway/disbursement.js";
-import { easyPaisaController } from "controller/index.js";
+} from "../../controller/paymentGateway/disbursement.js";
+import { easyPaisaController } from "../../controller/index.js";
 import { Router } from "express";
-import { isLoggedIn } from "utils/middleware.js";
+import { isLoggedIn } from "../../utils/middleware.js";
 
 const router = Router();
 

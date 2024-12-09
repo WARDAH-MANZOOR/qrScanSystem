@@ -1,6 +1,3 @@
-import router from "routes/transaction/admin_only.js";
-
-
 // /**
 //  * @swagger
 //  * /admin_api/update-merchant/:
@@ -56,4 +53,3 @@ import router from "routes/transaction/admin_only.js";
 //  *         description: Internal server error
 //  */
 // router.put("/update-merchant",isLoggedIn,isAdmin,updateMerchant);
-export default router;

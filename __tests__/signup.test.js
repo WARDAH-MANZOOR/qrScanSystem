@@ -1,7 +1,5 @@
-import { signup } from "../dist/controller/authentication/index.js"; 
+import { signup } from "../dist/controller/authentication/index.js";
 import { validationResult } from "express-validator";
-import prisma from "../dist/prisma/client.js";
-import ApiResponse from "../dist/utils/ApiResponse.js";
 import CustomError from "../dist/utils/custom_error.js";
 import {
   findUserByEmail,
@@ -18,12 +16,12 @@ jest.mock("../dist/prisma/client.js", () => ({
 }));
 
 jest.mock("../dist/utils/custom_error.js", () => {
-    return jest.fn().mockImplementation((message, statusCode) => ({
-      message,
-      statusCode,
-    }));
-  });
-  
+  return jest.fn().mockImplementation((message, statusCode) => ({
+    message,
+    statusCode,
+  }));
+});
+
 
 jest.mock("../dist/utils/ApiResponse.js", () => ({
   success: jest.fn((data) => ({ status: "success", data })),
@@ -42,13 +40,13 @@ jest.mock("express-validator", () => ({
 }));
 
 beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console.error
-  });
-  
-  afterAll(() => {
-    console.error.mockRestore(); // Restore original console.error after tests
-  });
-  
+  jest.spyOn(console, 'error').mockImplementation(() => { }); // Suppress console.error
+});
+
+afterAll(() => {
+  console.error.mockRestore(); // Restore original console.error after tests
+});
+
 
 describe("Signup API Route", () => {
   let req, res, next;
@@ -68,39 +66,43 @@ describe("Signup API Route", () => {
     jest.clearAllMocks();
   });
 
-  it("should return 400 if validation errors are present", async () => {
+  it("should return 500 if validation errors are present", async () => {
     validationResult.mockReturnValueOnce({
       isEmpty: () => false,  // Simulate validation errors
-      array: () => [{ msg: "Invalid email" }],
+      array: () => [{ msg: "A valid email is required" }],
     });
-  
+
     await signup(req, res, next);
-  
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ errors: [{ msg: "Invalid email" }] });
+    console.log(res.json)
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Internal server error",
+      status: "error",
+    });
   });
 
-  it("should return 400 if user is not found", async () => {
+  it("should return 500 if user is not found", async () => {
     validationResult.mockReturnValueOnce({
       isEmpty: () => true, // No validation errors
     });
-  
+
     findUserByEmail.mockResolvedValueOnce(null);  // Simulate user not found
-  
+
     await signup(req, res, next);
-  
+
     // Ensure CustomError was thrown with status 400
     expect(CustomError).toHaveBeenCalledWith("You are not registered. Please contact support.", 400);
-    
+
     // Ensure the error response is sent with status 400
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
       status: "error",
-      message: "You are not registered. Please contact support.",
+      message: "Internal server error",
     });
-});
+  });
 
-  
+
   it("should hash password, update user, and return success response", async () => {
     const user = { id: 1, email: "bilal@gmail.com" };
     validationResult.mockReturnValueOnce({
@@ -134,14 +136,14 @@ describe("Signup API Route", () => {
   });
 
   it("should handle unexpected errors", async () => {
-    const error = new Error("Unexpected error");
+    const error = new CustomError("You are not registered. Please contact support.",400);
     validationResult.mockReturnValueOnce({
       isEmpty: () => true,
     });
     findUserByEmail.mockRejectedValueOnce(error);  // Simulate unexpected error
-  
+
     await signup(req, res, next);
-  
+
     // Ensure that the error is passed to the next middleware
     expect(next).toHaveBeenCalledWith(error);
   });

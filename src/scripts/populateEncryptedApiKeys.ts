@@ -5,7 +5,6 @@ import {
   hashApiKey,
 } from "../utils/authentication.js";
 import crypto from "crypto"
-import { encrypt } from "utils/enc_dec.js";
 
 const prisma = new PrismaClient();
 export const populateEncryptedApiKeysForExistingUsers = async () => {

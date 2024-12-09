@@ -1,9 +1,9 @@
 import { Request, Response, Router } from "express";
 import prisma from "../../prisma/client.js";
 import { JwtPayload } from "jsonwebtoken";
-import { isLoggedIn } from "utils/middleware.js";
+import { isLoggedIn } from "../../utils/middleware.js";
 import { Decimal } from "@prisma/client/runtime/library";
-import { createTransactionRequest, validateTransaction } from "controller/transactions/create.js";
+import { createTransactionRequest, validateTransaction } from "../../controller/transactions/create.js";
 
 interface TransactionRequest {
   id: string;

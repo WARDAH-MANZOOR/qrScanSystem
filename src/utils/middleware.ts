@@ -2,7 +2,7 @@ import { Request, Response, NextFunction, RequestHandler, ErrorRequestHandler } 
 import jwt, { JwtPayload } from "jsonwebtoken";
 import CustomError from "./custom_error.js";
 import prisma from "../prisma/client.js";
-import ApiResponse from "utils/ApiResponse.js";
+import ApiResponse from "../utils/ApiResponse.js";
 
 const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

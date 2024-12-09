@@ -1,6 +1,6 @@
-import { zindigiController } from "controller/index.js";
+import { zindigiController } from "../../controller/index.js";
 import { Router } from "express";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
+import { isAdmin, isLoggedIn } from "../../utils/middleware.js";
 
 export default function (router: Router) {
     router.post("/initiate-zi", zindigiController.walletToWalletPaymentController)

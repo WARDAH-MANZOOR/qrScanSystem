@@ -2,16 +2,16 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import prisma from "prisma/client.js";
+import prisma from "../../prisma/client.js";
 import {
   calculateDisbursement,
   getEligibleTransactions,
   getMerchantRate,
   getWalletBalance,
   updateTransactions,
-} from "services/paymentGateway/disbursement.js";
-import ApiResponse from "utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+} from "../../services/paymentGateway/disbursement.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 
 const getWalletBalanceController = async (
   req: Request,

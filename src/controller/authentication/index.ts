@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { validationResult } from "express-validator";
@@ -13,9 +13,9 @@ import {
   hashPassword,
   setTokenCookie,
   updateUserPassword,
-} from "services/authentication/index.js";
-import ApiResponse from "utils/ApiResponse.js";
-import { authenticationService } from "services/index.js";
+} from "../../services/authentication/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import { authenticationService } from "../../services/index.js";
 
 const logout = async (req: Request, res: Response) => {
   res.cookie("token", "", {

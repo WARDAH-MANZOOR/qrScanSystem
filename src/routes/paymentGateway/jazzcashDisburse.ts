@@ -1,6 +1,6 @@
-import jazzcashDisburse from "controller/paymentGateway/jazzcashDisburse.js";
+import jazzcashDisburse from "../../controller/paymentGateway/jazzcashDisburse.js";
 import { Router } from "express";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
+import { isAdmin, isLoggedIn } from "../../utils/middleware.js";
 
 export default function (router: Router) {
     router.post(

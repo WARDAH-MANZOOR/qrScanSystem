@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
-import { paymentRequestController } from "controller/index.js";
+import { isAdmin, isLoggedIn } from "../../utils/middleware.js";
+import { paymentRequestController } from "../../controller/index.js";
 
 const router = Router();
 

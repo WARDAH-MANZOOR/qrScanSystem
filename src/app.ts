@@ -20,10 +20,8 @@ import userRouter from "./routes/user/index.js"
 import authRouter from "./routes/authentication/index.js"
 import createTransactionRouter from "./routes/transaction/create.js"
 import completeTransactionRouter from "./routes/transaction/complete.js"
-import adminTransactionRouter from "./routes/user/admin_only.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
-import { callbackDecrypt, callbackEncrypt, decrypt, decryptData } from 'utils/enc_dec.js';
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 
@@ -55,7 +53,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
-app.use('/admin_api', adminTransactionRouter);
 app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
 

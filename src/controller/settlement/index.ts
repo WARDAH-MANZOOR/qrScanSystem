@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { getSettlement } from "services/settlement/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { getSettlement } from "../../services/settlement/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const getSettlements = async (req: Request, res: Response, next: NextFunction) => {
     try {

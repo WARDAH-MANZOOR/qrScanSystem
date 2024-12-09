@@ -1,9 +1,7 @@
 import { getTransactionsDaywise } from "@prisma/client/sql";
 import { parseISO, subDays } from "date-fns";
-import { Request, Response } from "express";
-import { JwtPayload } from "jsonwebtoken";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 
 const filterTransactions = async (params: any, user: any) => {
   const { transactionId, date, startDate, endDate, status, groupByDay } =

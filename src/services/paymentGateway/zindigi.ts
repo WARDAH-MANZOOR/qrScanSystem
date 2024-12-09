@@ -1,9 +1,9 @@
 import axios from "axios";
-import prisma from "prisma/client.js";
-import { transactionService } from "services/index.js";
-import { IZindigiPayload } from "types/merchant.js";
-import CustomError from "utils/custom_error.js";
-import { decrypt, encrypt } from "utils/enc_dec.js";
+import prisma from "../../prisma/client.js";
+import { transactionService } from "../../services/index.js";
+import { IZindigiPayload } from "../../types/merchant.js";
+import CustomError from "../../utils/custom_error.js";
+import { decrypt, encrypt } from "../../utils/enc_dec.js";
 
 async function fetchExistingClientSecret() {
     const firstApiUrl = 'https://z-sandbox.jsbl.com/zconnect/client/oauth-blb'; // Replace with your actual API endpoint

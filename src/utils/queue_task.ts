@@ -1,7 +1,7 @@
 import { MerchantFinancialTerms, Prisma, PrismaClient, Transaction } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import { toZonedTime } from "date-fns-tz";
-import prisma from "prisma/client.js";
+import prisma from "../prisma/client.js";
 
 const task = async () => {
   console.log("Cron running");

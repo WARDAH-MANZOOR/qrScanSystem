@@ -1,9 +1,9 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import CustomError from "../../utils/custom_error.js";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client/extension";
-import { transactionService } from "services/index.js";
+import { transactionService } from "../../services/index.js";
 import { toZonedTime } from "date-fns-tz";
 
 async function getMerchantCommission(merchantId: number, prisma: PrismaClient): Promise<number> {

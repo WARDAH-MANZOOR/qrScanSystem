@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import jazzcashDisburse from "services/paymentGateway/jazzcashDisburse.js";
-import ApiResponse from "utils/ApiResponse.js";
+import jazzcashDisburse from "../../services/paymentGateway/jazzcashDisburse.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const addDisburseAccount = async (
     req: Request,

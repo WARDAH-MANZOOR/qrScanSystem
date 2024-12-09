@@ -4,7 +4,8 @@ const validateEasypaisaTxn = [
     param('merchantId').isString().withMessage('Merchant ID must be a string'),
     body('amount').isString().withMessage('Amount must be a string'),
     body('phone').isString().withMessage('Phone must be a string'),
-    body('email').isEmail().withMessage('Must be a valid email')
+    body('email').isEmail().withMessage('Must be a valid email'),
+    body('type').equals("wallet").withMessage("Must be wallet type")
 ]
 
 const validateCreateMerchant = [

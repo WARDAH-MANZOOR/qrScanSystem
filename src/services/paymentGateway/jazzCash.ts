@@ -1,12 +1,12 @@
 import CustomError from "../../utils/custom_error.js";
 import crypto from "crypto";
 import axios from "axios";
-import { easyPaisaDisburse, merchantService, transactionService } from "services/index.js";
-import { callbackDecrypt, decrypt, encrypt } from "utils/enc_dec.js";
-import prisma from "prisma/client.js";
-import type { IjazzCashConfigParams } from "types/merchant.js";
-import { addWeekdays } from "utils/date_method.js";
-import { PROVIDERS } from "constants/providers.js";
+import { easyPaisaDisburse, merchantService, transactionService } from "../../services/index.js";
+import { callbackDecrypt, decrypt, encrypt } from "../../utils/enc_dec.js";
+import prisma from "../../prisma/client.js";
+import type { IjazzCashConfigParams } from "../../types/merchant.js";
+import { addWeekdays } from "../../utils/date_method.js";
+import { PROVIDERS } from "../../constants/providers.js";
 import { JsonObject } from "@prisma/client/runtime/library";
 import { format, toZonedTime } from 'date-fns-tz';
 

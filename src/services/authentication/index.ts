@@ -1,12 +1,11 @@
-import prisma from "prisma/client.js";
+import prisma from "../../prisma/client.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Response } from "express";
 import { body } from "express-validator";
-import CustomError from "utils/custom_error.js";
-import { generateApiKey, hashApiKey } from "utils/authentication.js";
+import CustomError from "../../utils/custom_error.js";
+import { generateApiKey, hashApiKey } from "../../utils/authentication.js";
 import crypto from "crypto"
-import { decrypt, encrypt } from "utils/enc_dec.js";
 
 const getUserByEmail = async (email: string) => {
   return prisma.user.findUnique({

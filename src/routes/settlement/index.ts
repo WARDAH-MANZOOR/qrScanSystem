@@ -1,6 +1,6 @@
-import { getSettlements } from "controller/settlement/index.js";
+import { getSettlements } from "../../controller/settlement/index.js";
 import { Router } from "express";
-import { isLoggedIn } from "utils/middleware.js";
+import { isLoggedIn } from "../../utils/middleware.js";
 
 const router = Router();
 

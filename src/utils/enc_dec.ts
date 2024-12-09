@@ -1,6 +1,6 @@
 import crypto, { CipherKey } from "crypto";
 import dotenv from "dotenv";
-import { authenticationService } from "services/index.js";
+import { authenticationService } from "../services/index.js";
 dotenv.config();
 
 // Encryption algorithm and key

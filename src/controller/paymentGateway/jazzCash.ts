@@ -2,9 +2,8 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction } from "services/paymentGateway/index.js";
-import ApiResponse from "utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction } from "../../services/paymentGateway/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const initiateJazzCash = async (
   req: Request,

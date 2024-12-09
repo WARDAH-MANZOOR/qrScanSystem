@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
-import { easyPaisaDisburse } from "controller/index.js";
+import { isAdmin, isLoggedIn } from "../../utils/middleware.js";
+import { easyPaisaDisburse } from "../../controller/index.js";
 
 export default function (router: Router) {
   router.post(

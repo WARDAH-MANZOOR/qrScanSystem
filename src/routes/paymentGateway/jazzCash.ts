@@ -1,14 +1,14 @@
 import { Router } from "express";
-import { jazzCashController } from "controller/index.js";
-import { isLoggedIn, isAdmin } from "utils/middleware.js";
+import { jazzCashController } from "../../controller/index.js";
+import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
 import {
   validateCreateJazzcashMerchant,
   validateDeleteJazzcashMerchant,
   validateGetJazzcashMerchant,
   validateJazzcashRequest,
   validateUpdateJazzcashMerchant,
-} from "validators/paymentGateway/jazzCash.js";
-import { apiKeyAuth } from "middleware/auth.js";
+} from "../../validators/paymentGateway/jazzCash.js";
+import { apiKeyAuth } from "../../middleware/auth.js";
 
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
