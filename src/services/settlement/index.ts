@@ -1,7 +1,7 @@
 import { parse } from "date-fns";
 import { JwtPayload } from "jsonwebtoken";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 
 const getSettlement = async (params: any, user: JwtPayload) => {
   const merchantId = user?.merchant_id || params.merchant_id;

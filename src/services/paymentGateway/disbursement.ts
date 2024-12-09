@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 
 async function getMerchantRate(prsma:Prisma.TransactionClient,merchantId: number): Promise<{
     disbursementRate: Decimal;

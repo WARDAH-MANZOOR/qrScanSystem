@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { isLoggedIn, isAdmin } from "utils/middleware.js";
-import { easyPaisaController } from "controller/index.js";
-import { apiKeyAuth } from "middleware/auth.js";
+import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { easyPaisaController } from "../../controller/index.js";
+import { apiKeyAuth } from "../../middleware/auth.js";
 import {
   validateEasypaisaTxn,
   validateCreateMerchant,
   validateUpdateMerchant,
   validateInquiry,
-} from "validators/paymentGateway/easypaisa.js";
+} from "../../validators/paymentGateway/easypaisa.js";
 
 export default function (router: Router) {
   router.post(

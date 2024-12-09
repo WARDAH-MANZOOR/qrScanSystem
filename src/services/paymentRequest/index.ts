@@ -1,11 +1,11 @@
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 import {
   jazzCashService,
   easyPaisaService,
   swichService,
   transactionService,
-} from "services/index.js";
+} from "../../services/index.js";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {

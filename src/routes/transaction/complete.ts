@@ -1,8 +1,8 @@
 import { Request, Response, Router } from "express";
 import prisma from "../../prisma/client.js";
-import { isLoggedIn } from "utils/middleware.js";
+import { isLoggedIn } from "../../utils/middleware.js";
 import { JwtPayload } from "jsonwebtoken";
-import { addWeekdays } from "utils/date_method.js";
+import { addWeekdays } from "../../utils/date_method.js";
 
 interface Provider {
     name: string;

@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { dashboardController } from "controller/index.js";
-import { isLoggedIn, isAdmin } from "utils/middleware.js";
+import { dashboardController } from "../../controller/index.js";
+import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
 import {
   adminDashboardValidation,
   merchantDashboardValidation,
-} from "validators/dashboard/index.js";
+} from "../../validators/dashboard/index.js";
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { transactionService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { transactionService } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const filterTransactions = async (req: Request, res: Response, next: NextFunction) => {
   try {

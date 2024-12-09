@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { paymentRequestService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+import { paymentRequestService } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 
 const createPaymentRequest = async (
   req: Request,

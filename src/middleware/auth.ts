@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import {
-  decryptApiKey,
-  encryptApiKey,
   verifyHashedKey,
 } from "../utils/authentication.js";
-import prisma from "prisma/client.js";
+import prisma from "../prisma/client.js";
 import dotenv from "dotenv";
 dotenv.config();
 

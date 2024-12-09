@@ -1,13 +1,12 @@
-import CustomError from "utils/custom_error.js";
+import CustomError from "../../utils/custom_error.js";
 import axios from "axios";
 import dotenv from "dotenv";
-import { ISwichPayload } from "types/merchant.js";
-import prisma from "prisma/client.js";
-import { decrypt, encrypt } from "utils/enc_dec.js";
-import { transactionService } from "services/index.js";
+import { ISwichPayload } from "../../types/merchant.js";
+import prisma from "../../prisma/client.js";
+import { decrypt, encrypt } from "../../utils/enc_dec.js";
+import { transactionService } from "../../services/index.js";
 import qs from "qs";
-import { PROVIDERS } from "constants/providers.js";
-import { Prisma } from "@prisma/client";
+import { PROVIDERS } from "../../constants/providers.js";
 dotenv.config();
 
 const getAuthToken = async (id: number) => {

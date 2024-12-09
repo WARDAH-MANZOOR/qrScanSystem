@@ -1,11 +1,3 @@
-import { getAllTransactions } from "@prisma/client/sql";
-// import { getTransactions,getProAndBal } from "controller/transactions/admin_only.js";
-import { Request, Response, Router } from "express";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
-
-let router = Router();
 
 /**
 * @swagger
@@ -397,4 +389,3 @@ let router = Router();
 //  */
 
 // router.get("/profit-balance/:merchantId", isLoggedIn, isAdmin, getProfitAndBalanceByMerchant)
-export default router;

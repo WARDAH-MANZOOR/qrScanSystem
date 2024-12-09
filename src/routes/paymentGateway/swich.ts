@@ -1,7 +1,7 @@
-import { swichController } from "controller/index.js";
+import { swichController } from "../../controller/index.js";
 import { Router } from "express";
-import { isAdmin, isLoggedIn } from "utils/middleware.js";
-import { createSwichMerchantValidation, deleteSwichMerchantValidation, initiateSwichValidation, swichTxInquiryValidation, updateSwichMerchantValidation } from "validators/paymentGateway/swich.js";
+import { isAdmin, isLoggedIn } from "../../utils/middleware.js";
+import { createSwichMerchantValidation, deleteSwichMerchantValidation, initiateSwichValidation, swichTxInquiryValidation, updateSwichMerchantValidation } from "../../validators/paymentGateway/swich.js";
 
 export default function (router: Router) {
   router.post(

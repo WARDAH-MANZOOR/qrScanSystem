@@ -1,10 +1,9 @@
-import { error } from "console";
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import { easyPaisaService, swichService, transactionService } from "services/index.js";
-import type { DisbursementPayload } from "types/providers.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { easyPaisaService, swichService, transactionService } from "../../services/index.js";
+import type { DisbursementPayload } from "../../types/providers.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const initiateEasyPaisa = async (
   req: Request,
@@ -33,7 +32,7 @@ const initiateEasyPaisa = async (
         req.body
       );
       if (result.statusCode != "0000") {
-        res.status(result.statusCode).send(ApiResponse.error(result))
+        res.status(201).send(ApiResponse.error(result,201))
         return;
       }
     }
@@ -47,7 +46,7 @@ const initiateEasyPaisa = async (
         type: req.body.type
       }, merchantId)
       if (result.statusCode != "0000") {
-        res.status(result.statusCode).send(ApiResponse.error(result));
+        res.status(201).send(ApiResponse.error(result,201));
         return;
       }
     }

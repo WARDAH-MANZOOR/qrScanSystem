@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { zindigiService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { zindigiService } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const walletToWalletPaymentController = async (req: Request, res: Response, next: NextFunction) => {
     try {

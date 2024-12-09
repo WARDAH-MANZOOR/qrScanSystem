@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import prisma from "prisma/client.js";
-import { transactionService } from "services/index.js";
-import { createTransaction } from "services/transactions/create.js";
-import ApiResponse from "utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+import { transactionService } from "../../services/index.js";
+import { createTransaction } from "../../services/transactions/create.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 
 export const validateTransaction = [
     // Validate 'id' field

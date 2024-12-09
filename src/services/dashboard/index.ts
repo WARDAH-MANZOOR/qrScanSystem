@@ -1,7 +1,7 @@
 import { parseISO, subDays, parse } from "date-fns";
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
-import { getWalletBalance } from "services/paymentGateway/disbursement.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
+import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {

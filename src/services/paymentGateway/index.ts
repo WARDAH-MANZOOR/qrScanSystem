@@ -1,10 +1,10 @@
-import { easyPaisaDisburse, merchantService, transactionService } from "services/index.js";
-import CustomError from "utils/custom_error.js";
-import { decryptData, encryptData } from "utils/enc_dec.js";
+import { easyPaisaDisburse, merchantService, transactionService } from "../../services/index.js";
+import CustomError from "../../utils/custom_error.js";
+import { decryptData, encryptData } from "../../utils/enc_dec.js";
 import { calculateDisbursement, getEligibleTransactions, getMerchantRate, updateTransactions } from "./disbursement.js";
-import prisma from "prisma/client.js";
+import prisma from "../../prisma/client.js";
 import { Decimal } from "@prisma/client/runtime/library";
-import { PROVIDERS } from "constants/providers.js";
+import { PROVIDERS } from "../../constants/providers.js";
 import jazzcashDisburse from "./jazzcashDisburse.js";
 import { toZonedTime } from "date-fns-tz";
 

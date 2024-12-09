@@ -1,7 +1,7 @@
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
-import type { Merchant } from "types/merchant.js";
-import { hashPassword } from "services/authentication/index.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
+import type { Merchant } from "../../types/merchant.js";
+import { hashPassword } from "../../services/authentication/index.js";
 
 
 const updateMerchant = async (payload: Merchant) => {

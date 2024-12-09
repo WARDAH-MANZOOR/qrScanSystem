@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { merchantController } from "controller/index.js";
-import { isLoggedIn, isAdmin } from "utils/middleware.js";
-import { addMerchantValidation, updateMerchantValidation } from "validators/merchant/index.js";
+import { merchantController } from "../../controller/index.js";
+import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { addMerchantValidation, updateMerchantValidation } from "../../validators/merchant/index.js";
 
 
 const router = Router();

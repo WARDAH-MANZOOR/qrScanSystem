@@ -10,7 +10,7 @@
     "build": "npm run migrate && npm run generate && npx tsc",
     "migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
     "generate": "prisma generate --sql --schema src/prisma/schema.prisma",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "jest"
   },
   "dependencies": {
     "@getvim/execute": "^1.0.0",
@@ -40,6 +40,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.0",
     "@faker-js/faker": "^9.2.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",
@@ -53,6 +54,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.7",
     "@types/xlsx": "^0.0.36",
+    "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "nodemon": "^3.1.7",
     "prisma": "^6.0.0",
@@ -62,8 +64,5 @@
   },
   "engines": {
     "node": "20.x"
-  },
-  "jest": {
-    "transform": {}
   }
 }
