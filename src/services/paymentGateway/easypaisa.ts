@@ -204,13 +204,13 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         saveTxn.transaction_id,
         {
           status: "failed",
-          response_message: response.data.responseDesc,
+          response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond": response.data?.responseCode,
         },
         findMerchant.commissions[0].settlementDuration
       );
 
       throw new CustomError(
-        "An error occurred while initiating the transaction",
+        response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond": response.data?.responseCode,
         500
       );
     }
