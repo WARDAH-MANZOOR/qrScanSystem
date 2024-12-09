@@ -531,7 +531,7 @@ const initiateJazzCashPayment = async (
       } else {
         throw new CustomError(
           `The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`,
-          400
+          500
         );
       }
     }
