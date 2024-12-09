@@ -431,7 +431,7 @@ const initiateJazzCashPayment = async (
       if (r.pp_ResponseCode !== "000") {
         status = "failed";
       }
-      r.pp_ResponseMessage = r.pp_ResponseMessage 
+      r.pp_ResponseMessage = r.pp_ResponseMessage == "Transaction is Pending" ? "User did not respond" : r.pp_ResponseMessage
       // Update Transaction after receiving response
       await prisma.$transaction(async (tx) => {
         if (
