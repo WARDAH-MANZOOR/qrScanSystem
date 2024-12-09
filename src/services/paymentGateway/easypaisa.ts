@@ -64,7 +64,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       }
     })
     if (!id) {
-      throw new CustomError("Merchant not found", 400);
+      throw new CustomError("Merchant Not Found",400)
     }
     const txn = await prisma.transaction.findFirst({
       where: {
@@ -77,7 +77,10 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       },
     })
     if (!txn) {
-      throw new CustomError("Transaction not found", 400);
+      return {
+        message: "Transaction not found",
+        statusCode: 500
+      }
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
     let data = {
@@ -87,7 +90,8 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       "transactionDateTime": txn?.date_time,
       "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
       "responseDesc": txn?.response_message,
-      "responseMode": "MA"
+      "responseMode": "MA",
+      "statusCode": 201
     }
     return data;
   }
@@ -540,11 +544,10 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
       "responseMode": "MA"
     }
   } else {
-    console.log(res.data.responseDesc);
-    throw new CustomError(
-      res?.data?.responseDesc || "Internal Server Error",
-      500
-    );
+    return {
+      message: "Transaction Not Found",
+      statusCode: 500
+    }
   }
 };
 

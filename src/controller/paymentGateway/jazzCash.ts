@@ -27,7 +27,7 @@ const initiateJazzCash = async (
 
     const result: any = await jazzCashService.initiateJazzCashPayment(paymentData, merchantId);
     if (result.statusCode != "000") {
-      res.status(201).send(ApiResponse.error(result,201));
+      res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result,result.statusCode != 500 ? result.statusCode : 201));
       return;
     }
     res.status(200).json(ApiResponse.success(result));
@@ -162,7 +162,7 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
 
     }
     const result = await jazzCashService.statusInquiry(payload, merchantId);
-    res.status(200).json(ApiResponse.success(result));
+    res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
   }
   catch (err) {
     next(err);

@@ -227,7 +227,7 @@ const statusInquiry = async (
       result = await easyPaisaService.getTransaction(merchantId as string, req.query.orderId as string)
     }
     // const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
-    res.status(200).json(ApiResponse.success(result));
+    res.status(result?.statusCode ? 201 : 200).json(ApiResponse.success(result));
   } catch (err) {
     next(err);
   }

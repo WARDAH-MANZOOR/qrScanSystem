@@ -532,7 +532,10 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
       });
     console.log(txnInquiry)
     if (!txnInquiry.transaction) {
-      throw new CustomError("Transaction not found", 400);
+      return {
+        message: "Transaction Not Found",
+        statusCode: 500
+      }
     }
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
     return {
@@ -542,7 +545,8 @@ const swichTxInquiry = async (transactionId: string, merchantId: string) => {
       "transactionDateTime": txnInquiry.transaction?.createdDateTime,
       "msisdn": txnInquiry.transaction?.msisdn,
       "responseDesc": txnInquiry.transaction?.transactionStatus,
-      "responseMode": "MA"
+      "responseMode": "MA",
+      statusCode: 201
     };
   } catch (err: any) {
     throw new CustomError(
