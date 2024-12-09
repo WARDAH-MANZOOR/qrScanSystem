@@ -533,7 +533,7 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
       continue;
     }
     const payload = encryptData(
-      { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
+      { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() },
       findDisbureMerch.key, findDisbureMerch.initialVector
     );
 
