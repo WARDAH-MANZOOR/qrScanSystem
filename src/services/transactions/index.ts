@@ -269,6 +269,7 @@ const createTxn = async (obj: any) => {
   // }
   data["transaction_id"] = obj.transaction_id;
   return await prisma.$transaction(async (tx) => {
+    try {
     return await tx.transaction.create({
       data: {
         // order_id: obj.order_id,
@@ -283,6 +284,10 @@ const createTxn = async (obj: any) => {
         providerDetails: obj.providerDetails,
       },
     });
+  }
+  catch(err) {
+    throw new CustomError("Transaction not Created",400)
+  }
   });
 };
 

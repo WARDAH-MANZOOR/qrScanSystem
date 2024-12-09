@@ -27,7 +27,7 @@ const initiateJazzCash = async (
 
     const result: any = await jazzCashService.initiateJazzCashPayment(paymentData, merchantId);
     if (result.statusCode != "000") {
-      res.status(result?.statusCode).send(ApiResponse.error(result));
+      res.status(201).send(ApiResponse.error(result,201));
       return;
     }
     res.status(200).json(ApiResponse.success(result));
