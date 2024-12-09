@@ -532,11 +532,11 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
       results.push({id, status: "Transaction not found"});
       continue;
     }
+    console.log("Inquiry Payload: ",{ originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() })
     const payload = encryptData(
       { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() },
       findDisbureMerch.key, findDisbureMerch.initialVector
     );
-
     const requestData = {
       data: payload
     };
