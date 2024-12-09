@@ -431,7 +431,7 @@ const initiateJazzCashPayment = async (
       if (r.pp_ResponseCode !== "000") {
         status = "failed";
       }
-
+      r.pp_ResponseMessage = r.pp_ResponseMessage 
       // Update Transaction after receiving response
       await prisma.$transaction(async (tx) => {
         if (
@@ -1063,7 +1063,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
   const txn = await prisma.transaction.findFirst({
     where: {
-      // merchant_transaction_id: payload.transactionId,
+      merchant_transaction_id: payload.transactionId,
       merchant_id: merchant?.merchant_id,
       providerDetails: {
         path: ['name'],
