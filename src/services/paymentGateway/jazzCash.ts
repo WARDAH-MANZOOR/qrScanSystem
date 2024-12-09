@@ -270,24 +270,29 @@ const initiateJazzCashPayment = async (
         // else {
         const settled_amount = parseFloat(paymentData.amount) * ((1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax)) as unknown as number)
         // Create Transaction within the transaction
-        await tx.transaction.create({
-          data: {
-            ...data,
-            date_time: new Date(),
-            original_amount: paymentData.amount,
-            type: paymentData.type.toLowerCase(),
-            status: "pending",
-            merchant_id: merchant.merchant_id,
-            settled_amount,
-            providerDetails: {
-              id: JAZZ_CASH_MERCHANT_ID,
-              name: PROVIDERS.JAZZ_CASH,
-              msisdn: phone
+        try {
+          await tx.transaction.create({
+            data: {
+              ...data,
+              date_time: new Date(),
+              original_amount: paymentData.amount,
+              type: paymentData.type.toLowerCase(),
+              status: "pending",
+              merchant_id: merchant.merchant_id,
+              settled_amount,
+              providerDetails: {
+                id: JAZZ_CASH_MERCHANT_ID,
+                name: PROVIDERS.JAZZ_CASH,
+                msisdn: phone
+              },
+              balance: settled_amount
             },
-            balance: settled_amount
-          },
-        });
-        transactionCreated = true;
+          });
+          transactionCreated = true;
+        }
+        catch(err) {
+          throw new CustomError("Transaction not Created",400)
+        }
       }
       console.log("Data: ",data);
       // Return necessary data for further processing
@@ -1109,7 +1114,10 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     }
     // return res.data;
   } else {
-    throw new CustomError("Internal Server Error", 500);
+    return {
+      message: "Transaction Not Found",
+      statusCode: 500
+    }
   }
 };
 
