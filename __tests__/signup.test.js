@@ -136,7 +136,7 @@ describe("Signup API Route", () => {
   });
 
   it("should handle unexpected errors", async () => {
-    const error = new CustomError("You are not registered. Please contact support.",400);
+    const error = new Error("Unexpected Error");
     validationResult.mockReturnValueOnce({
       isEmpty: () => true,
     });

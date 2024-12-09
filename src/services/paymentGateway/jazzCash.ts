@@ -1109,7 +1109,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
       "transactionAmount": txn.original_amount,
       "transactionDateTime": txn.date_time,
       "msisdn": (txn.providerDetails as JsonObject)?.msisdn,
-      "responseDesc": res.data.pp_ResponseMessage,
+      "responseDesc": res.data.pp_PaymentResponseMessage,
       "responseMode": "MA"
     }
     // return res.data;
