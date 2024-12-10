@@ -32,15 +32,16 @@ app.set('views', "./views");
 app.set('view engine', 'jade');
 app.set("trust proxy",true);
 // Allow only specific origins
-app.use(cors({
-  origin: [
-    'https://sahulatpay.com',
-    'http://localhost:3005',
-    'http://localhost:*',
-  ],
-  credentials: true,
-}));
-
+// app.use(cors({
+//   origin: [
+//     'https://sahulatpay.com',
+//     'http://localhost:3005',
+//     'http://localhost:*',
+//     '*'
+//   ],
+//   credentials: true,
+// }));
+app.use(cors())
 // await backup()
 
 app.use(logger('dev'));

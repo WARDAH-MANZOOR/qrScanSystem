@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 
 const initiateJazzCash = async (
@@ -11,13 +11,14 @@ const initiateJazzCash = async (
   next: NextFunction
 ) => {
   try {
+    const paymentData = req.body;
+    console.log("Payment Data: ",paymentData)
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
       return;
     }
-    const paymentData = req.body;
-
     let merchantId = req.params?.merchantId;
 
     if (!merchantId) {
@@ -159,7 +160,6 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
     if (!merchantId) {
       res.status(400).json(ApiResponse.error("Merchant ID is required"));
       return
-
     }
     const result = await jazzCashService.statusInquiry(payload, merchantId);
     res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
@@ -217,6 +217,18 @@ const disburseInquiryController = async (req: Request, res: Response, next: Next
   }
 }
 
+const simpleDisburseInquiryController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await simpleGetToken(req.params.merchantId);
+    const inquiry = await simpleCheckTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+    res.status(200).json(ApiResponse.success(inquiry));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
 export default {
   initiateJazzCash,
   getJazzCashMerchant,
@@ -228,5 +240,6 @@ export default {
   initiateMWDisbursement,
   dummyCallback,
   disburseInquiryController,
+  simpleDisburseInquiryController,
   initiateJazzCashAsync
 };
