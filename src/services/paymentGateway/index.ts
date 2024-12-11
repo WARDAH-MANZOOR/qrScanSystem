@@ -176,6 +176,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       receiverMSISDN: body.phone,
       referenceId: id
     })
+
     let payload = encryptData(
       {
         bankAccountNumber: body.iban,
@@ -185,6 +186,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         referenceId: id
       }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
+    let db_id = id;
     let requestData = {
       data: payload,
     };
@@ -247,10 +249,10 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           data["merchant_custom_order_id"] = body.order_id;
         }
         else {
-          data["merchant_custom_order_id"] = id;
+          data["merchant_custom_order_id"] = db_id;
         }
         // else {
-        data["system_order_id"] = id;
+        data["system_order_id"] = db_id;
         data["transaction_id"] = res.transactionID;
         // }
         // Get the current date
