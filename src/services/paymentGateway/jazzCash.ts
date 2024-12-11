@@ -554,7 +554,7 @@ const initiateJazzCashPaymentAsync = async (
   paymentData: any,
   merchant_uid?: string
 ) => {
-  let txnRefNo;
+  let txnRefNo: string;
   let refNo: string = "";
   const date2 = new Date();
 
@@ -650,7 +650,7 @@ const initiateJazzCashPaymentAsync = async (
         if (paymentData.type.toUpperCase() === "CARD") {
           await processCardPayment(sendData, paymentData.redirect_url);
         } else if (paymentData.type.toUpperCase() === "WALLET") {
-          await processWalletPayment(sendData, refNo, result?.merchant?.merchant, phone, date);
+          await processWalletPayment(sendData, refNo as string, result?.merchant?.merchant, phone, date, txnRefNo);
         } else {
           throw new CustomError("Invalid payment type", 400);
         }
@@ -790,7 +790,8 @@ const processWalletPayment = async (
   refNo: string,
   merchant: any,
   phone: string,
-  date: Date
+  date: Date,
+  txnRefNo: string
 ) => {
   const paymentUrl =
     "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
@@ -819,7 +820,7 @@ const processWalletPayment = async (
     const scheduledAt = addWeekdays(new Date(), merchant.commissions[0].settlementDuration);
     await prisma.scheduledTask.create({
       data: {
-        transactionId: refNo,
+        transactionId: txnRefNo,
         status: "pending",
         scheduledAt,
         executedAt: null,
@@ -828,7 +829,7 @@ const processWalletPayment = async (
 
     transactionService.sendCallback(
       merchant.webhook_url,
-      { transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date },
+      { merchant_transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date },
       phone,
       "payin",
       true

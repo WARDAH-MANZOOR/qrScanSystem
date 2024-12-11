@@ -290,7 +290,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           {
             original_amount: body.amount ? body.amount : merchantAmount,
             date_time: zonedDate,
-            transaction_id: disbursement.transaction_id,
+            merchant_transaction_id: disbursement.merchant_custom_order_id,
             merchant_id: findMerchant.merchant_id
           },
           body.phone,
@@ -497,7 +497,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         {
           original_amount: body.amount ? body.amount : merchantAmount,
           date_time: zonedDate,
-          transaction_id: disbursement.transaction_id,
+          merchant_transaction_id: disbursement.merchant_custom_order_id,
           merchant_id: findMerchant.merchant_id
         },
         body.phone,

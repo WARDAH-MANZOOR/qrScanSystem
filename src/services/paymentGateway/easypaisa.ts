@@ -766,7 +766,7 @@ const createDisbursement = async (
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: zonedDate,
-            transaction_id: disbursement.transaction_id,
+            merchant_transaction_id: disbursement.merchant_custom_order_id,
             merchant_id: findMerchant.merchant_id
           },
           obj.phone,
@@ -1084,7 +1084,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
           {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: zonedDate,
-            transaction_id: disbursement.transaction_id,
+            merchant_transaction_id: disbursement.merchant_custom_order_id,
             merchant_id: findMerchant.merchant_id
           },
           obj.phone,
@@ -1263,7 +1263,6 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
 // const transactionINquiry
 
 export default {
-  getMerchantChannel,
   initiateEasyPaisa,
   createMerchant,
   getMerchant,
@@ -1273,8 +1272,7 @@ export default {
   createDisbursement,
   getDisbursement,
   disburseThroughBank,
-  getMerchantInquiryMethod,
-  getTransaction,
+  // getTransaction,
   initiateEasyPaisaAsync,
   accountBalance,
   transactionInquiry

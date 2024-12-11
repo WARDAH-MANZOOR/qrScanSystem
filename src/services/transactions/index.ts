@@ -11,6 +11,7 @@ import { addWeekdays } from "../../utils/date_method.js";
 import axios from "axios";
 import { transactionService } from "../../services/index.js";
 import { callbackEncrypt } from "../../utils/enc_dec.js";
+import { JsonObject } from "@prisma/client/runtime/library";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -361,7 +362,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         },
         data: data
       };
-
+      
       let res = await axios.request(config)
       if (res.data == "success") {
         console.log("Callback sent successfully")
@@ -387,6 +388,75 @@ function convertPhoneNumber(phoneNumber: string): string {
   return phoneNumber;
 }
 
+const getMerchantChannel = async (merchantId: string) => {
+  return await prisma.merchant.findFirst({
+    where: {
+      uid: merchantId
+    },
+    select: {
+      easypaisaPaymentMethod: true
+    }
+  })
+}
+
+const getMerchantInquiryMethod = async (merchantId: string) => {
+  return await prisma.merchant.findFirst({
+    where: {
+      uid: merchantId
+    },
+    select: {
+      easypaisaInquiryMethod: true
+    }
+  })
+}
+
+const getTransaction = async (merchantId: string, transactionId: string) => {
+  try {
+    const id = await prisma.merchant.findFirst({
+      where: {
+        uid: merchantId,
+      },
+      select: {
+        merchant_id: true
+      }
+    })
+    if (!id) {
+      throw new CustomError("Merchant Not Found",400)
+    }
+    const txn = await prisma.transaction.findFirst({
+      where: {
+        merchant_transaction_id: transactionId,
+        merchant_id: id?.merchant_id,
+        providerDetails: {
+          path: ['name'],
+          equals: "Easypaisa"
+        }
+      },
+    })
+    if (!txn) {
+      return {
+        message: "Transaction not found",
+        statusCode: 500
+      }
+    }
+    // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
+    let data = {
+      "orderId": txn?.merchant_transaction_id,
+      "transactionStatus": txn?.status,
+      "transactionAmount": txn?.original_amount,
+      "transactionDateTime": txn?.date_time,
+      "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+      "responseDesc": txn?.response_message,
+      "responseMode": "MA",
+      "statusCode": 201
+    }
+    return data;
+  }
+  catch (err: any) {
+    throw new CustomError(err?.message || "Error getting transaction", 500);
+  }
+}
+
 export default {
   createTransaction,
   completeTransaction,
@@ -395,5 +465,8 @@ export default {
   createTransactionId,
   ...analyticsService,
   sendCallback,
-  convertPhoneNumber
+  convertPhoneNumber,
+  getMerchantChannel,
+  getMerchantInquiryMethod,
+  getTransaction
 };
