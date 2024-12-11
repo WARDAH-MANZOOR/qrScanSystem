@@ -416,12 +416,13 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     updates = result.updates;
     totalDisbursed = result.totalDisbursed;
   }
+  let id = transactionService.createTransactionId();
   const payload = encryptData(
     {
       receiverCNIC: body.cnic,
       receiverMSISDN: body.phone,
       amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-      referenceId: transactionService.createTransactionId()
+      referenceId: id
     }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
   const requestData = {
@@ -448,7 +449,6 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       // Update transactions to adjust balances
       await updateTransactions(updates, tx);
 
-      let id = transactionService.createTransactionId();
       let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
       if (body.order_id) {
         data["merchant_custom_order_id"] = body.order_id;
