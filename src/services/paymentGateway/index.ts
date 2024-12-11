@@ -562,7 +562,7 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
     }
     console.log("Inquiry Payload: ", { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() })
     const payload = encryptData(
-      { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() },
+      { originalReferenceId: transaction.system_order_id, referenceID: transactionService.createTransactionId() },
       findDisbureMerch.key, findDisbureMerch.initialVector
     );
     const requestData = {
