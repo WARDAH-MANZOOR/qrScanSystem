@@ -1,7 +1,7 @@
 // src/controllers/paymentController.ts
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
-import { jazzCashService } from "services/index.js";
+import { jazzCashService, transactionService } from "services/index.js";
 import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 
@@ -12,7 +12,7 @@ const initiateJazzCash = async (
 ) => {
   try {
     const paymentData = req.body;
-    console.log("Payment Data: ",paymentData)
+    console.log("Payment Data: ", paymentData)
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -28,7 +28,7 @@ const initiateJazzCash = async (
 
     const result: any = await jazzCashService.initiateJazzCashPayment(paymentData, merchantId);
     if (result.statusCode != "000") {
-      res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result,result.statusCode != 500 ? result.statusCode : 201));
+      res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
       return;
     }
     res.status(200).json(ApiResponse.success(result));

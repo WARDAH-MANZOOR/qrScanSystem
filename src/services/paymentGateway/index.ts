@@ -556,11 +556,11 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
         merchant_id: findMerchant.merchant_id
       }
     });
-    if(!transaction || !transaction?.transaction_id) {
-      results.push({id, status: "Transaction not found"});
+    if (!transaction || !transaction?.transaction_id) {
+      results.push({ id, status: "Transaction not found" });
       continue;
     }
-    console.log("Inquiry Payload: ",{ originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() })
+    console.log("Inquiry Payload: ", { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() })
     const payload = encryptData(
       { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() },
       findDisbureMerch.key, findDisbureMerch.initialVector
@@ -590,36 +590,36 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
 }
 
 async function simpleCheckTransactionStatus(token: string, body: any, merchantId: string) {
-  const results = [];
+  // const results = [];
 
-  for (const id of body.transactionIds) {
-    console.log("Inquiry Payload: ",{ originalReferenceId: id, referenceID: transactionService.createTransactionId() })
-    const payload = encryptData(
-      { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
-      'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT'
-    );
-    const requestData = {
-      data: payload
-    };
-    console.log(requestData)
-    try {
-      const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      const jsonResponse = decryptData((await response.json())?.data, 'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT');
-      results.push({ id, status: jsonResponse });
-    } catch (error: any) {
-      // Handle error (e.g., network issue) and add to results
-      results.push({ id, status: null, error: error?.message });
-    }
+  // for (const id of body.transactionIds) {
+  console.log("Inquiry Payload: ", body)
+  const payload = encryptData(
+    body,
+    'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT'
+  );
+  const requestData = {
+    data: payload
+  };
+  console.log("API Payload: ", requestData)
+  let jsonResponse;
+  try {
+    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    jsonResponse = decryptData((await response.json())?.data, 'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT');
+    // results.push({ id, status: jsonResponse });
+  } catch (error: any) {
+    // Handle error (e.g., network issue) and add to results
+    // results.push({ id, status: null, error: error?.message });
+    throw new CustomError(error?.message, 400)
   }
-
-  return results; // Array of status responses for each transaction ID
+  return jsonResponse; // Array of status responses for each transaction ID
 }
 
 
