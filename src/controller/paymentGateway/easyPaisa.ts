@@ -24,7 +24,7 @@ const initiateEasyPaisa = async (
       return;
     }
 
-    const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
     let result: any;
     if (channel == "DIRECT") {
       result = await easyPaisaService.initiateEasyPaisa(
@@ -75,7 +75,7 @@ const initiateEasyPaisaAsync = async (
       return;
     }
 
-    const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
     let result: any;
     if (channel == "DIRECT") {
       result = await easyPaisaService.initiateEasyPaisaAsync(
@@ -207,8 +207,8 @@ const statusInquiry = async (
       res.status(400).json(ApiResponse.error("Merchant ID is required"));
       return;
     }
-    const channel = (await easyPaisaService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
-    const method = (await easyPaisaService.getMerchantInquiryMethod(merchantId))?.easypaisaInquiryMethod;
+    const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    const method = (await transactionService.getMerchantInquiryMethod(merchantId))?.easypaisaInquiryMethod;
     let result;
     console.log(req.ip)
     console.log("channel: ",channel == "DIRECT")
@@ -224,7 +224,7 @@ const statusInquiry = async (
       }
     }
     else {
-      result = await easyPaisaService.getTransaction(merchantId as string, req.query.orderId as string)
+      result = await transactionService.getTransaction(merchantId as string, req.query.orderId as string)
     }
     // const result = await easyPaisaService.easypaisainquiry(payload, merchantId);
     res.status(result?.statusCode ? 201 : 200).json(ApiResponse.success(result));
