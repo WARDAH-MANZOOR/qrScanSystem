@@ -69,14 +69,14 @@ const merchantDashboardDetails = async (params: any, user: any) => {
 
       const date = new Date();
 
-    // Define the Pakistan timezone
-    const timeZone = 'Asia/Karachi';
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
 
-    // Convert the date to the Pakistan timezone
-    const zonedDate = toZonedTime(date, timeZone);
-    const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
-    const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
-    console.log(servertodayStart, servertodayEnd)
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
+      const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
+      const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
+      console.log(servertodayStart, servertodayEnd)
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
@@ -228,9 +228,9 @@ const adminDashboardDetails = async (params: any) => {
       const todayStart = parse(
         startDate,
         "yyyy-MM-dd'T'HH:mm:ssXXX",
-        new Date()
+        startDate
       );
-      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", endDate);
 
       customWhere["date_time"] = {
         gte: todayStart,
@@ -243,6 +243,7 @@ const adminDashboardDetails = async (params: any) => {
     // Fetch total number of merchants
     fetchAggregates.push(prisma.merchant.count());
 
+    console.log(customWhere)
     // Fetch sum of original_amount from transactions
     fetchAggregates.push(
       prisma.transaction.aggregate({
@@ -263,7 +264,7 @@ const adminDashboardDetails = async (params: any) => {
     const zonedDate = toZonedTime(date, timeZone);
     const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
     const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
-
+    console.log(zonedDate)
     // Fetch sum of original_amount from today's transactions
     fetchAggregates.push(
       prisma.transaction
