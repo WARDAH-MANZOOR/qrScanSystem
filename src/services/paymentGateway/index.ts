@@ -204,8 +204,44 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
 
+    let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
+      if (body.order_id) {
+        data2["merchant_custom_order_id"] = body.order_id;
+      }
+      else {
+        data2["merchant_custom_order_id"] = db_id;
+      }
+      // else {
+      data2["transaction_id"] = res.transactionID;
+      data2["system_order_id"] = db_id;
+      // Get the current date
+      const date = new Date();
+
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
+
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
+      await prisma.disbursement.create({
+        data: {
+          ...data2,
+          // transaction_id: id,
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: zonedDate,
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: body.amount ? body.amount : merchantAmount,
+          platform: 0,
+          account: body.phone,
+          provider: PROVIDERS.JAZZ_CASH,
+          status: "failed",
+          response_message: data.responseDescription
+        },
+      });
       throw new CustomError("Error with ibft inquiry", 500)
     }
 
@@ -237,6 +273,41 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
+      if (body.order_id) {
+        data2["merchant_custom_order_id"] = body.order_id;
+      }
+      else {
+        data2["merchant_custom_order_id"] = db_id;
+      }
+      // else {
+      data2["transaction_id"] = res.transactionID;
+      data2["system_order_id"] = db_id;
+      // Get the current date
+      const date = new Date();
+
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
+
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
+      await prisma.disbursement.create({
+        data: {
+          ...data2,
+          // transaction_id: id,
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: zonedDate,
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: body.amount ? body.amount : merchantAmount,
+          platform: 0,
+          account: body.phone,
+          provider: PROVIDERS.JAZZ_CASH,
+          status: "failed",
+          response_message: res.responseDescription
+        },
+      });
       throw new CustomError("Error with ibft confirmation", 500)
     }
     return await prisma.$transaction(
@@ -244,16 +315,15 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         // Update transactions to adjust balances
         await updateTransactions(updates, tx);
 
-        let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
         if (body.order_id) {
-          data["merchant_custom_order_id"] = body.order_id;
+          data2["merchant_custom_order_id"] = body.order_id;
         }
         else {
-          data["merchant_custom_order_id"] = db_id;
+          data2["merchant_custom_order_id"] = db_id;
         }
         // else {
-        data["system_order_id"] = db_id;
-        data["transaction_id"] = res.transactionID;
+        data2["system_order_id"] = db_id;
+        data2["transaction_id"] = res.transactionID;
         // }
         // Get the current date
         const date = new Date();
@@ -266,7 +336,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         // Create disbursement record
         let disbursement = await tx.disbursement.create({
           data: {
-            ...data,
+            ...data2,
             // transaction_id: id,
             merchant_id: Number(findMerchant.merchant_id),
             disbursementDate: zonedDate,
@@ -278,6 +348,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
             platform: 0,
             account: body.phone,
             provider: PROVIDERS.JAZZ_CASH,
+            status: "completed",
+            response_message: "success"
           },
         });
         let webhook_url: string;
@@ -443,7 +515,44 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   let res = await response.json();
   console.log("MW Response", res);
   res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+  let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
   if (res.responseCode != "G2P-T-0") {
+    if (body.order_id) {
+      data["merchant_custom_order_id"] = body.order_id;
+    }
+    else {
+      data["merchant_custom_order_id"] = id;
+    }
+    // else {
+    data["system_order_id"] = id;
+    data["transaction_id"] = res.transactionID;
+    // }
+    // Get the current date
+    const date = new Date();
+
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(date, timeZone);
+    await prisma.disbursement.create({
+      data: {
+        ...data,
+        // transaction_id: id,
+        merchant_id: Number(findMerchant.merchant_id),
+        disbursementDate: zonedDate,
+        transactionAmount: amountDecimal,
+        commission: totalCommission,
+        gst: totalGST,
+        withholdingTax: totalWithholdingTax,
+        merchantAmount: body.amount ? body.amount : merchantAmount,
+        platform: 0,
+        account: body.phone,
+        provider: PROVIDERS.JAZZ_CASH,
+        status: "failed",
+        response_message: res.responseDescription
+      },
+    });
     throw new CustomError(res.responseDescription, 500);
   }
   return await prisma.$transaction(
@@ -451,7 +560,6 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       // Update transactions to adjust balances
       await updateTransactions(updates, tx);
 
-      let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
       if (body.order_id) {
         data["merchant_custom_order_id"] = body.order_id;
       }
@@ -485,6 +593,8 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           platform: 0,
           account: body.phone,
           provider: PROVIDERS.JAZZ_CASH,
+          status: "completed",
+          response_message: "success"
         },
       });
       let webhook_url: string;

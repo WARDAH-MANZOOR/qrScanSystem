@@ -2,6 +2,7 @@ import { parseISO, subDays, parse } from "date-fns";
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
+import { toZonedTime } from "date-fns-tz";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {
@@ -63,9 +64,19 @@ const merchantDashboardDetails = async (params: any, user: any) => {
           }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
       // // Fetch today's transaction sum
-      const servertodayStart = new Date().setHours(0, 0, 0, 0);
-      const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+      // const servertodayStart = new Date().setHours(0, 0, 0, 0);
+      // const servertodayEnd = new Date().setHours(23, 59, 59, 999);
 
+      const date = new Date();
+
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(date, timeZone);
+    const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
+    const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
+    console.log(servertodayStart, servertodayEnd)
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
@@ -243,8 +254,15 @@ const adminDashboardDetails = async (params: any) => {
       }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
     );
 
-    const servertodayStart = new Date().setHours(0, 0, 0, 0);
-    const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+    const date = new Date();
+
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(date, timeZone);
+    const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
+    const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
 
     // Fetch sum of original_amount from today's transactions
     fetchAggregates.push(
