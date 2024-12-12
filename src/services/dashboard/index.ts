@@ -262,9 +262,9 @@ const adminDashboardDetails = async (params: any) => {
 
     // Convert the date to the Pakistan timezone
     const zonedDate = toZonedTime(date, timeZone);
-    const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
-    const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
-    console.log(zonedDate)
+    const servertodayStart = new Date(zonedDate.setHours(0, 0, 0, 0));
+    const servertodayEnd = new Date(zonedDate.setHours(23, 59, 59, 999));
+    console.log(servertodayStart, servertodayEnd)
     // Fetch sum of original_amount from today's transactions
     fetchAggregates.push(
       prisma.transaction
