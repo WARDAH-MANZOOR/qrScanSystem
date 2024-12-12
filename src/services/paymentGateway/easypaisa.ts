@@ -64,7 +64,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       }
     })
     if (!id) {
-      throw new CustomError("Merchant Not Found",400)
+      throw new CustomError("Merchant Not Found", 400)
     }
     const txn = await prisma.transaction.findFirst({
       where: {
@@ -202,24 +202,24 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         statusCode: response?.data.responseCode
       };
     } else {
-      console.log("Error Payload: ",response.data)
+      console.log("Error Payload: ", response.data)
       console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
           status: "failed",
-          response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond": response.data?.responseDesc,
+          response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
         },
         findMerchant.commissions[0].settlementDuration
       );
 
       throw new CustomError(
-        response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond": response.data?.responseDesc,
+        response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
         500
       );
     }
   } catch (error: any) {
-    console.log("Error: ",error)
+    console.log("Error: ", error)
     return {
       message: error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,
@@ -516,7 +516,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
     storeId: merchant?.easyPaisaMerchant?.storeId,
     accountNum: merchant?.easyPaisaMerchant?.accountNumber,
   });
-  console.log("Data: ",data);
+  console.log("Data: ", data);
 
   const base64Credentials = Buffer.from(
     `${merchant?.easyPaisaMerchant?.username}:${merchant?.easyPaisaMerchant?.credentials}`
@@ -533,6 +533,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   };
 
   let res: any = await axios.request(config);
+  console.log(res.data)
   if (res.data.responseCode == "0000") {
     return {
       "orderId": res.data.orderId,
@@ -708,7 +709,48 @@ const createDisbursement = async (
       .catch((error) => {
         throw new CustomError(error?.response?.data?.ResponseMessage, 500);
       });
+    let id = transactionService.createTransactionId();
+    let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
+    if (obj.order_id) {
+      data["merchant_custom_order_id"] = obj.order_id;
+    }
+    else {
+      data["merchant_custom_order_id"] = id;
+    }
+    // else {
+    data["transaction_id"] = ma2ma.TransactionReference;
+    data["system_order_id"] = id;
+    // }
+    // Get the current date
+    const date = new Date();
+
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(date, timeZone);
     if (ma2ma.ResponseCode != 0) {
+      console.log("Disbursement Failed ")
+      const txn = await prisma.disbursement.create({
+        data: {
+          ...data,
+          // transaction_id: id,
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: zonedDate,
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: obj.amount ? obj.amount : merchantAmount,
+          platform: ma2ma.Fee,
+          account: obj.phone,
+          provider: PROVIDERS.EASYPAISA,
+          status: "failed",
+          response_message: ma2ma.ResponseMessage
+        },
+      });
+      console.log("Disbursement: ", txn)
+      // return;
       throw new CustomError(ma2ma.ResponseMessage, 500);
     }
 
@@ -717,26 +759,6 @@ const createDisbursement = async (
         // Update transactions to adjust balances
         await updateTransactions(updates, tx);
 
-        let id = transactionService.createTransactionId();
-        let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
-        if (obj.order_id) {
-          data["merchant_custom_order_id"] = obj.order_id;
-        }
-        else {
-          data["merchant_custom_order_id"] = id;
-        }
-        // else {
-        data["transaction_id"] = ma2ma.TransactionReference;
-        data["system_order_id"] = id;
-        // }
-        // Get the current date
-        const date = new Date();
-
-        // Define the Pakistan timezone
-        const timeZone = 'Asia/Karachi';
-
-        // Convert the date to the Pakistan timezone
-        const zonedDate = toZonedTime(date, timeZone);
         // Create disbursement record
         let disbursement = await tx.disbursement.create({
           data: {
@@ -752,6 +774,8 @@ const createDisbursement = async (
             platform: ma2ma.Fee,
             account: obj.phone,
             provider: PROVIDERS.EASYPAISA,
+            status: "completed",
+            response_message: "success"
           },
         });
         let webhook_url: string;
@@ -1001,8 +1025,46 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     };
 
     let res = await axios.request(config);
+    let id = transactionService.createTransactionId();
+    let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
+
     if (res.data.ResponseCode != "0") {
+      if (obj.order_id) {
+        data2["merchant_custom_order_id"] = obj.order_id;
+      }
+      else {
+        data2["merchant_custom_order_id"] = id;
+      }
+      // else {
+      data2["transaction_id"] = res.data.TransactionReference;
+      data2["system_order_id"] = id;
+      // Get the current date
+      const date = new Date();
+
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
+
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
       console.log("Transfer Inquiry Error: ", res.data);
+      await prisma.disbursement.create({
+        data: {
+          ...data2,
+          // transaction_id: id,
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: zonedDate,
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: obj.amount ? obj.amount : merchantAmount,
+          platform: res.data.Fee,
+          account: obj.accountNo,
+          provider: obj.bankName,
+          status: "failed",
+          response_message: res.data.ResponseMessage
+        },
+      })
       throw new CustomError("Error conducting transfer inquiry", 500);
     }
 
@@ -1030,14 +1092,46 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
 
     let res2 = await axios.request(config);
     if (res2.data.ResponseCode != "0") {
-      throw new CustomError("Error conducting transfer inquiry", 500);
+      if (obj.order_id) {
+        data2["merchant_custom_order_id"] = obj.order_id;
+      }
+      else {
+        data2["merchant_custom_order_id"] = id;
+      }
+      // else {
+      data2["transaction_id"] = res.data.TransactionReference;
+      data2["system_order_id"] = id;
+      // Get the current date
+      const date = new Date();
+
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
+
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
+      await prisma.disbursement.create({
+        data: {
+          ...data2,
+          // transaction_id: id,
+          merchant_id: Number(findMerchant.merchant_id),
+          disbursementDate: zonedDate,
+          transactionAmount: amountDecimal,
+          commission: totalCommission,
+          gst: totalGST,
+          withholdingTax: totalWithholdingTax,
+          merchantAmount: obj.amount ? obj.amount : merchantAmount,
+          platform: res2.data.Fee,
+          account: obj.accountNo,
+          provider: obj.bankName,
+          status: "failed",
+          response_message: res.data.ResponseMessage
+        },
+      });
+      throw new CustomError("Error conducting transfer", 500);
     }
     return await prisma.$transaction(
       async (tx) => {
         await updateTransactions(updates, tx);
-
-        let id = transactionService.createTransactionId();
-        let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string;  } = {};
         if (obj.order_id) {
           data2["merchant_custom_order_id"] = obj.order_id;
         }
@@ -1045,7 +1139,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
           data2["merchant_custom_order_id"] = id;
         }
         // else {
-        data2["transaction_id"] = res2.data.TransactionReference;
+        data2["transaction_id"] = res.data.TransactionReference;
         data2["system_order_id"] = id;
         // Get the current date
         const date = new Date();
@@ -1069,7 +1163,9 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             merchantAmount: obj.amount ? obj.amount : merchantAmount,
             platform: res2.data.Fee,
             account: obj.accountNo,
-            provider: obj.bankName
+            provider: obj.bankName,
+            status: "completed",
+            response_message: "success"
           },
         });
         let webhook_url;
@@ -1213,8 +1309,8 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
         merchant_id: findMerchant.merchant_id
       }
     });
-    if(!transaction || !transaction?.transaction_id) {
-      throw new CustomError("Transaction not found",500)
+    if (!transaction || !transaction?.transaction_id) {
+      throw new CustomError("Transaction not found", 500)
     }
     const getTimeStamp: IEasyLoginPayload = await corporateLogin(
       findDisbureMerch
