@@ -70,13 +70,13 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       const date = new Date();
 
       // Define the Pakistan timezone
-      const timeZone = 'Asia/Karachi';
+      // const timeZone = 'Asia/Karachi';
 
-      // Convert the date to the Pakistan timezone
-      const zonedDate = toZonedTime(date, timeZone);
-      const servertodayStart = zonedDate.setHours(0, 0, 0, 0);
-      const servertodayEnd = zonedDate.setHours(23, 59, 59, 999);
-      console.log(servertodayStart, servertodayEnd)
+      // // Convert the date to the Pakistan timezone
+      // const zonedDate = toZonedTime(date, timeZone);
+      const servertodayStart = date.setHours(0, 0, 0, 0);
+      const servertodayEnd = date.setHours(23, 59, 59, 999);
+      console.log(date);
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
