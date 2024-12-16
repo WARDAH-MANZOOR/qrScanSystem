@@ -26,22 +26,22 @@ import task from "./utils/queue_task.js"
 // import backup from 'utils/backup.js';
 
 var app = express();
-cron.schedule("0 11 * * 1-5", task);
+cron.schedule("0 16 * * 1-5", task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
 app.set("trust proxy",true);
 // Allow only specific origins
-app.use(cors({
-  origin: [
-    'https://sahulatpay.com',
-    'http://localhost:3005',
-    'http://localhost:*',
-    '*'
-  ],
-  credentials: true,
-}));
-// app.use(cors())
+// app.use(cors({
+//   origin: [
+//     'https://sahulatpay.com',
+//     'http://localhost:3005',
+//     'http://localhost:*',
+//     '*'
+//   ],
+//   credentials: true,
+// }));
+app.use(cors())
 // await backup()
 
 app.use(logger('dev'));
@@ -86,6 +86,7 @@ app.use(errorHandler)
 app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
+
  
 // Example usage
 
