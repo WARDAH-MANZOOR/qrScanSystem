@@ -61,7 +61,10 @@ export default function (router: Router) {
   );
   router.get("/status-inquiry/:merchantId",
     jazzCashController.statusInquiry
-  )
+  );
+  router.post("/status-inquiry/:merchantId",
+    jazzCashController.jazzStatusInquiry
+  );
   return router;
 }
 

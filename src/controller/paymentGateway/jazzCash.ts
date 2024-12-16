@@ -169,6 +169,21 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
+const jazzStatusInquiry = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const merchantId = req.params.merchantId;
+    const payload = req.body;
+    if (!merchantId) {
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return
+    }
+    const result = await jazzCashService.statusInquiry(payload, merchantId);
+    res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
+  }
+  catch (err) {
+    next(err);
+  }
+};
 const initiateDisbursment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log("IBFT Called")
@@ -241,5 +256,6 @@ export default {
   dummyCallback,
   disburseInquiryController,
   simpleDisburseInquiryController,
-  initiateJazzCashAsync
+  initiateJazzCashAsync,
+  jazzStatusInquiry
 };
