@@ -1067,7 +1067,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       })
       throw new CustomError("Error conducting transfer inquiry", 500);
     }
-
+    console.log()
     data = JSON.stringify({
       AccountNumber: obj.accountNo,
       BankTitle: bank.BankTitle,
@@ -1323,6 +1323,7 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
       "transactionID": transaction.transaction_id
     });
 
+    console.log(data)
     let config = {
       method: 'post',
       maxBodyLength: Infinity,

@@ -95,4 +95,16 @@ const validateDeleteJazzcashMerchant = [
         .withMessage('Merchant ID must be an integer'),
 ]
 
-export { validateCreateJazzcashMerchant, validateDeleteJazzcashMerchant, validateGetJazzcashMerchant, validateJazzcashRequest, validateUpdateJazzcashMerchant }
+const validateJazzcashCnicRequest = [
+    ...validateJazzcashRequest,
+    body('cnic')
+        .notEmpty()
+        .withMessage('Cnic is required')
+        .isString()
+        .withMessage('Cnic must be a string')
+        .isLength({min: 6, max: 6})
+        .withMessage('CNIC must be 6 digits')
+
+]
+
+export { validateCreateJazzcashMerchant, validateDeleteJazzcashMerchant, validateGetJazzcashMerchant, validateJazzcashRequest, validateUpdateJazzcashMerchant, validateJazzcashCnicRequest }
