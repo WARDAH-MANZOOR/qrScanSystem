@@ -5,6 +5,7 @@ import {
   validateCreateJazzcashMerchant,
   validateDeleteJazzcashMerchant,
   validateGetJazzcashMerchant,
+  validateJazzcashCnicRequest,
   validateJazzcashRequest,
   validateUpdateJazzcashMerchant,
 } from "../../validators/paymentGateway/jazzCash.js";
@@ -26,6 +27,12 @@ export default function (router: Router) {
     "/initiate-jz/:merchantId",
     validateJazzcashRequest,
     jazzCashController.initiateJazzCash
+  );
+
+  router.post(
+    "/initiate-jzc/:merchantId",
+    validateJazzcashCnicRequest,
+    jazzCashController.initiateJazzCashCnic
   );
 
   router.post(

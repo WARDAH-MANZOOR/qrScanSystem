@@ -29,6 +29,7 @@
     "express-validator": "^7.2.0",
     "http-errors": "~2.0.0",
     "jade": "~1.11.0",
+    "jest-mock-req-res": "^1.0.2",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "~1.10.0",
