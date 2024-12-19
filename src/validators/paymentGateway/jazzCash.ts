@@ -102,7 +102,7 @@ const validateJazzcashCnicRequest = [
         .withMessage('Cnic is required')
         .isString()
         .withMessage('Cnic must be a string')
-        .isLength({min: 6, max: 6})
+        .isLength({min: 13, max: 13})
         .withMessage('CNIC must be 6 digits')
 
 ]

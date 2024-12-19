@@ -1228,7 +1228,7 @@ const initiateJazzCashCnicPayment = async (
       pp_TxnExpiryDateTime: expiryDate,
       pp_BillReference: "billRef123",
       pp_Description: "Payment via JazzCash Wallet",
-      pp_CNIC: paymentData.cnic,
+      pp_CNIC: paymentData.cnic.slice(-6),
       pp_MobileNumber: paymentData.phone,
       pp_SecureHash: '',
       ppmpf_1: '',
