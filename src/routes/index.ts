@@ -6,6 +6,7 @@ import disbursement from "./paymentGateway/disbursement.js"
 import auth from "./authentication/index.js";
 import settlement from "./settlement/index.js";
 import paymentRequest from "./paymentRequest/index.js";
+import backoffice from "./backoffice/backoffice.js";
 
 import express from "express";
 
@@ -18,4 +19,5 @@ export default function (app: express.Application) {
   app.use("/auth", auth);
   app.use("/settlement",settlement);
   app.use("/payment-request", paymentRequest);
+  app.use("/backoffice",backoffice)
 }
