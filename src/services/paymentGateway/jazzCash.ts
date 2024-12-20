@@ -1114,9 +1114,9 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     return {
       "orderId": payload.transactionId,
       "transactionStatus": res.data.pp_Status,
-      "transactionAmount": txn.original_amount,
-      "transactionDateTime": txn.date_time,
-      "msisdn": (txn.providerDetails as JsonObject)?.msisdn,
+      "transactionAmount": txn?.original_amount,
+      "transactionDateTime": txn?.date_time,
+      "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
       "responseDesc": res.data.pp_PaymentResponseMessage,
       "responseMode": "MA"
     }
@@ -1221,7 +1221,7 @@ const initiateJazzCashCnicPayment = async (
       pp_Language: "EN",
       pp_MerchantID: jazzCashMerchant.jazzMerchantId,
       pp_Password: jazzCashMerchant.password,
-      pp_TxnRefNo: txnRefNo,
+      pp_TxnRefNo: data2["merchant_transaction_id"],
       pp_Amount: String(paymentData.amount * 100),
       pp_TxnCurrency: "PKR",
       pp_TxnDateTime: formattedDate,
@@ -1262,7 +1262,7 @@ const initiateJazzCashCnicPayment = async (
     console.log(data);
     return {
       message: data.pp_ResponseMessage,
-      statusCode: 201,
+      statusCode: data.pp_ResposeCode == "000" ? 200: 201,
       txnRefNo,
     };
   } catch (error: any) {
