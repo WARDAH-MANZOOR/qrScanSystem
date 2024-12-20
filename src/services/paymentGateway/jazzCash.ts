@@ -1262,7 +1262,7 @@ const initiateJazzCashCnicPayment = async (
     console.log(data);
     return {
       message: data.pp_ResponseMessage,
-      statusCode: data.pp_ResponseCode,
+      statusCode: 201,
       txnRefNo,
     };
   } catch (error: any) {
