@@ -1071,7 +1071,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
   const txn = await prisma.transaction.findFirst({
     where: {
-      merchant_transaction_id: payload.transactionId,
+      transaction_id: payload.transactionId,
       merchant_id: merchant?.merchant_id,
       providerDetails: {
         path: ['name'],
@@ -1090,7 +1090,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     pp_Password: merchant?.jazzCashMerchant?.password,
     pp_SecureHash: "",
   };
-
+  console.log(sendData)
   sendData.pp_SecureHash = getSecureHash(
     sendData,
     merchant?.jazzCashMerchant?.integritySalt as string
@@ -1248,7 +1248,7 @@ const initiateJazzCashCnicPayment = async (
     let part = "";
     if(paymentData.use_sandbox == 'yes') {
       part = "https://sandbox.jazzcash.com.pk/";
-    }
+    } 
     else {
       part = "https://payments.jazzcash.com.pk/"
     }
@@ -1269,7 +1269,7 @@ const initiateJazzCashCnicPayment = async (
     console.log(data);
     return {
       message: data.pp_ResponseMessage,
-      statusCode: data.pp_ResposeCode == "000" ? 200: 201,
+      statusCode: data.pp_ResponseCode == "000" ? 200: 201,
       txnRefNo,
     };
   } catch (error: any) {
