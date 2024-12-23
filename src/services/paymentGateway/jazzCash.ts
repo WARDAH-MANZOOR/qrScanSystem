@@ -1245,8 +1245,15 @@ const initiateJazzCashCnicPayment = async (
 
     // Send Request to JazzCash Wallet API
     const headers = { "Content-Type": "application/json" };
-    const apiUrl = "https://payments.jazzcash.com.pk/ApplicationAPI/API/2.0/Purchase/DoMWalletTransaction";
-    console.log(payload)
+    let part = "";
+    if(paymentData.use_sandbox == 'yes') {
+      part = "https://sandbox.jazzcash.com.pk/";
+    }
+    else {
+      part = "https://payments.jazzcash.com.pk/"
+    }
+    const apiUrl = `${part}ApplicationAPI/API/2.0/Purchase/DoMWalletTransaction`;
+    console.log(apiUrl);
     const response = await axios.post(apiUrl, payload, { headers });
     const data = response.data;
 
