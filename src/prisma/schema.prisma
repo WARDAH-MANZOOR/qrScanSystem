@@ -309,14 +309,11 @@ model Disbursement {
   system_order_id    String? // ID for payin-specific transactions
   status                   String   @default("completed")
   response_message         String   @default("success")
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
-
   @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
 }
 
@@ -328,7 +325,6 @@ model EasyPaisaDisburseAccount {
   xChannel     String
   pin          String
   merchant     Merchant[]
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -340,7 +336,6 @@ model JazzCashDisburseAccount {
   initialVector String
   key           String
   merchant      Merchant[]
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -359,7 +354,6 @@ model PaymentRequest {
   metadata      Json?             @default("{}")
   provider      String?
   userId        Int?
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

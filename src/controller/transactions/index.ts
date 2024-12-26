@@ -11,7 +11,7 @@ import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { getDateRange } from "../../utils/date_method.js";
 import { parse } from "date-fns";
- 
+
 import analytics from "./analytics.js";
 
 const createTransaction = async (
@@ -28,7 +28,7 @@ const createTransaction = async (
     next(error);
   }
 };
- 
+
 const getTransactions = async (req: Request, res: Response) => {
   try {
     const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
@@ -38,7 +38,7 @@ const getTransactions = async (req: Request, res: Response) => {
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
     const msisdn = req.query?.msisdn || "" as string;
-   
+
     const customWhere = {} as any;
 
     if (startDate && endDate) {
@@ -76,11 +76,18 @@ const getTransactions = async (req: Request, res: Response) => {
     }
 
     if (merchantTransactionId) {
-      customWhere["merchant_transaction_id"] = {contains: merchantTransactionId};
+      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
     }
-
+    let { page, limit } = req.query;
     // Query based on provided parameters
+    let skip, take;
+    if (page && limit) {
+      skip = (+page > 0 ? parseInt(page as string) - 1: parseInt(page as string)) * parseInt(limit as string);
+      take = parseInt(limit as string);
+    }
     const transactions = await prisma.transaction.findMany({
+      ...(skip && { skip: +skip }),
+      ...(take && { take: +take }),
       where: {
         ...(transactionId && { transaction_id: transactionId as string }),
         ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
@@ -101,7 +108,7 @@ const getTransactions = async (req: Request, res: Response) => {
               include: {
                 merchant: {
                   include: {
-                    jazzCashMerchant: true, 
+                    jazzCashMerchant: true,
                   },
                 },
               },
@@ -111,13 +118,35 @@ const getTransactions = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(200).json(transactions.map(transaction => ({...transaction, jazzCashMerchant: transaction.merchant.groups[0].merchant?.jazzCashMerchant}))); 
+    let meta = {};
+    if (page && take) {
+      // Get the total count of transactions
+      const total = await prisma.transaction.count();
+
+      // Calculate the total number of pages
+      const pages = Math.ceil(total / +take);
+      meta = {
+        total,
+        pages,
+        page: parseInt(page as string),
+        limit: take
+      }
+    }
+    const response = {
+      transactions: transactions.map((transaction) => ({
+        ...transaction,
+        jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
+      })),
+      meta,
+    };
+
+    res.status(200).json(response);
   } catch (err) {
     console.log(err)
     const error = new CustomError("Internal Server Error", 500);
     res.status(500).send(error);
   }
-}; 
+};
 
 const getProAndBal = async (req: Request, res: Response) => {
   try {
@@ -133,10 +162,10 @@ const getProAndBal = async (req: Request, res: Response) => {
     // Raw SQL query based on whether `merchantId` is provided or not
     const profitAndBalanceQuery = merchantId
       ? getAllProfitsBalancesByMerchant(
-          fromDate,
-          toDate,
-          parseInt(merchantId as string)
-        )
+        fromDate,
+        toDate,
+        parseInt(merchantId as string)
+      )
       : getProfitAndBalance(fromDate, toDate);
 
     const merchantsBalanceProfit = await prisma.$queryRawTyped(
