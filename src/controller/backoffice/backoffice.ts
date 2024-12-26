@@ -32,7 +32,8 @@ const zeroMerchantWalletBalance = async (req: Request, res: Response) => {
 const adjustMerchantWalletBalance = async (req: Request, res: Response) => {
     try {
         const { target } = req.body;
-        if (!req.params.merchantId || !target) {
+        console.log(req.params.merchantId)
+        if (!req.params.merchantId || target == undefined) {
             throw new CustomError("Merchant Id and target balance must be given",404);
         }
         const result = await backOfficeService.adjustMerchantWalletBalance(Number(req.params.merchantId), target);
