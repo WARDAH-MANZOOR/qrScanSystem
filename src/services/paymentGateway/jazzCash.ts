@@ -522,7 +522,7 @@ const initiateJazzCashPayment = async (
             transaction,
             phone,
             "payin",
-            false
+            merchant.encrypted == "True" ? true: false
           );
         }
       }, {
@@ -1071,7 +1071,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
 
   const txn = await prisma.transaction.findFirst({
     where: {
-      transaction_id: payload.transactionId,
+      merchant_transaction_id: payload.transactionId,
       merchant_id: merchant?.merchant_id,
       providerDetails: {
         path: ['name'],

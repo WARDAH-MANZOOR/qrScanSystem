@@ -78,16 +78,8 @@ const getTransactions = async (req: Request, res: Response) => {
     if (merchantTransactionId) {
       customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
     }
-    let { page, limit } = req.query;
-    // Query based on provided parameters
-    let skip, take;
-    if (page && limit) {
-      skip = (+page > 0 ? parseInt(page as string) - 1: parseInt(page as string)) * parseInt(limit as string);
-      take = parseInt(limit as string);
-    }
     const transactions = await prisma.transaction.findMany({
-      ...(skip && { skip: +skip }),
-      ...(take && { take: +take }),
+      
       where: {
         ...(transactionId && { transaction_id: transactionId as string }),
         ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
@@ -119,28 +111,9 @@ const getTransactions = async (req: Request, res: Response) => {
     });
 
     let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.transaction.count();
+    
 
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
-      }
-    }
-    const response = {
-      transactions: transactions.map((transaction) => ({
-        ...transaction,
-        jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
-      })),
-      meta,
-    };
-
-    res.status(200).json(response);
+    res.status(200).json(transactions.map(transaction => ({...transaction, jazzCashMerchant: transaction.merchant.groups[0].merchant?.jazzCashMerchant})));
   } catch (err) {
     console.log(err)
     const error = new CustomError("Internal Server Error", 500);
@@ -186,3 +159,33 @@ export default {
   getProAndBal,
   ...analytics,
 };
+
+// let { page, limit } = req.query;
+//     // Query based on provided parameters
+//     let skip, take;
+//     if (page && limit) {
+//       skip = (+page > 0 ? parseInt(page as string) - 1: parseInt(page as string)) * parseInt(limit as string);
+//       take = parseInt(limit as string);
+//     }
+// ...(skip && { skip: +skip }),
+//       ...(take && { take: +take }),
+// if (page && take) {
+//   // Get the total count of transactions
+//   const total = await prisma.transaction.count();
+
+//   // Calculate the total number of pages
+//   const pages = Math.ceil(total / +take);
+//   meta = {
+//     total,
+//     pages,
+//     page: parseInt(page as string),
+//     limit: take
+//   }
+// }
+// const response = {
+//   transactions: transactions.map((transaction) => ({
+//     ...transaction,
+//     jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
+//   })),
+//   meta,
+// };
