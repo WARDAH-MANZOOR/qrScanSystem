@@ -194,7 +194,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         saveTxn,
         phone,
         "payin",
-        false
+        findMerchant.encrypted == "True" ? true : false
       );
       return {
         txnNo: saveTxn.merchant_transaction_id,
@@ -864,17 +864,10 @@ const getDisbursement = async (merchantId: number, params: any) => {
       }
     }
 
-    let { page, limit } = params;
-    // Query based on provided parameters
-    let skip, take;
-    if (page && limit) {
-      skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
-      take = parseInt(limit as string);
-    }
+    
     const disbursements = await prisma.disbursement
       .findMany({
-        ...(skip && { skip: +skip }),
-        ...(take && { take: +take }),
+        
         where: {
           ...customWhere,
 
@@ -909,27 +902,8 @@ const getDisbursement = async (merchantId: number, params: any) => {
     //   }
     // }
     let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.transaction.count();
-
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
-      }
-    }
-    const response = {
-      transactions: disbursements.map((transaction) => ({
-        ...transaction,
-        jazzCashMerchant: transaction.merchant,
-      })),
-      meta,
-    };
-    return response;
+    
+    return disbursements;
   } catch (error: any) {
     throw new CustomError(
       error?.error || "Unable to get disbursement",
@@ -1405,3 +1379,33 @@ export default {
 };
 
 // const axios = require('axios');
+
+// let { page, limit } = params;
+//     // Query based on provided parameters
+//     let skip, take;
+//     if (page && limit) {
+//       skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
+//       take = parseInt(limit as string);
+//     }
+// ...(skip && { skip: +skip }),
+//         ...(take && { take: +take }),
+// if (page && take) {
+//   // Get the total count of transactions
+//   const total = await prisma.transaction.count();
+
+//   // Calculate the total number of pages
+//   const pages = Math.ceil(total / +take);
+//   meta = {
+//     total,
+//     pages,
+//     page: parseInt(page as string),
+//     limit: take
+//   }
+// }
+// const response = {
+//   transactions: disbursements.map((transaction) => ({
+//     ...transaction,
+//     jazzCashMerchant: transaction.merchant,
+//   })),
+//   meta,
+// };
