@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+import { toZonedTime } from 'date-fns-tz';
 import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
 import CustomError from 'utils/custom_error.js';
 const prisma = new PrismaClient();
@@ -53,12 +55,12 @@ async function zeroMerchantWalletBalance(merchantId: number) {
 
 async function adjustMerchantWalletBalance(merchantId: number, factor: number) {
     try {
-        const {walletBalance} = await getWalletBalance(merchantId) as {walletBalance: number};
+        const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
         if (walletBalance > 0) {
             factor /= walletBalance;
         }
         else {
-            throw new CustomError("Balance is 0",500);
+            throw new CustomError("Balance is 0", 500);
         }
         await prisma.transaction.updateMany({
             where: {
@@ -104,22 +106,84 @@ async function settleTransactions(transactionIds: string[]) {
     try {
         const txns = await prisma.transaction.findMany({
             where: {
-                transaction_id: {in: transactionIds}
+                transaction_id: { in: transactionIds }
             }
-        })
-        if (txns.length <= 0) {
-            throw new CustomError("Transactions not found",404);
-        }
-        await prisma.transaction.updateMany({
-            where: {
-                transaction_id: { in: transactionIds },
-            },
-            data: {
-                settlement: true,
-                status: "completed",
-                response_message: "success"
-            },
         });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+
+        // Group transactions by merchant
+        const transactionsByMerchant = txns.reduce((acc, txn) => {
+            if (!acc[txn.merchant_id]) {
+                acc[txn.merchant_id] = [];
+            }
+            acc[txn.merchant_id].push(txn);
+            return acc;
+        }, {} as Record<number, typeof txns>);
+
+        // Process each merchant's transactions
+        for (const merchantId in transactionsByMerchant) {
+            const merchantTxns = transactionsByMerchant[merchantId];
+
+            const merchant = await prisma.merchantFinancialTerms.findUnique({
+                where: { merchant_id: parseInt(merchantId) },
+            });
+
+            if (!merchant) {
+                throw new CustomError(`Merchant with ID ${merchantId} not found`, 404);
+            }
+
+            await prisma.transaction.updateMany({
+                where: {
+                    transaction_id: { in: merchantTxns.map(txn => txn.transaction_id) },
+                },
+                data: {
+                    settlement: true,
+                    status: "completed",
+                    response_message: "success"
+                },
+            });
+
+            // Aggregate data for the settlement report
+            const transactionCount = merchantTxns.length;
+            const transactionAmount = merchantTxns.reduce((sum, txn) => sum.plus(txn?.original_amount ?? 0), new Decimal(0));
+            const totalCommission = transactionAmount.times(merchant.commissionRate ?? 0);
+            const totalGST = totalCommission.times(merchant.commissionGST ?? 0);
+            const totalWithholdingTax = transactionAmount.times(merchant.commissionWithHoldingTax ?? 0);
+            const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
+
+            const today = new Date();
+            const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+            // Upsert the settlement report
+            await prisma.settlementReport.upsert({
+                where: {
+                    merchant_id_settlementDate: {
+                        merchant_id: parseInt(merchantId),
+                        settlementDate,
+                    },
+                },
+                create: {
+                    merchant_id: parseInt(merchantId),
+                    settlementDate,
+                    transactionCount,
+                    transactionAmount,
+                    commission: totalCommission,
+                    gst: totalGST,
+                    withholdingTax: totalWithholdingTax,
+                    merchantAmount,
+                },
+                update: {
+                    transactionCount: { increment: transactionCount },
+                    transactionAmount: { increment: transactionAmount },
+                    commission: { increment: totalCommission },
+                    gst: { increment: totalGST },
+                    withholdingTax: { increment: totalWithholdingTax },
+                    merchantAmount: { increment: merchantAmount },
+                },
+            });
+        }
 
         return 'Transactions settled successfully.';
     } catch (error: any) {
