@@ -35,7 +35,7 @@ app.set("trust proxy",true);
 app.use(cors({
   origin: [
     'https://sahulatpay.com',
-    `https://sahulat-pay-v2-mckp.vercel.app`,
+    `https://merchant.sahulatpay.com`,
     'http://localhost:3005',
     'http://localhost:*',
     '*'
