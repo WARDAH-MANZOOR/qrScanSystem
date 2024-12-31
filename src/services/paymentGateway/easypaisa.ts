@@ -510,7 +510,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
     include: {
       easyPaisaMerchant: true,
     },
-  });
+  });  
   let data = JSON.stringify({
     orderId: param.orderId,
     storeId: merchant?.easyPaisaMerchant?.storeId,
