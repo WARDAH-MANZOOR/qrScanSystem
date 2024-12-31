@@ -1101,6 +1101,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     method: "post",
     maxBodyLength: Infinity,
     url: "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire",
+    //   "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire" 
     headers: {
       "Content-Type": "application/json",
     },

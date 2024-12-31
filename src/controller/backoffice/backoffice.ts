@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import backOfficeService from "services/backoffice/backoffice.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
@@ -84,11 +84,28 @@ const settleAllMerchantTransactions = async (req: Request, res: Response) => {
     }
 };
 
+const createTransactionController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (!req.params.merchantId) {
+            throw new CustomError("Merchant Id must be given",404);
+        }
+        if (!req.body.original_amount || !req.body.provider_name || !req.body.provider_account) {
+            throw new CustomError("original_amount, provider_name and provider_account must be given",404);
+        }
+        const result = await backOfficeService.createTransactionService(req.body, req.params.merchantId as string);
+        res.status(201).json(ApiResponse.success(result));
+    }
+    catch(err) {
+        next(err)
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
     removeMerchantFinanceData,
     settleAllMerchantTransactions,
     settleTransactions,
-    zeroMerchantWalletBalance
+    zeroMerchantWalletBalance,
+    createTransactionController
 }

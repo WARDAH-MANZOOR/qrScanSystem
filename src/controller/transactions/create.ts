@@ -51,7 +51,7 @@ export const validateTransaction = [
         .withMessage("Order Id must be a string")
 ];
 
-export const createTransactionRequest = async (req: Request, res: Response) => {
+const createTransactionRequest = async (req: Request, res: Response) => {
     const { id, original_amount, type, customerName, customerEmail,order_id } = req.body;
 
     // Validate data
@@ -102,3 +102,7 @@ export const createTransactionRequest = async (req: Request, res: Response) => {
          res.status(500).json(ApiResponse.error("Internal Server Error"));
     }
 };
+
+
+
+export {createTransactionRequest}

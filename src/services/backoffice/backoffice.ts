@@ -211,11 +211,78 @@ async function settleAllMerchantTransactions(merchantId: number) {
     }
 }
 
+const createTransactionService = async (body: any, merchant_id: string) => {
+    try {
+        const merchant = await prisma.merchantFinancialTerms.findUnique({
+            where: { merchant_id: parseInt(merchant_id) },
+        });
+        // Calculate Settlement Values
+        const commission = (Number(merchant?.commissionRate) ?? 1) * body.original_amount;
+        const gst = (Number(merchant?.commissionGST) ?? 1) * body.original_amount;
+        const withholdingTax = (Number(merchant?.commissionWithHoldingTax) ?? 1) * body.original_amount; // Example: 10% withholding tax
+        const merchantAmount = body.original_amount - commission - gst - withholdingTax;
+        const today = new Date();
+        const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return await prisma.$transaction(async (tx) => {
+            // Create Transaction
+            const transaction = await tx.transaction.create({
+                data: {
+                    merchant_id: Number(merchant_id),
+                    original_amount: body.original_amount,
+                    status: "completed",
+                    type: "wallet",
+                    date_time: new Date(),
+                    settlement: true,
+                    balance: merchantAmount,
+                    providerDetails: {
+                        name: body.provider_name,
+                        msisdn: body.provider_account,
+                    }
+                },
+            });
+            // Update or Create SettlementReport
+
+            const settlement = await tx.settlementReport.upsert({
+                where: {
+                    merchant_id_settlementDate: {
+                        merchant_id: Number(merchant_id),
+                        settlementDate,
+                    },
+                },
+                update: {
+                    transactionCount: { increment: 1 },
+                    transactionAmount: { increment: body.original_amount },
+                    commission: { increment: commission },
+                    gst: { increment: gst },
+                    withholdingTax: { increment: withholdingTax },
+                    merchantAmount: { increment: merchantAmount },
+                },
+                create: {
+                    merchant_id: Number(merchant_id),
+                    settlementDate,
+                    transactionCount: 1,
+                    transactionAmount: body.original_amount,
+                    commission,
+                    gst,
+                    withholdingTax,
+                    merchantAmount,
+                },
+            });
+            return { transaction, settlement };
+        })
+
+    }
+    catch (err) {
+        return err;
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
     removeMerchantFinanceData,
     settleAllMerchantTransactions,
     settleTransactions,
-    zeroMerchantWalletBalance
+    zeroMerchantWalletBalance,
+    createTransactionService
 }
