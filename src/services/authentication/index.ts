@@ -44,7 +44,7 @@ const setTokenCookie = (res: Response, token: string) => {
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production", // Secure cookie in production
-    sameSite: "strict", // Better security
+    sameSite: "none", // Better security
   });
 };
 
