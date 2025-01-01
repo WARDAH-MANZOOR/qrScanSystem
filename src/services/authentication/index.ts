@@ -41,12 +41,15 @@ const generateToken = (payload: any) => {
 };
 
 const setTokenCookie = (res: Response, token: string) => {
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Secure cookie in production
-    sameSite: "strict", // Better security
-  });
-};
+    // Secure + sameSite='none' is mandatory for cross-domain cookies
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,            // required if sameSite is 'none'
+      sameSite: 'none',        // needed for cross-site
+      domain: '.sahulatpay.com',
+      path: '/',
+    });
+  };
 
 const validateLoginData = [
   body("email").isEmail().withMessage("A valid email is required"),
