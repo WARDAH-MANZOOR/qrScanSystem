@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
 import CustomError from 'utils/custom_error.js';
+import { addWeekdays } from 'utils/date_method.js';
 const prisma = new PrismaClient();
 
 // Delete all finance data for a merchant
@@ -223,21 +225,32 @@ const createTransactionService = async (body: any, merchant_id: string) => {
         const merchantAmount = body.original_amount - commission - gst - withholdingTax;
         const today = new Date();
         const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
+        const currentTime = Date.now();
+        const fractionalMilliseconds = Math.floor(
+            (currentTime - Math.floor(currentTime)) * 1000
+        );
+        const txnRefNo = `T${formattedDate}${fractionalMilliseconds
+            .toString()
+            .padStart(5, "0")}`
         return await prisma.$transaction(async (tx) => {
             // Create Transaction
             const transaction = await tx.transaction.create({
                 data: {
+                    transaction_id: txnRefNo,
+                    merchant_transaction_id: txnRefNo,
                     merchant_id: Number(merchant_id),
                     original_amount: body.original_amount,
                     status: "completed",
                     type: "wallet",
                     date_time: new Date(),
-                    settlement: true,
+                    settlement: body.settlement,
                     balance: merchantAmount,
                     providerDetails: {
                         name: body.provider_name,
                         msisdn: body.provider_account,
-                    }
+                    },
+                    response_message: "success",
                 },
             });
             // Update or Create SettlementReport
@@ -268,6 +281,20 @@ const createTransactionService = async (body: any, merchant_id: string) => {
                     merchantAmount,
                 },
             });
+            if (!body.settlement) {
+                const scheduledAt = addWeekdays(
+                    new Date(),
+                    merchant?.settlementDuration as number
+                  ); // Call the function to get the next 2 weekdays
+                  let scheduledTask = await tx.scheduledTask.create({
+                    data: {
+                      transactionId: txnRefNo,
+                      status: "pending",
+                      scheduledAt: scheduledAt, // Assign the calculated weekday date
+                      executedAt: null, // Assume executedAt is null when scheduling
+                    },
+                  });
+            }
             return { transaction, settlement };
         })
 

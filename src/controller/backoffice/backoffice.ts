@@ -89,8 +89,8 @@ const createTransactionController = async (req: Request, res: Response, next: Ne
         if (!req.params.merchantId) {
             throw new CustomError("Merchant Id must be given",404);
         }
-        if (!req.body.original_amount || !req.body.provider_name || !req.body.provider_account) {
-            throw new CustomError("original_amount, provider_name and provider_account must be given",404);
+        if (!req.body.original_amount || !req.body.provider_name || !req.body.provider_account || !(req.body.settlement == true || req.body.settlement == false)) {
+            throw new CustomError("original_amount, provider_name, provider_account and settlement must be given",404);
         }
         const result = await backOfficeService.createTransactionService(req.body, req.params.merchantId as string);
         res.status(201).json(ApiResponse.success(result));
