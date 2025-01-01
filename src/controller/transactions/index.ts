@@ -13,6 +13,7 @@ import { getDateRange } from "../../utils/date_method.js";
 import { parse } from "date-fns";
 
 import analytics from "./analytics.js";
+import { Parser } from "json2csv";
 
 const createTransaction = async (
   req: Request,
@@ -148,6 +149,114 @@ const getTransactions = async (req: Request, res: Response) => {
   }
 };
 
+const exportTransactions = async (req: Request, res: Response) => {
+  try {
+    const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
+
+    let startDate = req.query?.start as string;
+    let endDate = req.query?.end as string;
+    const status = req.query?.status as string;
+    const search = req.query?.search || "" as string;
+    const msisdn = req.query?.msisdn || "" as string;
+
+    const customWhere = {} as any;
+
+    if (startDate && endDate) {
+      startDate = startDate.replace(" ", "+");
+      endDate = endDate.replace(" ", "+");
+
+      const todayStart = parse(
+        startDate,
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        new Date()
+      );
+      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
+      customWhere["date_time"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
+
+    if (status) {
+      customWhere["status"] = status;
+    }
+
+    if (search) {
+      customWhere["transaction_id"] = {
+        contains: search,
+      };
+    }
+
+    if (msisdn) {
+      customWhere["providerDetails"] = {
+        path: ['msisdn'],
+        equals: msisdn
+      };
+    }
+
+    if (merchantTransactionId) {
+      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+    }
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        ...(transactionId && { transaction_id: transactionId as string }),
+        ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+        ...(merchantName && {
+          merchant: {
+            username: merchantName as string,
+          },
+        }),
+        ...customWhere,
+      },
+      orderBy: {
+        date_time: "desc",
+      },
+    });
+
+    const totalAmount = transactions.reduce((sum, transaction) => sum + Number(transaction.settled_amount), 0);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+    
+    const fields = [
+      'transaction_id',
+      'merchant_transaction_id',
+      'date_time',
+      'original_amount',
+      'commission',
+      'settled_amount',
+      'response_message',
+      'status',
+      'type'
+    ];
+
+    const data = transactions.map(transaction => ({
+      transaction_id: transaction.transaction_id,
+      merchant_transaction_id: transaction.merchant_transaction_id,
+      date_time: transaction.date_time,
+      original_amount: transaction.original_amount,
+      commission: Number(transaction.original_amount) - Number(transaction.settled_amount),
+      settled_amount: transaction.settled_amount,
+      response_message: transaction.response_message,
+      status: transaction.status,
+      type: transaction.type,
+    }));
+
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(data);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('transaction_report.csv');
+    res.send(`${csv}\nTotal Settled Amount,,${totalAmount}`);
+  } catch (err) {
+    console.error(err);
+    const error = new CustomError("Internal Server Error", 500);
+    res.status(500).send(error);
+  }
+};
+
 const getProAndBal = async (req: Request, res: Response) => {
   try {
     const { merchantId, startDate, endDate, range } = req.query;
@@ -184,6 +293,7 @@ export default {
   createTransaction,
   getTransactions,
   getProAndBal,
+  exportTransactions,
   ...analytics,
 };
 
