@@ -63,7 +63,12 @@ const getSettlement = async (params: any, user: JwtPayload) => {
     let meta = {};
     if (page && take) {
       // Get the total count of transactions
-      const total = await prisma.transaction.count();
+      const total = await prisma.settlementReport.count({
+        where: {
+          ...filters,
+          ...customWhere,
+        }
+      });
 
       // Calculate the total number of pages
       const pages = Math.ceil(total / +take);
@@ -140,7 +145,7 @@ const exportSettlement = async (params: any, user: JwtPayload) => {
 
     // res.setHeader('Content-Type', 'text/csv');
     // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-    
+
     const fields = [
       'merchant',
       'merchant_id',
