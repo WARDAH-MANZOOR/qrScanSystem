@@ -32,7 +32,7 @@ const initiateEasyPaisa = async (
         req.body
       );
       if (result.statusCode != "0000") {
-        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result,result.statusCode != 500 ? result.statusCode : 201))
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
         return;
       }
     }
@@ -46,7 +46,7 @@ const initiateEasyPaisa = async (
         type: req.body.type
       }, merchantId)
       if (result.statusCode != "0000") {
-        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result,result.statusCode != 500 ? result.statusCode : 201));
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
         return;
       }
     }
@@ -211,7 +211,7 @@ const statusInquiry = async (
     const method = (await transactionService.getMerchantInquiryMethod(merchantId))?.easypaisaInquiryMethod;
     let result;
     console.log(req.ip)
-    console.log("channel: ",channel == "DIRECT")
+    console.log("channel: ", channel == "DIRECT")
     if (method == "WALLET") {
       if (channel == "DIRECT") {
         result = await easyPaisaService.easypaisainquiry(req.query, merchantId);
@@ -254,6 +254,19 @@ const getDisbursement = async (req: Request, res: Response, next: NextFunction):
     const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
     const merchant = await easyPaisaService.getDisbursement(id, query);
     res.status(200).json(ApiResponse.success(merchant));
+  } catch (error) {
+    next(error);
+  }
+}
+
+const exportDisbursement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { query } = req;
+    const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+    const merchant = await easyPaisaService.exportDisbursement(id, query);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+    res.send(merchant);
   } catch (error) {
     next(error);
   }
@@ -313,5 +326,6 @@ export default {
   disburseThroughBank,
   initiateEasyPaisaAsync,
   accountBalance,
-  transactionInquiry
+  transactionInquiry,
+  exportDisbursement
 };
