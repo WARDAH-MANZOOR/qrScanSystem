@@ -913,7 +913,12 @@ const getDisbursement = async (merchantId: number, params: any) => {
     let meta = {};
     if (page && take) {
       // Get the total count of transactions
-      const total = await prisma.transaction.count();
+      const total = await prisma.disbursement.count({
+        where: {
+          ...customWhere,
+
+        },
+      });
 
       // Calculate the total number of pages
       const pages = Math.ceil(total / +take);

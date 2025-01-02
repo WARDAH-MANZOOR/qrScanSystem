@@ -122,8 +122,20 @@ const getTransactions = async (req: Request, res: Response) => {
     let meta = {};
     if (page && take) {
       // Get the total count of transactions
-      const total = await prisma.transaction.count();
-
+      const total = await prisma.transaction.count(
+        {
+          where: {
+            ...(transactionId && { transaction_id: transactionId as string }),
+            ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+            ...(merchantName && {
+              merchant: {
+                username: merchantName as string,
+              },
+            }),
+            ...customWhere,
+          }
+        }
+      );
       // Calculate the total number of pages
       const pages = Math.ceil(total / +take);
       meta = {
@@ -219,7 +231,7 @@ const exportTransactions = async (req: Request, res: Response) => {
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-    
+
     const fields = [
       'transaction_id',
       'merchant_transaction_id',
