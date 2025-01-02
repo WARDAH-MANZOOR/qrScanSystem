@@ -11,5 +11,7 @@ const router = Router();
 router.get("/", [isLoggedIn], easyPaisaController.getDisbursement);
 router.get("/available-balance", [isLoggedIn], getWalletBalanceController);
 router.put("/disburse", [isLoggedIn], disburseTransactions);
+router.get("/export", [isLoggedIn], easyPaisaController.exportDisbursement);
+
 
 export default router;
