@@ -150,7 +150,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction",
+      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
