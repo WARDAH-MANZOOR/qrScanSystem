@@ -525,7 +525,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction",
+    url: "https://sea-turtle-app-bom3q.ondigitalocean.app/inquiry",
     headers: {
       Credentials: base64Credentials,
       "Content-Type": "application/json",
