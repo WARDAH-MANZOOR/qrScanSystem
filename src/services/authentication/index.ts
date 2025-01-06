@@ -41,15 +41,15 @@ const generateToken = (payload: any) => {
 };
 
 const setTokenCookie = (res: Response, token: string) => {
-    // Secure + sameSite='none' is mandatory for cross-domain cookies
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,            // required if sameSite is 'none'
-      sameSite: 'none',        // needed for cross-site
+  // Secure + sameSite='none' is mandatory for cross-domain cookies
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: true,            // required if sameSite is 'none'
+    sameSite: 'none',        // needed for cross-site
       domain: '.sahulatpay.com',
-      path: '/',
-    });
-  };
+    path: '/',
+  });
+};
 
 const validateLoginData = [
   body("email").isEmail().withMessage("A valid email is required"),
@@ -130,7 +130,7 @@ const createAPIKey = async (userId: number) => {
 
     return {
       key: createKey,
-      message:"API key created successfully",
+      message: "API key created successfully",
     };
   } catch (error) {
     console.error("Transaction rolled back due to error:", error);
@@ -158,7 +158,7 @@ const createDecryptionKey = async (userId: number) => {
 
     return {
       key: hashedKey,
-      message:"API key created successfully",
+      message: "API key created successfully",
     };
   } catch (error) {
     console.error("Transaction rolled back due to error:", error);
