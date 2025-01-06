@@ -689,7 +689,7 @@ const createDisbursement = async (
 
     const ma2ma: any = await axios
       .post(
-        "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/MaToMA/Transfer",
+        "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma",
         {
           Amount: obj.amount ? obj.amount : merchantAmount,
           MSISDN: findDisbureMerch.MSISDN,
@@ -1155,7 +1155,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       "X-Hash-Value": `${creatHashKey}`,
     };
 
-    let data = JSON.stringify({
+    let data = {
       AccountNumber: obj.accountNo,
       BankTitle: bank.BankTitle,
       MSISDN: findDisbureMerch.MSISDN,
@@ -1163,12 +1163,12 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       BankShortName: bank.BankShortName,
       TransactionPurpose: obj.purpose,
       Amount: obj.amount,
-    });
+    };
 
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Inquiry",
+      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
       headers: headers,
       data: data,
     };
@@ -1216,8 +1216,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       })
       throw new CustomError("Error conducting transfer inquiry", 500);
     }
-    console.log()
-    data = JSON.stringify({
+    let data3 = {
       AccountNumber: obj.accountNo,
       BankTitle: bank.BankTitle,
       MSISDN: findDisbureMerch.MSISDN,
@@ -1229,14 +1228,14 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       Branch: res.data.Branch,
       Username: res.data.Username,
       ReceiverIBAN: res.data.ReceiverIBAN,
-    });
+    };
 
     config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://rgw.8798-f464fa20.eu-de.ri1.apiconnect.appdomain.cloud/tmfb/gateway/SubscriberIBFT/Transfer",
+      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
       headers: headers,
-      data: data,
+      data: data3,
     };
 
     let res2 = await axios.request(config);
