@@ -29,7 +29,7 @@ async function getToken(merchantId: string) {
       throw new CustomError("Merchant not found", 404);
     }
 
-    if (!findMerchant.EasyPaisaDisburseAccountId) {
+    if (!findMerchant.JazzCashDisburseAccountId) {
       throw new CustomError("Disbursement account not assigned.", 404);
     }
 
