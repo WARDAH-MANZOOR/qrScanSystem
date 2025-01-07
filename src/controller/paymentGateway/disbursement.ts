@@ -18,7 +18,7 @@ const getWalletBalanceController = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const merchantId = (req.user as JwtPayload)?.id;
+  const merchantId = (req.user as JwtPayload)?.merchant_id;
   if (!merchantId) {
     res.status(401).json({ message: "Unauthorized" });
     return;

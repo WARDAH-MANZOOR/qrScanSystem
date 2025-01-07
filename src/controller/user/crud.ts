@@ -64,7 +64,11 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
   const merchantId = (req.user as JwtPayload)?.merchant_id; 
   try {
-    await userService.deleteUser(parseInt(userId),merchantId);
+    const result = await userService.deleteUser(parseInt(userId),merchantId);
+    if (!result) {
+      res.status(404).json(ApiResponse.error('User not found',404));
+      return;
+    }
     res.status(204).send(ApiResponse.success('User deleted successfully'));
   } catch (error) {
     console.error(error);
