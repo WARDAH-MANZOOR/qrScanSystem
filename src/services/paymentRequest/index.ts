@@ -208,13 +208,13 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
 
 const getPaymentRequest = async (obj: any) => {
   try {
-    if (!obj.user.id) {
+    if (!obj.user.merchant_id) {
       throw new CustomError("User not found", 400);
     }
 
     const where: any = {
       deletedAt: null,
-      userId: obj.user.id,
+      userId: obj.user.merchant_id,
     };
 
     if (obj?.id) {
