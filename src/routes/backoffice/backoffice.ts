@@ -18,5 +18,7 @@ router.post('/settle-all/:merchantId', [isLoggedIn, isAdmin], backOfficeControll
 
 router.post("/dummy-transaction/:merchantId",[isLoggedIn, isAdmin], backOfficeController.createTransactionController)
 
+router.delete("/delete-merchant-data/:merchantId",[isLoggedIn, isAdmin], backOfficeController.deleteMerchantDataController)
+
 
 export default router;
