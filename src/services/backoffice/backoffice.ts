@@ -304,6 +304,55 @@ const createTransactionService = async (body: any, merchant_id: string) => {
     }
 }
 
+async function deleteMerchantData(merchantId: number) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Delete all dependent data
+      await tx.userGroup.deleteMany({
+        where: { merchantId },
+      });
+
+      await tx.merchantFinancialTerms.deleteMany({
+        where: { merchant_id: merchantId },
+      });
+
+      await tx.merchantProviderCredential.deleteMany({
+        where: { merchant_id: merchantId },
+      });
+
+      await tx.disbursement.deleteMany({
+        where: { merchant_id: merchantId },
+      });
+
+      await tx.settlementReport.deleteMany({
+        where: { merchant_id: merchantId },
+      });
+
+      await tx.transaction.deleteMany({
+        where: { merchant_id: merchantId },
+      });
+
+      // Finally, delete the merchant
+      await tx.merchant.delete({
+        where: { merchant_id: merchantId },
+      });
+
+      await tx.user.delete({
+        where: { id: merchantId },
+      })
+    },{
+        timeout: 10000
+    });
+
+    console.log(`Merchant with ID ${merchantId} and all related data have been deleted.`);
+  } catch (error) {
+    console.error(`Error deleting merchant with ID ${merchantId}:`, error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -311,5 +360,6 @@ export default {
     settleAllMerchantTransactions,
     settleTransactions,
     zeroMerchantWalletBalance,
-    createTransactionService
+    createTransactionService,
+    deleteMerchantData
 }
