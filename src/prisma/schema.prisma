@@ -114,6 +114,15 @@ model Merchant {
   easyPaisaMerchant          EasyPaisaMerchant?         @relation(fields: [easyPaisaMerchantId], references: [id])
   SwichMerchant              SwichMerchant?             @relation(fields: [swichMerchantId], references: [id])
 
+// New Backup Wallets
+  backupJazzCashWalletId    Int?
+  backupEasypaisaWalletId   Int?
+
+  // Relations for Backup Wallets
+  backupJazzCashWallet      JazzCashMerchant?           @relation("BackupJazzCashWallet", fields: [backupJazzCashWalletId], references: [id])
+  backupEasypaisaWallet     EasyPaisaMerchant?          @relation("BackupEasypaisaWallet", fields: [backupEasypaisaWalletId], references: [id])
+  transactionLimit          Decimal?
+
   @@index([phone_number])
 }
 
@@ -265,6 +274,7 @@ model JazzCashMerchant {
   metadata       Json       @default("{}")
   merchantId     Int
   merchant       Merchant[] // One-to-many relationship with Merchant
+  backupMerchants Merchant[]    @relation("BackupJazzCashWallet")
 }
 
 model EasyPaisaMerchant {
@@ -275,6 +285,7 @@ model EasyPaisaMerchant {
   metadata      Json       @default("{}")
   accountNumber String?
   merchant      Merchant[] // One-to-many relationship with Merchant
+  backupMerchants Merchant[]    @relation("BackupEasypaisaWallet")
 }
 
 model SwichMerchant {
