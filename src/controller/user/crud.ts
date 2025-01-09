@@ -18,11 +18,10 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Get User
-const getUser = async (req: Request, res: Response): Promise<void> => {
-  const { userId } = req.params;
+const getUsers = async (req: Request, res: Response): Promise<void> => {
   const merchantId = (req.user as JwtPayload)?.merchant_id; 
   try {
-    const user = await userService.getUserById(parseInt(userId),merchantId);
+    const user = await userService.getUsers(merchantId);
     if (!user) {
       res.status(404).json(ApiResponse.error('User not found',404));
       return;
@@ -78,7 +77,7 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
 
 export default {
   createUser,
-  getUser,
+  getUsers,
   updateUser,
   deleteUser
 }

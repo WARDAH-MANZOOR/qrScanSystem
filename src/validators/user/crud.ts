@@ -21,11 +21,6 @@ const createUserValidator = [
     .withMessage('Merchant ID must be an integer'),
 ];
 
-// Validator for fetching a user by ID
-const getUserValidator = [
-  param('userId').isInt().withMessage('User ID must be an integer'),
-];
-
 // Validator for updating a user
 const updateUserValidator = [
   param('userId').isInt().withMessage('User ID must be an integer'),
@@ -68,7 +63,6 @@ const handleValidationErrors = (req: any, res: any, next: any) => {
 
 export default {
     createUserValidator,
-    getUserValidator,
     updateUserValidator,
     deleteUserValidator,
     handleValidationErrors,
