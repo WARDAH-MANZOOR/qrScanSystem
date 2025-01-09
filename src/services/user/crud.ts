@@ -36,30 +36,21 @@ export const createUser = async (fullName: string, email: string, password: stri
 };
 
 // Get User by ID
-export const getUserById = async (userId: number, merchantId: number): Promise<User | null> => {
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
+export const getUsers = async (merchantId: number): Promise<User[] | null> => {
+    let usersOfMerchant = await prisma.userGroup.findMany({
+        where: {
+            merchantId,
+        },
         include: {
-            groups: {
-                include: {
-                    group: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true,
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            user: true,
         },
     });
-    if (user?.groups[0].merchantId !== merchantId) {
-        return null;
-    }
+    if (!usersOfMerchant) {
+        return null
+        }
+    let users = usersOfMerchant.map((user) => user.user);
 
-    return user;
+    return users;
 };
 
 // Update User
@@ -129,7 +120,7 @@ export const deleteUser = async (userId: number, merchantId: number): Promise<Us
 
 export default {
     createUser,
-    getUserById,
+    getUsers,
     updateUser,
     deleteUser,
 }
