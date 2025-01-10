@@ -33,8 +33,8 @@ const updateMerchant = async (payload: Merchant) => {
     encrypted,
     callback_mode,
     payout_callback,
-    backupJazzCashWalletId,
-    backupEasypaisaWalletId,
+    // backupJazzCashWalletId,
+    // backupEasypaisaWalletId,
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
