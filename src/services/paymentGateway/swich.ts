@@ -125,7 +125,8 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         saveTxn,
         payload.phone,
         "payin",
-        false
+        false,
+        true
       );
       return {
         txnNo: saveTxn.merchant_transaction_id,
@@ -262,6 +263,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             saveTxn,
             payload.phone,
             "payin",
+            true,
             true
           );
         } else {

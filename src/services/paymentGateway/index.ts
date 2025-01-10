@@ -369,7 +369,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           },
           body.phone,
           "payout",
-          stringToBoolean(findMerchant.encrypted as string)
+          stringToBoolean(findMerchant.encrypted as string),
+          false
         );
 
         return {
@@ -614,7 +615,8 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         },
         body.phone,
         "payout",
-        stringToBoolean(findMerchant.encrypted as string)
+        stringToBoolean(findMerchant.encrypted as string),
+        false
       );
 
       return {

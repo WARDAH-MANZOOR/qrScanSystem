@@ -11,7 +11,7 @@ import { addWeekdays } from "../../utils/date_method.js";
 import axios from "axios";
 import { transactionService } from "../../services/index.js";
 import { callbackEncrypt } from "../../utils/enc_dec.js";
-import { JsonObject } from "@prisma/client/runtime/library";
+import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 
 const isValidTransactionRequest = (data: TransactionRequest) => {
   const errors = [];
@@ -269,24 +269,24 @@ const createTxn = async (obj: any) => {
   data["transaction_id"] = obj.transaction_id;
   return await prisma.$transaction(async (tx) => {
     try {
-    return await tx.transaction.create({
-      data: {
-        // order_id: obj.order_id,
-        ...data,
-        date_time: new Date(),
-        original_amount: obj.amount,
-        type: obj.type,
-        status: obj.status,
-        merchant_id: obj.merchant_id,
-        settled_amount: settledAmount,
-        balance: settledAmount,
-        providerDetails: obj.providerDetails,
-      },
-    });
-  }
-  catch(err) {
-    throw new CustomError("Transaction not Created",400)
-  }
+      return await tx.transaction.create({
+        data: {
+          // order_id: obj.order_id,
+          ...data,
+          date_time: new Date(),
+          original_amount: obj.amount,
+          type: obj.type,
+          status: obj.status,
+          merchant_id: obj.merchant_id,
+          settled_amount: settledAmount,
+          balance: settledAmount,
+          providerDetails: obj.providerDetails,
+        },
+      });
+    }
+    catch (err) {
+      throw new CustomError("Transaction not Created", 400)
+    }
   });
 };
 
@@ -332,10 +332,80 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
     timeout: 60000,
     maxWait: 60000
   });
-
 };
 
-const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean) => {
+async function switchPaymentProvider(merchantId: number, transactionId: string): Promise<string> {
+  const transaction = await prisma.transaction.findUnique({
+    where: { merchant_transaction_id: transactionId },
+    include: {
+      merchant: {
+        select: {
+          id: true,
+        }
+      }
+    }
+  });
+
+  if (!transaction?.merchant.id) throw new Error('Merchant not found');
+  const merchant = await prisma.merchant.findUnique({
+    where: { merchant_id: transaction.merchant.id }
+  })
+  if (!merchant) throw new Error('Merchant not found');
+  let transactions = await prisma.transaction.aggregate({
+    _sum: {
+      original_amount: true,
+    },
+    where: {
+      status: 'completed',
+      merchant_id: transaction.merchant.id,
+      providerDetails: {
+        path: ["name"],
+        equals: "Easypaisa"
+      },
+      createdAt: { gte: merchant?.lastSwich }, // From lastSwich date
+    },
+  });
+
+  const usage = transactions._sum.original_amount || 0;
+  console.log(`Usage: ${usage}, EasyPaisa Limit: ${merchant?.easypaisaLimit}, Switch Limit: ${merchant?.swichLimit}`);
+  console.log(`Current Payment Method: ${merchant?.easypaisaPaymentMethod}`);
+  console.log(`${usage} > (${merchant?.swichLimit} as Decimal)`,new Decimal(merchant?.easypaisaLimit as Decimal).greaterThan(0) && new Decimal(usage).greaterThan(merchant?.easypaisaLimit as Decimal));
+  console.log(`${usage} > (${merchant?.easypaisaLimit} as Decimal)`,new Decimal(merchant?.swichLimit as Decimal).greaterThan(0) && new Decimal(usage).greaterThan(merchant?.easypaisaLimit as Decimal))
+  if (merchant?.easypaisaPaymentMethod == "DIRECT") {
+    if (new Decimal(merchant?.easypaisaLimit as Decimal).greaterThan(0) && new Decimal(usage).greaterThan(merchant?.easypaisaLimit as Decimal)) {
+      await updateMerchantSwitch('SWITCH', merchant.merchant_id);
+      return "switch";
+    }
+    else {
+      return 'direct';
+    }
+  }
+  else {
+    if (new Decimal(merchant?.swichLimit as Decimal).greaterThan(0) && new Decimal(usage).greaterThan(merchant?.easypaisaLimit as Decimal)) {
+      await updateMerchantSwitch('DIRECT', merchant?.merchant_id as number);
+      return "direct";
+    }
+    else {
+      return 'switch'
+    }
+  }
+}
+
+// Helper function to update the `lastSwich` field
+async function updateMerchantSwitch(provider: "DIRECT" | "SWITCH", merchantId: number) {
+  await prisma.merchant.update({
+    where: { merchant_id: merchantId },
+    data: {
+      easypaisaPaymentMethod: provider,
+      lastSwich: new Date(), // Update last switch timestamp
+    },
+  });
+
+  console.log(`Switched to ${provider} for merchant ID: ${merchantId}`);
+}
+
+
+const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean, checkLimit: boolean) => {
   setTimeout(async () => {
     try {
       console.log("Callback Payload: ", payload);
@@ -360,13 +430,16 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         },
         data: data
       };
-      
+
       let res = await axios.request(config)
       if (res.data == "success") {
         console.log("Callback sent successfully")
       }
       else {
         console.log("Error sending callback")
+      }
+      if (checkLimit) {
+        console.log(await switchPaymentProvider(payload.merchant_id, payload.merchant_transaction_id));
       }
     }
     catch (err) {
@@ -419,7 +492,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
       }
     })
     if (!id) {
-      throw new CustomError("Merchant Not Found",400)
+      throw new CustomError("Merchant Not Found", 400)
     }
     const txn = await prisma.transaction.findFirst({
       where: {

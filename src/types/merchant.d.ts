@@ -27,6 +27,8 @@ export interface Merchant {
   encrypted: string;
   callback_mode: "SINGLE" | "DOUBLE";
   payout_callback: string;
+  easypaisaLimit: number;
+  swichLimit: number;
 }
 
 export interface IjazzCashConfigParams {
