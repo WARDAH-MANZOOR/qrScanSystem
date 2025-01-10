@@ -520,7 +520,8 @@ const initiateJazzCashPayment = async (
             transaction,
             phone,
             "payin",
-            merchant.encrypted == "True" ? true : false
+            merchant.encrypted == "True" ? true : false,
+            false
           );
         }
       }, {
@@ -837,7 +838,8 @@ const processWalletPayment = async (
       { merchant_transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date },
       phone,
       "payin",
-      true
+      true,
+      false
     );
   }
 };

@@ -124,11 +124,12 @@ const isAdmin: RequestHandler = async (req: Request, res: Response, next: NextFu
   );
 };
 
+
 export {
   isLoggedIn,
   restrict,
   errorHandler,
   restrictMultiple,
   authorize,
-  isAdmin,
+  isAdmin
 };

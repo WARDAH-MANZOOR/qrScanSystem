@@ -195,7 +195,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         saveTxn,
         phone,
         "payin",
-        findMerchant.encrypted == "True" ? true : false
+        findMerchant.encrypted == "True" ? true : false,
+        true
       );
       return {
         txnNo: saveTxn.merchant_transaction_id,
@@ -328,6 +329,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             saveTxn,
             phone,
             "payin",
+            true,
             true
           );
         } else {
@@ -792,11 +794,12 @@ const createDisbursement = async (
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: zonedDate,
             merchant_transaction_id: disbursement.merchant_custom_order_id,
-            merchant_id: findMerchant.merchant_id
+            merchant_id: findMerchant.merchant_id,
           },
           obj.phone,
           "payout",
-          stringToBoolean(findMerchant.encrypted as string)
+          stringToBoolean(findMerchant.encrypted as string),
+          false
         );
 
         return {
@@ -1329,11 +1332,12 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
             original_amount: obj.amount ? obj.amount : merchantAmount,
             date_time: zonedDate,
             merchant_transaction_id: disbursement.merchant_custom_order_id,
-            merchant_id: findMerchant.merchant_id
+            merchant_id: findMerchant.merchant_id,
           },
           obj.phone,
           "payout",
-          stringToBoolean(findMerchant.encrypted as string)
+          stringToBoolean(findMerchant.encrypted as string),
+          false
         );
 
         return {
