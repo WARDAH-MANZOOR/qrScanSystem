@@ -32,7 +32,9 @@ const updateMerchant = async (payload: Merchant) => {
     JazzCashDisburseAccountId,
     encrypted,
     callback_mode,
-    payout_callback
+    payout_callback,
+    backupJazzCashWalletId,
+    backupEasypaisaWalletId,
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
@@ -73,7 +75,9 @@ const updateMerchant = async (payload: Merchant) => {
           JazzCashDisburseAccountId,
           encrypted,
           callback_mode,
-          payout_callback: payoutCallbackUrl
+          payout_callback: payoutCallbackUrl,
+          // backupEasypaisaWalletId,
+          // backupJazzCashWalletId
         },
         where: { merchant_id: +merchantId },
       });
@@ -173,7 +177,9 @@ const addMerchant = async (payload: Merchant) => {
     JazzCashDisburseAccountId,
     encrypted,
     callback_mode,
-    payout_callback
+    payout_callback,
+    backupEasypaisaWalletId,
+    backupJazzCashWalletId
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -213,7 +219,9 @@ const addMerchant = async (payload: Merchant) => {
           JazzCashDisburseAccountId,
           encrypted,
           callback_mode,
-          payout_callback: payoutCallbackUrl
+          payout_callback: payoutCallbackUrl,
+          // backupEasypaisaWalletId,
+          // backupJazzCashWalletId
         },
       });
 
