@@ -116,7 +116,7 @@ model Merchant {
 
   easypaisaLimit             Decimal?                   @default(0)
   swichLimit                 Decimal?                   @default(0)
-
+  lastSwich                  DateTime                   @default(now())
   @@index([phone_number])
 }
 
