@@ -230,9 +230,7 @@ const createTransactionService = async (body: any, merchant_id: string) => {
         const fractionalMilliseconds = Math.floor(
             (currentTime - Math.floor(currentTime)) * 1000
         );
-        const txnRefNo = `T${formattedDate}${fractionalMilliseconds
-            .toString()
-            .padStart(5, "0")}`
+        const txnRefNo = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
         return await prisma.$transaction(async (tx) => {
             // Create Transaction
             const transaction = await tx.transaction.create({

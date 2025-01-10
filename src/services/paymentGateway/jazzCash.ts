@@ -162,7 +162,7 @@ const initiateJazzCashPayment = async (
     // Format the date in the desired format
     const formattedDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone });
 
-    const expiryDate = format(zonedDate2,'yyyyMMddHHmmss',{timeZone})
+    const expiryDate = format(zonedDate2, 'yyyyMMddHHmmss', { timeZone })
 
     console.log(formattedDate); // Outputs date in "yyyyMMddHHmmss" format in PKT
     let jazzCashMerchantIntegritySalt = "";
@@ -224,7 +224,7 @@ const initiateJazzCashPayment = async (
         if (!jazzCashMerchant) {
           throw new CustomError("Payment Merchant not found", 404);
         }
-
+        // const wallet = processTransaction(merchant, paymentData.amount, "jazzcash");
         // Update JazzCash Credentials
         jazzCashCredentials.pp_MerchantID = jazzCashMerchant.jazzMerchantId;
         jazzCashCredentials.pp_Password = jazzCashMerchant.password;
@@ -237,7 +237,7 @@ const initiateJazzCashPayment = async (
         throw new CustomError("Merchant UID is required", 400);
       }
 
-      let data: { transaction_id?: string, merchant_transaction_id?: string;  } = {};
+      let data: { transaction_id?: string, merchant_transaction_id?: string; } = {};
 
       // Transaction Reference Number
       if (paymentData.transaction_id) {
@@ -257,9 +257,7 @@ const initiateJazzCashPayment = async (
           );
         }
       } else {
-        txnRefNo = `T${formattedDate}${fractionalMilliseconds
-          .toString()
-          .padStart(5, "0")}`;
+        txnRefNo = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`;
 
         // if (paymentData.order_id) {
         //   data["transaction_id"] = paymentData.order_id;
@@ -297,11 +295,11 @@ const initiateJazzCashPayment = async (
           });
           transactionCreated = true;
         }
-        catch(err) {
-          throw new CustomError("Transaction not Created",400)
+        catch (err) {
+          throw new CustomError("Transaction not Created", 400)
         }
       }
-      console.log("Data: ",data);
+      console.log("Data: ", data);
       // Return necessary data for further processing
       return {
         merchant,
@@ -318,7 +316,7 @@ const initiateJazzCashPayment = async (
     const { merchant, integritySalt } = result;
     refNo = result.refNo;
     txnRefNo = result.txnRefNo;
-    console.log("Ref No: ",refNo)
+    console.log("Ref No: ", refNo)
     jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
 
@@ -448,7 +446,7 @@ const initiateJazzCashPayment = async (
         ) {
           return;
         }
-        console.log("Ref No: ",refNo)
+        console.log("Ref No: ", refNo)
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
@@ -522,7 +520,7 @@ const initiateJazzCashPayment = async (
             transaction,
             phone,
             "payin",
-            merchant.encrypted == "True" ? true: false
+            merchant.encrypted == "True" ? true : false
           );
         }
       }, {
@@ -591,7 +589,7 @@ const initiateJazzCashPaymentAsync = async (
 
     let date = new Date();
     // Start Prisma Transaction
-    let data: {transaction_id?: string; merchant_transaction_id?: string} = {};
+    let data: { transaction_id?: string; merchant_transaction_id?: string } = {};
     const result = await prisma.$transaction(async (tx) => {
       const merchant = await fetchMerchantAndJazzCash(tx, merchant_uid as string);
       jazzCashCredentials.pp_MerchantID = merchant.jazzCashMerchant.jazzMerchantId;
@@ -738,7 +736,7 @@ const createTransactionReferenceNumber = (
   if (paymentData.transaction_id) {
     return paymentData.transaction_id;
   }
-  return `T${txnDateTime}${fractionalMilliseconds.toString().padStart(5, "0")}`;
+  return `T${txnDateTime}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`;
 };
 
 const calculateSettledAmount = (amount: number, commissions: any[]) => {
@@ -769,7 +767,7 @@ const prepareJazzCashPayload = (
   // Convert the date to the Pakistan timezone
   const zonedDate = toZonedTime(date3, timeZone);
 
-  const expiryDate = format(zonedDate,'yyyyMMddHHmmss',{timeZone})
+  const expiryDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone })
 
   const sendData: any = {
     pp_Version: "1.1",
@@ -1109,7 +1107,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   };
 
   let res = await axios.request(config);
-  console.log("Response: ",res.data)
+  console.log("Response: ", res.data)
   if (res.data.pp_ResponseCode == "000") {
     delete res.data.pp_SecureHash;
     return {
@@ -1158,10 +1156,14 @@ const initiateJazzCashCnicPayment = async (
     if (!paymentData.amount || !paymentData.phone || !paymentData.cnic) {
       throw new CustomError("Amount, phone, and CNIC are required", 400);
     }
-
+    const time = Date.now();
+    const fractionalMilliseconds = Math.floor(
+      (time - Math.floor(time)) * 1000
+    )
     // Generate Transaction Reference Number
-    const txnRefNo = `T${formattedDate}${Math.floor(Math.random() * 10000)}`;
-    let data2: {transaction_id?: string; merchant_transaction_id?: string; } = {};
+    // const txnRefNo = `T${formattedDate}${Math.floor(Math.random() * 10000)}`;
+    const txnRefNo = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`;
+    let data2: { transaction_id?: string; merchant_transaction_id?: string; } = {};
     if (paymentData.order_id) {
       data2['merchant_transaction_id'] = paymentData.order_id;
     }
@@ -1211,9 +1213,9 @@ const initiateJazzCashCnicPayment = async (
         jazzCashMerchant,
         txnRefNo,
       };
-    },{
+    }, {
       timeout: 60000,
-      maxWait:60000
+      maxWait: 60000
     });
 
     // Prepare Payload for JazzCash Wallet API
@@ -1247,9 +1249,9 @@ const initiateJazzCashCnicPayment = async (
     // Send Request to JazzCash Wallet API
     const headers = { "Content-Type": "application/json" };
     let part = "";
-    if(paymentData.use_sandbox == 'yes') {
+    if (paymentData.use_sandbox == 'yes') {
       part = "https://sandbox.jazzcash.com.pk/";
-    } 
+    }
     else {
       part = "https://payments.jazzcash.com.pk/"
     }
@@ -1270,7 +1272,7 @@ const initiateJazzCashCnicPayment = async (
     console.log(data);
     return {
       message: data.pp_ResponseMessage,
-      statusCode: data.pp_ResponseCode == "000" ? 200: 201,
+      statusCode: data.pp_ResponseCode == "000" ? 200 : 201,
       txnRefNo,
     };
   } catch (error: any) {
