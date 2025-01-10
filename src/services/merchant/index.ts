@@ -178,8 +178,8 @@ const addMerchant = async (payload: Merchant) => {
     encrypted,
     callback_mode,
     payout_callback,
-    backupEasypaisaWalletId,
-    backupJazzCashWalletId
+    // backupEasypaisaWalletId,
+    // backupJazzCashWalletId
   } = payload;
 
   if (settlementDuration == undefined) {
