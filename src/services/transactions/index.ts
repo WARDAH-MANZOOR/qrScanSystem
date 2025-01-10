@@ -254,9 +254,7 @@ const createTransactionId = () => {
     (currentTime - Math.floor(currentTime)) * 1000
   );
 
-  const txnRefNo = `T${txnDateTime}${fractionalMilliseconds
-    .toString()
-    .padStart(5, "0")}`;
+  const txnRefNo = `T${txnDateTime}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`;
   return txnRefNo;
 }
 const createTxn = async (obj: any) => {
