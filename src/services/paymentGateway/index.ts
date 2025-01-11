@@ -119,6 +119,17 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       throw new CustomError("Disbursement account not found", 404);
     }
 
+    if (body.order_id) {
+      const checkOrder = await prisma.disbursement.findFirst({
+        where: {
+          merchant_custom_order_id: body.order_id,
+        },
+      });
+      if (checkOrder) {
+        throw new CustomError("Order ID already exists", 400);
+      }
+    }
+
     // Fetch merchant financial terms
     let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
 
@@ -442,6 +453,16 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     throw new CustomError("Number should start with 92", 400);
   }
 
+  if (body.order_id) {
+    const checkOrder = await prisma.disbursement.findFirst({
+      where: {
+        merchant_custom_order_id: body.order_id,
+      },
+    });
+    if (checkOrder) {
+      throw new CustomError("Order ID already exists", 400);
+    }
+  }
   // Fetch merchant financial terms
   let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
 
