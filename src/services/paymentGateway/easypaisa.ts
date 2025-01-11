@@ -618,6 +618,16 @@ const createDisbursement = async (
       throw new CustomError("Disbursement account not assigned.", 404);
     }
 
+    if (obj.order_id) {
+      const checkOrder = await prisma.disbursement.findFirst({
+        where: {
+          merchant_custom_order_id: obj.order_id,
+        },
+      });
+      if (checkOrder) {
+        throw new CustomError("Order ID already exists", 400);
+      }
+    }
     // find disbursement merchant
     const findDisbureMerch: any = await easyPaisaDisburse
       .getDisburseAccount(findMerchant.EasyPaisaDisburseAccountId)
@@ -1085,6 +1095,17 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
       throw new CustomError("Disbursement account not found", 404);
     }
 
+    if (obj.order_id) {
+      const checkOrder = await prisma.disbursement.findFirst({
+        where: {
+          merchant_custom_order_id: obj.order_id,
+        },
+      });
+      if (checkOrder) {
+        throw new CustomError("Order ID already exists", 400);
+      }
+    }
+    
     // Phone number validation (must start with 92)
     // if (!obj.phone.startsWith("92")) {
     //   throw new CustomError("Number should start with 92", 400);
