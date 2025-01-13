@@ -152,6 +152,37 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
+      // Fetch the sum of all jazzcash and easypaisa transactions within the customWhere range
+      fetchAggregates.push(
+        prisma.transaction.aggregate({
+          _sum: { original_amount: true },
+          where: {
+            ...customWhere,
+            merchant_id: +merchantId,
+            status: "completed",
+            providerDetails: {
+              path: ['name'],
+              equals: 'JazzCash'
+            },
+          },
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+      );
+
+      fetchAggregates.push(
+        prisma.transaction.aggregate({
+          _sum: { original_amount: true },
+          where: {
+            ...customWhere,
+            merchant_id: +merchantId,
+            status: "completed",
+            providerDetails: {
+              path: ['name'],
+              equals: 'Easypaisa'
+            },
+          },
+        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+      );
+
       // Execute all queries in parallel
       const [
         totalTransactions,
@@ -161,6 +192,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         latestTransactions,
         lastWeek,
         thisWeek,
+        jazzCashTotal,
+        easyPaisaTotal
       ] = await Promise.all(fetchAggregates);
 
       // Build and return the full dashboard summary
@@ -181,6 +214,12 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             ?.original_amount || 0,
         thisWeek:
           (thisWeek as { _sum: { original_amount: number | null } })._sum
+            ?.original_amount || 0,
+        jazzCashTotal:
+          (jazzCashTotal as { _sum: { original_amount: number | null } })._sum
+            ?.original_amount || 0,
+        easyPaisaTotal:
+          (easyPaisaTotal as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
       };
 
