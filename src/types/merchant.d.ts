@@ -6,7 +6,7 @@ export interface Merchant {
   company_name: string;
   company_url: string;
   city: string;
-  payment_volume: number;
+  payment_volume: string;
   commission: number;
   merchantId: number;
   commissionGST: number;

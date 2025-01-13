@@ -82,7 +82,7 @@ model Merchant {
   company_name        String
   company_url         String?
   city                String
-  payment_volume      Decimal?
+  payment_volume      String?
   user_id             Int
   webhook_url         String?
   callback_mode       CallbackMode @default(SINGLE)
