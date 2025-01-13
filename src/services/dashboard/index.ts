@@ -156,6 +156,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
+          _count: { original_amount: true },
           where: {
             ...customWhere,
             merchant_id: +merchantId,
@@ -171,6 +172,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
+          _count: { original_amount: true },
           where: {
             ...customWhere,
             merchant_id: +merchantId,
@@ -218,8 +220,14 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         jazzCashTotal:
           (jazzCashTotal as { _sum: { original_amount: number | null } })._sum
             ?.original_amount || 0,
+        jazzCashCount:
+          (jazzCashTotal as unknown as { _count: { original_amount: number | null } })._count
+            ?.original_amount || 0,
         easyPaisaTotal:
           (easyPaisaTotal as { _sum: { original_amount: number | null } })._sum
+            ?.original_amount || 0,
+        easyPaisaCount:
+          (easyPaisaTotal as unknown as { _count: { original_amount: number | null } })._count
             ?.original_amount || 0,
       };
 
