@@ -55,32 +55,83 @@ async function zeroMerchantWalletBalance(merchantId: number) {
     }
 }
 
-async function adjustMerchantWalletBalance(merchantId: number, factor: number) {
+async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number) {
     try {
+        // Get current balance
         const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
-        if (walletBalance > 0) {
-            factor /= walletBalance;
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
         }
-        else {
-            throw new CustomError("Balance is 0", 500);
-        }
-        await prisma.transaction.updateMany({
-            where: {
-                merchant_id: merchantId,
-                status: 'completed',
-                settlement: true,
-                balance: { gt: 0 },
-            },
-            data: {
-                balance: {
-                    multiply: factor,
+
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+
+        // Execute in transaction
+        return await prisma.$transaction(async (tx) => {
+            // Update transaction balances
+            await tx.transaction.updateMany({
+                where: {
+                    merchant_id: merchantId,
+                    status: 'completed',
+                    settlement: true,
+                    balance: { gt: 0 },
                 },
-            },
+                data: {
+                    balance: { multiply: targetBalance / walletBalance }
+                }
+            });
+            const currentTime = Date.now();
+            const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
+            const fractionalMilliseconds = Math.floor(
+                (currentTime - Math.floor(currentTime)) * 1000
+              );
+            const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
+            // Create appropriate record
+            if (isSettlement) {
+                await tx.settlementReport.create({
+                    data: {
+                        merchant_id: merchantId,
+                        settlementDate: new Date(),
+                        transactionAmount: Math.abs(balanceDifference),
+                        merchantAmount: Math.abs(balanceDifference),
+                        commission: 0,
+                        gst: 0,
+                        withholdingTax: 0,
+                        transactionCount: 1
+                    }
+                });
+            } else {
+                await tx.disbursement.create({
+                    data: {
+                        merchant_id: merchantId,
+                        disbursementDate: new Date(),
+                        transactionAmount: Math.abs(balanceDifference),
+                        merchantAmount: Math.abs(balanceDifference),
+                        commission: 0,
+                        gst: 0,
+                        withholdingTax: 0,
+                        status: 'completed',
+                        response_message: 'Wallet adjustment',
+                        merchant_custom_order_id: txnId,
+                        system_order_id: txnId
+                    }
+                });
+            }
+
+            return {
+                success: true,
+                type: isSettlement ? 'settlement' : 'disbursement',
+                previousBalance: walletBalance,
+                newBalance: targetBalance,
+                difference: Math.abs(balanceDifference)
+            };
         });
 
-        return 'Wallet balance adjusted successfully.';
-    } catch (error: any) {
-        throw new CustomError(error.message || 'Error adjusting wallet balance', error.statusCode || 500);
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
     }
 }
 
@@ -283,15 +334,15 @@ const createTransactionService = async (body: any, merchant_id: string) => {
                 const scheduledAt = addWeekdays(
                     new Date(),
                     merchant?.settlementDuration as number
-                  ); // Call the function to get the next 2 weekdays
-                  let scheduledTask = await tx.scheduledTask.create({
+                ); // Call the function to get the next 2 weekdays
+                let scheduledTask = await tx.scheduledTask.create({
                     data: {
-                      transactionId: txnRefNo,
-                      status: "pending",
-                      scheduledAt: scheduledAt, // Assign the calculated weekday date
-                      executedAt: null, // Assume executedAt is null when scheduling
+                        transactionId: txnRefNo,
+                        status: "pending",
+                        scheduledAt: scheduledAt, // Assign the calculated weekday date
+                        executedAt: null, // Assume executedAt is null when scheduling
                     },
-                  });
+                });
             }
             return { transaction, settlement };
         })
@@ -303,51 +354,51 @@ const createTransactionService = async (body: any, merchant_id: string) => {
 }
 
 async function deleteMerchantData(merchantId: number) {
-  try {
-    await prisma.$transaction(async (tx) => {
-      // Delete all dependent data
-      await tx.userGroup.deleteMany({
-        where: { merchantId },
-      });
+    try {
+        await prisma.$transaction(async (tx) => {
+            // Delete all dependent data
+            await tx.userGroup.deleteMany({
+                where: { merchantId },
+            });
 
-      await tx.merchantFinancialTerms.deleteMany({
-        where: { merchant_id: merchantId },
-      });
+            await tx.merchantFinancialTerms.deleteMany({
+                where: { merchant_id: merchantId },
+            });
 
-      await tx.merchantProviderCredential.deleteMany({
-        where: { merchant_id: merchantId },
-      });
+            await tx.merchantProviderCredential.deleteMany({
+                where: { merchant_id: merchantId },
+            });
 
-      await tx.disbursement.deleteMany({
-        where: { merchant_id: merchantId },
-      });
+            await tx.disbursement.deleteMany({
+                where: { merchant_id: merchantId },
+            });
 
-      await tx.settlementReport.deleteMany({
-        where: { merchant_id: merchantId },
-      });
+            await tx.settlementReport.deleteMany({
+                where: { merchant_id: merchantId },
+            });
 
-      await tx.transaction.deleteMany({
-        where: { merchant_id: merchantId },
-      });
+            await tx.transaction.deleteMany({
+                where: { merchant_id: merchantId },
+            });
 
-      // Finally, delete the merchant
-      await tx.merchant.delete({
-        where: { merchant_id: merchantId },
-      });
+            // Finally, delete the merchant
+            await tx.merchant.delete({
+                where: { merchant_id: merchantId },
+            });
 
-      await tx.user.delete({
-        where: { id: merchantId },
-      })
-    },{
-        timeout: 10000
-    });
+            await tx.user.delete({
+                where: { id: merchantId },
+            })
+        }, {
+            timeout: 10000
+        });
 
-    console.log(`Merchant with ID ${merchantId} and all related data have been deleted.`);
-  } catch (error) {
-    console.error(`Error deleting merchant with ID ${merchantId}:`, error);
-  } finally {
-    await prisma.$disconnect();
-  }
+        console.log(`Merchant with ID ${merchantId} and all related data have been deleted.`);
+    } catch (error) {
+        console.error(`Error deleting merchant with ID ${merchantId}:`, error);
+    } finally {
+        await prisma.$disconnect();
+    }
 }
 
 
