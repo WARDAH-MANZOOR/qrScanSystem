@@ -2,37 +2,38 @@
 import bcrypt from "bcrypt";
 import { User, UserGroup } from '@prisma/client';
 import prisma from "prisma/client.js";
-import merchant from "services/merchant/index.js";
 
 // Create User
 export const createUser = async (fullName: string, email: string, password: string, groups: number[], merchantId?: number): Promise<User> => {
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-        data: {
-            username: fullName,
-            email,
-            password: hashedPassword,
-        },
-    });
-
-    // Then create group associations if groups array exists
-    if (groups && groups.length > 0) {
-        await prisma.user.update({
-            where: { id: user.id },
+    return await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
             data: {
-                groups: {
-                    create: groups.map((groupId: number) => ({
-                        // userId: user.id,
-                        groupId,
-                        merchantId,
-                    })),
-                },
+                username: fullName,
+                email,
+                password: hashedPassword,
             },
         });
-    }
-
-    return user;
+    
+        // Then create group associations if groups array exists
+        if (groups && groups.length > 0) {
+            await tx.user.update({
+                where: { id: user.id },
+                data: {
+                    groups: {
+                        create: groups.map((groupId: number) => ({
+                            // userId: user.id,
+                            groupId,
+                            merchantId,
+                        })),
+                    },
+                },
+            });
+        }
+    
+        return user;
+    });
+    
 };
 
 // Get User by ID
@@ -43,6 +44,7 @@ export const getUsers = async (merchantId: number): Promise<User[] | null> => {
         },
         include: {
             user: true,
+            group: true,
         },
     });
     if (!usersOfMerchant) {
@@ -91,14 +93,6 @@ export const updateUser = async (userId: number, fullName: string, email: string
             username: fullName,
             email,
             password: hashedPassword,
-            groups: {
-                deleteMany: { userId },
-                create: groups?.map((groupId) => ({
-                    userId: userId,
-                    groupId,
-                    merchantId,
-                })),
-            },
         },
     });
     if (!updatedUser) {
