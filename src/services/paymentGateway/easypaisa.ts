@@ -999,6 +999,10 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       }
     }
 
+    if (params.status) {
+      customWhere["status"] = params.status;
+    }
+
     const disbursements = await prisma.disbursement
       .findMany({
         where: {
@@ -1027,6 +1031,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
 
     const fields = [
       'merchant',
+      'account',
       'merchant_id',
       'disbursement_date',
       'transaction_amount',
@@ -1034,11 +1039,13 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       'gst',
       'withholding_tax',
       'merchant_amount',
+      'status',
       'provider'
     ];
 
     const data = disbursements.map(transaction => ({
       merchant: transaction.merchant.full_name,
+      account: transaction.account,
       merchant_id: transaction.merchant.uid,
       disbursement_date: transaction.disbursementDate,
       transaction_amount: transaction.transactionAmount,
@@ -1046,6 +1053,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       gst: transaction.gst,
       withholding_tax: transaction.withholdingTax,
       merchant_amount: transaction.merchantAmount,
+      status: transaction.status,
       provider: transaction.provider
     }));
 
