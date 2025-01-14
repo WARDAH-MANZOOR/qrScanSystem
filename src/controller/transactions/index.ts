@@ -14,6 +14,7 @@ import { parse } from "date-fns";
 
 import analytics from "./analytics.js";
 import { Parser } from "json2csv";
+import { JsonObject } from "@prisma/client/runtime/library";
 
 const createTransaction = async (
   req: Request,
@@ -234,6 +235,7 @@ const exportTransactions = async (req: Request, res: Response) => {
 
     const fields = [
       'transaction_id',
+      'account',
       'merchant_transaction_id',
       'date_time',
       'original_amount',
@@ -241,11 +243,13 @@ const exportTransactions = async (req: Request, res: Response) => {
       'settled_amount',
       'response_message',
       'status',
-      'type'
+      'type',
+      'provider'
     ];
 
     const data = transactions.map(transaction => ({
       transaction_id: transaction.transaction_id,
+      account: (transaction.providerDetails as JsonObject)?.msisdn,
       merchant_transaction_id: transaction.merchant_transaction_id,
       date_time: transaction.date_time,
       original_amount: transaction.original_amount,
@@ -254,6 +258,7 @@ const exportTransactions = async (req: Request, res: Response) => {
       response_message: transaction.response_message,
       status: transaction.status,
       type: transaction.type,
+      provider: (transaction.providerDetails as JsonObject)?.name
     }));
 
     const json2csvParser = new Parser({ fields });

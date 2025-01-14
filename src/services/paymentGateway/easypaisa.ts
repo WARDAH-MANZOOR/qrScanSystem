@@ -1033,7 +1033,8 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       'commission',
       'gst',
       'withholding_tax',
-      'merchant_amount'
+      'merchant_amount',
+      'provider'
     ];
 
     const data = disbursements.map(transaction => ({
@@ -1045,6 +1046,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       gst: transaction.gst,
       withholding_tax: transaction.withholdingTax,
       merchant_amount: transaction.merchantAmount,
+      provider: transaction.provider
     }));
 
     const json2csvParser = new Parser({ fields });
