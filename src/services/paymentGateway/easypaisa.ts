@@ -26,6 +26,10 @@ import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parse, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
+import path, { dirname } from "path";
+import { createObjectCsvWriter } from "csv-writer";
+import { fileURLToPath } from "url";
+import { Prisma } from "@prisma/client";
 
 dotenv.config();
 
@@ -601,6 +605,33 @@ const corporateLogin = async (obj: IDisbursement) => {
   }
 };
 
+const saveToCsv = async (record: any) => {
+  // Define the path to save the CSV file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const csvFilePath = path.join(__dirname, 'records.csv');
+
+  // Configure the CSV writer
+  const csvWriter = createObjectCsvWriter({
+    path: csvFilePath,
+    header: [
+      { id: 'id', title: 'ID' },
+      { id: 'order_amount', title: 'Order Amount' },
+      { id: 'balance', title: 'Balance' },
+      { id: 'status', title: 'Status' },
+    ],
+    append: true,
+  });
+
+  try {
+    // Write data to the CSV file
+    await csvWriter.writeRecords([record]);
+    console.log('CSV file created successfully at', csvFilePath);
+  } catch (error) {
+    console.error('Error writing to CSV file:', error);
+  }
+};
+
 const createDisbursement = async (
   obj: DisbursementPayload,
   merchantId: string
@@ -699,7 +730,9 @@ const createDisbursement = async (
       }
       await updateTransactions(updates, tx);
     }, {
-      maxWait: 5000,
+      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      maxWait: 60000,
       timeout: 60000,
     })
 
@@ -754,14 +787,20 @@ const createDisbursement = async (
 
     // Convert the date to the Pakistan timezone
     const zonedDate = toZonedTime(date, timeZone);
+    const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
+    console.log(walletBalance + +totalDisbursed)
     if (ma2ma.ResponseCode != 0) {
       console.log("Disbursement Failed ")
       console.log(totalDisbursed)
       await prisma.$transaction(async (tx) => {
-        const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
-        console.log(walletBalance + +totalDisbursed)
         totalDisbursed = walletBalance + +totalDisbursed;
         await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+        await saveToCsv({
+          id: data.merchant_custom_order_id,
+          order_amount: obj.amount ? obj.amount : merchantAmount,
+          balance: totalDisbursed,
+          status: "failed"
+        })
         const txn = await prisma.disbursement.create({
           data: {
             ...data,
@@ -783,8 +822,10 @@ const createDisbursement = async (
         console.log("Disbursement: ", txn)
         // return;
         throw new CustomError(ma2ma.ResponseMessage, 500);
-      },{
-        maxWait: 5000,
+      }, {
+        // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        maxWait: 60000,
         timeout: 60000,
       })
 
@@ -794,6 +835,12 @@ const createDisbursement = async (
       async (tx) => {
         // Update transactions to adjust balances
         // Create disbursement record
+        await saveToCsv({
+          id: data.merchant_custom_order_id,
+          order_amount: obj.amount ? obj.amount : merchantAmount,
+          balance: walletBalance,
+          status: "completed"
+        })
         let disbursement = await tx.disbursement.create({
           data: {
             ...data,
@@ -846,7 +893,9 @@ const createDisbursement = async (
         };
       },
       {
-        maxWait: 5000,
+        // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        maxWait: 60000,
         timeout: 60000,
       }
     );
