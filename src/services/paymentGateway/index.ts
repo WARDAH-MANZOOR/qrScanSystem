@@ -1,12 +1,13 @@
-import { easyPaisaDisburse, merchantService, transactionService } from "../../services/index.js";
+import { backofficeService, easyPaisaDisburse, merchantService, transactionService } from "../../services/index.js";
 import CustomError from "../../utils/custom_error.js";
 import { decryptData, encryptData } from "../../utils/enc_dec.js";
-import { calculateDisbursement, getEligibleTransactions, getMerchantRate, updateTransactions } from "./disbursement.js";
+import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, updateTransactions } from "./disbursement.js";
 import prisma from "../../prisma/client.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "../../constants/providers.js";
 import jazzcashDisburse from "./jazzcashDisburse.js";
 import { toZonedTime } from "date-fns-tz";
+import { Prisma } from "@prisma/client";
 
 
 function stringToBoolean(value: string): boolean {
@@ -129,56 +130,67 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         throw new CustomError("Order ID already exists", 400);
       }
     }
+    let totalCommission: Decimal = new Decimal(0);
+    let totalGST: Decimal = new Decimal(0);
+    let totalWithholdingTax: Decimal = new Decimal(0);
+    let amountDecimal: Decimal = new Decimal(0);
+    let totalDisbursed: number | Decimal = new Decimal(0);
+    let merchantAmount: Decimal = new Decimal(0);
+    await prisma.$transaction(async (tx) => {
+      let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-    // Fetch merchant financial terms
-    let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
-
-    const transactions = await getEligibleTransactions(
-      findMerchant.merchant_id,
-      prisma
-    );
-    if (transactions.length === 0) {
-      throw new CustomError("No eligible transactions to disburse", 400);
-    }
-    let updates: TransactionUpdate[] = [];
-    let totalDisbursed = new Decimal(0);
-    let amountDecimal;
-    if (body.amount) {
-      amountDecimal = new Decimal(body.amount);
-    } else {
-      updates = transactions.map((t: any) => ({
-        transaction_id: t.transaction_id,
-        disbursed: true,
-        balance: new Decimal(0),
-        settled_amount: t.settled_amount,
-        original_amount: t.original_amount,
-      }));
-      totalDisbursed = transactions.reduce(
-        (sum: Decimal, t: any) => sum.plus(t.balance),
-        new Decimal(0)
+      const transactions = await getEligibleTransactions(
+        findMerchant.merchant_id,
+        tx
       );
-      amountDecimal = totalDisbursed;
-    }
-    // Calculate total deductions and merchant amount
-    const totalCommission = amountDecimal.mul(rate.disbursementRate);
-    const totalGST = amountDecimal.mul(rate.disbursementGST);
-    const totalWithholdingTax = amountDecimal.mul(
-      rate.disbursementWithHoldingTax
-    );
-    const totalDeductions = totalCommission
-      .plus(totalGST)
-      .plus(totalWithholdingTax);
-    const merchantAmount = body.amount
-      ? amountDecimal.plus(totalDeductions)
-      : amountDecimal.minus(totalDeductions);
+      if (transactions.length === 0) {
+        throw new CustomError("No eligible transactions to disburse", 400);
+      }
+      let updates: TransactionUpdate[] = [];
+      totalDisbursed = new Decimal(0);
+      if (body.amount) {
+        amountDecimal = new Decimal(body.amount);
+      } else {
+        updates = transactions.map((t: any) => ({
+          transaction_id: t.transaction_id,
+          disbursed: true,
+          balance: new Decimal(0),
+          settled_amount: t.settled_amount,
+          original_amount: t.original_amount,
+        }));
+        totalDisbursed = transactions.reduce(
+          (sum: Decimal, t: any) => sum.plus(t.balance),
+          new Decimal(0)
+        );
+        amountDecimal = totalDisbursed;
+      }
+      // Calculate total deductions and merchant amount
+      totalCommission = amountDecimal.mul(rate.disbursementRate);
+      totalGST = amountDecimal.mul(rate.disbursementGST);
+      totalWithholdingTax = amountDecimal.mul(
+        rate.disbursementWithHoldingTax
+      );
+      const totalDeductions = totalCommission
+        .plus(totalGST)
+        .plus(totalWithholdingTax);
+      merchantAmount = body.amount
+        ? amountDecimal.plus(totalDeductions)
+        : amountDecimal.minus(totalDeductions);
 
-    // Get eligible transactions
+      // Get eligible transactions
 
-    if (body.amount) {
-      const result = calculateDisbursement(transactions, merchantAmount);
-      updates = result.updates;
-      totalDisbursed = result.totalDisbursed;
-    }
+      if (body.amount) {
+        const result = calculateDisbursement(transactions, merchantAmount);
+        updates = result.updates;
+        totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+      }
+      await updateTransactions(updates, tx);
+    }, {
+      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      maxWait: 60000,
+      timeout: 60000,
+    })
     let id = transactionService.createTransactionId();
     console.log("Initiate Request: ", {
       bankAccountNumber: body.iban,
@@ -216,8 +228,11 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     console.log("Initiate Response: ", data)
 
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
+    const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
+      totalDisbursed = walletBalance + +totalDisbursed;
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
       if (body.order_id) {
         data2["merchant_custom_order_id"] = body.order_id;
       }
@@ -284,6 +299,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
+      totalDisbursed = walletBalance + +totalDisbursed;
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
       if (body.order_id) {
         data2["merchant_custom_order_id"] = body.order_id;
       }
@@ -324,7 +341,6 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
-        await updateTransactions(updates, tx);
 
         if (body.order_id) {
           data2["merchant_custom_order_id"] = body.order_id;
@@ -395,11 +411,11 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
             TransactionStatus: "success",
           },
         };
-      },
-      {
-        maxWait: 5000,
-        timeout: 60000,
-      }
+      }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      maxWait: 60000,
+      timeout: 60000,
+    }
     );
   }
   catch (err) {
@@ -463,55 +479,68 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       throw new CustomError("Order ID already exists", 400);
     }
   }
-  // Fetch merchant financial terms
-  let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
+  let totalCommission: Decimal = new Decimal(0);
+  let totalGST: Decimal = new Decimal(0);
+  let totalWithholdingTax: Decimal = new Decimal(0);
+  let amountDecimal: Decimal = new Decimal(0);
+  let totalDisbursed: number | Decimal = new Decimal(0);
+  let merchantAmount: Decimal = new Decimal(0);
+  
+  await prisma.$transaction(async (tx) => {
+    let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-  const transactions = await getEligibleTransactions(
-    findMerchant.merchant_id,
-    prisma
-  );
-  if (transactions.length === 0) {
-    throw new CustomError("No eligible transactions to disburse", 400);
-  }
-  let updates: TransactionUpdate[] = [];
-  let totalDisbursed = new Decimal(0);
-  let amountDecimal;
-  if (body.amount) {
-    amountDecimal = new Decimal(body.amount);
-  } else {
-    updates = transactions.map((t: any) => ({
-      transaction_id: t.transaction_id,
-      disbursed: true,
-      balance: new Decimal(0),
-      settled_amount: t.settled_amount,
-      original_amount: t.original_amount,
-    }));
-    totalDisbursed = transactions.reduce(
-      (sum: Decimal, t: any) => sum.plus(t.balance),
-      new Decimal(0)
+    const transactions = await getEligibleTransactions(
+      findMerchant.merchant_id,
+      tx
     );
-    amountDecimal = totalDisbursed;
-  }
-  // Calculate total deductions and merchant amount
-  const totalCommission = amountDecimal.mul(rate.disbursementRate);
-  const totalGST = amountDecimal.mul(rate.disbursementGST);
-  const totalWithholdingTax = amountDecimal.mul(
-    rate.disbursementWithHoldingTax
-  );
-  const totalDeductions = totalCommission
-    .plus(totalGST)
-    .plus(totalWithholdingTax);
-  const merchantAmount = body.amount
-    ? amountDecimal.plus(totalDeductions)
-    : amountDecimal.minus(totalDeductions);
+    if (transactions.length === 0) {
+      throw new CustomError("No eligible transactions to disburse", 400);
+    }
+    let updates: TransactionUpdate[] = [];
+    totalDisbursed = new Decimal(0);
+    if (body.amount) {
+      amountDecimal = new Decimal(body.amount);
+    } else {
+      updates = transactions.map((t: any) => ({
+        transaction_id: t.transaction_id,
+        disbursed: true,
+        balance: new Decimal(0),
+        settled_amount: t.settled_amount,
+        original_amount: t.original_amount,
+      }));
+      totalDisbursed = transactions.reduce(
+        (sum: Decimal, t: any) => sum.plus(t.balance),
+        new Decimal(0)
+      );
+      amountDecimal = totalDisbursed;
+    }
+    // Calculate total deductions and merchant amount
+    totalCommission = amountDecimal.mul(rate.disbursementRate);
+    totalGST = amountDecimal.mul(rate.disbursementGST);
+    totalWithholdingTax = amountDecimal.mul(
+      rate.disbursementWithHoldingTax
+    );
+    const totalDeductions = totalCommission
+      .plus(totalGST)
+      .plus(totalWithholdingTax);
+    merchantAmount = body.amount
+      ? amountDecimal.plus(totalDeductions)
+      : amountDecimal.minus(totalDeductions);
 
-  // Get eligible transactions
+    // Get eligible transactions
 
-  if (body.amount) {
-    const result = calculateDisbursement(transactions, merchantAmount);
-    updates = result.updates;
-    totalDisbursed = result.totalDisbursed;
-  }
+    if (body.amount) {
+      const result = calculateDisbursement(transactions, merchantAmount);
+      updates = result.updates;
+      totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+    }
+    await updateTransactions(updates, tx);
+  }, {
+    // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    maxWait: 60000,
+    timeout: 60000,
+  })
   let id = transactionService.createTransactionId();
   const payload = encryptData(
     {
@@ -538,7 +567,10 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   console.log("MW Response", res);
   res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
   let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
+  const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
   if (res.responseCode != "G2P-T-0") {
+    totalDisbursed = walletBalance + +totalDisbursed;
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
     if (body.order_id) {
       data["merchant_custom_order_id"] = body.order_id;
     }
@@ -580,7 +612,6 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   return await prisma.$transaction(
     async (tx) => {
       // Update transactions to adjust balances
-      await updateTransactions(updates, tx);
 
       if (body.order_id) {
         data["merchant_custom_order_id"] = body.order_id;

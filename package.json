@@ -20,6 +20,7 @@
     "cookie-parser": "~1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
+    "csv-writer": "^1.6.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "debug": "~4.3.7",

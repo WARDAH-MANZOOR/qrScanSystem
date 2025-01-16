@@ -3,7 +3,7 @@ import axios from "axios";
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import type { IEasyPaisaPayload } from "../../types/merchant.d.ts";
-import { transactionService } from "../../services/index.js";
+import { backofficeService, transactionService } from "../../services/index.js";
 import { PROVIDERS } from "../../constants/providers.js";
 import RSAEncryption from "../../utils/RSAEncryption.js";
 import { merchantService } from "../../services/index.js";
@@ -17,6 +17,7 @@ import {
   calculateDisbursement,
   getEligibleTransactions,
   getMerchantRate,
+  getWalletBalance,
   updateTransactions,
 } from "./disbursement.js";
 import { easyPaisaDisburse } from "../../services/index.js";
@@ -25,6 +26,10 @@ import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parse, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
+import path, { dirname } from "path";
+import { createObjectCsvWriter } from "csv-writer";
+import { fileURLToPath } from "url";
+import { Prisma } from "@prisma/client";
 
 dotenv.config();
 
@@ -600,6 +605,33 @@ const corporateLogin = async (obj: IDisbursement) => {
   }
 };
 
+const saveToCsv = async (record: any) => {
+  // Define the path to save the CSV file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const csvFilePath = path.join(__dirname, 'records.csv');
+
+  // Configure the CSV writer
+  const csvWriter = createObjectCsvWriter({
+    path: csvFilePath,
+    header: [
+      { id: 'id', title: 'ID' },
+      { id: 'order_amount', title: 'Order Amount' },
+      { id: 'balance', title: 'Balance' },
+      { id: 'status', title: 'Status' },
+    ],
+    append: true,
+  });
+
+  try {
+    // Write data to the CSV file
+    await csvWriter.writeRecords([record]);
+    console.log('CSV file created successfully at', csvFilePath);
+  } catch (error) {
+    console.error('Error writing to CSV file:', error);
+  }
+};
+
 const createDisbursement = async (
   obj: DisbursementPayload,
   merchantId: string
@@ -641,56 +673,69 @@ const createDisbursement = async (
     if (!obj.phone.startsWith("92")) {
       throw new CustomError("Number should start with 92", 400);
     }
-
+    let merchantAmount = new Decimal(0);
+    let amountDecimal = new Decimal(0);
+    let totalCommission = new Decimal(0);
+    let totalGST = new Decimal(0);
+    let totalWithholdingTax = new Decimal(0);
+    let totalDisbursed: number | Decimal = new Decimal(0);
     // Fetch merchant financial terms
-    let rate = await getMerchantRate(prisma, findMerchant.merchant_id);
+    await prisma.$transaction(async (tx) => {
+      let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-    const transactions = await getEligibleTransactions(
-      findMerchant.merchant_id,
-      prisma
-    );
-    if (transactions.length === 0) {
-      throw new CustomError("No eligible transactions to disburse", 400);
-    }
-    let updates: TransactionUpdate[] = [];
-    let totalDisbursed = new Decimal(0);
-    let amountDecimal;
-    if (obj.amount) {
-      amountDecimal = new Decimal(obj.amount);
-    } else {
-      updates = transactions.map((t: any) => ({
-        transaction_id: t.transaction_id,
-        disbursed: true,
-        balance: new Decimal(0),
-        settled_amount: t.settled_amount,
-        original_amount: t.original_amount,
-      }));
-      totalDisbursed = transactions.reduce(
-        (sum: Decimal, t: any) => sum.plus(t.balance),
-        new Decimal(0)
+      const transactions = await getEligibleTransactions(
+        findMerchant.merchant_id,
+        tx
       );
-      amountDecimal = totalDisbursed;
-    }
-    // Calculate total deductions and merchant amount
-    const totalCommission = amountDecimal.mul(rate.disbursementRate);
-    const totalGST = amountDecimal.mul(rate.disbursementGST);
-    const totalWithholdingTax = amountDecimal.mul(
-      rate.disbursementWithHoldingTax
-    );
-    const totalDeductions = totalCommission
-      .plus(totalGST)
-      .plus(totalWithholdingTax);
-    const merchantAmount = obj.amount
-      ? amountDecimal.plus(totalDeductions)
-      : amountDecimal.minus(totalDeductions);
+      if (transactions.length === 0) {
+        throw new CustomError("No eligible transactions to disburse", 400);
+      }
+      let updates: TransactionUpdate[] = [];
+      totalDisbursed = new Decimal(0);
+      if (obj.amount) {
+        amountDecimal = new Decimal(obj.amount);
+      } else {
+        updates = transactions.map((t: any) => ({
+          transaction_id: t.transaction_id,
+          disbursed: true,
+          balance: new Decimal(0),
+          settled_amount: t.settled_amount,
+          original_amount: t.original_amount,
+        }));
+        totalDisbursed = transactions.reduce(
+          (sum: Decimal, t: any) => sum.plus(t.balance),
+          new Decimal(0)
+        );
+        amountDecimal = totalDisbursed;
+      }
+      // Calculate total deductions and merchant amount
+      totalCommission = amountDecimal.mul(rate.disbursementRate);
+      totalGST = amountDecimal.mul(rate.disbursementGST);
+      totalWithholdingTax = amountDecimal.mul(
+        rate.disbursementWithHoldingTax
+      );
+      const totalDeductions = totalCommission
+        .plus(totalGST)
+        .plus(totalWithholdingTax);
+      merchantAmount = obj.amount
+        ? amountDecimal.plus(totalDeductions)
+        : amountDecimal.minus(totalDeductions);
 
-    // Get eligible transactions
+      // Get eligible transactions
 
-    if (obj.amount) {
-      const result = calculateDisbursement(transactions, merchantAmount);
-      updates = result.updates;
-      totalDisbursed = result.totalDisbursed;
-    }
+      if (obj.amount) {
+        const result = calculateDisbursement(transactions, merchantAmount);
+        updates = result.updates;
+        totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+      }
+      await updateTransactions(updates, tx);
+    }, {
+      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      maxWait: 60000,
+      timeout: 60000,
+    })
+
 
     const getTimeStamp: IEasyLoginPayload = await corporateLogin(
       findDisbureMerch
@@ -742,37 +787,60 @@ const createDisbursement = async (
 
     // Convert the date to the Pakistan timezone
     const zonedDate = toZonedTime(date, timeZone);
+    const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
+    console.log(walletBalance + +totalDisbursed)
     if (ma2ma.ResponseCode != 0) {
       console.log("Disbursement Failed ")
-      const txn = await prisma.disbursement.create({
-        data: {
-          ...data,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: zonedDate,
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: obj.amount ? obj.amount : merchantAmount,
-          platform: ma2ma.Fee,
-          account: obj.phone,
-          provider: PROVIDERS.EASYPAISA,
-          status: "failed",
-          response_message: ma2ma.ResponseMessage
-        },
-      });
-      console.log("Disbursement: ", txn)
-      // return;
-      throw new CustomError(ma2ma.ResponseMessage, 500);
+      console.log(totalDisbursed)
+      await prisma.$transaction(async (tx) => {
+        totalDisbursed = walletBalance + +totalDisbursed;
+        await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+        await saveToCsv({
+          id: data.merchant_custom_order_id,
+          order_amount: obj.amount ? obj.amount : merchantAmount,
+          balance: totalDisbursed,
+          status: "failed"
+        })
+        const txn = await prisma.disbursement.create({
+          data: {
+            ...data,
+            // transaction_id: id,
+            merchant_id: Number(findMerchant.merchant_id),
+            disbursementDate: zonedDate,
+            transactionAmount: amountDecimal,
+            commission: totalCommission,
+            gst: totalGST,
+            withholdingTax: totalWithholdingTax,
+            merchantAmount: obj.amount ? obj.amount : merchantAmount,
+            platform: ma2ma.Fee,
+            account: obj.phone,
+            provider: PROVIDERS.EASYPAISA,
+            status: "failed",
+            response_message: ma2ma.ResponseMessage
+          },
+        });
+        console.log("Disbursement: ", txn)
+        // return;
+        throw new CustomError(ma2ma.ResponseMessage, 500);
+      }, {
+        // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        maxWait: 60000,
+        timeout: 60000,
+      })
+
     }
 
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
-        await updateTransactions(updates, tx);
-
         // Create disbursement record
+        await saveToCsv({
+          id: data.merchant_custom_order_id,
+          order_amount: obj.amount ? obj.amount : merchantAmount,
+          balance: walletBalance,
+          status: "completed"
+        })
         let disbursement = await tx.disbursement.create({
           data: {
             ...data,
@@ -825,7 +893,9 @@ const createDisbursement = async (
         };
       },
       {
-        maxWait: 5000,
+        // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        maxWait: 60000,
         timeout: 60000,
       }
     );
@@ -1115,7 +1185,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
         throw new CustomError("Order ID already exists", 400);
       }
     }
-    
+
     // Phone number validation (must start with 92)
     // if (!obj.phone.startsWith("92")) {
     //   throw new CustomError("Number should start with 92", 400);
@@ -1558,9 +1628,3 @@ export default {
   transactionInquiry,
   exportDisbursement
 };
-
-// const axios = require('axios');
-
-
-// ...(skip && { skip: +skip }),
-//         ...(take && { take: +take }),

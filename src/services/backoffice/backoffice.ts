@@ -55,7 +55,7 @@ async function zeroMerchantWalletBalance(merchantId: number) {
     }
 }
 
-async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number) {
+async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number, record: boolean) {
     try {
         // Get current balance
         const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
@@ -87,37 +87,38 @@ async function adjustMerchantWalletBalance(merchantId: number, targetBalance: nu
               );
             const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
             // Create appropriate record
-            if (isSettlement) {
-                await tx.settlementReport.create({
-                    data: {
-                        merchant_id: merchantId,
-                        settlementDate: new Date(),
-                        transactionAmount: Math.abs(balanceDifference),
-                        merchantAmount: Math.abs(balanceDifference),
-                        commission: 0,
-                        gst: 0,
-                        withholdingTax: 0,
-                        transactionCount: 1
-                    }
-                });
-            } else {
-                await tx.disbursement.create({
-                    data: {
-                        merchant_id: merchantId,
-                        disbursementDate: new Date(),
-                        transactionAmount: Math.abs(balanceDifference),
-                        merchantAmount: Math.abs(balanceDifference),
-                        commission: 0,
-                        gst: 0,
-                        withholdingTax: 0,
-                        status: 'completed',
-                        response_message: 'Wallet adjustment',
-                        merchant_custom_order_id: txnId,
-                        system_order_id: txnId
-                    }
-                });
+            if (record) {
+                if (isSettlement) {
+                    await tx.settlementReport.create({
+                        data: {
+                            merchant_id: merchantId,
+                            settlementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            transactionCount: 1
+                        }
+                    });
+                } else {
+                    await tx.disbursement.create({
+                        data: {
+                            merchant_id: merchantId,
+                            disbursementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            status: 'completed',
+                            response_message: 'Wallet adjustment',
+                            merchant_custom_order_id: txnId,
+                            system_order_id: txnId
+                        }
+                    });
+                }
             }
-
             return {
                 success: true,
                 type: isSettlement ? 'settlement' : 'disbursement',
