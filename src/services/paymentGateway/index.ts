@@ -230,9 +230,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     });
     let res = await response.json();
     let data;
-    if (res.data) {
-      data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    }
+    data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     if (data.responseCode != "G2P-T-0" || res.fault) {
@@ -302,11 +300,9 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       body: JSON.stringify(requestData)
     })
     res = await response.json();
-    if (res.data) {
-      res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    }
+    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
 
-    if (res.responseCode != "G2P-T-0" || res.fault) {
+    if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       totalDisbursed = walletBalance + +totalDisbursed;
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
@@ -578,11 +574,9 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     });
     let res = await response.json();
     console.log("MW Response", res);
-    if (res.data ) {
-      res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    }
+    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
-    if (res.responseCode != "G2P-T-0" || res.fault) {
+    if (res.responseCode != "G2P-T-0") {
       totalDisbursed = walletBalance + +totalDisbursed;
 
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
