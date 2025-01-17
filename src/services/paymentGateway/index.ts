@@ -229,11 +229,13 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       body: JSON.stringify(requestData)
     });
     let res = await response.json();
-
-    let data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    let data;
+    if (res.data) {
+      data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    }
     console.log("Initiate Response: ", data)
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
-    if (data.responseCode != "G2P-T-0") {
+    if (data.responseCode != "G2P-T-0" || res.fault) {
       console.log("IBFT Response: ", data);
       totalDisbursed = walletBalance + +totalDisbursed;
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
@@ -300,9 +302,11 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       body: JSON.stringify(requestData)
     })
     res = await response.json();
-    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    if (res.data) {
+      res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    }
 
-    if (res.responseCode != "G2P-T-0") {
+    if (res.responseCode != "G2P-T-0" || res.fault) {
       console.log("IBFT Response: ", data);
       totalDisbursed = walletBalance + +totalDisbursed;
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
@@ -424,10 +428,6 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     );
   }
   catch (err) {
-    if (walletBalance && totalDisbursed) {
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
-    }
     console.log("Initiate Transaction Error", err);
     throw new CustomError("Failed to initiate transaction", 500);
   }
@@ -578,9 +578,11 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     });
     let res = await response.json();
     console.log("MW Response", res);
-    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    if (res.data ) {
+      res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    }
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
-    if (res.responseCode != "G2P-T-0") {
+    if (res.responseCode != "G2P-T-0" || res.fault) {
       totalDisbursed = walletBalance + +totalDisbursed;
 
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
@@ -703,10 +705,6 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     );
   }
   catch (err) {
-    if (walletBalance && totalDisbursed) {
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
-    }
     console.log("MW Transaction Error", err);
     throw new CustomError("Failed to initiate transaction", 500);
   }
