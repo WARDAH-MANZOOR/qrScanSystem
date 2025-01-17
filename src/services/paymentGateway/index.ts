@@ -97,12 +97,17 @@ async function simpleGetToken(merchantId: string) {
 }
 
 async function initiateTransaction(token: string, body: any, merchantId: string) {
+  let findMerchant: any;
+  let walletBalance;
+  let totalDisbursed: number | Decimal = new Decimal(0);
   try {
     // validate Merchant
-    const findMerchant = await merchantService.findOne({
+    findMerchant = await merchantService.findOne({
       uid: merchantId,
     });
 
+    let balance = await getWalletBalance(findMerchant?.merchant_id) as { walletBalance: number };
+    walletBalance = balance.walletBalance;
     if (!findMerchant) {
       throw new CustomError("Merchant not found", 404);
     }
@@ -134,8 +139,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let totalGST: Decimal = new Decimal(0);
     let totalWithholdingTax: Decimal = new Decimal(0);
     let amountDecimal: Decimal = new Decimal(0);
-    let totalDisbursed: number | Decimal = new Decimal(0);
     let merchantAmount: Decimal = new Decimal(0);
+    totalDisbursed = new Decimal(0);
     await prisma.$transaction(async (tx) => {
       let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
@@ -228,7 +233,6 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
-    const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       totalDisbursed = walletBalance + +totalDisbursed;
@@ -420,6 +424,10 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     );
   }
   catch (err) {
+    if (walletBalance && totalDisbursed) {
+      totalDisbursed = walletBalance + +totalDisbursed;
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+    }
     console.log("Initiate Transaction Error", err);
     throw new CustomError("Failed to initiate transaction", 500);
   }
@@ -443,178 +451,139 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
 // }
 
 async function mwTransaction(token: string, body: any, merchantId: string) {
-  // validate Merchant
-  const findMerchant = await merchantService.findOne({
-    uid: merchantId,
-  });
-
-  if (!findMerchant) {
-    throw new CustomError("Merchant not found", 404);
-  }
-
-  if (!findMerchant.JazzCashDisburseAccountId) {
-    throw new CustomError("Disbursement account not assigned.", 404);
-  }
-
-  // find disbursement merchant
-  const findDisbureMerch: any = await jazzcashDisburse
-    .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
-    .then((res) => res?.data);
-
-  if (!findDisbureMerch) {
-    throw new CustomError("Disbursement account not found", 404);
-  }
-
-  // Phone number validation (must start with 92)
-  if (!body.phone.startsWith("92")) {
-    throw new CustomError("Number should start with 92", 400);
-  }
-
-  if (body.order_id) {
-    const checkOrder = await prisma.disbursement.findFirst({
-      where: {
-        merchant_custom_order_id: body.order_id,
-      },
-    });
-    if (checkOrder) {
-      throw new CustomError("Order ID already exists", 400);
-    }
-  }
-  let totalCommission: Decimal = new Decimal(0);
-  let totalGST: Decimal = new Decimal(0);
-  let totalWithholdingTax: Decimal = new Decimal(0);
-  let amountDecimal: Decimal = new Decimal(0);
+  let findMerchant: any;
+  let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
-  let merchantAmount: Decimal = new Decimal(0);
-
-  await prisma.$transaction(async (tx) => {
-    let rate = await getMerchantRate(tx, findMerchant.merchant_id);
-
-    const transactions = await getEligibleTransactions(
-      findMerchant.merchant_id,
-      tx
-    );
-    if (transactions.length === 0) {
-      throw new CustomError("No eligible transactions to disburse", 400);
-    }
-    let updates: TransactionUpdate[] = [];
-    totalDisbursed = new Decimal(0);
-    if (body.amount) {
-      amountDecimal = new Decimal(body.amount);
-    } else {
-      updates = transactions.map((t: any) => ({
-        transaction_id: t.transaction_id,
-        disbursed: true,
-        balance: new Decimal(0),
-        settled_amount: t.settled_amount,
-        original_amount: t.original_amount,
-      }));
-      totalDisbursed = transactions.reduce(
-        (sum: Decimal, t: any) => sum.plus(t.balance),
-        new Decimal(0)
-      );
-      amountDecimal = totalDisbursed;
-    }
-    // Calculate total deductions and merchant amount
-    totalCommission = amountDecimal.mul(rate.disbursementRate);
-    totalGST = amountDecimal.mul(rate.disbursementGST);
-    totalWithholdingTax = amountDecimal.mul(
-      rate.disbursementWithHoldingTax
-    );
-    const totalDeductions = totalCommission
-      .plus(totalGST)
-      .plus(totalWithholdingTax);
-    merchantAmount = body.amount
-      ? amountDecimal.plus(totalDeductions)
-      : amountDecimal.minus(totalDeductions);
-
-    // Get eligible transactions
-
-    if (body.amount) {
-      const result = calculateDisbursement(transactions, merchantAmount);
-      updates = result.updates;
-      totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
-    }
-    await updateTransactions(updates, tx);
-  }, {
-    // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-    maxWait: 60000,
-    timeout: 60000,
-  })
-  let id = transactionService.createTransactionId();
-  const payload = encryptData(
-    {
-      receiverCNIC: body.cnic,
-      receiverMSISDN: body.phone,
-      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-      referenceId: id
-    }, findDisbureMerch.key, findDisbureMerch.initialVector)
-
-  const requestData = {
-    data: payload
-  };
-
-  const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestData)
-  });
-  let res = await response.json();
-  console.log("MW Response", res);
-  res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-  let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
-  const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
-  if (res.responseCode != "G2P-T-0") {
-    totalDisbursed = walletBalance + +totalDisbursed;
-    
-    await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
-    if (body.order_id) {
-      data["merchant_custom_order_id"] = body.order_id;
-    }
-    else {
-      data["merchant_custom_order_id"] = id;
-    }
-    // else {
-    data["system_order_id"] = id;
-    data["transaction_id"] = res.transactionID;
-    // }
-    // Get the current date
-    const date = new Date();
-
-    // Define the Pakistan timezone
-    const timeZone = 'Asia/Karachi';
-
-    // Convert the date to the Pakistan timezone
-    const zonedDate = toZonedTime(date, timeZone);
-    await prisma.disbursement.create({
-      data: {
-        ...data,
-        // transaction_id: id,
-        merchant_id: Number(findMerchant.merchant_id),
-        disbursementDate: zonedDate,
-        transactionAmount: amountDecimal,
-        commission: totalCommission,
-        gst: totalGST,
-        withholdingTax: totalWithholdingTax,
-        merchantAmount: body.amount ? body.amount : merchantAmount,
-        platform: 0,
-        account: body.phone,
-        provider: PROVIDERS.JAZZ_CASH,
-        status: "failed",
-        response_message: res.responseDescription
-      },
+  try {
+    // validate Merchant
+    findMerchant = await merchantService.findOne({
+      uid: merchantId,
     });
-    throw new CustomError(res.responseDescription, 500);
-  }
-  return await prisma.$transaction(
-    async (tx) => {
-      // Update transactions to adjust balances
+    const balance = await getWalletBalance(findMerchant?.merchant_id) as { walletBalance: number };
+    walletBalance = balance.walletBalance; // Get the wallet balance
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
 
+    if (!findMerchant.JazzCashDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await jazzcashDisburse
+      .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    // Phone number validation (must start with 92)
+    if (!body.phone.startsWith("92")) {
+      throw new CustomError("Number should start with 92", 400);
+    }
+
+    if (body.order_id) {
+      const checkOrder = await prisma.disbursement.findFirst({
+        where: {
+          merchant_custom_order_id: body.order_id,
+        },
+      });
+      if (checkOrder) {
+        throw new CustomError("Order ID already exists", 400);
+      }
+    }
+    let totalCommission: Decimal = new Decimal(0);
+    let totalGST: Decimal = new Decimal(0);
+    let totalWithholdingTax: Decimal = new Decimal(0);
+    let amountDecimal: Decimal = new Decimal(0);
+    let merchantAmount: Decimal = new Decimal(0);
+
+    await prisma.$transaction(async (tx) => {
+      let rate = await getMerchantRate(tx, findMerchant.merchant_id);
+
+      const transactions = await getEligibleTransactions(
+        findMerchant.merchant_id,
+        tx
+      );
+      if (transactions.length === 0) {
+        throw new CustomError("No eligible transactions to disburse", 400);
+      }
+      let updates: TransactionUpdate[] = [];
+      totalDisbursed = new Decimal(0);
+      if (body.amount) {
+        amountDecimal = new Decimal(body.amount);
+      } else {
+        updates = transactions.map((t: any) => ({
+          transaction_id: t.transaction_id,
+          disbursed: true,
+          balance: new Decimal(0),
+          settled_amount: t.settled_amount,
+          original_amount: t.original_amount,
+        }));
+        totalDisbursed = transactions.reduce(
+          (sum: Decimal, t: any) => sum.plus(t.balance),
+          new Decimal(0)
+        );
+        amountDecimal = totalDisbursed;
+      }
+      // Calculate total deductions and merchant amount
+      totalCommission = amountDecimal.mul(rate.disbursementRate);
+      totalGST = amountDecimal.mul(rate.disbursementGST);
+      totalWithholdingTax = amountDecimal.mul(
+        rate.disbursementWithHoldingTax
+      );
+      const totalDeductions = totalCommission
+        .plus(totalGST)
+        .plus(totalWithholdingTax);
+      merchantAmount = body.amount
+        ? amountDecimal.plus(totalDeductions)
+        : amountDecimal.minus(totalDeductions);
+
+      // Get eligible transactions
+
+      if (body.amount) {
+        const result = calculateDisbursement(transactions, merchantAmount);
+        updates = result.updates;
+        totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+      }
+      await updateTransactions(updates, tx);
+    }, {
+      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      maxWait: 60000,
+      timeout: 60000,
+    })
+    let id = transactionService.createTransactionId();
+    const payload = encryptData(
+      {
+        receiverCNIC: body.cnic,
+        receiverMSISDN: body.phone,
+        amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+        referenceId: id
+      }, findDisbureMerch.key, findDisbureMerch.initialVector)
+
+    const requestData = {
+      data: payload
+    };
+
+    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    let res = await response.json();
+    console.log("MW Response", res);
+    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
+    if (res.responseCode != "G2P-T-0") {
+      totalDisbursed = walletBalance + +totalDisbursed;
+
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
       if (body.order_id) {
         data["merchant_custom_order_id"] = body.order_id;
       }
@@ -633,8 +602,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
 
       // Convert the date to the Pakistan timezone
       const zonedDate = toZonedTime(date, timeZone);
-      // Create disbursement record
-      let disbursement = await tx.disbursement.create({
+      await prisma.disbursement.create({
         data: {
           ...data,
           // transaction_id: id,
@@ -648,48 +616,100 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           platform: 0,
           account: body.phone,
           provider: PROVIDERS.JAZZ_CASH,
-          status: "completed",
-          response_message: "success"
+          status: "failed",
+          response_message: res.responseDescription
         },
       });
-      let webhook_url: string;
-      if (findMerchant.callback_mode == "DOUBLE") {
-        webhook_url = findMerchant.payout_callback as string;
-      }
-      else {
-        webhook_url = findMerchant.webhook_url as string;
-      }
-      transactionService.sendCallback(
-        webhook_url,
-        {
-          original_amount: body.amount ? body.amount : merchantAmount,
-          date_time: zonedDate,
-          merchant_transaction_id: disbursement.merchant_custom_order_id,
-          merchant_id: findMerchant.merchant_id
-        },
-        body.phone,
-        "payout",
-        stringToBoolean(findMerchant.encrypted as string),
-        false
-      );
-
-      return {
-        message: "Disbursement created successfully",
-        merchantAmount: body.amount
-          ? body.amount.toString()
-          : merchantAmount.toString(),
-        order_id: disbursement.merchant_custom_order_id,
-        externalApiResponse: {
-          TransactionReference: res.transactionID,
-          TransactionStatus: "success",
-        },
-      };
-    },
-    {
-      maxWait: 5000,
-      timeout: 60000,
+      throw new CustomError(res.responseDescription, 500);
     }
-  );
+    return await prisma.$transaction(
+      async (tx) => {
+        // Update transactions to adjust balances
+
+        if (body.order_id) {
+          data["merchant_custom_order_id"] = body.order_id;
+        }
+        else {
+          data["merchant_custom_order_id"] = id;
+        }
+        // else {
+        data["system_order_id"] = id;
+        data["transaction_id"] = res.transactionID;
+        // }
+        // Get the current date
+        const date = new Date();
+
+        // Define the Pakistan timezone
+        const timeZone = 'Asia/Karachi';
+
+        // Convert the date to the Pakistan timezone
+        const zonedDate = toZonedTime(date, timeZone);
+        // Create disbursement record
+        let disbursement = await tx.disbursement.create({
+          data: {
+            ...data,
+            // transaction_id: id,
+            merchant_id: Number(findMerchant.merchant_id),
+            disbursementDate: zonedDate,
+            transactionAmount: amountDecimal,
+            commission: totalCommission,
+            gst: totalGST,
+            withholdingTax: totalWithholdingTax,
+            merchantAmount: body.amount ? body.amount : merchantAmount,
+            platform: 0,
+            account: body.phone,
+            provider: PROVIDERS.JAZZ_CASH,
+            status: "completed",
+            response_message: "success"
+          },
+        });
+        let webhook_url: string;
+        if (findMerchant.callback_mode == "DOUBLE") {
+          webhook_url = findMerchant.payout_callback as string;
+        }
+        else {
+          webhook_url = findMerchant.webhook_url as string;
+        }
+        transactionService.sendCallback(
+          webhook_url,
+          {
+            original_amount: body.amount ? body.amount : merchantAmount,
+            date_time: zonedDate,
+            merchant_transaction_id: disbursement.merchant_custom_order_id,
+            merchant_id: findMerchant.merchant_id
+          },
+          body.phone,
+          "payout",
+          stringToBoolean(findMerchant.encrypted as string),
+          false
+        );
+
+        return {
+          message: "Disbursement created successfully",
+          merchantAmount: body.amount
+            ? body.amount.toString()
+            : merchantAmount.toString(),
+          order_id: disbursement.merchant_custom_order_id,
+          externalApiResponse: {
+            TransactionReference: res.transactionID,
+            TransactionStatus: "success",
+          },
+        };
+      },
+      {
+        maxWait: 5000,
+        timeout: 60000,
+      }
+    );
+  }
+  catch (err) {
+    if (walletBalance && totalDisbursed) {
+      totalDisbursed = walletBalance + +totalDisbursed;
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+    }
+    console.log("MW Transaction Error", err);
+    throw new CustomError("Failed to initiate transaction", 500);
+  }
 }
 
 async function checkTransactionStatus(token: string, body: any, merchantId: string) {
