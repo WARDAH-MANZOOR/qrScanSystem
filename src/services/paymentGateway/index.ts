@@ -224,9 +224,9 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       body: JSON.stringify(requestData)
     });
     let res = await response.json();
+
     let data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
-
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
     if (data.responseCode != "G2P-T-0") {
@@ -297,6 +297,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     })
     res = await response.json();
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       totalDisbursed = walletBalance + +totalDisbursed;
@@ -485,7 +486,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   let amountDecimal: Decimal = new Decimal(0);
   let totalDisbursed: number | Decimal = new Decimal(0);
   let merchantAmount: Decimal = new Decimal(0);
-  
+
   await prisma.$transaction(async (tx) => {
     let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
@@ -570,7 +571,8 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   const { walletBalance } = await getWalletBalance(findMerchant.merchant_id) as { walletBalance: number };
   if (res.responseCode != "G2P-T-0") {
     totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+    
+    await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
     if (body.order_id) {
       data["merchant_custom_order_id"] = body.order_id;
     }
