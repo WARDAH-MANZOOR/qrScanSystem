@@ -218,7 +218,12 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let requestData = {
       data: payload,
     };
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    // Example usage
+    (async () => {
+      await delay(1000); // Wait for 1 second
+    })();
     let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
       method: 'POST',
       headers: {
@@ -230,10 +235,10 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     });
     let res = await response.json();
     let data;
-    if(!res.data) {
+    if (!res.data) {
       totalDisbursed = walletBalance + +totalDisbursed;
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
-      throw new CustomError("Throttled",500);
+      throw new CustomError("Throttled", 500);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
@@ -291,8 +296,11 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
 
     requestData = {
       data: payload
-    }
-
+    };
+    // Example usage
+    (async () => {
+      await delay(1000); // Wait for 1 second
+    })();
     response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
       method: "POST",
       headers: {
@@ -303,10 +311,10 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
       body: JSON.stringify(requestData)
     })
     res = await response.json();
-    if(!res.data) {
+    if (!res.data) {
       totalDisbursed = walletBalance + +totalDisbursed;
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
-      throw new CustomError("Throttled",500);
+      throw new CustomError("Throttled", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
 
@@ -570,6 +578,12 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     const requestData = {
       data: payload
     };
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Example usage
+    (async () => {
+      await delay(1000); // Wait for 1 second
+    })();
 
     const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
       method: 'POST',
@@ -582,10 +596,10 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     });
     let res = await response.json();
     console.log("MW Response", res);
-    if(!res.data) {
+    if (!res.data) {
       totalDisbursed = walletBalance + +totalDisbursed;
       await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
-      throw new CustomError("Throttled",500);
+      throw new CustomError("Throttled", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
