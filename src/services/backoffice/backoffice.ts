@@ -55,10 +55,17 @@ async function zeroMerchantWalletBalance(merchantId: number) {
     }
 }
 
-async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number, record: boolean) {
+async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
     try {
         // Get current balance
-        const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
+        let walletBalance;
+        if (!wb) {
+            const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+            walletBalance = balance.walletBalance;
+        }
+        else {
+            walletBalance = wb;
+        }
         if (walletBalance === 0) {
             throw new CustomError("Current balance is 0", 400);
         }
@@ -84,7 +91,7 @@ async function adjustMerchantWalletBalance(merchantId: number, targetBalance: nu
             const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
             const fractionalMilliseconds = Math.floor(
                 (currentTime - Math.floor(currentTime)) * 1000
-              );
+            );
             const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
             // Create appropriate record
             if (record) {

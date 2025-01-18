@@ -237,7 +237,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let data;
     if (!res.data) {
       totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
       throw new CustomError("Throttled", 500);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -313,7 +313,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     res = await response.json();
     if (!res.data) {
       totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
       throw new CustomError("Throttled", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -598,7 +598,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     console.log("MW Response", res);
     if (!res.data) {
       totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
       throw new CustomError("Throttled", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
