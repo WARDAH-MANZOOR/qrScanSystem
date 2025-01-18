@@ -1,0 +1,152 @@
+import { parse } from "date-fns";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
+import { Parser } from "json2csv";
+const getSettlement = async (params, user) => {
+    const merchantId = user?.merchant_id || params.merchant_id;
+    if (!merchantId && user?.role !== "Admin") {
+        throw new CustomError("Merchant ID is required", 400);
+    }
+    let filters = {};
+    if (merchantId) {
+        filters["merchant_id"] = +merchantId;
+    }
+    try {
+        const startDate = params?.start?.replace(" ", "+");
+        const endDate = params?.end?.replace(" ", "+");
+        const customWhere = {};
+        if (startDate && endDate) {
+            const todayStart = parse(startDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+            const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+            customWhere["settlementDate"] = {
+                gte: todayStart,
+                lt: todayEnd,
+            };
+        }
+        let { page, limit } = params;
+        // Query based on provided parameters
+        let skip, take;
+        if (page && limit) {
+            skip = (+page > 0 ? parseInt(page) - 1 : parseInt(page)) * parseInt(limit);
+            take = parseInt(limit);
+        }
+        const reports = await prisma.settlementReport.findMany({
+            ...(skip && { skip: +skip }),
+            ...(take && { take: +take }),
+            where: {
+                ...filters,
+                ...customWhere,
+            },
+            include: {
+                merchant: {
+                    select: {
+                        uid: true,
+                        full_name: true,
+                    },
+                },
+            }
+        });
+        let meta = {};
+        if (page && take) {
+            // Get the total count of transactions
+            const total = await prisma.settlementReport.count({
+                where: {
+                    ...filters,
+                    ...customWhere,
+                }
+            });
+            // Calculate the total number of pages
+            const pages = Math.ceil(total / +take);
+            meta = {
+                total,
+                pages,
+                page: parseInt(page),
+                limit: take
+            };
+        }
+        const response = {
+            transactions: reports.map((transaction) => ({
+                ...transaction,
+                jazzCashMerchant: transaction.merchant,
+            })),
+            meta,
+        };
+        return response;
+    }
+    catch (error) {
+        return error;
+    }
+};
+const exportSettlement = async (params, user) => {
+    const merchantId = user?.merchant_id || params.merchant_id;
+    if (!merchantId && user?.role !== "Admin") {
+        throw new CustomError("Merchant ID is required", 400);
+    }
+    let filters = {};
+    if (merchantId) {
+        filters["merchant_id"] = +merchantId;
+    }
+    try {
+        const startDate = params?.start?.replace(" ", "+");
+        const endDate = params?.end?.replace(" ", "+");
+        const customWhere = {};
+        if (startDate && endDate) {
+            const todayStart = parse(startDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+            const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+            customWhere["settlementDate"] = {
+                gte: todayStart,
+                lt: todayEnd,
+            };
+        }
+        const reports = await prisma.settlementReport.findMany({
+            where: {
+                ...filters,
+                ...customWhere,
+            },
+            include: {
+                merchant: {
+                    select: {
+                        uid: true,
+                        full_name: true,
+                    },
+                },
+            }
+        });
+        const totalAmount = reports.reduce((sum, transaction) => sum + Number(transaction.merchantAmount), 0);
+        // res.setHeader('Content-Type', 'text/csv');
+        // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+        const fields = [
+            'merchant',
+            'merchant_id',
+            'settlement_date',
+            'transaction_count',
+            'transaction_amount',
+            'commission',
+            'gst',
+            'withholding_tax',
+            'merchant_amount'
+        ];
+        const data = reports.map(transaction => ({
+            merchant: transaction.merchant.full_name,
+            merchant_id: transaction.merchant.uid,
+            settlement_date: transaction.settlementDate,
+            transaction_count: transaction.transactionCount,
+            transaction_amount: transaction.transactionAmount,
+            commission: transaction.commission,
+            gst: transaction.gst,
+            withholding_tax: transaction.withholdingTax,
+            merchant_amount: transaction.merchantAmount,
+        }));
+        const json2csvParser = new Parser({ fields });
+        const csv = json2csvParser.parse(data);
+        return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+        // res.header('Content-Type', 'text/csv');
+        // res.attachment('transaction_report.csv');
+        // res.send(`${csv}\nTotal Settled Amount,,${totalAmount}`);
+        // return response;
+    }
+    catch (error) {
+        return error;
+    }
+};
+export { getSettlement, exportSettlement };

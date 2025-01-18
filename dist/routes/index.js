@@ -1,0 +1,22 @@
+import payment from "./paymentGateway/index.js";
+import merchant from "./merchant/index.js";
+import dashboard from "./dashboard/index.js";
+import transaction from "./transaction/index.js";
+import disbursement from "./paymentGateway/disbursement.js";
+import auth from "./authentication/index.js";
+import settlement from "./settlement/index.js";
+import paymentRequest from "./paymentRequest/index.js";
+import backoffice from "./backoffice/backoffice.js";
+import user from "./user/crud.js";
+export default function (app) {
+    app.use("/payment", payment);
+    app.use("/merchant", merchant);
+    app.use("/dashboard", dashboard);
+    app.use("/transactions", transaction);
+    app.use("/disbursement", disbursement);
+    app.use("/auth", auth);
+    app.use("/settlement", settlement);
+    app.use("/payment-request", paymentRequest);
+    app.use("/backoffice", backoffice);
+    app.use('/users', user);
+}
