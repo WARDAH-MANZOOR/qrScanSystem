@@ -14,14 +14,14 @@ import { limiter } from "utils/rate_limit.js";
 
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
-  router.post("/jzw-disburse/:merchantId",[apiKeyAuth, limiter],jazzCashController.initiateMWDisbursement)
+  router.post("/jzw-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursement)
   router.post("/jzwc-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursement)
   router.post("/jz-disburse-status/:merchantId",[apiKeyAuth],jazzCashController.disburseInquiryController);
   router.post("/sjz-disburse-status/:merchantId",jazzCashController.simpleDisburseInquiryController);
   // Define routes using arrow functions
   router.post(
     "/jz-disburse/:merchantId",
-    [apiKeyAuth, limiter],
+    [apiKeyAuth],
     jazzCashController.initiateDisbursment
   )
 
