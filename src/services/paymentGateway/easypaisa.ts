@@ -1102,7 +1102,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     const fields = [
       'merchant',
       'account',
-      'merchant_id',
+      'merchant_order_id',
       'disbursement_date',
       'transaction_amount',
       'commission',
@@ -1116,7 +1116,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     const data = disbursements.map(transaction => ({
       merchant: transaction.merchant.full_name,
       account: transaction.account,
-      merchant_id: transaction.merchant.uid,
+      merchant_order_id: transaction.merchant_custom_order_id,
       disbursement_date: transaction.disbursementDate,
       transaction_amount: transaction.transactionAmount,
       commission: transaction.commission,
