@@ -948,6 +948,9 @@ const getDisbursement = async (merchantId: number, params: any) => {
       }
     }
 
+    if (params.status) {
+      customWhere["status"] = params.status;
+    }
     let { page, limit } = params;
     // Query based on provided parameters
     let skip, take;
@@ -1102,6 +1105,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     const fields = [
       'merchant',
       'account',
+      'transaction_id',
       'merchant_order_id',
       'disbursement_date',
       'transaction_amount',
@@ -1116,6 +1120,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     const data = disbursements.map(transaction => ({
       merchant: transaction.merchant.full_name,
       account: transaction.account,
+      transaction_id: transaction.transaction_id,
       merchant_order_id: transaction.merchant_custom_order_id,
       disbursement_date: transaction.disbursementDate,
       transaction_amount: transaction.transactionAmount,
