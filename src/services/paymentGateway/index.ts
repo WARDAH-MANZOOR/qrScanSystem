@@ -274,8 +274,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           withholdingTax: totalWithholdingTax,
           merchantAmount: body.amount ? body.amount : merchantAmount,
           platform: 0,
-          account: body.phone,
-          provider: PROVIDERS.JAZZ_CASH,
+          account: body.iban,
+          provider: PROVIDERS.BANK,
           status: "failed",
           response_message: data.responseDescription
         },
@@ -351,8 +351,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           withholdingTax: totalWithholdingTax,
           merchantAmount: body.amount ? body.amount : merchantAmount,
           platform: 0,
-          account: body.phone,
-          provider: PROVIDERS.JAZZ_CASH,
+          account: body.iban,
+          provider: PROVIDERS.BANK,
           status: "failed",
           response_message: res.responseDescription
         },
@@ -394,8 +394,8 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
             withholdingTax: totalWithholdingTax,
             merchantAmount: body.amount ? body.amount : merchantAmount,
             platform: 0,
-            account: body.phone,
-            provider: PROVIDERS.JAZZ_CASH,
+            account: body.iban,
+            provider: PROVIDERS.BANK,
             status: "completed",
             response_message: "success"
           },
