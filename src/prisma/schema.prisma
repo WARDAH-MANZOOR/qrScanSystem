@@ -203,6 +203,8 @@ model Transaction {
   ScheduledTask   ScheduledTask?
   PaymentRequest  PaymentRequest?
   providerDetails Json?
+  callback_sent   Boolean?
+  callback_response String?
 
   @@index([merchant_transaction_id])
 }
@@ -315,6 +317,8 @@ model Disbursement {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  callback_sent Boolean?
+  callback_response String?
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
   @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
