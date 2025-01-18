@@ -1,36 +1,36 @@
 
-import { signup } from "../dist/controller/authentication/index.js";
+import { signup } from "../../../../dist/controller/authentication/index.js";
 import { validationResult } from "express-validator";
-import prisma from "../dist/prisma/client.js";
-import ApiResponse from "../dist/utils/ApiResponse.js";
-import CustomError from "../dist/utils/custom_error.js";
+import prisma from "../../../../dist/prisma/client.js";
+import ApiResponse from "../../../../dist/utils/ApiResponse.js";
+import CustomError from "../../../../dist/utils/custom_error.js";
 import {
   findUserByEmail,
   hashPassword,
   updateUserPassword,
   generateToken,
-} from "../dist/services/authentication/index.js";
+} from "../../../../dist/services/authentication/index.js";
 
-jest.mock("../dist/prisma/client.js", () => ({
+jest.mock("../../../../dist/prisma/client.js", () => ({
   user: {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
 }));
 
-jest.mock("../dist/utils/custom_error.js", () => {
+jest.mock("../../../../dist/utils/custom_error.js", () => {
   return jest.fn().mockImplementation((message, statusCode) => ({
     message,
     statusCode,
   }));
 });
 
-jest.mock("../dist/utils/ApiResponse.js", () => ({
+jest.mock("../../../../dist/utils/ApiResponse.js", () => ({
   success: jest.fn((data) => ({ status: "success", data })),
   error: jest.fn((message) => ({ status: "error", message })),
 }));
 
-jest.mock("../dist/services/authentication/index.js", () => ({
+jest.mock("../../../../dist/services/authentication/index.js", () => ({
   findUserByEmail: jest.fn(),
   hashPassword: jest.fn(),
   updateUserPassword: jest.fn(),

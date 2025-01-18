@@ -1547,15 +1547,19 @@ export default {
   createMerchant,
   getMerchant,
   updateMerchant,
+  createRSAEncryptedPayload,
   deleteMerchant,
   easypaisainquiry,
+  getMerchantChannel,
   createDisbursement,
   getDisbursement,
   disburseThroughBank,
+  getTransaction,
   // getTransaction,
   initiateEasyPaisaAsync,
   accountBalance,
   transactionInquiry,
+  getMerchantInquiryMethod,
   exportDisbursement
 };
 

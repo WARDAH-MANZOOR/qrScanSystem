@@ -1,6 +1,6 @@
-import { logout } from "../dist/controller/authentication/index.js";
+import { logout } from "../../../../dist/controller/authentication/index.js";
 import { validationResult } from "express-validator";
-import ApiResponse from "../dist/utils/ApiResponse.js";
+import ApiResponse from "../../../../dist/utils/ApiResponse.js";
 import { body } from 'express-validator';
 
 

@@ -541,3 +541,4 @@ export default {
   getMerchantInquiryMethod,
   getTransaction
 };
+export { isValidTransactionCompletion, isValidTransactionRequest}

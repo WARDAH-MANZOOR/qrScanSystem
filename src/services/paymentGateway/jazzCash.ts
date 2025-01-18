@@ -1413,5 +1413,7 @@ export default {
   statusInquiry,
   callback,
   initiateJazzCashPaymentAsync,
+  getSecureHash,
   initiateJazzCashCnicPayment
 };
+export { jazzCashCardPayment,prepareJazzCashPayload,calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber,fetchMerchantAndJazzCash,findTransaction, processCardPayment, processWalletPayment, validatePaymentData}

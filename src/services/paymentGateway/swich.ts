@@ -567,5 +567,6 @@ export default {
   updateMerchant,
   deleteMerchant,
   swichTxInquiry,
+  getAuthToken,
   initiateSwichAsync
 };

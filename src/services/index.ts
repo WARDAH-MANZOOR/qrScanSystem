@@ -9,9 +9,12 @@ import authenticationService from './authentication/index.js';
 import paymentRequestService from './paymentRequest/index.js';
 import zindigiService from "./paymentGateway/zindigi.js"
 import backofficeService from "./backoffice/backoffice.js"
+import transactionCreateService from './transactions/create.js'
+
 
 export {
     jazzCashService,
+    transactionCreateService,
     transactionService,
     merchantService,
     dashboardService,
