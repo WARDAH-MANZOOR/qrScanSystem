@@ -365,12 +365,3 @@ model PaymentRequest {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
-
-model ActiveRequestTracker {
-  id             Int      @id @default(autoincrement()) // Primary key
-  activeRequests Int      @default(0)                  // Tracks the count of active requests
-  updatedAt      DateTime @updatedAt                   // Auto-updates when the row is modified
-
-  /// Add an index to ensure efficient querying
-  @@index([updatedAt])
-}
