@@ -310,6 +310,7 @@ model Disbursement {
   platform                 Decimal?
   account                  String?
   provider                 String?
+  to_provider              String?
   merchant_custom_order_id String?  @unique // Added for custom inquiries
   system_order_id    String? // ID for payin-specific transactions
   status                   String   @default("completed")
