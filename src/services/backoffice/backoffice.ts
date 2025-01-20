@@ -254,7 +254,37 @@ async function settleTransactions(transactionIds: string[]) {
 
 async function settleAllMerchantTransactions(merchantId: number) {
     try {
-        await prisma.transaction.updateMany({
+        const merchant = await prisma.merchantFinancialTerms.findFirst({
+            where: {
+                merchant_id: merchantId
+            }
+        })
+        // Step 1: Fetch transactions to be settled
+        const merchantTxns = await prisma.transaction.findMany({
+            where: {
+                merchant_id: merchantId,
+                settlement: false,
+                balance: { gt: 0 },
+                status: 'completed',
+            },
+        });
+
+        // Step 2: Perform calculations
+        const transactionCount = merchantTxns.length;
+        const transactionAmount = merchantTxns.reduce(
+            (sum, txn) => sum.plus(txn?.original_amount ?? new Decimal(0)),
+            new Decimal(0)
+        );
+        const totalCommission = transactionAmount.times(merchant?.commissionRate ?? 0);
+        const totalGST = totalCommission.times(merchant?.commissionGST ?? 0);
+        const totalWithholdingTax = transactionAmount.times(merchant?.commissionWithHoldingTax ?? 0);
+        const merchantAmount = transactionAmount
+            .minus(totalCommission)
+            .minus(totalGST)
+            .minus(totalWithholdingTax);
+
+        // Step 3: Update transactions to mark them as settled
+        const updateResult = await prisma.transaction.updateMany({
             where: {
                 merchant_id: merchantId,
                 settlement: false,
@@ -266,8 +296,24 @@ async function settleAllMerchantTransactions(merchantId: number) {
             },
         });
 
+        const today = new Date();
+
+        // Upsert the settlement report
+        await prisma.settlementReport.create({
+            data: {
+                merchant_id: merchantId,
+                settlementDate: today,
+                transactionCount,
+                transactionAmount,
+                commission: totalCommission,
+                gst: totalGST,
+                withholdingTax: totalWithholdingTax,
+                merchantAmount,
+            }
+        });
         return 'All merchant transactions settled successfully.';
     } catch (error) {
+        console.log(error)
         throw new CustomError('Error settling all transactions', 500);
     }
 }
