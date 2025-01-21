@@ -280,7 +280,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           response_message: data.responseDescription
         },
       });
-      throw new CustomError("Error with ibft inquiry", 500)
+      throw new CustomError(data.responseDescription, 500)
     }
 
     id = transactionService.createTransactionId();
@@ -357,7 +357,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           response_message: res.responseDescription
         },
       });
-      throw new CustomError("Error with ibft confirmation", 500)
+      throw new CustomError(res.responseDescription, 500)
     }
     return await prisma.$transaction(
       async (tx) => {
@@ -439,9 +439,9 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     }
     );
   }
-  catch (err) {
+  catch (err: any) {
     console.log("Initiate Transaction Error", err);
-    throw new CustomError("Failed to initiate transaction", 500);
+    throw new CustomError(err?.message, 500);
   }
 }
 
@@ -725,9 +725,9 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       }
     );
   }
-  catch (err) {
+  catch (err: any) {
     console.log("MW Transaction Error", err);
-    throw new CustomError("Failed to initiate transaction", 500);
+    throw new CustomError(err?.message, 500);
   }
 }
 
