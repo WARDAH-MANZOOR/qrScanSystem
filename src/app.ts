@@ -27,7 +27,7 @@ import pendingDisburse from "./utils/pending_disburse_cron.js"
 // import backup from 'utils/backup.js';
 
 var app = express();
-// cron.schedule("0 16 * * 1-5", task);
+cron.schedule("0 16 * * 1-5", task);
 cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
