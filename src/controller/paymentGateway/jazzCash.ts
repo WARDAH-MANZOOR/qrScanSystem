@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService, transactionService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 
 const initiateJazzCash = async (
@@ -210,32 +210,6 @@ const initiateMWDisbursement = async (req: Request, res: Response, next: NextFun
   }
 }
 
-const initiateDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    console.log("IBFT Called")
-    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await getToken(req.params.merchantId);
-    const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
-    res.status(200).json(ApiResponse.success(initTransaction));
-  }
-  catch (err) {
-    next(err)
-  }
-}
-
-const initiateMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await getToken(req.params.merchantId);
-    const initTransaction = await mwTransactionClone(token?.access_token, req.body, req.params.merchantId);
-
-    res.status(200).json(ApiResponse.success(initTransaction));
-  }
-  catch (err) {
-    next(err)
-  }
-}
-
 const dummyCallback = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await jazzCashService.callback(req.body);
@@ -317,6 +291,4 @@ export default {
   initiateJazzCashAsync,
   jazzStatusInquiry,
   initiateJazzCashCnic,
-  initiateDisbursmentClone,
-  initiateMWDisbursementClone
 };
