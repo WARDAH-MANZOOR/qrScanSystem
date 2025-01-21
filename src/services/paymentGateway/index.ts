@@ -585,8 +585,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let res = await response.json();
     let data;
     if (!res.data) {
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
+      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false, walletBalance);
       throw new CustomError("Throttled", 500);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -594,8 +593,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
+      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
       if (body.order_id) {
         data2["merchant_custom_order_id"] = body.order_id;
       }
@@ -603,7 +601,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
         data2["merchant_custom_order_id"] = db_id;
       }
       // else {
-      data2["transaction_id"] = res.transactionID || db_id;
+      data2["transaction_id"] = data.transactionID || db_id;
       data2["system_order_id"] = db_id;
       // Get the current date
       const date = new Date();
@@ -663,16 +661,14 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     })
     res = await response.json();
     if (!res.data) {
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
+      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
       throw new CustomError("Throttled", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-
+    // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
+      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
       if (body.order_id) {
         data2["merchant_custom_order_id"] = body.order_id;
       }
@@ -1218,26 +1214,22 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     let res = await response.json();
     console.log("MW Response", res);
     if (!res.data) {
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
+      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
       throw new CustomError("Throttled", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     if (res.responseCode != "G2P-T-0") {
-      totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
+      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
       if (body.order_id) {
         data["merchant_custom_order_id"] = body.order_id;
       }
       else {
         data["merchant_custom_order_id"] = id;
       }
-      // else {
       data["system_order_id"] = id;
-      data["transaction_id"] = res.transactionID || id;
-      // }
-      // Get the current date
+      data["transaction_id"] = res?.transactionID || id;
       const date = new Date();
 
       // Define the Pakistan timezone
