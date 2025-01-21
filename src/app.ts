@@ -22,11 +22,13 @@ import createTransactionRouter from "./routes/transaction/create.js"
 import completeTransactionRouter from "./routes/transaction/complete.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
+import pendingDisburse from "./utils/pending_disburse_cron.js"
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 
 var app = express();
-cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("0 16 * * 1-5", task);
+cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
