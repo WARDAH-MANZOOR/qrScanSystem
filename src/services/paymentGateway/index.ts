@@ -594,6 +594,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
+      totalDisbursed = walletBalance + +totalDisbursed;
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
       if (body.order_id) {
         data2["merchant_custom_order_id"] = body.order_id;
       }
@@ -670,7 +672,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       totalDisbursed = walletBalance + +totalDisbursed;
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
       if (body.order_id) {
         data2["merchant_custom_order_id"] = body.order_id;
       }
@@ -1077,7 +1079,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   }
   catch (err: any) {
     console.log("MW Transaction Error", err);
-    throw new CustomError(err?.message, 500);
+    throw new CustomError("Failed to initiate transaction", 500);
   }
 }
 
@@ -1224,8 +1226,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     if (res.responseCode != "G2P-T-0") {
       totalDisbursed = walletBalance + +totalDisbursed;
-
-      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false);
+      await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, totalDisbursed, false, walletBalance);
       if (body.order_id) {
         data["merchant_custom_order_id"] = body.order_id;
       }
@@ -1234,7 +1235,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
       }
       // else {
       data["system_order_id"] = id;
-      data["transaction_id"] = res.transactionID;
+      data["transaction_id"] = res.transactionID || id;
       // }
       // Get the current date
       const date = new Date();
@@ -1276,7 +1277,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
         }
         // else {
         data["system_order_id"] = id;
-        data["transaction_id"] = res.transactionID || id;
+        data["transaction_id"] = res.transactionID;
         // }
         // Get the current date
         const date = new Date();
