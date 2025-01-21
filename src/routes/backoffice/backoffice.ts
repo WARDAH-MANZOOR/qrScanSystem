@@ -20,5 +20,9 @@ router.post("/dummy-transaction/:merchantId",[isLoggedIn, isAdmin], backOfficeCo
 
 router.delete("/delete-merchant-data/:merchantId",[isLoggedIn, isAdmin], backOfficeController.deleteMerchantDataController)
 
+router.post("/payin-callback",backOfficeController.payinCallback)
+
+router.post("/payout-callback",backOfficeController.payoutCallback)
+
 
 export default router;

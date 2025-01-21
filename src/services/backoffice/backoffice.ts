@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { transactionService } from 'services/index.js';
 import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
 import CustomError from 'utils/custom_error.js';
 import { addWeekdays } from 'utils/date_method.js';
@@ -59,16 +60,114 @@ async function adjustMerchantWalletBalance(merchantId: number, targetBalance: nu
     try {
         // Get current balance
         let walletBalance;
-        if (!wb) {
-            const balance = await getWalletBalance(merchantId) as { walletBalance: number };
-            walletBalance = balance.walletBalance;
-        }
-        else {
-            walletBalance = wb;
-        }
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
         if (walletBalance === 0) {
             throw new CustomError("Current balance is 0", 400);
         }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
+
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+
+        // Execute in transaction
+        return await prisma.$transaction(async (tx) => {
+            // Update transaction balances
+            await tx.transaction.updateMany({
+                where: {
+                    merchant_id: merchantId,
+                    status: 'completed',
+                    settlement: true,
+                    balance: { gt: 0 },
+                },
+                data: {
+                    balance: { multiply: targetBalance / walletBalance }
+                }
+            });
+            const currentTime = Date.now();
+            const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
+            const fractionalMilliseconds = Math.floor(
+                (currentTime - Math.floor(currentTime)) * 1000
+            );
+            const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
+            // Create appropriate record
+            if (record) {
+                if (isSettlement) {
+                    await tx.settlementReport.create({
+                        data: {
+                            merchant_id: merchantId,
+                            settlementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            transactionCount: 1
+                        }
+                    });
+                } else {
+                    await tx.disbursement.create({
+                        data: {
+                            merchant_id: merchantId,
+                            disbursementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            status: 'completed',
+                            response_message: 'Wallet adjustment',
+                            merchant_custom_order_id: txnId,
+                            system_order_id: txnId
+                        }
+                    });
+                }
+            }
+            return {
+                success: true,
+                type: isSettlement ? 'settlement' : 'disbursement',
+                previousBalance: walletBalance,
+                newBalance: targetBalance,
+                difference: Math.abs(balanceDifference)
+            };
+        });
+
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
+    }
+}
+
+async function adjustMerchantDisbursementWalletBalance(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
+        }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
 
         const balanceDifference = targetBalance - walletBalance;
         const isSettlement = balanceDifference > 0;
@@ -256,7 +355,7 @@ async function settleAllMerchantTransactions(merchantId: number) {
     try {
         const merchant = await prisma.merchantFinancialTerms.findFirst({
             where: {
-                merchant_id: merchantId
+                merchant_id: Number(merchantId)
             }
         })
         // Step 1: Fetch transactions to be settled
@@ -455,6 +554,86 @@ async function deleteMerchantData(merchantId: number) {
     }
 }
 
+async function payinCallback(orderIds: string[]) {
+    const txns = await prisma.transaction.findMany({
+        where: {
+            merchant_transaction_id: { in: orderIds }
+        }
+    });
+    if (txns.length <= 0) {
+        throw new CustomError("Transactions not found", 404);
+    }
+
+    // Group transactions by merchant
+    const transactionsByMerchant = txns.reduce((acc, txn) => {
+        if (!acc[txn.merchant_id]) {
+            acc[txn.merchant_id] = [];
+        }
+        acc[txn.merchant_id].push(txn);
+        return acc;
+    }, {} as Record<number, typeof txns>);
+    console.log(transactionsByMerchant)
+    for (const merchantId in transactionsByMerchant) {
+        const merchant = await prisma.merchant.findFirst({
+            where: {
+                merchant_id: Number(merchantId)
+            }
+        })
+        const merchantTxns = transactionsByMerchant[merchantId];
+        for (const txn of merchantTxns) {
+            console.log(merchant?.webhook_url)
+            await transactionService.sendCallback(
+                merchant?.webhook_url as string,
+                txn,
+                (txn.providerDetails as JsonObject)?.account as string,
+                "payin",
+                merchant?.encrypted == "True" ? true : false,
+                false
+            )
+        }
+    }
+}
+
+async function payoutCallback(orderIds: string[]) {
+    const txns = await prisma.disbursement.findMany({
+        where: {
+            merchant_custom_order_id: { in: orderIds }
+        }
+    });
+    if (txns.length <= 0) {
+        throw new CustomError("Transactions not found", 404);
+    }
+
+    // Group transactions by merchant
+    const transactionsByMerchant = txns.reduce((acc, txn) => {
+        if (!acc[txn.merchant_id]) {
+            acc[txn.merchant_id] = [];
+        }
+        acc[txn.merchant_id].push(txn);
+        return acc;
+    }, {} as Record<number, typeof txns>);
+    console.log(transactionsByMerchant)
+    for (const merchantId in transactionsByMerchant) {
+        const merchant = await prisma.merchant.findFirst({
+            where: {
+                merchant_id: Number(merchantId)
+            }
+        })
+        const merchantTxns = transactionsByMerchant[merchantId];
+        for (const txn of merchantTxns) {
+            console.log(merchant?.webhook_url)
+            await transactionService.sendCallback(
+                merchant?.webhook_url as string,
+                {original_amount: txn.transactionAmount, date_time: txn.disbursementDate, merchant_transaction_id: txn.merchant_custom_order_id, merchant_id: txn.merchant_id},
+                (txn as unknown as JsonObject)?.account as string,
+                "payout",
+                merchant?.encrypted == "True" ? true : false,
+                false
+            )
+        }
+    }
+}
+
 
 export default {
     adjustMerchantWalletBalance,
@@ -464,5 +643,8 @@ export default {
     settleTransactions,
     zeroMerchantWalletBalance,
     createTransactionService,
-    deleteMerchantData
+    deleteMerchantData,
+    adjustMerchantDisbursementWalletBalance,
+    payinCallback,
+    payoutCallback
 }
