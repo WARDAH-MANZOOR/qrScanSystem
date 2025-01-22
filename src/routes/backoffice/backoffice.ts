@@ -14,6 +14,8 @@ router.get('/transaction-stats/:merchantId', [isLoggedIn, isAdmin], backOfficeCo
 
 router.post('/settle-transactions', [isLoggedIn, isAdmin], backOfficeController.settleTransactions);
 
+router.post('/settle-transactions/tele', backOfficeController.settleTransactionsForTelegram);
+
 router.post('/settle-all/:merchantId', [isLoggedIn, isAdmin], backOfficeController.settleAllMerchantTransactions);
 
 router.post("/dummy-transaction/:merchantId",[isLoggedIn, isAdmin], backOfficeController.createTransactionController)

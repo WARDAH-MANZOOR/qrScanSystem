@@ -262,11 +262,11 @@ async function checkMerchantTransactionStats(merchantId: number) {
     }
 }
 
-async function settleTransactions(transactionIds: string[]) {
+async function settleTransactions(transactionIds: string[], settlement: boolean = true) {
     try {
         const txns = await prisma.transaction.findMany({
             where: {
-                transaction_id: { in: transactionIds }
+                merchant_transaction_id: { in: transactionIds }
             }
         });
         if (txns.length <= 0) {
@@ -285,7 +285,11 @@ async function settleTransactions(transactionIds: string[]) {
         // Process each merchant's transactions
         for (const merchantId in transactionsByMerchant) {
             const merchantTxns = transactionsByMerchant[merchantId];
-
+            const findMerchant = await prisma.merchant.findFirst({
+                where: {
+                    merchant_id: parseInt(merchantId)
+                }
+            })
             const merchant = await prisma.merchantFinancialTerms.findUnique({
                 where: { merchant_id: parseInt(merchantId) },
             });
@@ -299,50 +303,63 @@ async function settleTransactions(transactionIds: string[]) {
                     transaction_id: { in: merchantTxns.map(txn => txn.transaction_id) },
                 },
                 data: {
-                    settlement: true,
+                    settlement,
                     status: "completed",
                     response_message: "success"
                 },
             });
 
-            // Aggregate data for the settlement report
-            const transactionCount = merchantTxns.length;
-            const transactionAmount = merchantTxns.reduce((sum, txn) => sum.plus(txn?.original_amount ?? 0), new Decimal(0));
-            const totalCommission = transactionAmount.times(merchant.commissionRate ?? 0);
-            const totalGST = totalCommission.times(merchant.commissionGST ?? 0);
-            const totalWithholdingTax = transactionAmount.times(merchant.commissionWithHoldingTax ?? 0);
-            const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
+            if (settlement) {
+                // Aggregate data for the settlement report
+                const transactionCount = merchantTxns.length;
+                const transactionAmount = merchantTxns.reduce((sum, txn) => sum.plus(txn?.original_amount ?? 0), new Decimal(0));
+                const totalCommission = transactionAmount.times(merchant.commissionRate ?? 0);
+                const totalGST = totalCommission.times(merchant.commissionGST ?? 0);
+                const totalWithholdingTax = transactionAmount.times(merchant.commissionWithHoldingTax ?? 0);
+                const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
 
-            const today = new Date();
-            const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const today = new Date();
+                const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-            // Upsert the settlement report
-            await prisma.settlementReport.upsert({
-                where: {
-                    merchant_id_settlementDate: {
+                // Upsert the settlement report
+                await prisma.settlementReport.upsert({
+                    where: {
+                        merchant_id_settlementDate: {
+                            merchant_id: parseInt(merchantId),
+                            settlementDate,
+                        },
+                    },
+                    create: {
                         merchant_id: parseInt(merchantId),
                         settlementDate,
+                        transactionCount,
+                        transactionAmount,
+                        commission: totalCommission,
+                        gst: totalGST,
+                        withholdingTax: totalWithholdingTax,
+                        merchantAmount,
                     },
-                },
-                create: {
-                    merchant_id: parseInt(merchantId),
-                    settlementDate,
-                    transactionCount,
-                    transactionAmount,
-                    commission: totalCommission,
-                    gst: totalGST,
-                    withholdingTax: totalWithholdingTax,
-                    merchantAmount,
-                },
-                update: {
-                    transactionCount: { increment: transactionCount },
-                    transactionAmount: { increment: transactionAmount },
-                    commission: { increment: totalCommission },
-                    gst: { increment: totalGST },
-                    withholdingTax: { increment: totalWithholdingTax },
-                    merchantAmount: { increment: merchantAmount },
-                },
-            });
+                    update: {
+                        transactionCount: { increment: transactionCount },
+                        transactionAmount: { increment: transactionAmount },
+                        commission: { increment: totalCommission },
+                        gst: { increment: totalGST },
+                        withholdingTax: { increment: totalWithholdingTax },
+                        merchantAmount: { increment: merchantAmount },
+                    },
+                });
+            }
+            for (const txn of merchantTxns) {
+                console.log(findMerchant?.webhook_url)
+                await transactionService.sendCallback(
+                    findMerchant?.webhook_url as string,
+                    txn,
+                    (txn.providerDetails as JsonObject)?.account as string,
+                    "payin",
+                    findMerchant?.encrypted == "True" ? true : false,
+                    false
+                )
+            }
         }
 
         return 'Transactions settled successfully.';
@@ -624,7 +641,7 @@ async function payoutCallback(orderIds: string[]) {
             console.log(merchant?.webhook_url)
             await transactionService.sendCallback(
                 merchant?.webhook_url as string,
-                {original_amount: txn.transactionAmount, date_time: txn.disbursementDate, merchant_transaction_id: txn.merchant_custom_order_id, merchant_id: txn.merchant_id},
+                { original_amount: txn.transactionAmount, date_time: txn.disbursementDate, merchant_transaction_id: txn.merchant_custom_order_id, merchant_id: txn.merchant_id },
                 (txn as unknown as JsonObject)?.account as string,
                 "payout",
                 merchant?.encrypted == "True" ? true : false,
