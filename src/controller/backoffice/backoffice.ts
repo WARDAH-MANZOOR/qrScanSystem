@@ -59,11 +59,22 @@ const checkMerchantTransactionStats = async (req: Request, res: Response) => {
 
 const settleTransactions = async (req: Request, res: Response) => {
     try {
-        const { transactionIds } = req.body;
+        const { transactionIds, settlement } = req.body;
         if (transactionIds.length <= 0) {
             throw new CustomError("One id must be given")
         }
-        const result = await backofficeService.settleTransactions(transactionIds);
+        const result = await backofficeService.settleTransactions(transactionIds, settlement);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
+const settleTransactionsForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionId } = req.body;
+        const result = await backofficeService.settleTransactions([transactionId], false);
         res.status(200).json(ApiResponse.success(result));
     }
     catch (err: any) {
@@ -151,5 +162,6 @@ export default {
     createTransactionController,
     deleteMerchantDataController,
     payinCallback,
-    payoutCallback
+    payoutCallback,
+    settleTransactionsForTelegram
 }
