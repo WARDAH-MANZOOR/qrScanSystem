@@ -266,7 +266,8 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
     try {
         const txns = await prisma.transaction.findMany({
             where: {
-                merchant_transaction_id: { in: transactionIds }
+                merchant_transaction_id: { in: transactionIds },
+                settlement: false
             }
         });
         if (txns.length <= 0) {
@@ -288,7 +289,8 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
             const findMerchant = await prisma.merchant.findFirst({
                 where: {
                     merchant_id: parseInt(merchantId)
-                }
+                },
+                include: {commissions: true}
             })
             const merchant = await prisma.merchantFinancialTerms.findUnique({
                 where: { merchant_id: parseInt(merchantId) },
@@ -350,7 +352,21 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
                 });
             }
             for (const txn of merchantTxns) {
-                console.log(findMerchant?.webhook_url)
+                console.log(txn?.transaction_id)
+                if (!settlement) {
+                    const scheduledAt = addWeekdays(
+                        new Date(),
+                        findMerchant?.commissions[0].settlementDuration as number
+                      ); // Call the function to get the next 2 weekdays
+                      let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                          transactionId: txn.transaction_id,
+                          status: "pending",
+                          scheduledAt: scheduledAt, // Assign the calculated weekday date
+                          executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                      });
+                }
                 await transactionService.sendCallback(
                     findMerchant?.webhook_url as string,
                     txn,
