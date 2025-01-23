@@ -93,6 +93,7 @@ const createPaymentRequestClone = async (data: any, user: any) => {
           metadata: data.metadata || {},
           createdAt: new Date(),
           updatedAt: new Date(),
+          merchant_transaction_id: data.order_id,
         },
       });
     });
@@ -118,7 +119,7 @@ const createPaymentRequestClone = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`},
+      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id},
     };
   } catch (error: any) {
     throw new CustomError(
@@ -159,6 +160,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
         {
+          order_id: paymentRequest.merchant_transaction_id,
           amount: paymentRequest.amount,
           type: "wallet",
           phone: paymentRequestObj.accountNo,
@@ -180,6 +182,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         const easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
           merchant.uid,
           {
+            order_id: paymentRequest.merchant_transaction_id,
             amount: paymentRequest.amount,
             type: "wallet",
             phone: paymentRequestObj.accountNo,
@@ -198,6 +201,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         // swich payment
         const swichPayment = await swichService.initiateSwich(
           {
+            order_id: paymentRequest.merchant_transaction_id,
             channel: 1749,
             amount: paymentRequest.amount,
             phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),

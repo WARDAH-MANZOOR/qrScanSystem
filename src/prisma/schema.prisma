@@ -365,4 +365,5 @@ model PaymentRequest {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  merchant_transaction_id String?
 }
