@@ -23,7 +23,7 @@ const createPaymentRequest = async (data: any, user: any) => {
           userId: user.id,
           amount: data.amount,
           status: "pending",
-          email: data.email,
+          email: "example@example.com",
           description: data.description,
           transactionId: data.transactionId,
           dueDate: data.dueDate,
@@ -57,7 +57,68 @@ const createPaymentRequest = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: updatedPaymentRequest,
+      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`},
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while creating the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
+const createPaymentRequestClone = async (data: any, user: any) => {
+  try {
+    if (!user) {
+      throw new CustomError("User Id not given",404);
+    }
+
+    let user2 = await prisma.merchant.findFirst({
+      where: {
+        uid: user
+      }
+    })
+    const newPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.create({
+        data: {
+          userId: user2?.merchant_id,
+          amount: data.amount,
+          status: "pending",
+          email: "example@example.com",
+          description: data.description,
+          transactionId: data.transactionId,
+          dueDate: data.dueDate,
+          provider: data.provider,
+          link: data.link,
+          metadata: data.metadata || {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    });
+
+    // update link with payment request id
+    const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: newPaymentRequest.id,
+        },
+        data: {
+          link: `/pay/${newPaymentRequest.id}`,
+        },
+      });
+    });
+
+    if (!newPaymentRequest) {
+      throw new CustomError(
+        "An error occurred while creating the payment request",
+        500
+      );
+    }
+
+    return {
+      message: "Payment request created successfully",
+      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`},
     };
   } catch (error: any) {
     throw new CustomError(
@@ -179,6 +240,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     );
   }
 };
+
+
 
 const getPaymentRequestbyId = async (paymentRequestId: string) => {
   try {
@@ -378,4 +441,5 @@ export default {
   deletePaymentRequest,
   payRequestedPayment,
   getPaymentRequestbyId,
+  createPaymentRequestClone
 };
