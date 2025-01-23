@@ -248,6 +248,21 @@ const createDisbursement = async (
   }
 }
 
+const createDisbursementClone = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const merchantId = req.params?.merchantId;
+    const payload: DisbursementPayload = req.body;
+    const result = await easyPaisaService.createDisbursementClone(payload, merchantId);
+    res.status(200).json(ApiResponse.success(result));
+  } catch (err) {
+    next(err);
+  }
+}
+
 const getDisbursement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { query } = req;
@@ -277,6 +292,18 @@ const disburseThroughBank = async (req: Request, res: Response, next: NextFuncti
     const merchantId = req.params?.merchantId;
     const payload: DisbursementPayload = req.body;
     const result = await easyPaisaService.disburseThroughBank(payload, merchantId);
+    res.status(200).json(ApiResponse.success(result));
+  }
+  catch (err) {
+    next(err);
+  }
+}
+
+const disburseThroughBankClone = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const merchantId = req.params?.merchantId;
+    const payload: DisbursementPayload = req.body;
+    const result = await easyPaisaService.disburseThroughBankClone(payload, merchantId);
     res.status(200).json(ApiResponse.success(result));
   }
   catch (err) {
@@ -327,5 +354,7 @@ export default {
   initiateEasyPaisaAsync,
   accountBalance,
   transactionInquiry,
-  exportDisbursement
+  exportDisbursement,
+  createDisbursementClone,
+  disburseThroughBankClone
 };
