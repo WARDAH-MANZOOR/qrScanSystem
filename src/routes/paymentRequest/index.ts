@@ -13,6 +13,7 @@ router.get("/:id", paymentRequestController.getPaymentRequestbyId);
 
 router.get("/", [isLoggedIn], paymentRequestController.getPaymentRequest);
 router.post("/", [isLoggedIn], paymentRequestController.createPaymentRequest);
+// router.post("/new", [isLoggedIn], paymentRequestController.createPaymentRequest);
 router.put(
   "/:paymentRequestId",
   [isLoggedIn],
