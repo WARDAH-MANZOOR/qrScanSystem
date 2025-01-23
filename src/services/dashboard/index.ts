@@ -42,7 +42,6 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         prisma.transaction.count({
           where: {
             merchant_id: +merchantId,
-            status: "completed",
             ...customWhere,
           },
         }) // Return type is a Promise<number>
