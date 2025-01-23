@@ -105,7 +105,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         },
         merchant.uid
       );
-      if (!jazzCashPayment) {
+      if (jazzCashPayment.statusCode != "000") {
         throw new CustomError(
           "An error occurred while paying the payment request",
           500
@@ -127,7 +127,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           }
         );
 
-        if (!easyPaisaPayment) {
+        if (easyPaisaPayment.statusCode != "0000") {
           throw new CustomError(
             "An error occurred while paying the payment request",
             500
@@ -147,7 +147,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           merchant.uid
         );
 
-        if (!swichPayment) {
+        if (swichPayment?.statusCode != "0000") {
           throw new CustomError(
             "An error occurred while paying the payment request",
             500
