@@ -19,6 +19,22 @@ const createPaymentRequest = async (
   }
 };
 
+const createPaymentRequestClone = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await paymentRequestService.createPaymentRequestClone(
+      req.body,
+      req.params.merchantId
+    );
+     res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getPaymentRequest = async (
   req: Request,
   res: Response,
@@ -136,4 +152,5 @@ export default {
   deletePaymentRequest,
   payRequestedPayment,
   getPaymentRequestbyId,
+  createPaymentRequestClone
 };
