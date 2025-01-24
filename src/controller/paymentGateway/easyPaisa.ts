@@ -107,6 +107,108 @@ const initiateEasyPaisaAsync = async (
   }
 };
 
+const initiateEasyPaisaClone = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    let merchantId = req.params?.merchantId;
+
+    if (!merchantId) {
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
+    }
+
+    const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    let result: any;
+    if (channel == "DIRECT") {
+      result = await easyPaisaService.initiateEasyPaisaClone(
+        merchantId,
+        req.body
+      );
+      if (result.statusCode != "0000") {
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
+        return;
+      }
+    }
+    else {
+      result = await swichService.initiateSwichClone({
+        channel: 1749,
+        amount: req.body.amount,
+        phone: transactionService.convertPhoneNumber(req.body.phone),
+        email: req.body.email,
+        order_id: req.body.order_id,
+        type: req.body.type
+      }, merchantId)
+      if (result.statusCode != "0000") {
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
+        return;
+      }
+    }
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const initiateEasyPaisaAsyncClone = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    let merchantId = req.params?.merchantId;
+
+    if (!merchantId) {
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
+    }
+
+    const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    let result: any;
+    if (channel == "DIRECT") {
+      result = await easyPaisaService.initiateEasyPaisaAsyncClone(
+        merchantId,
+        req.body
+      );
+      if (result.statusCode != "pending") {
+        res.status(result.statusCode).send(ApiResponse.error(result))
+        return;
+      }
+    }
+    else {
+      result = await swichService.initiateSwichAsyncClone({
+        channel: 1749,
+        amount: req.body.amount,
+        phone: transactionService.convertPhoneNumber(req.body.phone),
+        email: req.body.email,
+        order_id: req.body.order_id,
+        type: req.body.type
+      }, merchantId)
+      if (result.statusCode != "pending") {
+        res.status(result.statusCode).send(ApiResponse.error(result));
+        return;
+      }
+    }
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getEasyPaisaMerchant = async (
   req: Request,
   res: Response,
@@ -356,5 +458,7 @@ export default {
   transactionInquiry,
   exportDisbursement,
   createDisbursementClone,
-  disburseThroughBankClone
+  disburseThroughBankClone,
+  initiateEasyPaisaClone,
+  initiateEasyPaisaAsyncClone
 };

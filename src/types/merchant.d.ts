@@ -29,6 +29,8 @@ export interface Merchant {
   payout_callback: string;
   easypaisaLimit: number;
   swichLimit: number;
+  commissionMode: "SINGLE" | "DOUBLE";
+  easypaisaRate: number;
 }
 
 export interface IjazzCashConfigParams {

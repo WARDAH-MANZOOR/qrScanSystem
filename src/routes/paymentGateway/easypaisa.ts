@@ -59,6 +59,18 @@ export default function (router: Router) {
   );
 
   router.post(
+    "/initiate-epc/:merchantId",
+    validateEasypaisaTxn,
+    easyPaisaController.initiateEasyPaisaClone
+  );
+
+  router.post(
+    "/initiate-epac/:merchantId",
+    [apiKeyAuth, ...validateEasypaisaTxn],
+    easyPaisaController.initiateEasyPaisaAsyncClone
+  );
+
+  router.post(
     "/ep-merchant",
     [isLoggedIn, isAdmin, ...validateCreateMerchant],
     easyPaisaController.createEasyPaisaMerchant
