@@ -35,6 +35,8 @@ const updateMerchant = async (payload: Merchant) => {
     payout_callback,
     easypaisaLimit,
     swichLimit,
+    commissionMode,
+    easypaisaRate
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
@@ -57,6 +59,7 @@ const updateMerchant = async (payload: Merchant) => {
         throw new CustomError("Easy Paisa Method not valid", 400);
       }
       let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
+      let easypaisa_rate = commissionMode === "SINGLE" ? null : easypaisaRate;
       const user = await tx.merchant.update({
         data: {
           full_name: username,
@@ -96,6 +99,8 @@ const updateMerchant = async (payload: Merchant) => {
             settlementDuration != undefined
               ? +settlementDuration
               : finance?.settlementDuration,
+          commissionMode,
+          easypaisaRate: easypaisa_rate
         },
         where: { merchant_id: +merchantId },
       });
@@ -180,6 +185,8 @@ const addMerchant = async (payload: Merchant) => {
     payout_callback,
     easypaisaLimit,
     swichLimit,
+    commissionMode,
+    easypaisaRate
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -199,6 +206,7 @@ const addMerchant = async (payload: Merchant) => {
         },
       });
       let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
+      let easypaisa_rate = commissionMode === "SINGLE" ? null : easypaisaRate;
       // Create Merchant
       const merchant = await tx.merchant.create({
         data: {
@@ -236,6 +244,8 @@ const addMerchant = async (payload: Merchant) => {
           disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
           settlementDuration: +settlementDuration,
           merchant_id: user.id,
+          commissionMode,
+          easypaisaRate: easypaisa_rate
         },
       });
 
