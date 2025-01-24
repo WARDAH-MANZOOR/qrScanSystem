@@ -148,7 +148,7 @@ model MerchantFinancialTerms {
   merchant_id Int      @unique
   merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id])
 
-  commissionMode             CommissionMode? 
+  commissionMode             CommissionMode? @default(SINGLE) 
   commissionRate             Decimal
   easypaisaRate              Decimal?
   commissionWithHoldingTax   Decimal
