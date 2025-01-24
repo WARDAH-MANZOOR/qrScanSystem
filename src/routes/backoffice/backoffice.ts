@@ -26,5 +26,8 @@ router.post("/payin-callback",backOfficeController.payinCallback)
 
 router.post("/payout-callback",backOfficeController.payoutCallback)
 
+router.post("/div-settlements",[isLoggedIn, isAdmin], backOfficeController.divideSettlementRecords)
+
+
 
 export default router;

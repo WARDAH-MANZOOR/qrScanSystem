@@ -667,6 +667,37 @@ async function payoutCallback(orderIds: string[]) {
     }
 }
 
+async function divideSettlementRecords(ids: number[],factor: number) {
+    if (ids.length == 0 || factor <= 0) {
+        throw new CustomError("Invalid Body Values",404);
+    }
+    
+    const records = await prisma.settlementReport.findMany({
+        where: {
+            id: {in: ids}
+        }
+    })
+
+    if (records.length == 0) {
+        throw new CustomError("Invalid Settlement IDs",400);
+    }
+    records.map(async (record) => await prisma.settlementReport.updateMany({
+        where: {
+            id: {in: ids}
+        },
+        data: {
+            transactionCount: record.transactionCount / factor,
+            transactionAmount: Number(record.transactionAmount) / factor,
+            commission: Number(record.commission) / factor,
+            gst: Number(record.gst) / 2,
+            withholdingTax: Number(record.withholdingTax) / factor,
+            merchantAmount: Number(record.merchantAmount) / factor
+        }
+    }))
+
+    return "Records divided successfully";
+}
+
 
 export default {
     adjustMerchantWalletBalance,
@@ -679,5 +710,6 @@ export default {
     deleteMerchantData,
     adjustMerchantDisbursementWalletBalance,
     payinCallback,
-    payoutCallback
+    payoutCallback,
+    divideSettlementRecords
 }

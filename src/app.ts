@@ -27,7 +27,7 @@ import pendingDisburse from "./utils/pending_disburse_cron.js"
 // import backup from 'utils/backup.js';
 
 var app = express();
-// cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("* * * * *", task);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
@@ -80,6 +80,118 @@ app.get('/swagger.json', (req, res) => {
 app.get('/redoc', (req, res) => {
   res.sendFile(path.join(import.meta.dirname, '../', "redoc.html"));
 });
+
+// app.get('/generate-excel', async (req, res) => {
+//     const workbook = new ExcelJS.Workbook();
+//     const sheet = workbook.addWorksheet('Merchant Report');
+
+//     // Example data (replace with your database query)
+//     const merchants = [
+//         {
+//             name: "Merchant A",
+//             data: [
+//                 { date: "Saturday, January 20, 2024", type: "Easypaisa", accountName: "Account 1", amount: 500, mdr: 50 },
+//                 { date: "Saturday, January 20, 2024", type: "JazzCash", accountName: "Account 2", amount: 1000, mdr: 100 },
+//                 { date: "Tuesday, February 20, 2024", type: "Sahulatpay", accountName: "Account 3", amount: 700, mdr: 70 },
+//                 { date: "Tuesday, February 20, 2024", type: "Disbursement", accountName: "Account 4", amount: 2000, mdr: 20 },
+//             ],
+//         },
+//         {
+//             name: "Merchant B",
+//             data: [
+//                 { date: "Saturday, January 20, 2024", type: "Easypaisa", accountName: "Account 5", amount: 800, mdr: 80 },
+//                 { date: "Tuesday, February 20, 2024", type: "JazzCash", accountName: "Account 6", amount: 1200, mdr: 120 },
+//                 { date: "Tuesday, February 20, 2024", type: "Sahulatpay", accountName: "Account 7", amount: 900, mdr: 90 },
+//                 { date: "Saturday, January 20, 2024", type: "Disbursement", accountName: "Account 8", amount: 1500, mdr: 15 },
+//             ],
+//         },
+//     ];
+
+//     // Apply styles
+//     const headerStyle = {
+//         font: { bold: true, size: 12 },
+//         alignment: { horizontal: 'center' as const },
+//         fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'DDEBF7' } },
+//     };
+
+//     const subHeaderStyle = {
+//         font: { bold: true },
+//         alignment: { horizontal: 'left' as const },
+//         fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'BDD7EE' } },
+//     };
+
+//     const dataRowStyle = {
+//         fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'E2EFDA' } },
+//     };
+
+//     // Add Headers (Dates in Columns)
+//     const headerRow = sheet.getRow(1);
+//     headerRow.getCell(1).value = "Merchant Name";
+//     headerRow.getCell(2).value = "Type";
+//     headerRow.getCell(3).value = "Account Name";
+//     headerRow.getCell(4).value = "Saturday, January 20, 2024";
+//     headerRow.getCell(5).value = "Tuesday, February 20, 2024";
+//     headerRow.eachCell((cell) => (cell.style = headerStyle));
+
+//     let rowIndex = 2;
+
+//     merchants.forEach((merchant) => {
+//         // Add Merchant Name
+//         const merchantRow = sheet.getRow(rowIndex);
+//         merchantRow.getCell(1).value = merchant.name;
+//         merchantRow.getCell(1).style = subHeaderStyle;
+//         rowIndex++;
+
+//         // Define Collection Types
+//         const collectionTypes = ["Easypaisa", "JazzCash", "Sahulatpay", "Disbursement"];
+
+//         collectionTypes.forEach((type) => {
+//             const dataRow = sheet.getRow(rowIndex);
+
+//             // Filter data for this type
+//             const filteredData = merchant.data.filter((item) => item.type === type);
+//             dataRow.getCell(2).value = `${type} Collection`;
+
+//             // Account Name
+//             dataRow.getCell(3).value = filteredData.length > 0 ? filteredData[0].accountName : "-";
+
+//             // Populate Data for Each Date
+//             const jan20 = filteredData.find((item) => item.date === "Saturday, January 20, 2024");
+//             const feb20 = filteredData.find((item) => item.date === "Tuesday, February 20, 2024");
+
+//             dataRow.getCell(4).value = jan20
+//                 ? `Amount: ${jan20.amount}, Commission: ${(jan20.amount * jan20.mdr) / 100}`
+//                 : "-";
+//             dataRow.getCell(5).value = feb20
+//                 ? `Amount: ${feb20.amount}, Commission: ${(feb20.amount * feb20.mdr) / 100}`
+//                 : "-";
+
+//             dataRow.eachCell((cell) => (cell.style = dataRowStyle));
+//             rowIndex++;
+//         });
+
+//         // Add empty row for spacing
+//         rowIndex++;
+//     });
+
+//     // Adjust Column Widths
+//     sheet.columns = [
+//         { key: 'merchantName', width: 25 },
+//         { key: 'type', width: 25 },
+//         { key: 'accountName', width: 25 },
+//         { key: 'jan20', width: 50 },
+//         { key: 'feb20', width: 50 },
+//     ];
+
+//     // Save the Excel File and Send to Client
+//     const filePath = path.join(import.meta.dirname, 'merchant_report.xlsx');
+//     await workbook.xlsx.writeFile(filePath);
+
+//     res.download(filePath, 'merchant_report.xlsx', (err) => {
+//         if (err) console.error(err);
+//     });
+// });
+
 
 app.use((req, res, next) => {
   res.status(404).json({

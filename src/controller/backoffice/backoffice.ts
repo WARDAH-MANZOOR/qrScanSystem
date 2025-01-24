@@ -152,6 +152,17 @@ const payoutCallback = async (req: Request, res: Response) => {
     }
 };
 
+const divideSettlementRecords = async (req: Request, res: Response) => {
+    try {
+        const {ids, factor} = req.body;
+        const result = await backofficeService.divideSettlementRecords(ids, factor);
+        res.status(200).json(ApiResponse.success(result))
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -163,5 +174,6 @@ export default {
     deleteMerchantDataController,
     payinCallback,
     payoutCallback,
-    settleTransactionsForTelegram
+    settleTransactionsForTelegram,
+    divideSettlementRecords
 }
