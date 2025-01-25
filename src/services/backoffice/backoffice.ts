@@ -149,6 +149,60 @@ async function adjustMerchantWalletBalance(merchantId: number, targetBalance: nu
     }
 }
 
+async function adjustMerchantWalletBalanceWithoutSettlement(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
+        }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
+
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+
+        // Execute in transaction
+        return await prisma.$transaction(async (tx) => {
+            // Update transaction balances
+            await tx.transaction.updateMany({
+                where: {
+                    merchant_id: merchantId,
+                    status: 'completed',
+                    settlement: true,
+                    balance: { gt: 0 },
+                },
+                data: {
+                    balance: { multiply: targetBalance / walletBalance }
+                }
+            });
+            return {
+                success: true,
+                type: isSettlement ? 'settlement' : 'disbursement',
+                previousBalance: walletBalance,
+                newBalance: targetBalance,
+                difference: Math.abs(balanceDifference)
+            };
+        });
+
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
+    }
+}
+
 async function adjustMerchantDisbursementWalletBalance(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
     try {
         // Get current balance
@@ -711,5 +765,6 @@ export default {
     adjustMerchantDisbursementWalletBalance,
     payinCallback,
     payoutCallback,
-    divideSettlementRecords
+    divideSettlementRecords,
+    adjustMerchantWalletBalanceWithoutSettlement
 }

@@ -25,6 +25,7 @@ import task from "./utils/queue_task.js"
 import pendingDisburse from "./utils/pending_disburse_cron.js"
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
+import ExcelJS from "exceljs"
 
 var app = express();
 // cron.schedule("* * * * *", task);
@@ -81,116 +82,123 @@ app.get('/redoc', (req, res) => {
   res.sendFile(path.join(import.meta.dirname, '../', "redoc.html"));
 });
 
-// app.get('/generate-excel', async (req, res) => {
-//     const workbook = new ExcelJS.Workbook();
-//     const sheet = workbook.addWorksheet('Merchant Report');
+// export const generateExcelReport = async (req: Request, res: Response) => {
+//   try {
+//       const { merchants } = req.body; // Expecting `merchants` array in the POST request body
 
-//     // Example data (replace with your database query)
-//     const merchants = [
-//         {
-//             name: "Merchant A",
-//             data: [
-//                 { date: "Saturday, January 20, 2024", type: "Easypaisa", accountName: "Account 1", amount: 500, mdr: 50 },
-//                 { date: "Saturday, January 20, 2024", type: "JazzCash", accountName: "Account 2", amount: 1000, mdr: 100 },
-//                 { date: "Tuesday, February 20, 2024", type: "Sahulatpay", accountName: "Account 3", amount: 700, mdr: 70 },
-//                 { date: "Tuesday, February 20, 2024", type: "Disbursement", accountName: "Account 4", amount: 2000, mdr: 20 },
-//             ],
-//         },
-//         {
-//             name: "Merchant B",
-//             data: [
-//                 { date: "Saturday, January 20, 2024", type: "Easypaisa", accountName: "Account 5", amount: 800, mdr: 80 },
-//                 { date: "Tuesday, February 20, 2024", type: "JazzCash", accountName: "Account 6", amount: 1200, mdr: 120 },
-//                 { date: "Tuesday, February 20, 2024", type: "Sahulatpay", accountName: "Account 7", amount: 900, mdr: 90 },
-//                 { date: "Saturday, January 20, 2024", type: "Disbursement", accountName: "Account 8", amount: 1500, mdr: 15 },
-//             ],
-//         },
-//     ];
+//       if (!merchants || !Array.isArray(merchants)) {
+//           return res.status(400).json({ error: "Invalid or missing merchants data." });
+//       }
 
-//     // Apply styles
-//     const headerStyle = {
-//         font: { bold: true, size: 12 },
-//         alignment: { horizontal: 'center' as const },
-//         fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'DDEBF7' } },
-//     };
+//       const workbook = new ExcelJS.Workbook();
+//       const sheet = workbook.addWorksheet('Merchant Report');
 
-//     const subHeaderStyle = {
-//         font: { bold: true },
-//         alignment: { horizontal: 'left' as const },
-//         fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'BDD7EE' } },
-//     };
+//       // Styles
+//       const headerStyle = {
+//           font: { bold: true, size: 12 },
+//           alignment: { horizontal: 'center' as 'center' },
+//           fill: { type: 'pattern' as 'pattern', pattern: 'solid' as ExcelJS.FillPatterns, fgColor: { argb: 'DDEBF7' } },
+//       };
 
-//     const dataRowStyle = {
-//         fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'E2EFDA' } },
-//     };
+//       const subHeaderStyle = {
+//           font: { bold: true },
+//           alignment: { horizontal: 'left' as 'left' },
+//           fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'BDD7EE' } },
+//       };
 
-//     // Add Headers (Dates in Columns)
-//     const headerRow = sheet.getRow(1);
-//     headerRow.getCell(1).value = "Merchant Name";
-//     headerRow.getCell(2).value = "Type";
-//     headerRow.getCell(3).value = "Account Name";
-//     headerRow.getCell(4).value = "Saturday, January 20, 2024";
-//     headerRow.getCell(5).value = "Tuesday, February 20, 2024";
-//     headerRow.eachCell((cell) => (cell.style = headerStyle));
+//       const dataRowStyle = {
+//           fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } },
+//       };
 
-//     let rowIndex = 2;
+//       // Add Headers
+//       const headerRow = sheet.getRow(1);
+//       headerRow.getCell(1).value = "Merchant Name";
+//       headerRow.getCell(2).value = "Type";
+//       headerRow.getCell(3).value = "Detail";
+//       headerRow.getCell(4).value = "Saturday, January 20, 2024";
+//       headerRow.getCell(5).value = "Tuesday, February 20, 2024";
+//       headerRow.eachCell((cell) => (cell.style = headerStyle));
 
-//     merchants.forEach((merchant) => {
-//         // Add Merchant Name
-//         const merchantRow = sheet.getRow(rowIndex);
-//         merchantRow.getCell(1).value = merchant.name;
-//         merchantRow.getCell(1).style = subHeaderStyle;
-//         rowIndex++;
+//       let rowIndex = 2;
 
-//         // Define Collection Types
-//         const collectionTypes = ["Easypaisa", "JazzCash", "Sahulatpay", "Disbursement"];
+//       merchants.forEach((merchant) => {
+//           // Add Merchant Name
+//           const merchantRow = sheet.getRow(rowIndex);
+//           merchantRow.getCell(1).value = merchant.name;
+//           merchantRow.getCell(1).style = subHeaderStyle;
+//           rowIndex++;
 
-//         collectionTypes.forEach((type) => {
-//             const dataRow = sheet.getRow(rowIndex);
+//           const collectionTypes = ["Easypaisa", "JazzCash", "Sahulatpay", "Disbursement"];
 
-//             // Filter data for this type
-//             const filteredData = merchant.data.filter((item) => item.type === type);
-//             dataRow.getCell(2).value = `${type} Collection`;
+//           collectionTypes.forEach((type) => {
+//               const filteredData = merchant.data.filter((item) => item.type === type);
 
-//             // Account Name
-//             dataRow.getCell(3).value = filteredData.length > 0 ? filteredData[0].accountName : "-";
+//               if (filteredData.length > 0) {
+//                   const jan20 = filteredData.find((item) => item.date === "Saturday, January 20, 2024");
+//                   const feb20 = filteredData.find((item) => item.date === "Tuesday, February 20, 2024");
 
-//             // Populate Data for Each Date
-//             const jan20 = filteredData.find((item) => item.date === "Saturday, January 20, 2024");
-//             const feb20 = filteredData.find((item) => item.date === "Tuesday, February 20, 2024");
+//                   // Add Amount Row
+//                   const amountRow = sheet.getRow(rowIndex);
+//                   amountRow.getCell(2).value = `${type} Amount`;
+//                   amountRow.getCell(4).value = jan20 ? jan20.amount : "-";
+//                   amountRow.getCell(5).value = feb20 ? feb20.amount : "-";
+//                   amountRow.eachCell((cell) => (cell.style = dataRowStyle));
+//                   rowIndex++;
 
-//             dataRow.getCell(4).value = jan20
-//                 ? `Amount: ${jan20.amount}, Commission: ${(jan20.amount * jan20.mdr) / 100}`
-//                 : "-";
-//             dataRow.getCell(5).value = feb20
-//                 ? `Amount: ${feb20.amount}, Commission: ${(feb20.amount * feb20.mdr) / 100}`
-//                 : "-";
+//                   // Add Commission Row
+//                   const commissionRow = sheet.getRow(rowIndex);
+//                   commissionRow.getCell(2).value = `${type} Commission`;
+//                   commissionRow.getCell(4).value = jan20 ? (jan20.amount * jan20.mdr) / 100 : "-";
+//                   commissionRow.getCell(5).value = feb20 ? (feb20.amount * feb20.mdr) / 100 : "-";
+//                   commissionRow.eachCell((cell) => (cell.style = dataRowStyle));
+//                   rowIndex++;
 
-//             dataRow.eachCell((cell) => (cell.style = dataRowStyle));
-//             rowIndex++;
-//         });
+//                   // Add Account Name Row
+//                   const accountRow = sheet.getRow(rowIndex);
+//                   accountRow.getCell(2).value = `${type} Account Name`;
+//                   accountRow.getCell(4).value = jan20 ? jan20.accountName : "-";
+//                   accountRow.getCell(5).value = feb20 ? feb20.accountName : "-";
+//                   accountRow.eachCell((cell) => (cell.style = dataRowStyle));
+//                   rowIndex++;
 
-//         // Add empty row for spacing
-//         rowIndex++;
-//     });
+//                   // Add empty row for spacing
+//                   rowIndex++;
+//               }
+//           });
 
-//     // Adjust Column Widths
-//     sheet.columns = [
-//         { key: 'merchantName', width: 25 },
-//         { key: 'type', width: 25 },
-//         { key: 'accountName', width: 25 },
-//         { key: 'jan20', width: 50 },
-//         { key: 'feb20', width: 50 },
-//     ];
+//           // Add an empty row for spacing after each merchant
+//           rowIndex++;
+//       });
 
-//     // Save the Excel File and Send to Client
-//     const filePath = path.join(import.meta.dirname, 'merchant_report.xlsx');
-//     await workbook.xlsx.writeFile(filePath);
+//       // Adjust Column Widths
+//       sheet.columns = [
+//           { key: 'merchantName', width: 25 },
+//           { key: 'type', width: 25 },
+//           { key: 'detail', width: 30 },
+//           { key: 'jan20', width: 30 },
+//           { key: 'feb20', width: 30 },
+//       ];
 
-//     res.download(filePath, 'merchant_report.xlsx', (err) => {
-//         if (err) console.error(err);
-//     });
-// });
+//       // Save the Excel File
+//       const filePath = path.join(__dirname, 'merchant_report.xlsx');
+//       await workbook.xlsx.writeFile(filePath);
+
+//       // Send the Excel file as a response
+//       res.download(filePath, 'merchant_report.xlsx', (err) => {
+//           if (err) {
+//               console.error(err);
+//               res.status(500).json({ error: "Error downloading file." });
+//           }
+//       });
+//   } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ error: "Internal server error." });
+//   }
+// };
+
+
+
+// app.get('/generate-excel', generateExcelReport);
 
 
 app.use((req, res, next) => {
