@@ -44,6 +44,21 @@ const adjustMerchantWalletBalance = async (req: Request, res: Response) => {
     }
 };
 
+const adjustMerchantWalletBalanceWithoutSettlement = async (req: Request, res: Response) => {
+    try {
+        const { target } = req.body;
+        console.log(req.params.merchantId)
+        if (!req.params.merchantId || target == undefined) {
+            throw new CustomError("Merchant Id and target balance must be given",404);
+        }
+        const result = await backofficeService.adjustMerchantWalletBalanceWithoutSettlement(Number(req.params.merchantId), target, true);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 const checkMerchantTransactionStats = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
@@ -175,5 +190,6 @@ export default {
     payinCallback,
     payoutCallback,
     settleTransactionsForTelegram,
-    divideSettlementRecords
+    divideSettlementRecords,
+    adjustMerchantWalletBalanceWithoutSettlement
 }

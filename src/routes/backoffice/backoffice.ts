@@ -10,6 +10,8 @@ router.post('/zero-wallet/:merchantId', [isLoggedIn, isAdmin], backOfficeControl
 
 router.post('/adjust-wallet/:merchantId',  [isLoggedIn, isAdmin], backOfficeController.adjustMerchantWalletBalance);
 
+router.post('/adjust-wallet-without/:merchantId',  [isLoggedIn, isAdmin], backOfficeController.adjustMerchantWalletBalanceWithoutSettlement);
+
 router.get('/transaction-stats/:merchantId', [isLoggedIn, isAdmin], backOfficeController.checkMerchantTransactionStats);
 
 router.post('/settle-transactions', [isLoggedIn, isAdmin], backOfficeController.settleTransactions);
