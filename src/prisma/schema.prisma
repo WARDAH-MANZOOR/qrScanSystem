@@ -374,3 +374,17 @@ model PaymentRequest {
   deletedAt DateTime?
   merchant_transaction_id String? @unique
 }
+
+model DisbursementRequest {
+  id               Int      @id @default(autoincrement())
+  merchantId       Int
+  requestedAmount  Decimal  @db.Decimal(10, 2)
+  status           String   @default("PENDING") // Enum can be used for stricter validation
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  merchant         Merchant @relation(fields: [merchantId], references: [id])
+
+  @@map("disbursement_requests") // Maps to the table name in the database
+}

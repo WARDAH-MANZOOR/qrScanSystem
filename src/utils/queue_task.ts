@@ -1,7 +1,8 @@
 import { MerchantFinancialTerms, Prisma, PrismaClient, Transaction } from "@prisma/client";
-import { DefaultArgs } from "@prisma/client/runtime/library";
+import { Decimal, DefaultArgs, JsonObject } from "@prisma/client/runtime/library";
 import { toZonedTime } from "date-fns-tz";
 import prisma from "../prisma/client.js";
+import { text } from "express";
 
 const task = async () => {
   console.log("Cron running");
@@ -44,22 +45,46 @@ const task = async () => {
 };
 
 // Function to fetch pending scheduled tasks that are due
+// async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) {
+//   return await prisma.scheduledTask.findMany({
+//     where: {
+//       status: 'pending',
+//       scheduledAt: {
+//         lte: new Date(),
+//       },
+//     },
+//     include: {
+//       transaction: {
+//         include: {
+//           merchant: true,
+//         },
+//       },
+//     },
+//   });
+// }
+
 async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) {
-  return await prisma.scheduledTask.findMany({
-    where: {
-      status: 'pending',
-      scheduledAt: {
-        lte: new Date(),
-      },
-    },
-    include: {
-      transaction: {
-        include: {
-          merchant: true,
+  try {
+    const scheduledTasks = await prisma.scheduledTask.findMany({
+      where: {
+        // transaction: {
+        //   merchant_id: 5,
+        // },
+        status: 'pending',
+        scheduledAt: {
+          lte: new Date(),
         },
       },
-    },
-  });
+      include: {
+        transaction: true, // Include transaction details if needed
+      },
+    });
+
+    return scheduledTasks;
+  } catch (error) {
+    console.error("Error fetching scheduled tasks for merchant:", error);
+    throw error;
+  }
 }
 
 // Function to group transactions by merchant_id
@@ -112,6 +137,67 @@ async function fetchMerchantFinancialTerms(
   return merchantFinancialTermsMap;
 }
 
+// // Function to process settlement for a single merchant
+// async function processMerchantSettlement(
+//   tx: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+//   merchant_id: number,
+//   transactions: Transaction[],
+//   merchantFinancialTerms: MerchantFinancialTerms | undefined,
+//   transactionIdToTaskIdMap: Map<string, number>
+// ) {
+//   if (!merchantFinancialTerms) {
+//     console.error(`No financial terms found for merchant ${merchant_id}`);
+//     return; // Skip this merchant
+//   }
+
+//   // Aggregate data
+//   const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
+
+//   const today = new Date();
+
+//   // Define the Pakistan timezone
+//   const timeZone = 'Asia/Karachi';
+
+//   // Convert the date to the Pakistan timezone
+//   const zonedDate = toZonedTime(today, timeZone);
+//   const settlementDate = new Date(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
+
+//   // Upsert SettlementReport for the day
+//   await tx.settlementReport.upsert({
+//     where: {
+//       merchant_id_settlementDate: {
+//         merchant_id,
+//         settlementDate,
+//       },
+//     },
+//     create: {
+//       merchant_id,
+//       settlementDate,
+//       transactionCount: settlementData.transactionCount,
+//       transactionAmount: settlementData.transactionAmount,
+//       commission: settlementData.totalCommission,
+//       gst: settlementData.totalGST,
+//       withholdingTax: settlementData.totalWithholdingTax,
+//       merchantAmount: settlementData.merchantAmount,
+//     },
+//     update: {
+//       transactionCount: { increment: settlementData.transactionCount },
+//       transactionAmount: { increment: settlementData.transactionAmount },
+//       commission: { increment: settlementData.totalCommission },
+//       gst: { increment: settlementData.totalGST },
+//       withholdingTax: { increment: settlementData.totalWithholdingTax },
+//       merchantAmount: { increment: settlementData.merchantAmount },
+//     },
+//   });
+
+//   // Update transactions and tasks
+//   await updateTransactionsAndTasks(
+//     tx,
+//     transactions,
+//     transactionIdToTaskIdMap
+//   );
+// }
+
 // Function to process settlement for a single merchant
 async function processMerchantSettlement(
   tx: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
@@ -125,17 +211,14 @@ async function processMerchantSettlement(
     return; // Skip this merchant
   }
 
-  // Aggregate data
-  const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
-
-  const today = new Date();
-
   // Define the Pakistan timezone
   const timeZone = 'Asia/Karachi';
-
-  // Convert the date to the Pakistan timezone
+  const today = new Date();
   const zonedDate = toZonedTime(today, timeZone);
   const settlementDate = new Date(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
+
+  // Aggregate data
+  const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
 
   // Upsert SettlementReport for the day
   await tx.settlementReport.upsert({
@@ -173,7 +256,46 @@ async function processMerchantSettlement(
   );
 }
 
-// Function to calculate settlement data
+// // Function to calculate settlement data
+// function calculateSettlementData(
+//   transactions: Transaction[],
+//   merchantFinancialTerms: MerchantFinancialTerms
+// ) {
+//   const transactionCount = transactions.length;
+//   const transactionAmount = transactions.reduce(
+//     (sum, t) => sum.plus(t.original_amount || new Prisma.Decimal(0)),
+//     new Prisma.Decimal(0)
+//   );
+
+//   // Extract financial terms
+//   const {
+//     commissionRate,
+//     commissionWithHoldingTax,
+//     commissionGST,
+//   } = merchantFinancialTerms;
+
+//   // Calculate commission and taxes
+//   const totalCommission = transactionAmount.mul(commissionRate);
+//   const totalGST = transactionAmount.mul(commissionGST);
+//   const totalWithholdingTax = transactionAmount.mul(commissionWithHoldingTax);
+
+//   // Calculate merchant amount
+//   const merchantAmount = transactionAmount
+//     .minus(totalCommission)
+//     .minus(totalGST)
+//     .minus(totalWithholdingTax);
+
+//   return {
+//     transactionCount,
+//     transactionAmount,
+//     totalCommission,
+//     totalGST,
+//     totalWithholdingTax,
+//     merchantAmount,
+//   };
+// }
+
+// Modified settlement data calculation
 function calculateSettlementData(
   transactions: Transaction[],
   merchantFinancialTerms: MerchantFinancialTerms
@@ -184,23 +306,32 @@ function calculateSettlementData(
     new Prisma.Decimal(0)
   );
 
-  // Extract financial terms
-  const {
-    commissionRate,
-    commissionWithHoldingTax,
-    commissionGST,
-  } = merchantFinancialTerms;
+  let totalCommission = new Prisma.Decimal(0);
+  let totalGST = new Prisma.Decimal(0);
+  let totalWithholdingTax = new Prisma.Decimal(0);
 
-  // Calculate commission and taxes
-  const totalCommission = transactionAmount.mul(commissionRate);
-  const totalGST = transactionAmount.mul(commissionGST);
-  const totalWithholdingTax = transactionAmount.mul(commissionWithHoldingTax);
+  transactions.forEach((transaction) => {
+    const providerName = (transaction.providerDetails as JsonObject)?.name;
+    let commissionRate = merchantFinancialTerms.commissionRate;
 
-  // Calculate merchant amount
-  const merchantAmount = transactionAmount
-    .minus(totalCommission)
-    .minus(totalGST)
-    .minus(totalWithholdingTax);
+    // Determine commission rate based on provider and commission mode
+    if (merchantFinancialTerms.commissionMode === "DOUBLE") {
+      if (providerName === "JazzCash") {
+        commissionRate = merchantFinancialTerms.commissionRate;
+      } else if (providerName === "Easypaisa") {
+        commissionRate = merchantFinancialTerms.easypaisaRate || new Decimal(0);
+      }
+    }
+
+    const transactionCommission = (transaction.original_amount || new Prisma.Decimal(0)).mul(commissionRate);
+    totalCommission = totalCommission.plus(transactionCommission);
+
+    // Calculate GST and Withholding Tax
+    totalGST = totalGST.plus((transaction.original_amount || new Prisma.Decimal(0)).mul(merchantFinancialTerms.commissionGST));
+    totalWithholdingTax = totalWithholdingTax.plus((transaction.original_amount || new Prisma.Decimal(0)).mul(merchantFinancialTerms.commissionWithHoldingTax));
+  });
+
+  const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
 
   return {
     transactionCount,
