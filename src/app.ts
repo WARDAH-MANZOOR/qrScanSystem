@@ -28,7 +28,7 @@ import pendingDisburse from "./utils/pending_disburse_cron.js"
 import ExcelJS from "exceljs"
 
 var app = express();
-cron.schedule("* * * * *", task);
+// cron.schedule("* * * * *", task);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
