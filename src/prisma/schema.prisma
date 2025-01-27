@@ -99,6 +99,10 @@ model Merchant {
   encrypted           String?   @default("false")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
+  balanceToDisburse  Decimal?              @default(0.00) @db.Decimal(10, 2)
+
+  // Relations
+  disbursementRequests DisbursementRequest[]
 
   // Relations
   user_groups                UserGroup[]
@@ -123,6 +127,7 @@ model Merchant {
   swichLimit                 Decimal?                   @default(0)
   lastSwich                  DateTime                   @default(now())
   @@index([phone_number])
+
 }
 
 model MerchantProviderCredential {
@@ -384,7 +389,6 @@ model DisbursementRequest {
   updatedAt        DateTime @updatedAt
 
   // Relations
-  merchant         Merchant @relation(fields: [merchantId], references: [id])
+  merchant         Merchant @relation(fields: [merchantId], references: [merchant_id])
 
-  @@map("disbursement_requests") // Maps to the table name in the database
 }
