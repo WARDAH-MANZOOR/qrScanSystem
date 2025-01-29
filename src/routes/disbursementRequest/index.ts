@@ -7,6 +7,8 @@ const router = express.Router();
 router.post("/",[isLoggedIn, ...disbursementRequestValidator.validateDisbursementRequest], disbursementRequestController.createDisbursementRequest);
 router.patch("/status/:requestId",[isLoggedIn, isAdmin, ...disbursementRequestValidator.updateDisbursementRequestStatus], disbursementRequestController.updateDisbursementRequestStatus);
 router.get("/",[isLoggedIn], disbursementRequestController.getDisbursementRequests);
+router.get("/export",[isLoggedIn],disbursementRequestController.exportDisbursementRequest);
+
 
 
 export default router;
