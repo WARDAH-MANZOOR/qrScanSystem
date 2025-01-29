@@ -184,6 +184,22 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
 
+      fetchAggregates.push(
+        prisma.merchant.findFirst({
+          where: {
+            merchant_id: +merchantId,
+          },
+          select: {
+            balanceToDisburse: true
+          }
+        })
+        .then((result) => (result?.balanceToDisburse?.toNumber() || 0))  // Properly type the aggregate query
+        .catch((err) => {
+          console.error(err);
+          throw new CustomError("Unable to get balance to disburse", 500);
+        })
+      );
+
       // Execute all queries in parallel
       const [
         totalTransactions,
@@ -194,7 +210,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         lastWeek,
         thisWeek,
         jazzCashTotal,
-        easyPaisaTotal
+        easyPaisaTotal,
+        disbursementBalance
       ] = await Promise.all(fetchAggregates);
 
       // Build and return the full dashboard summary
@@ -209,6 +226,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         statusCounts: (statusCounts as any[]) || [],
         latestTransactions: latestTransactions as any,
         availableBalance: 0,
+        disbursementBalance: disbursementBalance,
         transactionSuccessRate: 0,
         lastWeek:
           (lastWeek as { _sum: { original_amount: number | null } })._sum

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
 import ApiResponse from "utils/ApiResponse.js";
@@ -49,8 +49,22 @@ const getDisbursementRequests = async (req: Request, res: Response) => {
     }
 }
 
+const exportDisbursementRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { query } = req;
+    const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+    const merchant = await disbursementRequestService.exportDisbursementRequest(id, query);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+    res.send(merchant);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
     createDisbursementRequest,
     updateDisbursementRequestStatus,
-    getDisbursementRequests
+    getDisbursementRequests,
+    exportDisbursementRequest
 }
