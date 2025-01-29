@@ -23,22 +23,34 @@ const createDisbursementRequest = async (req: Request, res: Response) => {
 
 const updateDisbursementRequestStatus = async (req: Request, res: Response) => {
     try {
-    const { status } = req.body;
-    const { requestId } = req.params;
-    const validationErrors = validationResult(req);
-    if (!validationErrors.isEmpty()) {
-        res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
-        return;
+        const { status } = req.body;
+        const { requestId } = req.params;
+        const validationErrors = validationResult(req);
+        if (!validationErrors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
+            return;
+        }
+        const result = await disbursementRequestService.updateDisbursementRequestStatus(Number(requestId), status);
+        res.status(200).json(ApiResponse.success(result));
     }
-    const result = await disbursementRequestService.updateDisbursementRequestStatus(Number(requestId), status);
-    res.status(200).json(ApiResponse.success(result));
+    catch (err: any) {
+        res.status(500).json(ApiResponse.error(err.message));
+    }
 }
-catch(err: any) {
-    res.status(500).json(ApiResponse.error(err.message));
-}
+
+const getDisbursementRequests = async (req: Request, res: Response) => {
+    try {
+        const params = req.query;
+        const result = await disbursementRequestService.getDisbursementRequests(params);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(500).json(ApiResponse.error(err.message));
+    }
 }
 
 export default {
     createDisbursementRequest,
-    updateDisbursementRequestStatus
+    updateDisbursementRequestStatus,
+    getDisbursementRequests
 }
