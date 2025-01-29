@@ -4,6 +4,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { easyPaisaService, swichService, transactionService } from "../../services/index.js";
 import type { DisbursementPayload } from "../../types/providers.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "utils/custom_error.js";
 
 const initiateEasyPaisa = async (
   req: Request,
@@ -358,6 +359,9 @@ const createDisbursementClone = async (
   try {
     const merchantId = req.params?.merchantId;
     const payload: DisbursementPayload = req.body;
+    if (payload.amount <= 1) {
+      throw new CustomError("Amount should be greater than 0", 400);
+    }
     const result = await easyPaisaService.createDisbursementClone(payload, merchantId);
     res.status(200).json(ApiResponse.success(result));
   } catch (err) {
@@ -405,6 +409,9 @@ const disburseThroughBankClone = async (req: Request, res: Response, next: NextF
   try {
     const merchantId = req.params?.merchantId;
     const payload: DisbursementPayload = req.body;
+    if (payload.amount <= 1) {
+      throw new CustomError("Amount should be greater than 0", 400);
+    }
     const result = await easyPaisaService.disburseThroughBankClone(payload, merchantId);
     res.status(200).json(ApiResponse.success(result));
   }
