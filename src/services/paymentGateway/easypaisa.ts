@@ -303,8 +303,8 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     }
     else {
       commission = +findMerchant.commissions[0].commissionGST +
-      +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
-      +findMerchant.commissions[0].commissionWithHoldingTax
+        +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
+        +findMerchant.commissions[0].commissionWithHoldingTax
     }
     saveTxn = await transactionService.createTxn({
       order_id: id2,
@@ -435,7 +435,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     };
 
     // Save transaction immediately with "pending" status
-    
+
     saveTxn = await transactionService.createTxn({
       order_id: id2,
       transaction_id: id,
@@ -586,8 +586,8 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     }
     else {
       commission = +findMerchant.commissions[0].commissionGST +
-      +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
-      +findMerchant.commissions[0].commissionWithHoldingTax
+        +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
+        +findMerchant.commissions[0].commissionWithHoldingTax
     }
     saveTxn = await transactionService.createTxn({
       order_id: id2,
@@ -1432,6 +1432,43 @@ const updateDisbursement = async (
   }
 };
 
+const adjustMerchantToDisburseBalance = async (merchantId: string, amount: number, isIncrement: boolean) => {
+  try {
+    let obj;
+    if (isIncrement) {
+      obj = await prisma.merchant.updateMany({
+        where: {
+          uid: merchantId,
+        },
+        data: {
+          balanceToDisburse: {
+            increment: amount
+          }
+        },
+      });
+    } else {
+      obj = await prisma.merchant.updateMany({
+        where: {
+          uid: merchantId,
+        },
+        data: {
+          balanceToDisburse: {
+            decrement: amount
+          },
+        },
+      });
+    }
+
+    return {
+      message: "Merchant balance updated successfully",
+      obj
+    };
+  }
+  catch (err: any) {
+    throw new CustomError(err.message, 500);
+  }
+}
+
 const createDisbursementClone = async (
   obj: DisbursementPayload,
   merchantId: string
@@ -1439,8 +1476,8 @@ const createDisbursementClone = async (
   let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
   let findMerchant: any;
   let zonedDate: Date = new Date();
-  let merchantAmount = new Decimal(0);
-  let amountDecimal = new Decimal(0);
+  let merchantAmount = new Decimal(obj.amount);
+  let amountDecimal = new Decimal(obj.amount);
   let totalCommission = new Decimal(0);
   let totalGST = new Decimal(0);
   let totalWithholdingTax = new Decimal(0);
@@ -1501,31 +1538,6 @@ const createDisbursementClone = async (
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (obj.amount) {
-          amountDecimal = new Decimal(obj.amount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
         // Calculate total deductions and merchant amount
         totalCommission = amountDecimal.mul(rate.disbursementRate);
         totalGST = amountDecimal.mul(rate.disbursementGST);
@@ -1539,14 +1551,10 @@ const createDisbursementClone = async (
           ? amountDecimal.plus(totalDeductions)
           : amountDecimal.minus(totalDeductions);
 
-        // Get eligible transactions
-
-        if (obj.amount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        await updateTransactions(updates, tx);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1557,7 +1565,7 @@ const createDisbursementClone = async (
         throw new CustomError("Database Error", 400)
       }
     }, {
-      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      // isolationLevel: Prisma.TransctionIsolationLevel.Serializable,
       isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
       maxWait: 60000,
       timeout: 60000,
@@ -1610,7 +1618,7 @@ const createDisbursementClone = async (
       console.log("Disbursement Failed ")
       console.log(totalDisbursed)
       await prisma.$transaction(async (tx) => {
-        await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
         await saveToCsv({
           id: data.merchant_custom_order_id,
           order_amount: obj.amount ? obj.amount : merchantAmount,
@@ -2037,8 +2045,8 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
     if (!bank) {
       throw new CustomError("Bank not found", 404);
     }
-    let merchantAmount = new Decimal(0);
-    let amountDecimal = new Decimal(0);
+    let merchantAmount = new Decimal(obj.amount);
+    let amountDecimal = new Decimal(obj.amount);
     let totalCommission = new Decimal(0);
     let totalGST = new Decimal(0);
     let totalWithholdingTax = new Decimal(0);
@@ -2057,31 +2065,6 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (obj.amount) {
-          amountDecimal = new Decimal(obj.amount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
         // Calculate total deductions and merchant amount
         totalCommission = amountDecimal.mul(rate.disbursementRate);
         totalGST = amountDecimal.mul(rate.disbursementGST);
@@ -2094,15 +2077,10 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
         merchantAmount = obj.amount
           ? amountDecimal.plus(totalDeductions)
           : amountDecimal.minus(totalDeductions);
-
-        // Get eligible transactions
-
-        if (obj.amount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        await updateTransactions(updates, tx);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
           if (err.code === 'P2034') {
@@ -2125,7 +2103,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
                 to_provider: obj.bankName
               },
             });
-            throw new CustomError("Deadlock Error",400);
+            throw new CustomError("Deadlock Error", 400);
           }
         }
         throw new CustomError("Database Error", 400);
@@ -2183,7 +2161,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
       const zonedDate = toZonedTime(date, timeZone);
       console.log("Transfer Inquiry Error: ", res.data);
       await prisma.$transaction(async (tx) => {
-        await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
         await prisma.disbursement.create({
           data: {
             ...data2,
@@ -2243,7 +2221,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
       // Convert the date to the Pakistan timezone
       const zonedDate = toZonedTime(date, timeZone);
       await prisma.$transaction(async (tx) => {
-        await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
         await prisma.disbursement.create({
           data: {
             ...data2,
@@ -3150,5 +3128,6 @@ export default {
   createDisbursementClone,
   disburseThroughBankClone,
   initiateEasyPaisaClone,
-  initiateEasyPaisaAsyncClone
+  initiateEasyPaisaAsyncClone,
+  adjustMerchantToDisburseBalance
 };

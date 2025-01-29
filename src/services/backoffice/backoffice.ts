@@ -344,7 +344,7 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
                 where: {
                     merchant_id: parseInt(merchantId)
                 },
-                include: {commissions: true}
+                include: { commissions: true }
             })
             const merchant = await prisma.merchantFinancialTerms.findUnique({
                 where: { merchant_id: parseInt(merchantId) },
@@ -411,15 +411,15 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
                     const scheduledAt = addWeekdays(
                         new Date(),
                         findMerchant?.commissions[0].settlementDuration as number
-                      ); // Call the function to get the next 2 weekdays
-                      let scheduledTask = await prisma.scheduledTask.create({
+                    ); // Call the function to get the next 2 weekdays
+                    let scheduledTask = await prisma.scheduledTask.create({
                         data: {
-                          transactionId: txn.transaction_id,
-                          status: "pending",
-                          scheduledAt: scheduledAt, // Assign the calculated weekday date
-                          executedAt: null, // Assume executedAt is null when scheduling
+                            transactionId: txn.transaction_id,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
                         },
-                      });
+                    });
                 }
                 await transactionService.sendCallback(
                     findMerchant?.webhook_url as string,
@@ -642,42 +642,47 @@ async function deleteMerchantData(merchantId: number) {
 }
 
 async function payinCallback(orderIds: string[]) {
-    const txns = await prisma.transaction.findMany({
-        where: {
-            merchant_transaction_id: { in: orderIds }
-        }
-    });
-    if (txns.length <= 0) {
-        throw new CustomError("Transactions not found", 404);
-    }
-
-    // Group transactions by merchant
-    const transactionsByMerchant = txns.reduce((acc, txn) => {
-        if (!acc[txn.merchant_id]) {
-            acc[txn.merchant_id] = [];
-        }
-        acc[txn.merchant_id].push(txn);
-        return acc;
-    }, {} as Record<number, typeof txns>);
-    console.log(transactionsByMerchant)
-    for (const merchantId in transactionsByMerchant) {
-        const merchant = await prisma.merchant.findFirst({
+    try {
+        const txns = await prisma.transaction.findMany({
             where: {
-                merchant_id: Number(merchantId)
+                merchant_transaction_id: { in: orderIds }
             }
-        })
-        const merchantTxns = transactionsByMerchant[merchantId];
-        for (const txn of merchantTxns) {
-            console.log(merchant?.webhook_url)
-            await transactionService.sendCallback(
-                merchant?.webhook_url as string,
-                txn,
-                (txn.providerDetails as JsonObject)?.account as string,
-                "payin",
-                merchant?.encrypted == "True" ? true : false,
-                false
-            )
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
         }
+
+        // Group transactions by merchant
+        const transactionsByMerchant = txns.reduce((acc, txn) => {
+            if (!acc[txn.merchant_id]) {
+                acc[txn.merchant_id] = [];
+            }
+            acc[txn.merchant_id].push(txn);
+            return acc;
+        }, {} as Record<number, typeof txns>);
+        console.log(transactionsByMerchant)
+        for (const merchantId in transactionsByMerchant) {
+            const merchant = await prisma.merchant.findFirst({
+                where: {
+                    merchant_id: Number(merchantId)
+                }
+            })
+            const merchantTxns = transactionsByMerchant[merchantId];
+            for (const txn of merchantTxns) {
+                console.log(merchant?.webhook_url)
+                await transactionService.sendCallback(
+                    merchant?.webhook_url as string,
+                    txn,
+                    (txn.providerDetails as JsonObject)?.account as string,
+                    "payin",
+                    merchant?.encrypted == "True" ? true : false,
+                    false
+                )
+            }
+        }
+    }
+    catch (err) {
+        console.log(err)
     }
 }
 
@@ -721,23 +726,23 @@ async function payoutCallback(orderIds: string[]) {
     }
 }
 
-async function divideSettlementRecords(ids: number[],factor: number) {
+async function divideSettlementRecords(ids: number[], factor: number) {
     if (ids.length == 0 || factor <= 0) {
-        throw new CustomError("Invalid Body Values",404);
+        throw new CustomError("Invalid Body Values", 404);
     }
-    
+
     const records = await prisma.settlementReport.findMany({
         where: {
-            id: {in: ids}
+            id: { in: ids }
         }
     })
 
     if (records.length == 0) {
-        throw new CustomError("Invalid Settlement IDs",400);
+        throw new CustomError("Invalid Settlement IDs", 400);
     }
     records.map(async (record) => await prisma.settlementReport.updateMany({
         where: {
-            id: {in: ids}
+            id: { in: ids }
         },
         data: {
             transactionCount: record.transactionCount / factor,

@@ -8,6 +8,7 @@ import settlement from "./settlement/index.js";
 import paymentRequest from "./paymentRequest/index.js";
 import backoffice from "./backoffice/backoffice.js";
 import user from "./user/crud.js";
+import disbursementRequest from "./disbursementRequest/index.js";
 import express from "express";
 
 export default function (app: express.Application) {
@@ -21,4 +22,5 @@ export default function (app: express.Application) {
   app.use("/payment-request", paymentRequest);
   app.use("/backoffice",backoffice);
   app.use('/users',user);
+  app.use('/disbursement-request',disbursementRequest);
 }

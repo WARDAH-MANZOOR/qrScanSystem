@@ -1,4 +1,4 @@
-import { backofficeService, easyPaisaDisburse, merchantService, transactionService } from "../../services/index.js";
+import { backofficeService, easyPaisaDisburse, easyPaisaService, merchantService, transactionService } from "../../services/index.js";
 import CustomError from "../../utils/custom_error.js";
 import { decryptData, encryptData } from "../../utils/enc_dec.js";
 import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, updateTransactions } from "./disbursement.js";
@@ -835,8 +835,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let totalCommission: Decimal = new Decimal(0);
     let totalGST: Decimal = new Decimal(0);
     let totalWithholdingTax: Decimal = new Decimal(0);
-    let amountDecimal: Decimal = new Decimal(0);
-    let merchantAmount: Decimal = new Decimal(0);
+    let amountDecimal: Decimal = new Decimal(body.amount);
+    let merchantAmount: Decimal = new Decimal(body.amount);
     totalDisbursed = new Decimal(0);
     let id = transactionService.createTransactionId();
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
@@ -851,31 +851,6 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (body.amount) {
-          amountDecimal = new Decimal(body.amount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
         // Calculate total deductions and merchant amount
         totalCommission = amountDecimal.mul(rate.disbursementRate);
         totalGST = amountDecimal.mul(rate.disbursementGST);
@@ -890,13 +865,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           : amountDecimal.minus(totalDeductions);
 
         // Get eligible transactions
-
-        if (body.amount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        await updateTransactions(updates, tx);
+        const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false); 
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -970,7 +942,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let res = await response.json();
     let data;
     if (!res.data) {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false, walletBalance);
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
       await prisma.disbursement.create({
         data: {
           ...data2,
@@ -996,7 +968,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
       data2["transaction_id"] = data.transactionID || db_id;
       // Get the current date
       const date = new Date();
@@ -1056,7 +1028,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     })
     res = await response.json();
     if (!res.data) {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
       await prisma.disbursement.create({
         data: {
           ...data2,
@@ -1082,7 +1054,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
       data2["transaction_id"] = res.transactionID || db_id;
       // Get the current date
       const date = new Date();
@@ -2083,8 +2055,8 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
     let totalCommission: Decimal = new Decimal(0);
     let totalGST: Decimal = new Decimal(0);
     let totalWithholdingTax: Decimal = new Decimal(0);
-    let amountDecimal: Decimal = new Decimal(0);
-    let merchantAmount: Decimal = new Decimal(0);
+    let amountDecimal: Decimal = new Decimal(body.amount);
+    let merchantAmount: Decimal = new Decimal(body.amount);
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     let id = transactionService.createTransactionId();
     if (body.order_id) {
@@ -2098,31 +2070,6 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (body.amount) {
-          amountDecimal = new Decimal(body.amount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
         // Calculate total deductions and merchant amount
         totalCommission = amountDecimal.mul(rate.disbursementRate);
         totalGST = amountDecimal.mul(rate.disbursementGST);
@@ -2137,13 +2084,10 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
           : amountDecimal.minus(totalDeductions);
 
         // Get eligible transactions
-
-        if (body.amount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        await updateTransactions(updates, tx);
+        const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false); // Adjust the balance
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -2208,7 +2152,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
     let res = await response.json();
     console.log("MW Response", res);
     if (!res.data) {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       await prisma.disbursement.create({
         data: {
           ...data,
@@ -2234,7 +2178,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
 
     if (res.responseCode != "G2P-T-0") {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       data["transaction_id"] = res?.transactionID || id;
 
       const date = new Date();
