@@ -82,123 +82,123 @@ app.get('/redoc', (req, res) => {
   res.sendFile(path.join(import.meta.dirname, '../', "redoc.html"));
 });
 
-// export const generateExcelReport = async (req: Request, res: Response) => {
-//   try {
-//       const { merchants } = req.body; // Expecting `merchants` array in the POST request body
+export const generateExcelReport = async (req: Request, res: Response) => {
+  try {
+      const { merchants } = req.body; // Expecting `merchants` array in the POST request body
 
-//       if (!merchants || !Array.isArray(merchants)) {
-//           return res.status(400).json({ error: "Invalid or missing merchants data." });
-//       }
+      if (!merchants || !Array.isArray(merchants)) {
+          return res.status(400).json({ error: "Invalid or missing merchants data." });
+      }
 
-//       const workbook = new ExcelJS.Workbook();
-//       const sheet = workbook.addWorksheet('Merchant Report');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Merchant Report');
 
-//       // Styles
-//       const headerStyle = {
-//           font: { bold: true, size: 12 },
-//           alignment: { horizontal: 'center' as 'center' },
-//           fill: { type: 'pattern' as 'pattern', pattern: 'solid' as ExcelJS.FillPatterns, fgColor: { argb: 'DDEBF7' } },
-//       };
+      // Styles
+      const headerStyle = {
+          font: { bold: true, size: 12 },
+          alignment: { horizontal: 'center' as 'center' },
+          fill: { type: 'pattern' as 'pattern', pattern: 'solid' as ExcelJS.FillPatterns, fgColor: { argb: 'DDEBF7' } },
+      };
 
-//       const subHeaderStyle = {
-//           font: { bold: true },
-//           alignment: { horizontal: 'left' as 'left' },
-//           fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'BDD7EE' } },
-//       };
+      const subHeaderStyle = {
+          font: { bold: true },
+          alignment: { horizontal: 'left' as 'left' },
+          fill: { type: 'pattern' as 'pattern', pattern: 'solid' as ExcelJS.FillPatterns, fgColor: { argb: 'BDD7EE' } },
+      };
 
-//       const dataRowStyle = {
-//           fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } },
-//       };
+      const dataRowStyle = {
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } },
+      };
 
-//       // Add Headers
-//       const headerRow = sheet.getRow(1);
-//       headerRow.getCell(1).value = "Merchant Name";
-//       headerRow.getCell(2).value = "Type";
-//       headerRow.getCell(3).value = "Detail";
-//       headerRow.getCell(4).value = "Saturday, January 20, 2024";
-//       headerRow.getCell(5).value = "Tuesday, February 20, 2024";
-//       headerRow.eachCell((cell) => (cell.style = headerStyle));
+      // Add Headers
+      const headerRow = sheet.getRow(1);
+      headerRow.getCell(1).value = "Merchant Name";
+      headerRow.getCell(2).value = "Type";
+      headerRow.getCell(3).value = "Detail";
+      headerRow.getCell(4).value = "Saturday, January 20, 2024";
+      headerRow.getCell(5).value = "Tuesday, February 20, 2024";
+      headerRow.eachCell((cell) => (cell.style = headerStyle));
 
-//       let rowIndex = 2;
+      let rowIndex = 2;
 
-//       merchants.forEach((merchant) => {
-//           // Add Merchant Name
-//           const merchantRow = sheet.getRow(rowIndex);
-//           merchantRow.getCell(1).value = merchant.name;
-//           merchantRow.getCell(1).style = subHeaderStyle;
-//           rowIndex++;
+      merchants.forEach((merchant) => {
+          // Add Merchant Name
+          const merchantRow = sheet.getRow(rowIndex);
+          merchantRow.getCell(1).value = merchant.name;
+          merchantRow.getCell(1).style = subHeaderStyle;
+          rowIndex++;
 
-//           const collectionTypes = ["Easypaisa", "JazzCash", "Sahulatpay", "Disbursement"];
+          const collectionTypes = ["Easypaisa", "JazzCash", "Sahulatpay", "Disbursement"];
 
-//           collectionTypes.forEach((type) => {
-//               const filteredData = merchant.data.filter((item) => item.type === type);
+          collectionTypes.forEach((type) => {
+                const filteredData: Array<{ date: string; amount: number; mdr: number; accountName: string }> = merchant.data.filter((item: { type: string }) => item.type === type);
 
-//               if (filteredData.length > 0) {
-//                   const jan20 = filteredData.find((item) => item.date === "Saturday, January 20, 2024");
-//                   const feb20 = filteredData.find((item) => item.date === "Tuesday, February 20, 2024");
+              if (filteredData.length > 0) {
+                  const jan20 = filteredData.find((item) => item.date === "Saturday, January 20, 2024");
+                  const feb20 = filteredData.find((item) => item.date === "Tuesday, February 20, 2024");
 
-//                   // Add Amount Row
-//                   const amountRow = sheet.getRow(rowIndex);
-//                   amountRow.getCell(2).value = `${type} Amount`;
-//                   amountRow.getCell(4).value = jan20 ? jan20.amount : "-";
-//                   amountRow.getCell(5).value = feb20 ? feb20.amount : "-";
-//                   amountRow.eachCell((cell) => (cell.style = dataRowStyle));
-//                   rowIndex++;
+                  // Add Amount Row
+                  const amountRow = sheet.getRow(rowIndex);
+                  amountRow.getCell(2).value = `${type} Amount`;
+                  amountRow.getCell(4).value = jan20 ? jan20.amount : "-";
+                  amountRow.getCell(5).value = feb20 ? feb20.amount : "-";
+                  amountRow.eachCell((cell) => (cell.style = { ...dataRowStyle, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } } as ExcelJS.FillPattern }));
+                  rowIndex++;
 
-//                   // Add Commission Row
-//                   const commissionRow = sheet.getRow(rowIndex);
-//                   commissionRow.getCell(2).value = `${type} Commission`;
-//                   commissionRow.getCell(4).value = jan20 ? (jan20.amount * jan20.mdr) / 100 : "-";
-//                   commissionRow.getCell(5).value = feb20 ? (feb20.amount * feb20.mdr) / 100 : "-";
-//                   commissionRow.eachCell((cell) => (cell.style = dataRowStyle));
-//                   rowIndex++;
+                  // Add Commission Row
+                  const commissionRow = sheet.getRow(rowIndex);
+                  commissionRow.getCell(2).value = `${type} Commission`;
+                  commissionRow.getCell(4).value = jan20 ? (jan20.amount * jan20.mdr) / 100 : "-";
+                  commissionRow.getCell(5).value = feb20 ? (feb20.amount * feb20.mdr) / 100 : "-";
+                  commissionRow.eachCell((cell) => (cell.style = dataRowStyle));
+                  rowIndex++;
 
-//                   // Add Account Name Row
-//                   const accountRow = sheet.getRow(rowIndex);
-//                   accountRow.getCell(2).value = `${type} Account Name`;
-//                   accountRow.getCell(4).value = jan20 ? jan20.accountName : "-";
-//                   accountRow.getCell(5).value = feb20 ? feb20.accountName : "-";
-//                   accountRow.eachCell((cell) => (cell.style = dataRowStyle));
-//                   rowIndex++;
+                  // Add Account Name Row
+                  const accountRow = sheet.getRow(rowIndex);
+                  accountRow.getCell(2).value = `${type} Account Name`;
+                  accountRow.getCell(4).value = jan20 ? jan20.accountName : "-";
+                  accountRow.getCell(5).value = feb20 ? feb20.accountName : "-";
+                  accountRow.eachCell((cell) => (cell.style = dataRowStyle));
+                  rowIndex++;
 
-//                   // Add empty row for spacing
-//                   rowIndex++;
-//               }
-//           });
+                  // Add empty row for spacing
+                  rowIndex++;
+              }
+          });
 
-//           // Add an empty row for spacing after each merchant
-//           rowIndex++;
-//       });
+          // Add an empty row for spacing after each merchant
+          rowIndex++;
+      });
 
-//       // Adjust Column Widths
-//       sheet.columns = [
-//           { key: 'merchantName', width: 25 },
-//           { key: 'type', width: 25 },
-//           { key: 'detail', width: 30 },
-//           { key: 'jan20', width: 30 },
-//           { key: 'feb20', width: 30 },
-//       ];
+      // Adjust Column Widths
+      sheet.columns = [
+          { key: 'merchantName', width: 25 },
+          { key: 'type', width: 25 },
+          { key: 'detail', width: 30 },
+          { key: 'jan20', width: 30 },
+          { key: 'feb20', width: 30 },
+      ];
 
-//       // Save the Excel File
-//       const filePath = path.join(__dirname, 'merchant_report.xlsx');
-//       await workbook.xlsx.writeFile(filePath);
+      // Save the Excel File
+      const filePath = path.join(__dirname, 'merchant_report.xlsx');
+      await workbook.xlsx.writeFile(filePath);
 
-//       // Send the Excel file as a response
-//       res.download(filePath, 'merchant_report.xlsx', (err) => {
-//           if (err) {
-//               console.error(err);
-//               res.status(500).json({ error: "Error downloading file." });
-//           }
-//       });
-//   } catch (error) {
-//       console.error(error);
-//       res.status(500).json({ error: "Internal server error." });
-//   }
-// };
+      // Send the Excel file as a response
+      res.download(filePath, 'merchant_report.xlsx', (err) => {
+          if (err) {
+              console.error(err);
+              res.status(500).json({ error: "Error downloading file." });
+          }
+      });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error." });
+  }
+};
 
 
 
-// app.get('/generate-excel', generateExcelReport);
+app.get('/generate-excel', generateExcelReport);
 
 
 app.use((req, res, next) => {
