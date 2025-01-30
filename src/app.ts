@@ -26,6 +26,8 @@ import pendingDisburse from "./utils/pending_disburse_cron.js"
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
 import ExcelJS from "exceljs"
+import prisma from 'prisma/client.js';
+import { JsonObject } from '@prisma/client/runtime/library';
 
 var app = express();
 cron.schedule("0 16 * * 1-5", task);
@@ -33,7 +35,7 @@ cron.schedule("0 16 * * 1-5", task);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
-app.set("trust proxy",true);
+app.set("trust proxy", true);
 // Allow only specific origins
 app.use(cors({
   origin: [
@@ -82,123 +84,202 @@ app.get('/redoc', (req, res) => {
   res.sendFile(path.join(import.meta.dirname, '../', "redoc.html"));
 });
 
-// export const generateExcelReport = async (req: Request, res: Response) => {
-//   try {
-//       const { merchants } = req.body; // Expecting `merchants` array in the POST request body
 
-//       if (!merchants || !Array.isArray(merchants)) {
-//           return res.status(400).json({ error: "Invalid or missing merchants data." });
-//       }
+export const generateExcelReport = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const last30Days = new Date();
+    last30Days.setDate(last30Days.getDate() - 30);
 
-//       const workbook = new ExcelJS.Workbook();
-//       const sheet = workbook.addWorksheet('Merchant Report');
+    const merchants = await prisma.merchant.findMany({
+      include: {
+        commissions: {
+          select: {
+            commissionMode: true,
+            commissionRate: true,
+            easypaisaRate: true,
+          },
+        },
+      },
+    });
 
-//       // Styles
-//       const headerStyle = {
-//           font: { bold: true, size: 12 },
-//           alignment: { horizontal: 'center' as 'center' },
-//           fill: { type: 'pattern' as 'pattern', pattern: 'solid' as ExcelJS.FillPatterns, fgColor: { argb: 'DDEBF7' } },
-//       };
+    // Fetch Transactions in bulk to minimize queries
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        createdAt: { gte: last30Days },
+        // providerDetails: { path: ["name"], string_contains: "Easypaisa" }, // Easypaisa
+        // OR: [
+        //   { providerDetails: { path: ["name"], string_contains: "JazzCash" } }, // JazzCash
+        // ],
+        status: 'completed'
+      },
+      select: {
+        merchant_id: true,
+        original_amount: true,
+        providerDetails: true,
+        createdAt: true,
+      },
+    });
 
-//       const subHeaderStyle = {
-//           font: { bold: true },
-//           alignment: { horizontal: 'left' as 'left' },
-//           fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'BDD7EE' } },
-//       };
+    // Fetch Disbursements in bulk to minimize queries
+    const disbursements = await prisma.disbursement.findMany({
+      where: {
+        createdAt: { gte: last30Days },
+        status: "completed",
+      },
+      select: {
+        merchant_id: true,
+        transactionAmount: true,
+        createdAt: true,
+      },
+    });
 
-//       const dataRowStyle = {
-//           fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } },
-//       };
+    // Map transactions & disbursements to merchants
+    const merchantData = merchants.map((merchant) => {
+      const merchantTransactions = transactions.filter(
+        (txn) => txn.merchant_id == merchant.merchant_id
+      );
 
-//       // Add Headers
-//       const headerRow = sheet.getRow(1);
-//       headerRow.getCell(1).value = "Merchant Name";
-//       headerRow.getCell(2).value = "Type";
-//       headerRow.getCell(3).value = "Detail";
-//       headerRow.getCell(4).value = "Saturday, January 20, 2024";
-//       headerRow.getCell(5).value = "Tuesday, February 20, 2024";
-//       headerRow.eachCell((cell) => (cell.style = headerStyle));
+      const merchantDisbursements = disbursements.filter(
+        (d) => d.merchant_id == merchant.merchant_id
+      );
 
-//       let rowIndex = 2;
+      // Group transactions by provider
+      const collections = { Easypaisa: 0, JazzCash: 0 };
+      console.log(merchantTransactions)
+      merchantTransactions.forEach((txn) => {
+        if (txn.providerDetails && ((txn.providerDetails as JsonObject)?.name as string)?.includes("Easypaisa")) {
+          if (txn.original_amount !== null) {
+            collections.Easypaisa += +txn.original_amount;
+          }
+        } else if (txn.providerDetails && ((txn.providerDetails as JsonObject)?.name as string)?.includes("JazzCash")) {
+          if (txn.original_amount !== null) {
+            collections.JazzCash += +txn.original_amount;
+          }
+        }
+      });
 
-//       merchants.forEach((merchant) => {
-//           // Add Merchant Name
-//           const merchantRow = sheet.getRow(rowIndex);
-//           merchantRow.getCell(1).value = merchant.name;
-//           merchantRow.getCell(1).style = subHeaderStyle;
-//           rowIndex++;
+      // Determine commission rate dynamically
+      const { commissionMode, commissionRate, easypaisaRate } =
+        merchant.commissions[0] || {};
 
-//           const collectionTypes = ["Easypaisa", "JazzCash", "Sahulatpay", "Disbursement"];
+      const commissions = {
+        Easypaisa:
+          commissionMode === "SINGLE"
+            ? (collections.Easypaisa * +commissionRate) / 100
+            : (collections.Easypaisa * +(easypaisaRate ?? 0)) / 100,
+        JazzCash:
+          commissionMode === "SINGLE"
+            ? (collections.JazzCash * +commissionRate) / 100
+            : (collections.JazzCash * +commissionRate) / 100,
+      };
 
-//           collectionTypes.forEach((type) => {
-//               const filteredData = merchant.data.filter((item) => item.type === type);
+      return {
+        name: merchant.full_name,
+        collections,
+        commissions,
+        disbursementTotal: merchantDisbursements.reduce(
+          (sum, d) => sum + +d.transactionAmount,
+          0
+        ),
+      };
+    });
 
-//               if (filteredData.length > 0) {
-//                   const jan20 = filteredData.find((item) => item.date === "Saturday, January 20, 2024");
-//                   const feb20 = filteredData.find((item) => item.date === "Tuesday, February 20, 2024");
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Merchant Report");
 
-//                   // Add Amount Row
-//                   const amountRow = sheet.getRow(rowIndex);
-//                   amountRow.getCell(2).value = `${type} Amount`;
-//                   amountRow.getCell(4).value = jan20 ? jan20.amount : "-";
-//                   amountRow.getCell(5).value = feb20 ? feb20.amount : "-";
-//                   amountRow.eachCell((cell) => (cell.style = dataRowStyle));
-//                   rowIndex++;
+    // Styles
+    const headerStyle = {
+      font: { bold: true, size: 12 },
+      alignment: { horizontal: "center" as "center" },
+      fill: { type: "pattern" as "pattern", pattern: "solid" as "solid", fgColor: { argb: "DDEBF7" } },
+    };
 
-//                   // Add Commission Row
-//                   const commissionRow = sheet.getRow(rowIndex);
-//                   commissionRow.getCell(2).value = `${type} Commission`;
-//                   commissionRow.getCell(4).value = jan20 ? (jan20.amount * jan20.mdr) / 100 : "-";
-//                   commissionRow.getCell(5).value = feb20 ? (feb20.amount * feb20.mdr) / 100 : "-";
-//                   commissionRow.eachCell((cell) => (cell.style = dataRowStyle));
-//                   rowIndex++;
+    const subHeaderStyle = {
+      font: { bold: true },
+      alignment: { horizontal: "left" as "left" },
+      fill: { type: "pattern" as "pattern", pattern: "solid" as "solid", fgColor: { argb: "BDD7EE" } },
+    };
 
-//                   // Add Account Name Row
-//                   const accountRow = sheet.getRow(rowIndex);
-//                   accountRow.getCell(2).value = `${type} Account Name`;
-//                   accountRow.getCell(4).value = jan20 ? jan20.accountName : "-";
-//                   accountRow.getCell(5).value = feb20 ? feb20.accountName : "-";
-//                   accountRow.eachCell((cell) => (cell.style = dataRowStyle));
-//                   rowIndex++;
+    const dataRowStyle = {
+      fill: { type: "pattern" as "pattern", pattern: "solid" as "solid", fgColor: { argb: "E2EFDA" } },
+    };
 
-//                   // Add empty row for spacing
-//                   rowIndex++;
-//               }
-//           });
+    // Add Headers
+    const headerRow = sheet.getRow(1);
+    headerRow.getCell(1).value = "Merchant Name";
+    headerRow.getCell(2).value = "Type";
+    headerRow.getCell(3).value = "Amount";
+    headerRow.getCell(4).value = "Commission";
+    headerRow.eachCell((cell) => (cell.style = headerStyle));
 
-//           // Add an empty row for spacing after each merchant
-//           rowIndex++;
-//       });
+    let rowIndex = 2;
 
-//       // Adjust Column Widths
-//       sheet.columns = [
-//           { key: 'merchantName', width: 25 },
-//           { key: 'type', width: 25 },
-//           { key: 'detail', width: 30 },
-//           { key: 'jan20', width: 30 },
-//           { key: 'feb20', width: 30 },
-//       ];
+    merchantData.forEach((merchant) => {
+      const { collections, commissions, disbursementTotal } = merchant;
 
-//       // Save the Excel File
-//       const filePath = path.join(__dirname, 'merchant_report.xlsx');
-//       await workbook.xlsx.writeFile(filePath);
+      // Add Merchant Name
+      const merchantRow = sheet.getRow(rowIndex);
+      merchantRow.getCell(1).value = merchant.name;
+      merchantRow.getCell(1).style = subHeaderStyle;
+      rowIndex++;
 
-//       // Send the Excel file as a response
-//       res.download(filePath, 'merchant_report.xlsx', (err) => {
-//           if (err) {
-//               console.error(err);
-//               res.status(500).json({ error: "Error downloading file." });
-//           }
-//       });
-//   } catch (error) {
-//       console.error(error);
-//       res.status(500).json({ error: "Internal server error." });
-//   }
-// };
+      // Add Easypaisa Collection and Commission
+      const easypaisaRow = sheet.getRow(rowIndex);
+      easypaisaRow.getCell(2).value = "Easypaisa Collection";
+      easypaisaRow.getCell(3).value = collections.Easypaisa;
+      easypaisaRow.getCell(4).value = commissions.Easypaisa;
+      easypaisaRow.eachCell((cell) => (cell.style = dataRowStyle));
+      rowIndex++;
+
+      // Add JazzCash Collection and Commission
+      const jazzcashRow = sheet.getRow(rowIndex);
+      jazzcashRow.getCell(2).value = "JazzCash Collection";
+      jazzcashRow.getCell(3).value = collections.JazzCash;
+      jazzcashRow.getCell(4).value = commissions.JazzCash;
+      jazzcashRow.eachCell((cell) => (cell.style = dataRowStyle));
+      rowIndex++;
+
+      const disbursementRow = sheet.getRow(rowIndex);
+      disbursementRow.getCell(2).value = "Disbursement Amount";
+      disbursementRow.getCell(3).value = disbursementTotal;
+      disbursementRow.eachCell((cell) => (cell.style = dataRowStyle));
+      rowIndex++;
+
+      // Add an empty row for spacing after each merchant
+      rowIndex++;
+    });
+
+    // Adjust Column Widths
+    sheet.columns = [
+      { key: "merchantName", width: 25 },
+      { key: "type", width: 25 },
+      { key: "amount", width: 30 },
+      { key: "commission", width: 30 },
+    ];
+
+    // Save the Excel File
+    const filePath = path.join(import.meta.dirname, "merchant_report.xlsx");
+    await workbook.xlsx.writeFile(filePath);
+
+    // Send the Excel file as a response
+    res.download(filePath, "merchant_report.xlsx", (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error downloading file." });
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};
 
 
 
-// app.get('/generate-excel', generateExcelReport);
+
+app.post('/generate-excel', (req, res, next) => {
+  generateExcelReport(req, res, next).catch(next);
+});
 
 
 app.use((req, res, next) => {
@@ -212,7 +293,7 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
- 
+
 // Example usage
 
 // const encryptedData = await callbackEncrypt(JSON.stringify({

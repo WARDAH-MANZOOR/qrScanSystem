@@ -148,8 +148,9 @@ const initiateEasyPaisaClone = async (
         order_id: req.body.order_id,
         type: req.body.type
       }, merchantId)
-      if (result.statusCode != "0000") {
-        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
+      console.log("result: ", result)
+      if (!result?.statusCode && result?.statusCode != "0000") {
+        res.status(result?.statusCode != 500 ? result?.statusCode : 201).send(ApiResponse.error(result, result?.statusCode != 500 ? result?.statusCode : 201));
         return;
       }
     }

@@ -253,13 +253,13 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
       },
     });
 
-    if (!findMerchant) {
+    if (!findMerchant || !findMerchant.easyPaisaMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
 
-    const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
+    const easyPaisaMerchant = await prisma.easyPaisaMerchant.findMany({
       where: {
-        id: findMerchant.easyPaisaMerchantId ?? undefined,
+        id: findMerchant.easyPaisaMerchantId,
       },
     });
 
@@ -271,15 +271,15 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
       orderId: id2,
-      storeId: easyPaisaMerchant.storeId,
+      storeId: easyPaisaMerchant[0].storeId,
       transactionAmount: params.amount,
       transactionType: "MA",
       mobileAccountNo: phone,
       emailAddress: params.email,
     };
-
+    console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`)
     const base64Credentials = Buffer.from(
-      `${easyPaisaMerchant.username}:${easyPaisaMerchant.credentials}`
+      `${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`
     ).toString("base64");
 
     let data = JSON.stringify(easyPaisaTxPayload);
@@ -316,7 +316,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
       commission,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
       providerDetails: {
-        id: easyPaisaMerchant.id,
+        id: easyPaisaMerchant[0].id,
         name: PROVIDERS.EASYPAISA,
         msisdn: phone
       },
@@ -534,13 +534,13 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
       },
     });
 
-    if (!findMerchant) {
+    if (!findMerchant || !findMerchant.easyPaisaMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
 
     const easyPaisaMerchant = await prisma.easyPaisaMerchant.findFirst({
       where: {
-        id: findMerchant.easyPaisaMerchantId ?? undefined,
+        id: findMerchant.easyPaisaMerchantId,
       },
     });
 

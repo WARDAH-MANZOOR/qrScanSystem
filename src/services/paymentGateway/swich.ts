@@ -184,7 +184,7 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
       },
     });
 
-    if (!findMerchant) {
+    if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
 
@@ -291,6 +291,13 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         },
         findMerchant?.commissions[0]?.settlementDuration as number
       );
+      return {
+        message: err?.message || "An error occurred while initiating the transaction",
+        statusCode: err?.statusCode || 500,
+        txnNo: saveTxn?.merchant_transaction_id
+      }
+    }
+    else {
       return {
         message: err?.message || "An error occurred while initiating the transaction",
         statusCode: err?.statusCode || 500,
@@ -471,7 +478,7 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
       },
     });
 
-    if (!findMerchant) {
+    if (!findMerchant || !findMerchant.switchMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
 
