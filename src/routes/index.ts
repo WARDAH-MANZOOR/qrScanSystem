@@ -9,6 +9,7 @@ import paymentRequest from "./paymentRequest/index.js";
 import backoffice from "./backoffice/backoffice.js";
 import user from "./user/crud.js";
 import disbursementRequest from "./disbursementRequest/index.js";
+import report from "./reports/excel.js";
 import express from "express";
 
 export default function (app: express.Application) {
@@ -23,4 +24,5 @@ export default function (app: express.Application) {
   app.use("/backoffice",backoffice);
   app.use('/users',user);
   app.use('/disbursement-request',disbursementRequest);
+  app.use('/report',report);
 }
