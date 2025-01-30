@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { Request, Response } from "express";
 import prisma from "prisma/client.js";
 import { easyPaisaService, jazzCashService } from "services/index.js";
 import { getToken, updateMwTransaction, updateTransaction } from "services/paymentGateway/index.js";
@@ -44,7 +45,7 @@ const fetchPendingRecords = async (size: number) => {
     }
 };
 
-async function processPendingRecordsCron() {
+async function processPendingRecordsCron(req: Request, res: Response) {
     const batchSize = 900; // Number of records to process per cron job
     const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize) as { [key: string]: any[] };
 
@@ -52,7 +53,7 @@ async function processPendingRecordsCron() {
         console.log("No pending records found.");
         return;
     }
-    // console.log(records)
+    const doneTransactions = [];
     try {
         for (const merchantId of Object.keys(records)) {
             // console.log(merchantId)
@@ -86,12 +87,15 @@ async function processPendingRecordsCron() {
                         await updateTransaction(token?.access_token, txn, merchant?.uid as string)
                     }
                 }
+                console.log(`Transaction ${txn.system_order_id} processed successfully`)
+                doneTransactions.push(txn.system_order_id)
             }
-            // console.log(`records[${merchantId}] =  ${txns}`)
+            res.status(200).json({ message: "Transactions processed successfully", doneTransactions });
         } 
     }
     catch (err) {
         console.log("Error: ",err)
+        res.status(500).json({ error: "Error processing the transactions", doneTransactions });
     }
 }
 
