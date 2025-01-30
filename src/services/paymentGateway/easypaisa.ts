@@ -1245,10 +1245,7 @@ const updateDisbursement = async (
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
-          throw new CustomError("Insufficient balance to disburse", 400);
-        }
-        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
+        c
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {

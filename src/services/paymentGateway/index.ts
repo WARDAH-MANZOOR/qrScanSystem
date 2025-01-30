@@ -1201,7 +1201,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
       }
     }
     let amountDecimal: Decimal = new Decimal(0);
-    let merchantAmount: Decimal = new Decimal(body.merchantAmount);
+    let merchantAmount: Decimal = new Decimal(body.merchantAmount + body.commission + body.gst + body.withholdingTax);
     totalDisbursed = new Decimal(0);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     data2["merchant_custom_order_id"] = body.merchant_custom_order_id;
@@ -1210,42 +1210,10 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (body.merchantAmount) {
-          amountDecimal = new Decimal(body.merchantAmount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
-        // Calculate total deductions and merchant amount
-        merchantAmount = merchantAmount.plus(body.commission).plus(body.gst).plus(body.withholdingTax)
-
-        // Get eligible transactions
-
-        if (body.merchantAmount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
-        }
-        await updateTransactions(updates, tx);
+        const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1300,14 +1268,14 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     let res = await response.json();
     let data;
     if (!res.data) {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       throw new CustomError("Transaction is Pending", 500);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = data.transactionID || body.system_order_id;
       // Get the current date
       const date = new Date();
@@ -1359,14 +1327,14 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     })
     res = await response.json();
     if (!res.data) {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       throw new CustomError("Transaction is Pending", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       // Get the current date
       const date = new Date();
@@ -2330,7 +2298,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     }
     let merchantAmount = new Decimal(body.merchantAmount);
     let amountDecimal = new Decimal(0);
-    let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount);
+    let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount + body.commission + body.gst + body.withholdingTax);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     data2["merchant_custom_order_id"] = body.merchant_custom_order_id;
     data2["system_order_id"] = body.system_order_id;
@@ -2339,40 +2307,10 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (body.merchantAmount) {
-          amountDecimal = new Decimal(body.merchantAmount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
-
-        // Get eligible transactions
-        merchantAmount = merchantAmount.plus(body.commission).plus(body.gst).plus(body.withholdingTax)
-        if (body.merchantAmount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
-        }
-        await updateTransactions(updates, tx);
+        const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -2418,13 +2356,13 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     let res = await response.json();
     console.log("MW Response", res);
     if (!res.data) {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       throw new CustomError("Transaction is Pending", 500);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
     if (res.responseCode != "G2P-T-0") {
-      await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       const date = new Date();
 
