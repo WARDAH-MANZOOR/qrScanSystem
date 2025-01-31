@@ -1238,47 +1238,14 @@ const updateDisbursement = async (
     if (!obj.account.startsWith("92")) {
       throw new CustomError("Number should start with 92", 400);
     }
-    let merchantAmount = new Decimal(obj.merchantAmount);
+    let merchantAmount = new Decimal(obj.merchantAmount + obj.commission + obj.gst + obj.withholdingTax);
     let amountDecimal = new Decimal(0);
     let totalDisbursed: number | Decimal = new Decimal(obj.merchantAmount);
     await prisma.$transaction(async (tx) => {
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
-        }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (obj.merchantAmount) {
-          amountDecimal = new Decimal(obj.merchantAmount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
-        // Calculate total deductions and merchant amount
-        // Get eligible transactions
-        merchantAmount = merchantAmount.plus(obj.commission).plus(obj.gst).plus(obj.withholdingTax);
-        if (obj.merchantAmount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
-        }
-        await updateTransactions(updates, tx);
+        
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1349,7 +1316,7 @@ const updateDisbursement = async (
       console.log("Disbursement Failed ")
       console.log(totalDisbursed)
       await prisma.$transaction(async (tx) => {
-        await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
         const txn = await prisma.disbursement.update({
           where: {
             merchant_custom_order_id: data.merchant_custom_order_id,
@@ -2365,47 +2332,17 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
     if (!bank) {
       throw new CustomError("Bank not found", 404);
     }
-    let merchantAmount = new Decimal(obj.merchantAmount);
+    let merchantAmount = new Decimal(obj.merchantAmount + obj.commission + obj.gst + obj.withholdingTax);
     let amountDecimal = new Decimal(0);
     let totalDisbursed: number | Decimal = new Decimal(obj.merchantAmount);
     await prisma.$transaction(async (tx) => {
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        const transactions = await getEligibleTransactions(
-          findMerchant.merchant_id,
-          tx
-        );
-        if (transactions.length === 0) {
-          throw new CustomError("No eligible transactions to disburse", 400);
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
         }
-        let updates: TransactionUpdate[] = [];
-        totalDisbursed = new Decimal(0);
-        if (obj.merchantAmount) {
-          amountDecimal = new Decimal(obj.merchantAmount);
-        } else {
-          updates = transactions.map((t: any) => ({
-            transaction_id: t.transaction_id,
-            disbursed: true,
-            balance: new Decimal(0),
-            settled_amount: t.settled_amount,
-            original_amount: t.original_amount,
-          }));
-          totalDisbursed = transactions.reduce(
-            (sum: Decimal, t: any) => sum.plus(t.balance),
-            new Decimal(0)
-          );
-          amountDecimal = totalDisbursed;
-        }
-        // Calculate total deductions and merchant amount
-        // Get eligible transactions
-        merchantAmount = merchantAmount.plus(obj.commission).plus(obj.gst).plus(obj.withholdingTax);
-        if (obj.merchantAmount) {
-          const result = calculateDisbursement(transactions, merchantAmount);
-          updates = result.updates;
-          totalDisbursed = totalDisbursed.plus(result.totalDisbursed);
-        }
-        await updateTransactions(updates, tx);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -2477,7 +2414,7 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
       const zonedDate = toZonedTime(date, timeZone);
       console.log("Transfer Inquiry Error: ", res.data);
       await prisma.$transaction(async (tx) => {
-        await backofficeService.adjustMerchantDisbursementWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);        
         await prisma.disbursement.update({
           where: {
             merchant_custom_order_id: data2.merchant_custom_order_id,
@@ -2532,7 +2469,7 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
       // Convert the date to the Pakistan timezone
       const zonedDate = toZonedTime(date, timeZone);
       await prisma.$transaction(async (tx) => {
-        await backofficeService.adjustMerchantWalletBalance(findMerchant.merchant_id, +totalDisbursed, false);
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);        
         await prisma.disbursement.update({
           where: {
             merchant_custom_order_id: data2.merchant_custom_order_id

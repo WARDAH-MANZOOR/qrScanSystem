@@ -30,7 +30,7 @@ import prisma from 'prisma/client.js';
 import { JsonObject } from '@prisma/client/runtime/library';
 
 var app = express();
-// cron.schedule("0 16 * * 1-5", task);
+cron.schedule("0 16 * * 1-5", task);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");

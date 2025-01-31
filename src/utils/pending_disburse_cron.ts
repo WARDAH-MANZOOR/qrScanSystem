@@ -12,6 +12,7 @@ const fetchPendingRecords = async (size: number) => {
             const transactions = await tx.disbursement.findMany({
                 where: {
                     status: 'pending', // Filter for pending transactions
+                    merchant_id: 5
                 },
                 // select: {
                 //     system_order_id: true,
