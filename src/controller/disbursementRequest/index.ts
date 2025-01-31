@@ -41,7 +41,8 @@ const updateDisbursementRequestStatus = async (req: Request, res: Response) => {
 const getDisbursementRequests = async (req: Request, res: Response) => {
     try {
         const params = req.query;
-        const result = await disbursementRequestService.getDisbursementRequests(params);
+        const merchantId = (req.user as JwtPayload)?.merchant_id || params.merchantId;
+        const result = await disbursementRequestService.getDisbursementRequests(params, merchantId);
         res.status(200).json(ApiResponse.success(result));
     }
     catch (err: any) {
