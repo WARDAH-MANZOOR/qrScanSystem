@@ -50,10 +50,8 @@ const updateDisbursementRequestStatus = async (requestId: number, status: string
     }
 }
 
-const getDisbursementRequests = async (params: any) => {
+const getDisbursementRequests = async (params: any, merchantId: any) => {
     try {
-        const { merchantId } = params;
-
         let startDate = params.start as string;
         let endDate = params.end as string;
         const status = params.status as string;
