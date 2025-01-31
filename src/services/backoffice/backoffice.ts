@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { transactionService } from 'services/index.js';
+import { jazzCashService, transactionService } from 'services/index.js';
 import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
 import CustomError from 'utils/custom_error.js';
 import { addWeekdays } from 'utils/date_method.js';
@@ -438,6 +438,58 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
     }
 }
 
+async function failTransactions(transactionIds: string[]) {
+    try {
+        const txns = await prisma.transaction.findMany({
+            where: {
+                merchant_transaction_id: { in: transactionIds },
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+        await prisma.transaction.updateMany({
+            where: {
+                merchant_transaction_id: { in: transactionIds },
+            },
+            data: {
+                status: "failed",
+                response_message: "User did not respond"
+            }
+        })
+
+        return 'Transactions failed successfully.';
+    } catch (error: any) {
+        throw new CustomError(error.message || 'Error settling transactions', error.statusCode || 500);
+    }
+}
+
+async function failDisbursements(transactionIds: string[]) {
+    try {
+        const txns = await prisma.disbursement.findMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+        await prisma.disbursement.updateMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            },
+            data: {
+                status: "failed",
+                response_message: "failed"
+            }
+        })
+
+        return 'Disbursements failed successfully.';
+    } catch (error: any) {
+        throw new CustomError(error.message || 'Error settling transactions', error.statusCode || 500);
+    }
+}
+
 async function settleAllMerchantTransactions(merchantId: number) {
     try {
         const merchant = await prisma.merchantFinancialTerms.findFirst({
@@ -771,5 +823,7 @@ export default {
     payinCallback,
     payoutCallback,
     divideSettlementRecords,
-    adjustMerchantWalletBalanceWithoutSettlement
+    adjustMerchantWalletBalanceWithoutSettlement,
+    failTransactions,
+    failDisbursements
 }

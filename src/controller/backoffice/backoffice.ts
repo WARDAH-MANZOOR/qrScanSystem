@@ -97,6 +97,28 @@ const settleTransactionsForTelegram = async (req: Request, res: Response) => {
     }
 };
 
+const failTransactionsForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionIds } = req.body;
+        const result = await backofficeService.failTransactions(transactionIds);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
+const failDisbursementsForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionIds } = req.body;
+        const result = await backofficeService.failDisbursements(transactionIds);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 const settleAllMerchantTransactions = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
@@ -191,5 +213,7 @@ export default {
     payoutCallback,
     settleTransactionsForTelegram,
     divideSettlementRecords,
-    adjustMerchantWalletBalanceWithoutSettlement
+    adjustMerchantWalletBalanceWithoutSettlement,
+    failTransactionsForTelegram,
+    failDisbursementsForTelegram
 }

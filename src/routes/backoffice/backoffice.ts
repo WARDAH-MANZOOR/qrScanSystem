@@ -18,6 +18,10 @@ router.post('/settle-transactions', [isLoggedIn, isAdmin], backOfficeController.
 
 router.post('/settle-transactions/tele', backOfficeController.settleTransactionsForTelegram);
 
+router.post('/fail-transactions/tele', backOfficeController.failTransactionsForTelegram);
+
+router.post('/fail-disbursements/tele', backOfficeController.failDisbursementsForTelegram);
+
 router.post('/settle-all/:merchantId', [isLoggedIn, isAdmin], backOfficeController.settleAllMerchantTransactions);
 
 router.post("/dummy-transaction/:merchantId",[isLoggedIn, isAdmin], backOfficeController.createTransactionController)
