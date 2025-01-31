@@ -809,8 +809,7 @@ const exportDisbursement = async (merchantId, params) => {
             throw new CustomError("Unable to get disbursement history", 500);
         });
         const totalAmount = disbursements.reduce((sum, transaction) => sum + Number(transaction.merchantAmount), 0);
-        // res.setHeader('Content-Type', 'text/csv');
-        // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+       
         const fields = [
             'merchant',
             'account',
@@ -840,19 +839,7 @@ const exportDisbursement = async (merchantId, params) => {
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
         return `${csv}\nTotal Settled Amount,,${totalAmount}`;
-        // loop through disbursements and add transaction details
-        // for (let i = 0; i < disbursements.length; i++) {
-        //   if (!disbursements[i].transaction_id) {
-        //     disbursements[i].transaction = null;
-        //   } else {
-        //     const transaction = await prisma.transaction.findFirst({
-        //       where: {
-        //         transaction_id: disbursements[i].transaction_id,
-        //       },
-        //     });
-        //     disbursements[i].transaction = transaction;
-        //   }
-        // }
+        
     }
     catch (error) {
         throw new CustomError(error?.error || "Unable to get disbursement", error?.statusCode || 500);
@@ -887,11 +874,7 @@ const disburseThroughBank = async (obj, merchantId) => {
                 throw new CustomError("Order ID already exists", 400);
             }
         }
-        // Phone number validation (must start with 92)
-        // if (!obj.phone.startsWith("92")) {
-        //   throw new CustomError("Number should start with 92", 400);
-        // }
-        // Fetch merchant financial terms
+        
         const bank = bankDetails.find((bank) => bank.BankName === obj.bankName);
         if (!bank) {
             throw new CustomError("Bank not found", 404);

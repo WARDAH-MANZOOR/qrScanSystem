@@ -1,5 +1,5 @@
 import * as userService from '../../services/user/crud.js';
-import ApiResponse from 'utils/ApiResponse.js';
+import ApiResponse from '../../utils/ApiResponse.js';
 // Create User
 const createUser = async (req, res) => {
     const { fullName, email, password, groups } = req.body;

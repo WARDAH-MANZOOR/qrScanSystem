@@ -7,6 +7,7 @@ jest.mock('axios');
 jest.mock('../../../../dist/services/paymentGateway/easypaisa.js', () => ({
     createRSAEncryptedPayload: jest.fn(),
     corporateLogin: jest.fn(),
+   
 }));
 
 describe('corporateLogin', () => {

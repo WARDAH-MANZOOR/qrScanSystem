@@ -1,6 +1,6 @@
-import { backofficeService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+import { backofficeService } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 const removeMerchantFinanceData = async (req, res) => {
     try {
         if (!req.params.merchantId) {

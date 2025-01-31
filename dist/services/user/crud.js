@@ -1,6 +1,6 @@
 // src/services/userService.ts
 import bcrypt from "bcrypt";
-import prisma from "prisma/client.js";
+import prisma from "../../prisma/client.js";
 // Create User
 export const createUser = async (fullName, email, password, groups, merchantId) => {
     const hashedPassword = await bcrypt.hash(password, 10);
