@@ -119,31 +119,26 @@ const generateExcelReportService = async (): Promise<string> => {
                         ? (daily.Easypaisa *
                             (Number(commissionRate) +
                                 Number(commissionGST) +
-                                Number(commissionWithHoldingTax))) /
-                        100
+                                Number(commissionWithHoldingTax))) 
                         : (daily.Easypaisa *
                             (Number(easypaisaRate ?? 0) +
                                 Number(commissionGST) +
-                                Number(commissionWithHoldingTax))) /
-                        100,
+                                Number(commissionWithHoldingTax))),
                 JazzCash:
                     commissionMode === "SINGLE"
                         ? (daily.JazzCash *
                             (Number(commissionRate) +
                                 Number(commissionGST) +
-                                Number(commissionWithHoldingTax))) /
-                        100
+                                Number(commissionWithHoldingTax)))
                         : (daily.JazzCash *
                             (Number(commissionRate) +
                                 Number(commissionGST) +
-                                Number(commissionWithHoldingTax))) /
-                        100,
+                                Number(commissionWithHoldingTax))),
                 Disbursement:
                     (daily.Disbursement *
                         (Number(disbursementRate) +
                             Number(disbursementGST) +
-                            Number(disbursementWithHoldingTax))) /
-                    100,
+                            Number(disbursementWithHoldingTax))),
             };
             return result;
         }, {} as Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number }>);

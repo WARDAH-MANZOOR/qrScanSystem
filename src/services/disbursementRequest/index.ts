@@ -7,13 +7,16 @@ import CustomError from "utils/custom_error.js";
 
 const createDisbursementRequest = async (requested_amount: number, merchant_id: number) => {
     try {
-        return await prisma.disbursementRequest.create({
+        await prisma.disbursementRequest.create({
             data: {
                 requestedAmount: requested_amount,
                 merchantId: merchant_id,
                 status: "pending"
             }
         });
+        const { walletBalance } = await getWalletBalance(merchant_id) as { walletBalance: number };
+        const updatedAvailableBalance = walletBalance - Number(requested_amount);
+        await backofficeService.adjustMerchantWalletBalance(merchant_id, updatedAvailableBalance, false);
     }
     catch (err: any) {
         throw new CustomError(err.message, 500);
@@ -27,12 +30,14 @@ const updateDisbursementRequestStatus = async (requestId: number, status: string
             data: { status: status }
         });
         if (status == "approved") {
-            const { walletBalance } = await getWalletBalance(disbursementRequest.merchantId) as { walletBalance: number };
             await prisma.merchant.update({
                 where: { merchant_id: disbursementRequest.merchantId },
                 data: { balanceToDisburse: { increment: Number(disbursementRequest.requestedAmount) } }
             });
-            const updatedAvailableBalance = walletBalance - Number(disbursementRequest.requestedAmount);
+        }
+        else if (status == "rejected") {
+            const { walletBalance } = await getWalletBalance(disbursementRequest.merchantId) as { walletBalance: number };
+            const updatedAvailableBalance = walletBalance + Number(disbursementRequest.requestedAmount);
             await backofficeService.adjustMerchantWalletBalance(disbursementRequest.merchantId, updatedAvailableBalance, false);
         }
         return {

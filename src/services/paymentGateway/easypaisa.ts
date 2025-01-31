@@ -1245,7 +1245,7 @@ const updateDisbursement = async (
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        c
+        
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
