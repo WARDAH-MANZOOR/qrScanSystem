@@ -10,6 +10,7 @@ import paymentRequestService from './paymentRequest/index.js';
 import zindigiService from "./paymentGateway/zindigi.js"
 import backofficeService from "./backoffice/backoffice.js"
 import reportService from "./reports/excel.js"
+import ipnService from "./ipn/index.js"
 
 export {
     jazzCashService,
@@ -23,5 +24,6 @@ export {
     paymentRequestService,
     zindigiService,
     backofficeService,
-    reportService
+    reportService,
+    ipnService
 };

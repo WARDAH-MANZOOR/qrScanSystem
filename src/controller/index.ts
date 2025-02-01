@@ -9,6 +9,7 @@ import authenticationController from "./authentication/index.js";
 import paymentRequestController from "./paymentRequest/index.js";
 import zindigiController from "./paymentGateway/zindigi.js"
 import reportController from "./reports/excel.js"
+import ipnController from "./ipn/index.js"
 
 export {
   jazzCashController,
@@ -21,5 +22,6 @@ export {
   authenticationController,
   paymentRequestController,
   zindigiController,
-  reportController
+  reportController,
+  ipnController
 };

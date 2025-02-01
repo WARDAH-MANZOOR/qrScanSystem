@@ -10,6 +10,7 @@ import backoffice from "./backoffice/backoffice.js";
 import user from "./user/crud.js";
 import disbursementRequest from "./disbursementRequest/index.js";
 import report from "./reports/excel.js";
+import ipn from "./ipn/index.js";
 import express from "express";
 
 export default function (app: express.Application) {
@@ -25,4 +26,5 @@ export default function (app: express.Application) {
   app.use('/users',user);
   app.use('/disbursement-request',disbursementRequest);
   app.use('/report',report);
+  app.use("/ipn",ipn);
 }
