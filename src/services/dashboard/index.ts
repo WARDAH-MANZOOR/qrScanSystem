@@ -62,7 +62,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             throw new CustomError(error?.message, 500);
           }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
-      // // Fetch today's transaction sum
+      //Fetch today's transaction sum
+
       // const servertodayStart = new Date().setHours(0, 0, 0, 0);
       // const servertodayEnd = new Date().setHours(23, 59, 59, 999);
 
@@ -200,6 +201,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         })
       );
 
+
       // Execute all queries in parallel
       const [
         totalTransactions,
@@ -287,7 +289,7 @@ const adminDashboardDetails = async (params: any) => {
     const endDate = params?.end?.replace(" ", "+");
 
     const customWhere = {} as any;
-
+let disbursement_date ;
     if (startDate && endDate) {
       const todayStart = parse(
         startDate,
@@ -300,6 +302,7 @@ const adminDashboardDetails = async (params: any) => {
         gte: todayStart,
         lt: todayEnd,
       };
+disbursement_date = customWhere["date_time"]
     }
 
     const fetchAggregates = [];
@@ -362,8 +365,29 @@ const adminDashboardDetails = async (params: any) => {
         }
       })
     );
+
+    fetchAggregates.push(
+      prisma.merchant.aggregate({
+        _sum: {
+          balanceToDisburse: true
+        }
+      })
+    );
+
+    fetchAggregates.push(
+      prisma.disbursement.aggregate({
+        _sum: {
+          transactionAmount: true,
+        },
+        where: {
+          disbursementDate: disbursement_date,
+          status: "completed",
+        }
+      })
+    );
+
     // Execute all queries in parallel
-    const [totalMerchants, totalIncome, todayIncome, latestTransactions] =
+    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount] =
       await Promise.all(fetchAggregates);
 
     // Build and return the full dashboard summary
@@ -376,6 +400,9 @@ const adminDashboardDetails = async (params: any) => {
         (todayIncome as { _sum: { original_amount: number | null } })._sum
           ?.original_amount || 0,
       latestTransactions: latestTransactions as any,
+      totalBalanceToDisburse: (totalBalanceToDisburse as { _sum: { balanceToDisburse: number | null } })._sum.balanceToDisburse || 0,
+      totalDisbursmentAmount: (totalDisbursmentAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount || 0
+
     };
 
     return dashboardSummary;
