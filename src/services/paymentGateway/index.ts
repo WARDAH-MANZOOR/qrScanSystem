@@ -2519,10 +2519,6 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
 }
 
 async function simpleCheckTransactionStatus(token: string, body: any, merchantId: string) {
-  // const results = [];
-
-  // for (const id of body.transactionIds) {
-  // find disbursement merchant
   const findMerchant = await merchantService.findOne({
     uid: merchantId,
   })
@@ -2540,7 +2536,6 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   const transaction = await prisma.disbursement.findUnique({
     where: {
       merchant_custom_order_id: body.originalReferenceId,
-      merchant_id: findMerchant.merchant_id
     }
   })
 
@@ -2566,7 +2561,7 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
       },
       body: JSON.stringify(requestData)
     });
-    jsonResponse = decryptData((await response.json())?.data, 'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT');
+    jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // results.push({ id, status: jsonResponse });
   } catch (error: any) {
     // Handle error (e.g., network issue) and add to results
