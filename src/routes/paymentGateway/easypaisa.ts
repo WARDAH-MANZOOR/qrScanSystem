@@ -47,6 +47,11 @@ export default function (router: Router) {
   );
 
   router.post(
+    "/sepd-inquiry/:merchantId",
+    easyPaisaController.transactionInquiry
+  );
+
+  router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
     easyPaisaController.initiateEasyPaisaClone
