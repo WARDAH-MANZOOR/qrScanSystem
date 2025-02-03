@@ -3043,6 +3043,8 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
   }
 }
 
+
+
 // const transactionINquiry
 
 export default {

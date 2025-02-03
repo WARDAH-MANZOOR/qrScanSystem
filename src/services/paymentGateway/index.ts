@@ -868,7 +868,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
         if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
           throw new CustomError("Insufficient balance to disburse", 400);
         }
-        const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false); 
+        const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -942,7 +942,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let res = await response.json();
     let data;
     if (!res.data) {
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
           ...data2,
@@ -968,7 +968,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = data.transactionID || db_id;
       // Get the current date
       const date = new Date();
@@ -1028,7 +1028,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     })
     res = await response.json();
     if (!res.data) {
-      easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
+      easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
           ...data2,
@@ -1054,7 +1054,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); 
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || db_id;
       // Get the current date
       const date = new Date();
@@ -2522,15 +2522,35 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   // const results = [];
 
   // for (const id of body.transactionIds) {
+  // find disbursement merchant
+  const findMerchant = await merchantService.findOne({
+    uid: merchantId,
+  })
+
+  if (!findMerchant) {
+    throw new CustomError("Merchant Not Found", 404);
+  }
+  const findDisbureMerch: any = await jazzcashDisburse
+    .getDisburseAccount(findMerchant?.JazzCashDisburseAccountId)
+    .then((res) => res?.data);
+
+  if (!findDisbureMerch) {
+    throw new CustomError("Disbursement account not found", 404);
+  }
   const transaction = await prisma.disbursement.findUnique({
     where: {
       merchant_custom_order_id: body.originalReferenceId,
+      merchant_id: findMerchant.merchant_id
     }
   })
+
+  if (!transaction || !transaction?.transaction_id) {
+    throw new CustomError("Transaction Not Found",404);
+  }
   console.log("Inquiry Payload: ", body)
   const payload = encryptData(
-    {...body, originalReferenceId: transaction?.system_order_id},
-    'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT'
+    { ...body, originalReferenceId: transaction?.system_order_id },
+    findDisbureMerch.key, findDisbureMerch.initialVector
   );
   const requestData = {
     data: payload
