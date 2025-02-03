@@ -2522,9 +2522,14 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   // const results = [];
 
   // for (const id of body.transactionIds) {
+  const transaction = await prisma.disbursement.findUnique({
+    where: {
+      merchant_custom_order_id: body.originalReferenceId,
+    }
+  })
   console.log("Inquiry Payload: ", body)
   const payload = encryptData(
-    body,
+    {...body, originalReferenceId: transaction?.system_order_id},
     'z%C*F-J@NcRfUjXn', '6w9z$C&F)H@McQfT'
   );
   const requestData = {
