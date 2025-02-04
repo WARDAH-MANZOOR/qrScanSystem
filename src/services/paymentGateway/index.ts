@@ -1211,6 +1211,16 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
         if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          await prisma.disbursement.update({
+            where: {
+              merchant_custom_order_id: data2.merchant_custom_order_id
+            },
+            data: {
+              transaction_id: data2.system_order_id,
+              status: "failed",
+              response_message: "Insufficient Balance to disburse"
+            },
+          });
           throw new CustomError("Insufficient balance to disburse", 400);
         }
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
@@ -2308,6 +2318,16 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
         if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          await prisma.disbursement.update({
+            where: {
+              merchant_custom_order_id: data2.merchant_custom_order_id
+            },
+            data: {
+              transaction_id: data2.system_order_id,
+              status: "failed",
+              response_message: "Insufficient Balance to disburse"
+            },
+          });
           throw new CustomError("Insufficient balance to disburse", 400);
         }
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
@@ -2540,7 +2560,7 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   })
 
   if (!transaction || !transaction?.transaction_id) {
-    throw new CustomError("Transaction Not Found",404);
+    throw new CustomError("Transaction Not Found", 404);
   }
   console.log("Inquiry Payload: ", body)
   const payload = encryptData(
