@@ -14,6 +14,9 @@ const fetchPendingRecords = async (size: number) => {
                     status: 'pending', // Filter for pending transactions
                     merchant_id: 5
                 },
+                orderBy: {
+                    disbursementDate: 'asc'
+                },
                 // select: {
                 //     system_order_id: true,
                 //     merchant_id: true,
@@ -47,7 +50,7 @@ const fetchPendingRecords = async (size: number) => {
 };
 
 async function processPendingRecordsCron(req: Request, res: Response) {
-    const batchSize = 10; // Number of records to process per cron job
+    const batchSize = req.body.size; // Number of records to process per cron job
     const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize) as { [key: string]: any[] };
 
     if (!records || Object.keys(records).length === 0) {
