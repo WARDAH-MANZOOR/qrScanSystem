@@ -47,7 +47,7 @@ const fetchPendingRecords = async (size: number) => {
 };
 
 async function processPendingRecordsCron(req: Request, res: Response) {
-    const batchSize = 900; // Number of records to process per cron job
+    const batchSize = 10; // Number of records to process per cron job
     const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize) as { [key: string]: any[] };
 
     if (!records || Object.keys(records).length === 0) {

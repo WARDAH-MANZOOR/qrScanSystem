@@ -2362,7 +2362,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
     if (res.responseCode != "G2P-T-0") {
-      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
+      const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       const date = new Date();
 
