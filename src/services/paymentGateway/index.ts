@@ -1386,6 +1386,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
             merchant_custom_order_id: body.merchant_custom_order_id
           },
           data: {
+            transaction_id: data2.transaction_id,
             status: "completed",
             response_message: "success"
           },
@@ -1434,7 +1435,6 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     throw new CustomError(err?.message, 500);
   }
 }
-
 
 // async function confirmTransaction(token) {
 //   const requestData = {
