@@ -12,7 +12,7 @@ const fetchPendingRecords = async (size: number) => {
             const transactions = await tx.disbursement.findMany({
                 where: {
                     status: 'pending', // Filter for pending transactions
-                    merchant_id: 5
+                    merchant_id: 15,
                 },
                 orderBy: {
                     disbursementDate: 'asc'
@@ -78,7 +78,6 @@ async function processPendingRecordsCron(req: Request, res: Response) {
           for (const txn of txns) {
             try {
               console.log(`Processing transaction: ${txn.system_order_id}`);
-      
               if (txn.provider?.toUpperCase() === "EASYPAISA") {
                 if (txn.to_provider?.toUpperCase() === "EASYPAISA") {
                   console.log(`${txn.provider} -> ${txn.to_provider}`);
@@ -104,7 +103,6 @@ async function processPendingRecordsCron(req: Request, res: Response) {
                   await updateTransaction(token?.access_token, txn, merchant?.uid as string);
                 }
               }
-      
               console.log(`Transaction ${txn.system_order_id} processed successfully`);
               doneTransactions.push(txn.system_order_id);
             } catch (error: any) {
