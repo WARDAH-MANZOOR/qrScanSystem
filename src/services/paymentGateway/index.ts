@@ -1219,7 +1219,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
               transaction_id: data2.system_order_id,
               status: "failed",
               response_message: "Insufficient Balance to disburse",
-              to_provider: PROVIDERS.BANK
+              provider: PROVIDERS.BANK
             },
           });
           throw new CustomError("Insufficient balance to disburse", 400);
@@ -1304,7 +1304,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
           transaction_id: data2.transaction_id,
           status: "failed",
           response_message: data.responseDescription,
-          to_provider: PROVIDERS.BANK
+          provider: PROVIDERS.BANK
         },
       });
       throw new CustomError(data.responseDescription, 500)
@@ -1364,7 +1364,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
           transaction_id: data2.transaction_id,
           status: "failed",
           response_message: res.responseDescription,
-          to_provider: PROVIDERS.BANK
+          provider: PROVIDERS.BANK
         },
       });
       throw new CustomError(res.responseDescription, 500)
@@ -1392,7 +1392,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
             transaction_id: data2.transaction_id,
             status: "completed",
             response_message: "success",
-            to_provider: PROVIDERS.BANK
+            provider: PROVIDERS.BANK
           },
         });
         let webhook_url: string;
@@ -2329,7 +2329,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
             data: {
               transaction_id: data2.system_order_id,
               status: "failed",
-              response_message: "Insufficient Balance to disburse"
+              response_message: "Insufficient Balance to disburse",
             },
           });
           throw new CustomError("Insufficient balance to disburse", 400);
