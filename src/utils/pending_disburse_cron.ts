@@ -4,7 +4,7 @@ import prisma from "prisma/client.js";
 import { easyPaisaService, jazzCashService } from "services/index.js";
 import { getToken, updateMwTransaction, updateTransaction } from "services/paymentGateway/index.js";
 
-const fetchPendingRecords = async (size: number) => {
+const fetchPendingRecords = async (size: number, merchant_id: number, to_provider: string) => {
     console.log("Disbursement Cron running");
 
     try {
@@ -12,7 +12,8 @@ const fetchPendingRecords = async (size: number) => {
             const transactions = await tx.disbursement.findMany({
                 where: {
                     status: 'pending', // Filter for pending transactions
-                    merchant_id: 15,
+                    merchant_id: merchant_id,
+                    to_provider: to_provider
                 },
                 orderBy: {
                     disbursementDate: 'asc'
@@ -51,7 +52,7 @@ const fetchPendingRecords = async (size: number) => {
 
 async function processPendingRecordsCron(req: Request, res: Response) {
     const batchSize = req.body.size; // Number of records to process per cron job
-    const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize) as { [key: string]: any[] };
+    const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize, req.body.merchant_id, req.body.to_provider) as { [key: string]: any[] };
 
     if (!records || Object.keys(records).length === 0) {
         console.log("No pending records found.");

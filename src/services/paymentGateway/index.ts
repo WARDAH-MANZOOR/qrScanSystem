@@ -1201,7 +1201,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
       }
     }
     let amountDecimal: Decimal = new Decimal(0);
-    let merchantAmount: Decimal = new Decimal(body.merchantAmount + body.commission + body.gst + body.withholdingTax);
+    let merchantAmount: Decimal = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
     totalDisbursed = new Decimal(0);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     data2["merchant_custom_order_id"] = body.merchant_custom_order_id;
@@ -1209,7 +1209,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     await prisma.$transaction(async (tx) => {
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
-
+        console.log(`Merchant Amount: ${body.merchantAmount} + ${body.commission} + ${body.gst} + ${body.withholdingTax} = ${merchantAmount}`)
         if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
           await prisma.disbursement.update({
             where: {
@@ -2306,9 +2306,9 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         throw new CustomError("Order ID already exists", 400);
       }
     }
-    let merchantAmount = new Decimal(body.merchantAmount);
+    let merchantAmount = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
     let amountDecimal = new Decimal(0);
-    let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount + body.commission + body.gst + body.withholdingTax);
+    let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     data2["merchant_custom_order_id"] = body.merchant_custom_order_id;
     data2["system_order_id"] = body.system_order_id;
