@@ -100,6 +100,7 @@ model Merchant {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
   balanceToDisburse  Decimal?              @default(0.00) @db.Decimal(10, 2)
+  disburseBalancePercent Decimal @default(0.00)
 
   // Relations
   disbursementRequests DisbursementRequest[]
