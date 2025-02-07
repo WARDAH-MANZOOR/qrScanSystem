@@ -292,7 +292,7 @@ const setDisbursePercent = async (merchant_id: number, percent: number) => {
         merchant_id,
       },
       data: {
-        disburseBalancePercent: +percent
+        disburseBalancePercent: (+percent) / 100
       }
     })
 

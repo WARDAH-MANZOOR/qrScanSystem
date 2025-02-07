@@ -25,7 +25,7 @@ import { easyPaisaDisburse } from "../../services/index.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parse, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { format, toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
 import path, { dirname } from "path";
 import { createObjectCsvWriter } from "csv-writer";
@@ -1929,22 +1929,28 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       'withholding_tax',
       'merchant_amount',
       'status',
-      'provider'
+      'provider',
+      'callback_sent'
     ];
 
+    const timeZone = 'Asia/Karachi'
     const data = disbursements.map(transaction => ({
       merchant: transaction.merchant.full_name,
       account: transaction.account,
       transaction_id: transaction.transaction_id,
       merchant_order_id: transaction.merchant_custom_order_id,
-      disbursement_date: transaction.disbursementDate,
+      disbursement_date: format(
+        toZonedTime(transaction.disbursementDate, timeZone),
+        'yyyy-MM-dd HH:mm:ss', { timeZone }
+      ),
       transaction_amount: transaction.transactionAmount,
       commission: transaction.commission,
       gst: transaction.gst,
       withholding_tax: transaction.withholdingTax,
       merchant_amount: transaction.merchantAmount,
       status: transaction.status,
-      provider: transaction.provider
+      provider: transaction.provider,
+      callback_sent: transaction.callback_sent
     }));
 
     const json2csvParser = new Parser({ fields });

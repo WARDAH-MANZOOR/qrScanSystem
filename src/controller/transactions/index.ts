@@ -15,6 +15,7 @@ import { parse } from "date-fns";
 import analytics from "./analytics.js";
 import { Parser } from "json2csv";
 import { JsonObject } from "@prisma/client/runtime/library";
+import { format, toZonedTime } from "date-fns-tz";
 
 const createTransaction = async (
   req: Request,
@@ -244,21 +245,26 @@ const exportTransactions = async (req: Request, res: Response) => {
       'response_message',
       'status',
       'type',
-      'provider'
+      'provider',
+      'callback_sent'
     ];
-
+    const timeZone = "Asia/Karachi"
     const data = transactions.map(transaction => ({
       transaction_id: transaction.transaction_id,
       account: (transaction.providerDetails as JsonObject)?.msisdn,
       merchant_transaction_id: transaction.merchant_transaction_id,
-      date_time: transaction.date_time,
+      date_time: format(
+        toZonedTime(transaction.date_time, timeZone),
+        'yyyy-MM-dd HH:mm:ss', { timeZone }
+      ),
       original_amount: transaction.original_amount,
       commission: Number(transaction.original_amount) - Number(transaction.settled_amount),
       settled_amount: transaction.settled_amount,
       response_message: transaction.response_message,
       status: transaction.status,
       type: transaction.type,
-      provider: (transaction.providerDetails as JsonObject)?.name
+      provider: (transaction.providerDetails as JsonObject)?.name,
+      callback_sent: transaction.callback_sent
     }));
 
     const json2csvParser = new Parser({ fields });
