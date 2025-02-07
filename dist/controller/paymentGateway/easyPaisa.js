@@ -1,6 +1,7 @@
 import { validationResult } from "express-validator";
 import { easyPaisaService, swichService, transactionService } from "../../services/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 const initiateEasyPaisa = async (req, res, next) => {
     try {
         let merchantId = req.params?.merchantId;
@@ -65,6 +66,89 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
         }
         else {
             result = await swichService.initiateSwichAsync({
+                channel: 1749,
+                amount: req.body.amount,
+                phone: transactionService.convertPhoneNumber(req.body.phone),
+                email: req.body.email,
+                order_id: req.body.order_id,
+                type: req.body.type
+            }, merchantId);
+            if (result.statusCode != "pending") {
+                res.status(result.statusCode).send(ApiResponse.error(result));
+                return;
+            }
+        }
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+const initiateEasyPaisaClone = async (req, res, next) => {
+    try {
+        let merchantId = req.params?.merchantId;
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return;
+        }
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(errors.array()[0]));
+            return;
+        }
+        const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+        let result;
+        if (channel == "DIRECT") {
+            result = await easyPaisaService.initiateEasyPaisaClone(merchantId, req.body);
+            if (result.statusCode != "0000") {
+                res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
+                return;
+            }
+        }
+        else {
+            result = await swichService.initiateSwichClone({
+                channel: 1749,
+                amount: req.body.amount,
+                phone: transactionService.convertPhoneNumber(req.body.phone),
+                email: req.body.email,
+                order_id: req.body.order_id,
+                type: req.body.type
+            }, merchantId);
+            console.log("result: ", result);
+            if (!result?.statusCode && result?.statusCode != "0000") {
+                res.status(result?.statusCode != 500 ? result?.statusCode : 201).send(ApiResponse.error(result, result?.statusCode != 500 ? result?.statusCode : 201));
+                return;
+            }
+        }
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+const initiateEasyPaisaAsyncClone = async (req, res, next) => {
+    try {
+        let merchantId = req.params?.merchantId;
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return;
+        }
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(errors.array()[0]));
+            return;
+        }
+        const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+        let result;
+        if (channel == "DIRECT") {
+            result = await easyPaisaService.initiateEasyPaisaAsyncClone(merchantId, req.body);
+            if (result.statusCode != "pending") {
+                res.status(result.statusCode).send(ApiResponse.error(result));
+                return;
+            }
+        }
+        else {
+            result = await swichService.initiateSwichAsyncClone({
                 channel: 1749,
                 amount: req.body.amount,
                 phone: transactionService.convertPhoneNumber(req.body.phone),
@@ -194,6 +278,20 @@ const createDisbursement = async (req, res, next) => {
         next(err);
     }
 };
+const createDisbursementClone = async (req, res, next) => {
+    try {
+        const merchantId = req.params?.merchantId;
+        const payload = req.body;
+        if (payload.amount <= 1) {
+            throw new CustomError("Amount should be greater than 0", 400);
+        }
+        const result = await easyPaisaService.createDisbursementClone(payload, merchantId);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        next(err);
+    }
+};
 const getDisbursement = async (req, res, next) => {
     try {
         const { query } = req;
@@ -223,6 +321,20 @@ const disburseThroughBank = async (req, res, next) => {
         const merchantId = req.params?.merchantId;
         const payload = req.body;
         const result = await easyPaisaService.disburseThroughBank(payload, merchantId);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const disburseThroughBankClone = async (req, res, next) => {
+    try {
+        const merchantId = req.params?.merchantId;
+        const payload = req.body;
+        if (payload.amount <= 1) {
+            throw new CustomError("Amount should be greater than 0", 400);
+        }
+        const result = await easyPaisaService.disburseThroughBankClone(payload, merchantId);
         res.status(200).json(ApiResponse.success(result));
     }
     catch (err) {
@@ -263,5 +375,9 @@ export default {
     initiateEasyPaisaAsync,
     accountBalance,
     transactionInquiry,
-    exportDisbursement
+    exportDisbursement,
+    createDisbursementClone,
+    disburseThroughBankClone,
+    initiateEasyPaisaClone,
+    initiateEasyPaisaAsyncClone
 };

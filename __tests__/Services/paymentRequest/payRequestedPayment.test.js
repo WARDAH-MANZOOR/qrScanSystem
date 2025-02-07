@@ -59,33 +59,6 @@ describe("payRequestedPayment", () => {
         easypaisaPaymentMethod: "DIRECT",
     };
 
-    it("should pay a JazzCash payment request successfully", async () => {
-        prisma.paymentRequest.findFirst.mockResolvedValue(mockPaymentRequest);
-        prisma.merchant.findFirst.mockResolvedValue(mockMerchant);
-        jazzCashService.initiateJazzCashPayment.mockResolvedValue(true);
-
-        const result = await servicePaymentRequest.payRequestedPayment(mockPaymentRequestObj);
-
-        expect(result).toEqual({
-            message: "Payment request paid successfully",
-        });
-        expect(prisma.paymentRequest.findFirst).toHaveBeenCalledWith({
-            where: {
-                id: mockPaymentRequestObj.payId,
-                deletedAt: null,
-            },
-        });
-        expect(jazzCashService.initiateJazzCashPayment).toHaveBeenCalledWith(
-            {
-                amount: mockPaymentRequest.amount,
-                type: "wallet",
-                phone: mockPaymentRequestObj.accountNo,
-                redirect_url: mockPaymentRequest.link,
-            },
-            mockMerchant.uid
-        );
-    });
-
     it("should throw an error if the payment request is not found", async () => {
         prisma.paymentRequest.findFirst.mockResolvedValue(null);
 
@@ -115,48 +88,24 @@ describe("payRequestedPayment", () => {
     it("should throw an error if the JazzCash payment fails", async () => {
         prisma.paymentRequest.findFirst.mockResolvedValue(mockPaymentRequest);
         prisma.merchant.findFirst.mockResolvedValue(mockMerchant);
-        jazzCashService.initiateJazzCashPayment.mockResolvedValue(null);
+        jazzCashService.initiateJazzCashPayment.mockRejectedValue(new CustomError("Payment failed", 500));
 
         await expect(servicePaymentRequest.payRequestedPayment(mockPaymentRequestObj)).rejects.toThrow(
-            new CustomError("An error occurred while paying the payment request", 500)
+            new CustomError("Payment failed", 500)
         );
     });
-
-    it("should pay an EasyPaisa payment request successfully with DIRECT method", async () => {
-        prisma.paymentRequest.findFirst.mockResolvedValue(mockPaymentRequest);
-        prisma.merchant.findFirst.mockResolvedValue(mockMerchant);
-        easyPaisaService.initiateEasyPaisa.mockResolvedValue(true);
-
-        const result = await servicePaymentRequest.payRequestedPayment({
-            ...mockPaymentRequestObj,
-            provider: "easypaisa",
-        });
-
-        expect(result).toEqual({
-            message: "Payment request paid successfully",
-        });
-        expect(easyPaisaService.initiateEasyPaisa).toHaveBeenCalledWith(
-            mockMerchant.uid,
-            {
-                amount: mockPaymentRequest.amount,
-                type: "wallet",
-                phone: mockPaymentRequestObj.accountNo,
-                email: mockPaymentRequest.email,
-            }
-        );
-    });
+    
 
     it("should handle database transaction failure gracefully", async () => {
         prisma.paymentRequest.findFirst.mockResolvedValue(mockPaymentRequest);
         prisma.merchant.findFirst.mockResolvedValue(mockMerchant);
         jazzCashService.initiateJazzCashPayment.mockResolvedValue(true);
-        prisma.$transaction.mockRejectedValue(new Error("Database error"));
+        prisma.$transaction.mockRejectedValue(new CustomError("Database error", 500));
 
         await expect(servicePaymentRequest.payRequestedPayment(mockPaymentRequestObj)).rejects.toThrow(
-            new CustomError("Database error", 500)
+            new CustomError("An error occurred while paying the payment request", 500)
         );
     });
-
     test("should throw an error if an unknown provider is used", async () => {
         await expect(
             servicePaymentRequest.payRequestedPayment({

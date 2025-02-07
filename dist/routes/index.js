@@ -8,6 +8,9 @@ import settlement from "./settlement/index.js";
 import paymentRequest from "./paymentRequest/index.js";
 import backoffice from "./backoffice/backoffice.js";
 import user from "./user/crud.js";
+import disbursementRequest from "./disbursementRequest/index.js";
+import report from "./reports/excel.js";
+import ipn from "./ipn/index.js";
 export default function (app) {
     app.use("/payment", payment);
     app.use("/merchant", merchant);
@@ -19,4 +22,7 @@ export default function (app) {
     app.use("/payment-request", paymentRequest);
     app.use("/backoffice", backoffice);
     app.use('/users', user);
+    app.use('/disbursement-request', disbursementRequest);
+    app.use('/report', report);
+    app.use("/ipn", ipn);
 }

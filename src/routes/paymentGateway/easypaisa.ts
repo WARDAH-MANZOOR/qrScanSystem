@@ -13,13 +13,25 @@ export default function (router: Router) {
   router.post(
     "/ep-disburse/:merchantId",
     [apiKeyAuth],
-    easyPaisaController.createDisbursement
+    easyPaisaController.createDisbursementClone
+  );
+
+  router.post(
+    "/epc-disburse/:merchantId",
+    [apiKeyAuth],
+    easyPaisaController.createDisbursementClone
   );
 
   router.post(
     "/epb-disburse/:merchantId",
     [apiKeyAuth],
-    easyPaisaController.disburseThroughBank
+    easyPaisaController.disburseThroughBankClone
+  );
+
+  router.post(
+    "/epbc-disburse/:merchantId",
+    [apiKeyAuth],
+    easyPaisaController.disburseThroughBankClone
   );
 
   router.get(
@@ -35,15 +47,32 @@ export default function (router: Router) {
   );
 
   router.post(
+    "/sepd-inquiry/:merchantId",
+    easyPaisaController.transactionInquiry
+  );
+
+  router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
-    easyPaisaController.initiateEasyPaisa
+    easyPaisaController.initiateEasyPaisaClone
   );
 
   router.post(
     "/initiate-epa/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn],
-    easyPaisaController.initiateEasyPaisaAsync
+    easyPaisaController.initiateEasyPaisaAsyncClone
+  );
+
+  router.post(
+    "/initiate-epc/:merchantId",
+    validateEasypaisaTxn,
+    easyPaisaController.initiateEasyPaisaClone
+  );
+
+  router.post(
+    "/initiate-epac/:merchantId",
+    [apiKeyAuth, ...validateEasypaisaTxn],
+    easyPaisaController.initiateEasyPaisaAsyncClone
   );
 
   router.post(

@@ -1173,9 +1173,10 @@ const initiateJazzCashCnicPayment = async (
       data2['merchant_transaction_id'] = txnRefNo;
     }
     data2['transaction_id'] = txnRefNo;
+    let merchant: any;
     // Start Prisma Transaction
     const result = await prisma.$transaction(async (tx) => {
-      const merchant = await tx.merchant.findFirst({
+      merchant = await tx.merchant.findFirst({
         where: { uid: merchant_uid },
         include: { commissions: true },
       });
@@ -1264,13 +1265,35 @@ const initiateJazzCashCnicPayment = async (
 
     // Handle Response and Update Transaction
     const status = data.pp_ResponseCode === "000" ? "completed" : "failed";
-    await prisma.transaction.update({
+    const transaction = await prisma.transaction.update({
       where: { transaction_id: txnRefNo },
       data: {
         status,
         response_message: data.pp_ResponseMessage,
       },
     });
+    if (status == "completed") {
+      const scheduledAt = addWeekdays(
+        new Date(),
+        merchant.commissions[0].settlementDuration as number
+      ); // Call the function to get the next 2 weekdays
+      let scheduledTask = await prisma.scheduledTask.create({
+        data: {
+          transactionId: txnRefNo,
+          status: "pending",
+          scheduledAt: scheduledAt, // Assign the calculated weekday date
+          executedAt: null, // Assume executedAt is null when scheduling
+        },
+      });
+      transactionService.sendCallback(
+        merchant?.webhook_url as string,
+        transaction,
+        paymentData.phone,
+        "payin",
+        merchant.encrypted == "True" ? true : false,
+        false
+      );
+    }
     console.log(data);
     return {
       message: data.pp_ResponseMessage,

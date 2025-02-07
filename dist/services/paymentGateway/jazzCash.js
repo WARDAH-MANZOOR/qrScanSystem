@@ -699,7 +699,10 @@ const jazzCashCardPayment = async (obj) => {
         pp_Description: "Description of transaction",
         pp_CustomerCardNumber: "5160670239008941",
         pp_UsageMode: "API",
-  
+        // pp_IsRegisteredCustomer: "Yes",
+        // pp_ShouldTokenizeCardNumber: "Yes",
+        // pp_CustomerCardExpiry: "0139",
+        // pp_CustomerCardNumberCvv: "100",
     };
     payload.pp_SecureHash = getSecureHash(payload, obj.jazzCashMerchantIntegritySalt);
     const paymentUrl = "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/Purchase/InitiateAuthentication";
@@ -948,9 +951,10 @@ const initiateJazzCashCnicPayment = async (paymentData, merchant_uid) => {
             data2['merchant_transaction_id'] = txnRefNo;
         }
         data2['transaction_id'] = txnRefNo;
+        let merchant;
         // Start Prisma Transaction
         const result = await prisma.$transaction(async (tx) => {
-            const merchant = await tx.merchant.findFirst({
+            merchant = await tx.merchant.findFirst({
                 where: { uid: merchant_uid },
                 include: { commissions: true },
             });
@@ -1032,13 +1036,25 @@ const initiateJazzCashCnicPayment = async (paymentData, merchant_uid) => {
         const data = response.data;
         // Handle Response and Update Transaction
         const status = data.pp_ResponseCode === "000" ? "completed" : "failed";
-        await prisma.transaction.update({
+        const transaction = await prisma.transaction.update({
             where: { transaction_id: txnRefNo },
             data: {
                 status,
                 response_message: data.pp_ResponseMessage,
             },
         });
+        if (status == "completed") {
+            const scheduledAt = addWeekdays(new Date(), merchant.commissions[0].settlementDuration); // Call the function to get the next 2 weekdays
+            let scheduledTask = await prisma.scheduledTask.create({
+                data: {
+                    transactionId: txnRefNo,
+                    status: "pending",
+                    scheduledAt: scheduledAt, // Assign the calculated weekday date
+                    executedAt: null, // Assume executedAt is null when scheduling
+                },
+            });
+            transactionService.sendCallback(merchant?.webhook_url, transaction, paymentData.phone, "payin", merchant.encrypted == "True" ? true : false, false);
+        }
         console.log(data);
         return {
             message: data.pp_ResponseMessage,
@@ -1168,4 +1184,4 @@ export default {
     getSecureHash,
     initiateJazzCashCnicPayment
 };
-export { jazzCashCardPayment,prepareJazzCashPayload,calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber,fetchMerchantAndJazzCash,findTransaction, processCardPayment, processWalletPayment, validatePaymentData}
+export { jazzCashCardPayment, prepareJazzCashPayload, calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber, fetchMerchantAndJazzCash, findTransaction, processCardPayment, processWalletPayment, validatePaymentData };

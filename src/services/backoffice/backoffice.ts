@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
-import CustomError from 'utils/custom_error.js';
-import { addWeekdays } from 'utils/date_method.js';
+import { jazzCashService, transactionService } from '../../services/index.js';
+import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
+import CustomError from '../../utils/custom_error.js';
+import { addWeekdays } from '../../utils/date_method.js';
 const prisma = new PrismaClient();
 
 // Delete all finance data for a merchant
@@ -55,13 +56,25 @@ async function zeroMerchantWalletBalance(merchantId: number) {
     }
 }
 
-async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number) {
+async function adjustMerchantWalletBalance(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
     try {
         // Get current balance
-        const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
         if (walletBalance === 0) {
             throw new CustomError("Current balance is 0", 400);
         }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
 
         const balanceDifference = targetBalance - walletBalance;
         const isSettlement = balanceDifference > 0;
@@ -84,40 +97,188 @@ async function adjustMerchantWalletBalance(merchantId: number, targetBalance: nu
             const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
             const fractionalMilliseconds = Math.floor(
                 (currentTime - Math.floor(currentTime)) * 1000
-              );
+            );
             const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
             // Create appropriate record
-            if (isSettlement) {
-                await tx.settlementReport.create({
-                    data: {
-                        merchant_id: merchantId,
-                        settlementDate: new Date(),
-                        transactionAmount: Math.abs(balanceDifference),
-                        merchantAmount: Math.abs(balanceDifference),
-                        commission: 0,
-                        gst: 0,
-                        withholdingTax: 0,
-                        transactionCount: 1
-                    }
-                });
-            } else {
-                await tx.disbursement.create({
-                    data: {
-                        merchant_id: merchantId,
-                        disbursementDate: new Date(),
-                        transactionAmount: Math.abs(balanceDifference),
-                        merchantAmount: Math.abs(balanceDifference),
-                        commission: 0,
-                        gst: 0,
-                        withholdingTax: 0,
-                        status: 'completed',
-                        response_message: 'Wallet adjustment',
-                        merchant_custom_order_id: txnId,
-                        system_order_id: txnId
-                    }
-                });
+            if (record) {
+                if (isSettlement) {
+                    await tx.settlementReport.create({
+                        data: {
+                            merchant_id: merchantId,
+                            settlementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            transactionCount: 1
+                        }
+                    });
+                } else {
+                    await tx.disbursement.create({
+                        data: {
+                            merchant_id: merchantId,
+                            disbursementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            status: 'completed',
+                            response_message: 'Wallet adjustment',
+                            merchant_custom_order_id: txnId,
+                            system_order_id: txnId
+                        }
+                    });
+                }
             }
+            return {
+                success: true,
+                type: isSettlement ? 'settlement' : 'disbursement',
+                previousBalance: walletBalance,
+                newBalance: targetBalance,
+                difference: Math.abs(balanceDifference)
+            };
+        });
 
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
+    }
+}
+
+async function adjustMerchantWalletBalanceWithoutSettlement(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
+        }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
+
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+
+        // Execute in transaction
+        return await prisma.$transaction(async (tx) => {
+            // Update transaction balances
+            await tx.transaction.updateMany({
+                where: {
+                    merchant_id: merchantId,
+                    status: 'completed',
+                    settlement: true,
+                    balance: { gt: 0 },
+                },
+                data: {
+                    balance: { multiply: targetBalance / walletBalance }
+                }
+            });
+            return {
+                success: true,
+                type: isSettlement ? 'settlement' : 'disbursement',
+                previousBalance: walletBalance,
+                newBalance: targetBalance,
+                difference: Math.abs(balanceDifference)
+            };
+        });
+
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
+    }
+}
+
+async function adjustMerchantDisbursementWalletBalance(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
+        }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
+
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+
+        // Execute in transaction
+        return await prisma.$transaction(async (tx) => {
+            // Update transaction balances
+            await tx.transaction.updateMany({
+                where: {
+                    merchant_id: merchantId,
+                    status: 'completed',
+                    settlement: true,
+                    balance: { gt: 0 },
+                },
+                data: {
+                    balance: { multiply: targetBalance / walletBalance }
+                }
+            });
+            const currentTime = Date.now();
+            const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
+            const fractionalMilliseconds = Math.floor(
+                (currentTime - Math.floor(currentTime)) * 1000
+            );
+            const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
+            // Create appropriate record
+            if (record) {
+                if (isSettlement) {
+                    await tx.settlementReport.create({
+                        data: {
+                            merchant_id: merchantId,
+                            settlementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            transactionCount: 1
+                        }
+                    });
+                } else {
+                    await tx.disbursement.create({
+                        data: {
+                            merchant_id: merchantId,
+                            disbursementDate: new Date(),
+                            transactionAmount: Math.abs(balanceDifference),
+                            merchantAmount: Math.abs(balanceDifference),
+                            commission: 0,
+                            gst: 0,
+                            withholdingTax: 0,
+                            status: 'completed',
+                            response_message: 'Wallet adjustment',
+                            merchant_custom_order_id: txnId,
+                            system_order_id: txnId
+                        }
+                    });
+                }
+            }
             return {
                 success: true,
                 type: isSettlement ? 'settlement' : 'disbursement',
@@ -155,11 +316,12 @@ async function checkMerchantTransactionStats(merchantId: number) {
     }
 }
 
-async function settleTransactions(transactionIds: string[]) {
+async function settleTransactions(transactionIds: string[], settlement: boolean = true) {
     try {
         const txns = await prisma.transaction.findMany({
             where: {
-                transaction_id: { in: transactionIds }
+                merchant_transaction_id: { in: transactionIds },
+                settlement: false
             }
         });
         if (txns.length <= 0) {
@@ -178,7 +340,12 @@ async function settleTransactions(transactionIds: string[]) {
         // Process each merchant's transactions
         for (const merchantId in transactionsByMerchant) {
             const merchantTxns = transactionsByMerchant[merchantId];
-
+            const findMerchant = await prisma.merchant.findFirst({
+                where: {
+                    merchant_id: parseInt(merchantId)
+                },
+                include: { commissions: true }
+            })
             const merchant = await prisma.merchantFinancialTerms.findUnique({
                 where: { merchant_id: parseInt(merchantId) },
             });
@@ -192,50 +359,77 @@ async function settleTransactions(transactionIds: string[]) {
                     transaction_id: { in: merchantTxns.map(txn => txn.transaction_id) },
                 },
                 data: {
-                    settlement: true,
+                    settlement,
                     status: "completed",
                     response_message: "success"
                 },
             });
 
-            // Aggregate data for the settlement report
-            const transactionCount = merchantTxns.length;
-            const transactionAmount = merchantTxns.reduce((sum, txn) => sum.plus(txn?.original_amount ?? 0), new Decimal(0));
-            const totalCommission = transactionAmount.times(merchant.commissionRate ?? 0);
-            const totalGST = totalCommission.times(merchant.commissionGST ?? 0);
-            const totalWithholdingTax = transactionAmount.times(merchant.commissionWithHoldingTax ?? 0);
-            const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
+            if (settlement) {
+                // Aggregate data for the settlement report
+                const transactionCount = merchantTxns.length;
+                const transactionAmount = merchantTxns.reduce((sum, txn) => sum.plus(txn?.original_amount ?? 0), new Decimal(0));
+                const totalCommission = transactionAmount.times(merchant.commissionRate ?? 0);
+                const totalGST = totalCommission.times(merchant.commissionGST ?? 0);
+                const totalWithholdingTax = transactionAmount.times(merchant.commissionWithHoldingTax ?? 0);
+                const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
 
-            const today = new Date();
-            const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const today = new Date();
+                const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-            // Upsert the settlement report
-            await prisma.settlementReport.upsert({
-                where: {
-                    merchant_id_settlementDate: {
+                // Upsert the settlement report
+                await prisma.settlementReport.upsert({
+                    where: {
+                        merchant_id_settlementDate: {
+                            merchant_id: parseInt(merchantId),
+                            settlementDate,
+                        },
+                    },
+                    create: {
                         merchant_id: parseInt(merchantId),
                         settlementDate,
+                        transactionCount,
+                        transactionAmount,
+                        commission: totalCommission,
+                        gst: totalGST,
+                        withholdingTax: totalWithholdingTax,
+                        merchantAmount,
                     },
-                },
-                create: {
-                    merchant_id: parseInt(merchantId),
-                    settlementDate,
-                    transactionCount,
-                    transactionAmount,
-                    commission: totalCommission,
-                    gst: totalGST,
-                    withholdingTax: totalWithholdingTax,
-                    merchantAmount,
-                },
-                update: {
-                    transactionCount: { increment: transactionCount },
-                    transactionAmount: { increment: transactionAmount },
-                    commission: { increment: totalCommission },
-                    gst: { increment: totalGST },
-                    withholdingTax: { increment: totalWithholdingTax },
-                    merchantAmount: { increment: merchantAmount },
-                },
-            });
+                    update: {
+                        transactionCount: { increment: transactionCount },
+                        transactionAmount: { increment: transactionAmount },
+                        commission: { increment: totalCommission },
+                        gst: { increment: totalGST },
+                        withholdingTax: { increment: totalWithholdingTax },
+                        merchantAmount: { increment: merchantAmount },
+                    },
+                });
+            }
+            for (const txn of merchantTxns) {
+                console.log(txn?.transaction_id)
+                if (!settlement) {
+                    const scheduledAt = addWeekdays(
+                        new Date(),
+                        findMerchant?.commissions[0].settlementDuration as number
+                    ); // Call the function to get the next 2 weekdays
+                    let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                            transactionId: txn.transaction_id,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
+                await transactionService.sendCallback(
+                    findMerchant?.webhook_url as string,
+                    txn,
+                    (txn.providerDetails as JsonObject)?.account as string,
+                    "payin",
+                    findMerchant?.encrypted == "True" ? true : false,
+                    false
+                )
+            }
         }
 
         return 'Transactions settled successfully.';
@@ -244,9 +438,91 @@ async function settleTransactions(transactionIds: string[]) {
     }
 }
 
+async function failTransactions(transactionIds: string[]) {
+    try {
+        const txns = await prisma.transaction.findMany({
+            where: {
+                merchant_transaction_id: { in: transactionIds },
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+        await prisma.transaction.updateMany({
+            where: {
+                merchant_transaction_id: { in: transactionIds },
+            },
+            data: {
+                status: "failed",
+                response_message: "User did not respond"
+            }
+        })
+
+        return 'Transactions failed successfully.';
+    } catch (error: any) {
+        throw new CustomError(error.message || 'Error settling transactions', error.statusCode || 500);
+    }
+}
+
+async function failDisbursements(transactionIds: string[]) {
+    try {
+        const txns = await prisma.disbursement.findMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+        await prisma.disbursement.updateMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            },
+            data: {
+                status: "failed",
+                response_message: "failed"
+            }
+        })
+
+        return 'Disbursements failed successfully.';
+    } catch (error: any) {
+        throw new CustomError(error.message || 'Error settling transactions', error.statusCode || 500);
+    }
+}
+
 async function settleAllMerchantTransactions(merchantId: number) {
     try {
-        await prisma.transaction.updateMany({
+        const merchant = await prisma.merchantFinancialTerms.findFirst({
+            where: {
+                merchant_id: Number(merchantId)
+            }
+        })
+        // Step 1: Fetch transactions to be settled
+        const merchantTxns = await prisma.transaction.findMany({
+            where: {
+                merchant_id: merchantId,
+                settlement: false,
+                balance: { gt: 0 },
+                status: 'completed',
+            },
+        });
+
+        // Step 2: Perform calculations
+        const transactionCount = merchantTxns.length;
+        const transactionAmount = merchantTxns.reduce(
+            (sum, txn) => sum.plus(txn?.original_amount ?? new Decimal(0)),
+            new Decimal(0)
+        );
+        const totalCommission = transactionAmount.times(merchant?.commissionRate ?? 0);
+        const totalGST = totalCommission.times(merchant?.commissionGST ?? 0);
+        const totalWithholdingTax = transactionAmount.times(merchant?.commissionWithHoldingTax ?? 0);
+        const merchantAmount = transactionAmount
+            .minus(totalCommission)
+            .minus(totalGST)
+            .minus(totalWithholdingTax);
+
+        // Step 3: Update transactions to mark them as settled
+        const updateResult = await prisma.transaction.updateMany({
             where: {
                 merchant_id: merchantId,
                 settlement: false,
@@ -258,8 +534,24 @@ async function settleAllMerchantTransactions(merchantId: number) {
             },
         });
 
+        const today = new Date();
+
+        // Upsert the settlement report
+        await prisma.settlementReport.create({
+            data: {
+                merchant_id: merchantId,
+                settlementDate: today,
+                transactionCount,
+                transactionAmount,
+                commission: totalCommission,
+                gst: totalGST,
+                withholdingTax: totalWithholdingTax,
+                merchantAmount,
+            }
+        });
         return 'All merchant transactions settled successfully.';
     } catch (error) {
+        console.log(error)
         throw new CustomError('Error settling all transactions', 500);
     }
 }
@@ -401,6 +693,122 @@ async function deleteMerchantData(merchantId: number) {
     }
 }
 
+async function payinCallback(orderIds: string[]) {
+    try {
+        const txns = await prisma.transaction.findMany({
+            where: {
+                merchant_transaction_id: { in: orderIds }
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+
+        // Group transactions by merchant
+        const transactionsByMerchant = txns.reduce((acc, txn) => {
+            if (!acc[txn.merchant_id]) {
+                acc[txn.merchant_id] = [];
+            }
+            acc[txn.merchant_id].push(txn);
+            return acc;
+        }, {} as Record<number, typeof txns>);
+        console.log(transactionsByMerchant)
+        for (const merchantId in transactionsByMerchant) {
+            const merchant = await prisma.merchant.findFirst({
+                where: {
+                    merchant_id: Number(merchantId)
+                }
+            })
+            const merchantTxns = transactionsByMerchant[merchantId];
+            for (const txn of merchantTxns) {
+                console.log(merchant?.webhook_url)
+                await transactionService.sendCallback(
+                    merchant?.webhook_url as string,
+                    txn,
+                    (txn.providerDetails as JsonObject)?.account as string,
+                    "payin",
+                    merchant?.encrypted == "True" ? true : false,
+                    false
+                )
+            }
+        }
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+async function payoutCallback(orderIds: string[]) {
+    const txns = await prisma.disbursement.findMany({
+        where: {
+            merchant_custom_order_id: { in: orderIds }
+        }
+    });
+    if (txns.length <= 0) {
+        throw new CustomError("Transactions not found", 404);
+    }
+
+    // Group transactions by merchant
+    const transactionsByMerchant = txns.reduce((acc, txn) => {
+        if (!acc[txn.merchant_id]) {
+            acc[txn.merchant_id] = [];
+        }
+        acc[txn.merchant_id].push(txn);
+        return acc;
+    }, {} as Record<number, typeof txns>);
+    console.log(transactionsByMerchant)
+    for (const merchantId in transactionsByMerchant) {
+        const merchant = await prisma.merchant.findFirst({
+            where: {
+                merchant_id: Number(merchantId)
+            }
+        })
+        const merchantTxns = transactionsByMerchant[merchantId];
+        for (const txn of merchantTxns) {
+            console.log(merchant?.webhook_url)
+            await transactionService.sendCallback(
+                merchant?.webhook_url as string,
+                { original_amount: txn.transactionAmount, date_time: txn.disbursementDate, merchant_transaction_id: txn.merchant_custom_order_id, merchant_id: txn.merchant_id },
+                (txn as unknown as JsonObject)?.account as string,
+                "payout",
+                merchant?.encrypted == "True" ? true : false,
+                false
+            )
+        }
+    }
+}
+
+async function divideSettlementRecords(ids: number[], factor: number) {
+    if (ids.length == 0 || factor <= 0) {
+        throw new CustomError("Invalid Body Values", 404);
+    }
+
+    const records = await prisma.settlementReport.findMany({
+        where: {
+            id: { in: ids }
+        }
+    })
+
+    if (records.length == 0) {
+        throw new CustomError("Invalid Settlement IDs", 400);
+    }
+    records.map(async (record) => await prisma.settlementReport.updateMany({
+        where: {
+            id: { in: ids }
+        },
+        data: {
+            transactionCount: record.transactionCount / factor,
+            transactionAmount: Number(record.transactionAmount) / factor,
+            commission: Number(record.commission) / factor,
+            gst: Number(record.gst) / 2,
+            withholdingTax: Number(record.withholdingTax) / factor,
+            merchantAmount: Number(record.merchantAmount) / factor
+        }
+    }))
+
+    return "Records divided successfully";
+}
+
 
 export default {
     adjustMerchantWalletBalance,
@@ -410,5 +818,12 @@ export default {
     settleTransactions,
     zeroMerchantWalletBalance,
     createTransactionService,
-    deleteMerchantData
+    deleteMerchantData,
+    adjustMerchantDisbursementWalletBalance,
+    payinCallback,
+    payoutCallback,
+    divideSettlementRecords,
+    adjustMerchantWalletBalanceWithoutSettlement,
+    failTransactions,
+    failDisbursements
 }

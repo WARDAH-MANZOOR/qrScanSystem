@@ -192,4 +192,4 @@ const createTransactionService = async (body) => {
     }
 };
 export { createTransaction, createTransactionService };
-export default { calculateSettledAmount, createTransactionRecord, createTransactionToken, findOrCreateCustomer, generateTransactionLink, getMerchantCommission}
+export default { calculateSettledAmount, createTransactionRecord, createTransactionToken, findOrCreateCustomer, generateTransactionLink, getMerchantCommission };

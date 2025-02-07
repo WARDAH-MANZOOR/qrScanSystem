@@ -237,4 +237,4 @@ const updateTransactions = async (updates: TransactionUpdate[], prsma: Prisma.Tr
     );
     await Promise.all(updatePromises);
 };
-export { checkMerchantExists,calculateWalletBalance,getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey };
+export { checkMerchantExists,checkMerchantExistsWithKey,calculateWalletBalance,calculateWalletBalanceWithKey,getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey };

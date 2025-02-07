@@ -2,7 +2,7 @@ import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { hashPassword } from "../../services/authentication/index.js";
 const updateMerchant = async (payload) => {
-    const { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, merchantId, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, EasyPaisaDisburseAccountId, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, } = payload;
+    const { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, merchantId, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, EasyPaisaDisburseAccountId, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate } = payload;
     try {
         // let enc = stringToBoolean(encrypted);
         let result = await prisma.$transaction(async (tx) => {
@@ -24,6 +24,7 @@ const updateMerchant = async (payload) => {
                 throw new CustomError("Easy Paisa Method not valid", 400);
             }
             let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
+            let easypaisa_rate = commissionMode === "SINGLE" ? null : easypaisaRate;
             const user = await tx.merchant.update({
                 data: {
                     full_name: username,
@@ -62,6 +63,8 @@ const updateMerchant = async (payload) => {
                     settlementDuration: settlementDuration != undefined
                         ? +settlementDuration
                         : finance?.settlementDuration,
+                    commissionMode,
+                    easypaisaRate: easypaisa_rate
                 },
                 where: { merchant_id: +merchantId },
             });
@@ -111,7 +114,7 @@ const findOne = async (params) => {
     }
 };
 const addMerchant = async (payload) => {
-    let { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, } = payload;
+    let { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate } = payload;
     if (settlementDuration == undefined) {
         settlementDuration = 0;
     }
@@ -127,6 +130,7 @@ const addMerchant = async (payload) => {
                 },
             });
             let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
+            let easypaisa_rate = commissionMode === "SINGLE" ? null : easypaisaRate;
             // Create Merchant
             const merchant = await tx.merchant.create({
                 data: {
@@ -163,6 +167,8 @@ const addMerchant = async (payload) => {
                     disbursementWithHoldingTax: disbursementWithHoldingTax ?? 0,
                     settlementDuration: +settlementDuration,
                     merchant_id: user.id,
+                    commissionMode,
+                    easypaisaRate: easypaisa_rate
                 },
             });
             // Create UserGroup

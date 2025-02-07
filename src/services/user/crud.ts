@@ -1,7 +1,7 @@
 // src/services/userService.ts
 import bcrypt from "bcrypt";
 import { User, UserGroup } from '@prisma/client';
-import prisma from "prisma/client.js";
+import prisma from "../../prisma/client.js";
 
 // Create User
 export const createUser = async (fullName: string, email: string, password: string, groups: number[], merchantId?: number): Promise<User> => {

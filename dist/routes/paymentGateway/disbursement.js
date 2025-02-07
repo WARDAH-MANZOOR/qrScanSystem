@@ -5,6 +5,7 @@ import { isLoggedIn } from "../../utils/middleware.js";
 import { apiKeyAuth } from "middleware/auth.js";
 const router = Router();
 router.get("/", [isLoggedIn], easyPaisaController.getDisbursement);
+router.get("/tele", easyPaisaController.getDisbursement);
 router.get("/available-balance", [isLoggedIn], getWalletBalanceController);
 router.put("/disburse", [isLoggedIn], disburseTransactions);
 router.get("/export", [isLoggedIn], easyPaisaController.exportDisbursement);

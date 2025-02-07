@@ -42,6 +42,11 @@ enum CallbackMode {
   DOUBLE
 }
 
+enum CommissionMode {
+  SINGLE
+  DOUBLE
+}
+
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            @unique
@@ -94,6 +99,10 @@ model Merchant {
   encrypted           String?   @default("false")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
+  balanceToDisburse  Decimal?              @default(0.00) @db.Decimal(10, 2)
+
+  // Relations
+  disbursementRequests DisbursementRequest[]
 
   // Relations
   user_groups                UserGroup[]
@@ -118,6 +127,7 @@ model Merchant {
   swichLimit                 Decimal?                   @default(0)
   lastSwich                  DateTime                   @default(now())
   @@index([phone_number])
+
 }
 
 model MerchantProviderCredential {
@@ -143,7 +153,9 @@ model MerchantFinancialTerms {
   merchant_id Int      @unique
   merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id])
 
+  commissionMode             CommissionMode? @default(SINGLE) 
   commissionRate             Decimal
+  easypaisaRate              Decimal?
   commissionWithHoldingTax   Decimal
   commissionGST              Decimal
   disbursementRate           Decimal
@@ -203,6 +215,8 @@ model Transaction {
   ScheduledTask   ScheduledTask?
   PaymentRequest  PaymentRequest?
   providerDetails Json?
+  callback_sent   Boolean?
+  callback_response String?
 
   @@index([merchant_transaction_id])
 }
@@ -308,6 +322,7 @@ model Disbursement {
   platform                 Decimal?
   account                  String?
   provider                 String?
+  to_provider              String?
   merchant_custom_order_id String?  @unique // Added for custom inquiries
   system_order_id    String? // ID for payin-specific transactions
   status                   String   @default("completed")
@@ -315,6 +330,8 @@ model Disbursement {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  callback_sent Boolean?
+  callback_response String?
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
   @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
@@ -351,7 +368,7 @@ model PaymentRequest {
   email         String
   amount        Decimal
   description   String?
-  dueDate       DateTime
+  dueDate       DateTime?
   status        TransactionStatus @default(pending)
   link          String?
   metadata      Json?             @default("{}")
@@ -360,4 +377,18 @@ model PaymentRequest {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  merchant_transaction_id String? @unique
+}
+
+model DisbursementRequest {
+  id               Int      @id @default(autoincrement())
+  merchantId       Int
+  requestedAmount  Decimal  @db.Decimal(10, 2)
+  status           String   @default("PENDING") // Enum can be used for stricter validation
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  merchant         Merchant @relation(fields: [merchantId], references: [merchant_id])
+
 }

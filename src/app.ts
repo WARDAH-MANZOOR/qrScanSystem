@@ -22,20 +22,27 @@ import createTransactionRouter from "./routes/transaction/create.js"
 import completeTransactionRouter from "./routes/transaction/complete.js"
 import { errorHandler } from "./utils/middleware.js";
 import task from "./utils/queue_task.js"
+import pendingDisburse from "./utils/pending_disburse_cron.js"
 // import { encrypt_payload } from 'utils/enc_dec.js';
 // import backup from 'utils/backup.js';
+import ExcelJS from "exceljs"
+import prisma from 'prisma/client.js';
+import { JsonObject } from '@prisma/client/runtime/library';
 
 var app = express();
 cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
-app.set("trust proxy",true);
+app.set("trust proxy", true);
 // Allow only specific origins
 app.use(cors({
   origin: [
     'https://sahulatpay.com',
     `https://merchant.sahulatpay.com`,
+    'https://assanpay.sahulatpay.com',
+    `https://devtectsadmin.sahulatpay.com`,
     'http://localhost:3005',
     'http://localhost:*',
     '*'
@@ -57,7 +64,13 @@ app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
 app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
-
+app.post("/pending-process", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await pendingDisburse(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Import all routes from routes/index
 routes(app);
@@ -77,6 +90,7 @@ app.get('/redoc', (req, res) => {
   res.sendFile(path.join(import.meta.dirname, '../', "redoc.html"));
 });
 
+
 app.use((req, res, next) => {
   res.status(404).json({
     message: 'Not Found - Invalid URL',
@@ -88,7 +102,7 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
- 
+
 // Example usage
 
 // const encryptedData = await callbackEncrypt(JSON.stringify({

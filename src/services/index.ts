@@ -9,8 +9,13 @@ import authenticationService from './authentication/index.js';
 import paymentRequestService from './paymentRequest/index.js';
 import zindigiService from "./paymentGateway/zindigi.js"
 import backofficeService from "./backoffice/backoffice.js"
+// <<<<<<< HEAD
 import transactionCreateService from './transactions/create.js'
 
+// =======
+// import reportService from "./reports/excel.js"
+import ipnService from "./ipn/index.js"
+// >>>>>>> 5c28e650fa65f680fd59d082833c6a37ed42da54
 
 export {
     jazzCashService,
@@ -24,5 +29,7 @@ export {
     authenticationService,
     paymentRequestService,
     zindigiService,
-    backofficeService
+    backofficeService,
+    // reportService,
+    ipnService
 };

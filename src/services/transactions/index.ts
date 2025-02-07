@@ -434,9 +434,54 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       let res = await axios.request(config)
       if (res.data == "success") {
         console.log("Callback sent successfully")
+        if (type == "payin") {
+          await prisma.transaction.update({
+            where: {
+              merchant_transaction_id: payload.merchant_transaction_id
+            },
+            data: {
+              callback_sent: true,
+              callback_response: res.data
+            }      
+          })
+        }
+        else {
+          await prisma.disbursement.update({
+            where: {
+              merchant_custom_order_id: payload.merchant_transaction_id
+            },
+            data: {
+              callback_sent: true,
+              callback_response: res.data
+            }      
+          })
+        }
+        
       }
       else {
         console.log("Error sending callback")
+        if (type == "payin") {
+          await prisma.transaction.update({
+            where: {
+              merchant_transaction_id: payload.merchant_transaction_id
+            },
+            data: {
+              callback_sent: false,
+              callback_response: res?.data
+            }      
+          })
+        }
+        else {
+          await prisma.disbursement.update({
+            where: {
+              merchant_custom_order_id: payload.merchant_transaction_id
+            },
+            data: {
+              callback_sent: false,
+              callback_response: res?.data
+            }      
+          })
+        }
       }
       if (checkLimit) {
         console.log(await switchPaymentProvider(payload.merchant_id, payload.merchant_transaction_id));

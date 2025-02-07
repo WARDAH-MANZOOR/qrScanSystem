@@ -8,4 +8,6 @@ import easyPaisaDisburse from "./paymentGateway/easyPaisaDisburse.js";
 import authenticationController from "./authentication/index.js";
 import paymentRequestController from "./paymentRequest/index.js";
 import zindigiController from "./paymentGateway/zindigi.js";
-export { jazzCashController, transactionController, merchantController, dashboardController, easyPaisaController, swichController, easyPaisaDisburse, authenticationController, paymentRequestController, zindigiController };
+import reportController from "./reports/excel.js";
+import ipnController from "./ipn/index.js";
+export { jazzCashController, transactionController, merchantController, dashboardController, easyPaisaController, swichController, easyPaisaDisburse, authenticationController, paymentRequestController, zindigiController, reportController, ipnController };

@@ -1,5 +1,5 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import prisma from "prisma/client.js";
+import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client/extension";

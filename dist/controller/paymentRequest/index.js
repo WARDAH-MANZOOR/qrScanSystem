@@ -10,6 +10,15 @@ const createPaymentRequest = async (req, res, next) => {
         next(error);
     }
 };
+const createPaymentRequestClone = async (req, res, next) => {
+    try {
+        const result = await paymentRequestService.createPaymentRequestClone(req.body, req.params.merchantId);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
 const getPaymentRequest = async (req, res, next) => {
     try {
         req.query.user = req.user;
@@ -86,4 +95,5 @@ export default {
     deletePaymentRequest,
     payRequestedPayment,
     getPaymentRequestbyId,
+    createPaymentRequestClone
 };

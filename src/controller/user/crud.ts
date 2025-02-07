@@ -1,7 +1,7 @@
 // src/controllers/userController.ts
 import { Request, Response } from 'express';
 import * as userService from '../../services/user/crud.js';
-import ApiResponse from 'utils/ApiResponse.js';
+import ApiResponse from '../../utils/ApiResponse.js';
 import { JwtPayload } from 'jsonwebtoken';
 
 // Create User

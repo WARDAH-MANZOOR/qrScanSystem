@@ -1,7 +1,8 @@
 import { validationResult } from "express-validator";
 import { jazzCashService } from "../../services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, mwTransaction, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 const initiateJazzCash = async (req, res, next) => {
     try {
         const paymentData = req.body;
@@ -166,6 +167,35 @@ const initiateMWDisbursement = async (req, res, next) => {
         next(err);
     }
 };
+const initiateDisbursmentClone = async (req, res, next) => {
+    try {
+        console.log("IBFT Called");
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+        if (req.body.amount <= 1) {
+            throw new CustomError("Amount should be greater than 0", 400);
+        }
+        const token = await getToken(req.params.merchantId);
+        const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+        res.status(200).json(ApiResponse.success(initTransaction));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const initiateMWDisbursementClone = async (req, res, next) => {
+    try {
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+        if (req.body.amount <= 1) {
+            throw new CustomError("Amount should be greater than 0", 400);
+        }
+        const token = await getToken(req.params.merchantId);
+        const initTransaction = await mwTransactionClone(token?.access_token, req.body, req.params.merchantId);
+        res.status(200).json(ApiResponse.success(initTransaction));
+    }
+    catch (err) {
+        next(err);
+    }
+};
 const dummyCallback = async (req, res, next) => {
     try {
         const result = await jazzCashService.callback(req.body);
@@ -236,5 +266,7 @@ export default {
     simpleDisburseInquiryController,
     initiateJazzCashAsync,
     jazzStatusInquiry,
-    initiateJazzCashCnic
+    initiateJazzCashCnic,
+    initiateDisbursmentClone,
+    initiateMWDisbursementClone
 };

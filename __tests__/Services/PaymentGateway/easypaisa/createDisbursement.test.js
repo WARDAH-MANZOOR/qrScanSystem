@@ -14,10 +14,12 @@ const { Decimal } = require("decimal.js");
 
 jest.mock("../../../../dist/services/index.js");
 jest.mock("../../../../dist/prisma/client.js", () => ({
-    disbursement: {
-      create: jest.fn(),
-    },
-  }));
+  disbursement: {
+    create: jest.fn(),
+  },
+  $transaction: jest.fn((callback) => callback()), // Mocking Prisma's $transaction
+}));
+
   jest.mock("../../../../dist/services/paymentGateway/disbursement.js", () => ({
   getEligibleTransactions: jest.fn(),
   getMerchantRate: jest.fn(),

@@ -23,7 +23,7 @@ const createPaymentRequest = async (data: any, user: any) => {
           userId: user.id,
           amount: data.amount,
           status: "pending",
-          email: data.email,
+          email: "example@example.com",
           description: data.description,
           transactionId: data.transactionId,
           dueDate: data.dueDate,
@@ -57,7 +57,69 @@ const createPaymentRequest = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: updatedPaymentRequest,
+      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`},
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while creating the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
+const createPaymentRequestClone = async (data: any, user: any) => {
+  try {
+    if (!user) {
+      throw new CustomError("User Id not given",404);
+    }
+
+    let user2 = await prisma.merchant.findFirst({
+      where: {
+        uid: user
+      }
+    })
+    const newPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.create({
+        data: {
+          userId: user2?.merchant_id,
+          amount: data.amount,
+          status: "pending",
+          email: "example@example.com",
+          description: data.description,
+          transactionId: data.transactionId,
+          dueDate: data.dueDate,
+          provider: data.provider,
+          link: data.link,
+          metadata: data.metadata || {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          merchant_transaction_id: data.order_id,
+        },
+      });
+    });
+
+    // update link with payment request id
+    const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: newPaymentRequest.id,
+        },
+        data: {
+          link: `/pay/${newPaymentRequest.id}`,
+        },
+      });
+    });
+
+    if (!newPaymentRequest) {
+      throw new CustomError(
+        "An error occurred while creating the payment request",
+        500
+      );
+    }
+
+    return {
+      message: "Payment request created successfully",
+      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id},
     };
   } catch (error: any) {
     throw new CustomError(
@@ -98,6 +160,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
         {
+          order_id: paymentRequest.merchant_transaction_id,
           amount: paymentRequest.amount,
           type: "wallet",
           phone: paymentRequestObj.accountNo,
@@ -105,7 +168,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         },
         merchant.uid
       );
-      if (!jazzCashPayment) {
+      if (jazzCashPayment.statusCode != "000") {
         throw new CustomError(
           "An error occurred while paying the payment request",
           500
@@ -119,6 +182,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         const easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
           merchant.uid,
           {
+            order_id: paymentRequest.merchant_transaction_id,
             amount: paymentRequest.amount,
             type: "wallet",
             phone: paymentRequestObj.accountNo,
@@ -127,7 +191,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           }
         );
 
-        if (!easyPaisaPayment) {
+        if (easyPaisaPayment.statusCode != "0000") {
           throw new CustomError(
             "An error occurred while paying the payment request",
             500
@@ -137,6 +201,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         // swich payment
         const swichPayment = await swichService.initiateSwich(
           {
+            order_id: paymentRequest.merchant_transaction_id,
             channel: 1749,
             amount: paymentRequest.amount,
             phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
@@ -147,7 +212,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           merchant.uid
         );
 
-        if (!swichPayment) {
+        if (swichPayment?.statusCode != "0000") {
           throw new CustomError(
             "An error occurred while paying the payment request",
             500
@@ -179,6 +244,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     );
   }
 };
+
+
 
 const getPaymentRequestbyId = async (paymentRequestId: string) => {
   try {
@@ -378,4 +445,5 @@ export default {
   deletePaymentRequest,
   payRequestedPayment,
   getPaymentRequestbyId,
+  createPaymentRequestClone
 };

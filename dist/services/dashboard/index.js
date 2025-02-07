@@ -28,7 +28,6 @@ const merchantDashboardDetails = async (params, user) => {
             fetchAggregates.push(prisma.transaction.count({
                 where: {
                     merchant_id: +merchantId,
-                    status: "completed",
                     ...customWhere,
                 },
             }) // Return type is a Promise<number>
@@ -150,8 +149,21 @@ const merchantDashboardDetails = async (params, user) => {
                 },
             }) // Properly type the aggregate query
             );
+            fetchAggregates.push(prisma.merchant.findFirst({
+                where: {
+                    merchant_id: +merchantId,
+                },
+                select: {
+                    balanceToDisburse: true
+                }
+            })
+                .then((result) => (result?.balanceToDisburse?.toNumber() || 0)) // Properly type the aggregate query
+                .catch((err) => {
+                console.error(err);
+                throw new CustomError("Unable to get balance to disburse", 500);
+            }));
             // Execute all queries in parallel
-            const [totalTransactions, totalIncome, todayIncome, statusCounts, latestTransactions, lastWeek, thisWeek, jazzCashTotal, easyPaisaTotal] = await Promise.all(fetchAggregates);
+            const [totalTransactions, totalIncome, todayIncome, statusCounts, latestTransactions, lastWeek, thisWeek, jazzCashTotal, easyPaisaTotal, disbursementBalance] = await Promise.all(fetchAggregates);
             // Build and return the full dashboard summary
             const dashboardSummary = {
                 totalTransactions: totalTransactions, // Ensure correct type
@@ -162,6 +174,7 @@ const merchantDashboardDetails = async (params, user) => {
                 statusCounts: statusCounts || [],
                 latestTransactions: latestTransactions,
                 availableBalance: 0,
+                disbursementBalance: disbursementBalance,
                 transactionSuccessRate: 0,
                 lastWeek: lastWeek._sum
                     ?.original_amount || 0,

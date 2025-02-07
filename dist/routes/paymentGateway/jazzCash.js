@@ -4,11 +4,13 @@ import { validateCreateJazzcashMerchant, validateDeleteJazzcashMerchant, validat
 import { apiKeyAuth } from "../../middleware/auth.js";
 export default function (router) {
     router.post("/dummy-callback", jazzCashController.dummyCallback);
-    router.post("/jzw-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateMWDisbursement);
+    router.post("/jzw-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateMWDisbursementClone);
+    router.post("/jzwc-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateMWDisbursementClone);
     router.post("/jz-disburse-status/:merchantId", [apiKeyAuth], jazzCashController.disburseInquiryController);
     router.post("/sjz-disburse-status/:merchantId", jazzCashController.simpleDisburseInquiryController);
     // Define routes using arrow functions
-    router.post("/jz-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateDisbursment);
+    router.post("/jz-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateDisbursmentClone);
+    router.post("/jzc-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateDisbursmentClone);
     router.post("/initiate-jz/:merchantId", validateJazzcashRequest, jazzCashController.initiateJazzCash);
     router.post("/initiate-jzc/:merchantId", validateJazzcashCnicRequest, jazzCashController.initiateJazzCashCnic);
     router.post("/initiate-jza/:merchantId", [apiKeyAuth, ...validateJazzcashRequest], jazzCashController.initiateJazzCashAsync);

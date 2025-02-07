@@ -10,15 +10,30 @@ router.post('/zero-wallet/:merchantId', [isLoggedIn, isAdmin], backOfficeControl
 
 router.post('/adjust-wallet/:merchantId',  [isLoggedIn, isAdmin], backOfficeController.adjustMerchantWalletBalance);
 
+router.post('/adjust-wallet-without/:merchantId',  [isLoggedIn, isAdmin], backOfficeController.adjustMerchantWalletBalanceWithoutSettlement);
+
 router.get('/transaction-stats/:merchantId', [isLoggedIn, isAdmin], backOfficeController.checkMerchantTransactionStats);
 
 router.post('/settle-transactions', [isLoggedIn, isAdmin], backOfficeController.settleTransactions);
+
+router.post('/settle-transactions/tele', backOfficeController.settleTransactionsForTelegram);
+
+router.post('/fail-transactions/tele', backOfficeController.failTransactionsForTelegram);
+
+router.post('/fail-disbursements/tele', backOfficeController.failDisbursementsForTelegram);
 
 router.post('/settle-all/:merchantId', [isLoggedIn, isAdmin], backOfficeController.settleAllMerchantTransactions);
 
 router.post("/dummy-transaction/:merchantId",[isLoggedIn, isAdmin], backOfficeController.createTransactionController)
 
 router.delete("/delete-merchant-data/:merchantId",[isLoggedIn, isAdmin], backOfficeController.deleteMerchantDataController)
+
+router.post("/payin-callback",backOfficeController.payinCallback)
+
+router.post("/payout-callback",backOfficeController.payoutCallback)
+
+router.post("/div-settlements",[isLoggedIn, isAdmin], backOfficeController.divideSettlementRecords)
+
 
 
 export default router;

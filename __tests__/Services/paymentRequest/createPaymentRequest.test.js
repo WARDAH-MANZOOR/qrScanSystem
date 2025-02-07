@@ -38,6 +38,7 @@ describe("createPaymentRequest function", () => {
             id: "paymentRequest123",
             ...mockData,
             link: "/pay/paymentRequest123",
+            completeLink: "https://sahulatpay.com/pay/paymentRequest123", // Added missing field
         };
 
         prisma.$transaction.mockImplementationOnce((callback) =>
