@@ -3,6 +3,7 @@ import { validationResult } from "express-validator";
 import { merchantService } from "../../services/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
+import { JwtPayload } from "jsonwebtoken";
 
 const updateMerchant = async (
   req: Request,
@@ -54,4 +55,16 @@ const addMerchant = async (req: Request, res: Response, next: NextFunction): Pro
     res.status(error.statusCode).send(ApiResponse.error(error.message));
   }
 };
-export default { updateMerchant, getMerchants, addMerchant };
+
+const setDisbursePercent = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const merchant_id = (req.user as JwtPayload)?.merchant_id;
+    const percent = req.body.percent;
+    const result = await merchantService.setDisbursePercent(merchant_id, percent);
+    res.status(200).json(ApiResponse.success(result));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+export default { updateMerchant, getMerchants, addMerchant, setDisbursePercent };
