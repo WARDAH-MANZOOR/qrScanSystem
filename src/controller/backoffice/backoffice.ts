@@ -200,6 +200,16 @@ const divideSettlementRecords = async (req: Request, res: Response) => {
     }
 }
 
+const processTodaySettlements = async (req: Request, res: Response) => {
+    try {
+        const result = await backofficeService.processTodaySettlements();
+        res.status(200).json(ApiResponse.success(result))
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -215,5 +225,6 @@ export default {
     divideSettlementRecords,
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactionsForTelegram,
-    failDisbursementsForTelegram
+    failDisbursementsForTelegram,
+    processTodaySettlements
 }
