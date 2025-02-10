@@ -68,7 +68,7 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json(ApiResponse.error('User not found',404));
       return;
     }
-    res.status(204).send(ApiResponse.success('User deleted successfully'));
+    res.status(200).send(ApiResponse.success('User deleted successfully'));
   } catch (error) {
     console.error(error);
     res.status(500).json(ApiResponse.error('Error deleting user',500));
