@@ -96,9 +96,13 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       ApiResponse.success({
         message: "Login successful.",
         token: token,
+        role: role,
+        username: user?.username,
         email: user?.email,
         id: user?.id,
+        merchantId: merchant[0]?.merchantId,
         uid: merchant[0]?.merchant?.uid,
+        merchant: { ...merchant[0] },
         commission: merchant[0].merchant?.commissions[0],
         disburseBalancePercent: merchant[0].merchant?.disburseBalancePercent
       })
