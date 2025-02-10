@@ -102,14 +102,21 @@ export const updateUser = async (userId: number, fullName: string, email: string
 };
 
 // Delete User
-export const deleteUser = async (userId: number, merchantId: number): Promise<User | null> => {
-    const deletedUser = await prisma.user.delete({
-        where: { id: userId,groups: {every: {merchantId}} },
-    });
-    if (!deletedUser) {
-        return null;
-    }
-    return deletedUser;
+export const deleteUser = async (userId: number, merchantId: number): Promise<String> => {
+    console.log(userId, merchantId)
+    return await prisma.$transaction(async (tx) => {
+        const deletedGroup = await tx.userGroup.deleteMany({
+            where: {
+                userId,
+                merchantId,
+            },
+        });
+        const deletedUser = await tx.user.delete({
+            where: { id: userId,groups: {every: {merchantId}} },
+        });
+        return "User deleted successfully";
+    })
+    
 };
 
 export default {

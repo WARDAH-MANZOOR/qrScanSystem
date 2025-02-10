@@ -3,6 +3,7 @@ import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
 import { toZonedTime } from "date-fns-tz";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {
@@ -404,8 +405,22 @@ disbursement_date = customWhere["date_time"]
       })
     );
 
+    fetchAggregates.push(
+      prisma.transaction.aggregate({
+        _sum: {
+          balance: true
+        },
+        where: {
+          settlement: true,
+          balance: { gt: new Decimal(0) },
+          status: "completed"
+        },
+      })
+    );
+
+
     // Execute all queries in parallel
-    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount] =
+    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance] =
       await Promise.all(fetchAggregates);
 
     // Build and return the full dashboard summary
@@ -419,8 +434,8 @@ disbursement_date = customWhere["date_time"]
           ?.original_amount || 0,
       latestTransactions: latestTransactions as any,
       totalBalanceToDisburse: (totalBalanceToDisburse as { _sum: { balanceToDisburse: number | null } })._sum.balanceToDisburse || 0,
-      totalDisbursmentAmount: (totalDisbursmentAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount || 0
-
+      totalDisbursmentAmount: (totalDisbursmentAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0,
+      totalSettlementBalance: (totalSettlementBalance as { _sum: { balance: number | null } })._sum.balance?.toFixed(2) || 0
     };
 
     return dashboardSummary;

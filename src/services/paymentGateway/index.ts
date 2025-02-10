@@ -1218,7 +1218,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
             data: {
               transaction_id: data2.system_order_id,
               status: "failed",
-              response_message: "Insufficient Balance to disburse",
+              response_message: "Not Enough Balance",
               provider: PROVIDERS.BANK
             },
           });
@@ -2329,7 +2329,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
             data: {
               transaction_id: data2.system_order_id,
               status: "failed",
-              response_message: "Insufficient Balance to disburse",
+              response_message: "Not Enough Balance",
             },
           });
           throw new CustomError("Insufficient balance to disburse", 400);
