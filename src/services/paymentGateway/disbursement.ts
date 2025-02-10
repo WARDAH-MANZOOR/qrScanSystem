@@ -68,6 +68,7 @@ const calculateWalletBalance = async (merchantId: number): Promise<Object> => {
             settlement: true,
             balance: { gt: new Decimal(0) },
             merchant_id: merchantId,
+            status: 'completed',
         },
     });
 
