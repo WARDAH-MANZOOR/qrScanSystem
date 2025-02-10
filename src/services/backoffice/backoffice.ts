@@ -829,53 +829,71 @@ async function processTodaySettlements() {
         orderBy: {
             "settlementDate": "desc"
         },
+        distinct: ['merchant_id'], // returns one record per merchant
         include: {
             merchant: true, // so we can access merchant.disburseBalancePercent
         },
         take: 1
     });
-
+    // Array to store results for each merchant processing
+    const results: { merchant_id: number; status: string; message: string }[] = [];
     console.log(settlementReports)
     // 3 & 4. For each settlement report, calculate the deduction and update the merchant.
     //    We assume each merchant has an "availableBalance" field.
     for (const report of settlementReports) {
-        const merchant = report.merchant;
-        // Calculate the deduction:
-        // For example: if disburseBalancePercent is 10 (10%) and merchantAmount is 100,
-        // then deduction = (10 / 100) * 100 = 10.
-        let deduction;
-        if (Number(merchant.disburseBalancePercent) === 0) {
-            throw new CustomError("Percentage not set",500)
-        }
-        deduction = Number(merchant.disburseBalancePercent) * Number(report.merchantAmount);
+        try {
+            const merchant = report.merchant;
+            // Calculate the deduction:
+            // For example: if disburseBalancePercent is 10 (10%) and merchantAmount is 100,
+            // then deduction = (10 / 100) * 100 = 10.
+            let deduction;
+            if (Number(merchant.disburseBalancePercent) === 0) {
+                throw new CustomError("Percentage not set", 500)
+            }
+            deduction = Number(merchant.disburseBalancePercent) * Number(report.merchantAmount);
 
-        // Log the details (optional)
-        console.log(
-            `Updating merchant ${merchant.merchant_id}: Deducting ${deduction} from available balance and adding it to disbursement balance.`
-        );
+            // Log the details (optional)
+            console.log(
+                `Updating merchant ${merchant.merchant_id}: Deducting ${deduction} from available balance and adding it to disbursement balance.`
+            );
 
-        // 4. Update the merchant record.
-        //    We use atomic operations 'decrement' and 'increment' to update the balances.
-        const { walletBalance } = await getWalletBalance(merchant.merchant_id) as { walletBalance: number };
-        if (deduction > walletBalance) {
-            throw new CustomError("Deduction larger than balance",500)
-        }
-        const updatedAvailableBalance = walletBalance - Number(deduction);
-        await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
-        await prisma.merchant.update({
-            where: {
-                merchant_id: merchant.merchant_id,
-            },
-            data: {
-                // IMPORTANT:
-                // The Merchant model provided does not include an "availableBalance" field.
-                // Make sure to add it if you want to update the available balance.
-                balanceToDisburse: {
-                    increment: deduction,
+            // 4. Update the merchant record.
+            //    We use atomic operations 'decrement' and 'increment' to update the balances.
+            const { walletBalance } = await getWalletBalance(merchant.merchant_id) as { walletBalance: number };
+            if (deduction > walletBalance) {
+                throw new CustomError("Deduction larger than balance", 500)
+            }
+            const updatedAvailableBalance = walletBalance - Number(deduction);
+            await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
+            await prisma.merchant.update({
+                where: {
+                    merchant_id: merchant.merchant_id,
                 },
-            },
-        });
+                data: {
+                    // IMPORTANT:
+                    // The Merchant model provided does not include an "availableBalance" field.
+                    // Make sure to add it if you want to update the available balance.
+                    balanceToDisburse: {
+                        increment: deduction,
+                    },
+                },
+            });
+            results.push({
+                merchant_id: merchant.merchant_id,
+                status: 'success',
+                message: `Merchant ${merchant.merchant_id} processed successfully with a deduction of ${deduction}.`,
+            });
+        }
+        catch (err: any) {
+            // Record a failure message for this merchant.
+            results.push({
+                merchant_id: report.merchant.merchant_id,
+                status: 'failure',
+                message: `Error processing merchant ${report.merchant.merchant_id}: ${err?.message || err}`,
+            });
+        }
     }
+    return results;
 }
 
 
