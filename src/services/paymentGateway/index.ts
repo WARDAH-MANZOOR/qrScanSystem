@@ -892,7 +892,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
                 to_provider: body.bankCode
               },
             });
-            throw new CustomError("Transaction is Pending", 400);
+            throw new CustomError("Transaction is Pending", 202);
           }
         }
         throw new CustomError("Not Enough Balance", 400);
@@ -962,7 +962,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           to_provider: body.bankCode
         },
       });
-      throw new CustomError("Transaction is Pending", 500);
+      throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
@@ -1048,7 +1048,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           to_provider: body.bankCode
         },
       });
-      throw new CustomError("Transaction is Pending", 500);
+      throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
@@ -1157,7 +1157,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
   }
   catch (err: any) {
     console.log("Initiate Transaction Error", err);
-    throw new CustomError(err?.message, 500);
+    throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
 
@@ -1229,7 +1229,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
           if (err.code === 'P2034') {
-            throw new CustomError("Transaction is Pending", 400);
+            throw new CustomError("Transaction is Pending", 202);
           }
         }
         throw new CustomError("Not Enough Balance", 400);
@@ -1280,7 +1280,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     let data;
     if (!res.data) {
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      throw new CustomError("Transaction is Pending", 500);
+      throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
@@ -1340,7 +1340,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     res = await response.json();
     if (!res.data) {
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      throw new CustomError("Transaction is Pending", 500);
+      throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
@@ -1436,7 +1436,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
   }
   catch (err: any) {
     console.log("Initiate Transaction Error", err);
-    throw new CustomError(err?.message, 500);
+    throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
 
@@ -2093,7 +2093,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
                 to_provider: PROVIDERS.JAZZ_CASH
               },
             });
-            throw new CustomError("Transaction is Pending", 400);
+            throw new CustomError("Transaction is Pending", 202);
           }
         }
         throw new CustomError("Not Enough Balance", 400);
@@ -2154,7 +2154,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
           to_provider: body.bankCode
         },
       });
-      throw new CustomError("Transaction is Pending", 500);
+      throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
@@ -2263,7 +2263,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
   }
   catch (err: any) {
     console.log("MW Transaction Error", err);
-    throw new CustomError(err?.message, 500);
+    throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
 
@@ -2339,7 +2339,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
           if (err.code === 'P2034') {
-            throw new CustomError("Transaction is Pending", 400);
+            throw new CustomError("Transaction is Pending", 202);
           }
         }
         throw new CustomError("Not Enough Balance", 400);
@@ -2381,7 +2381,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     console.log("MW Response", res);
     if (!res.data) {
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      throw new CustomError("Transaction is Pending", 500);
+      throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
@@ -2473,7 +2473,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
   }
   catch (err: any) {
     console.log("MW Transaction Error", err);
-    throw new CustomError(err?.message, 500);
+    throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
 
