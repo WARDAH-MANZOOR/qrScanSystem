@@ -16,7 +16,6 @@ dotenv.config();
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocs from './swagger.js';  // Import the Swagger configuration
 import transactionReportsRouter from "./routes/transaction/report.js"
-import userRouter from "./routes/user/index.js"
 import authRouter from "./routes/authentication/index.js"
 import createTransactionRouter from "./routes/transaction/create.js"
 import completeTransactionRouter from "./routes/transaction/complete.js"
@@ -62,7 +61,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
-app.use('/user_api', userRouter);
 app.use('/auth_api', authRouter);
 app.post("/pending-process", async (req: Request, res: Response, next: NextFunction) => {
   try {

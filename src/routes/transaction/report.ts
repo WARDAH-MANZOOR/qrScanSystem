@@ -221,6 +221,6 @@ const exportPDF = async (res: Response, transactions: any[], totalAmount: number
  *                   type: number
  *                   description: Total sum of transaction amounts
  */
-router.get("/transaction-report", isLoggedIn, authorize('Reports'), transactionReport);
+// router.get("/transaction-report", isLoggedIn, authorize('Reports'), transactionReport);
 
 export default router;

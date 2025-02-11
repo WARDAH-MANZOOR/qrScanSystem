@@ -52,6 +52,8 @@ model Group {
   name        String            @unique
   permissions GroupPermission[]
   users       UserGroup[]
+  merchant_id Int?
+  merchant    Merchant? @relation(fields: [merchant_id], references: [merchant_id])
 }
 
 model Permission {
@@ -111,6 +113,7 @@ model Merchant {
   MerchantProviderCredential MerchantProviderCredential[]
   Disbursement               Disbursement[]
   SettlementReport           SettlementReport[]
+  groups Group[]
   EasyPaisaDisburseAccount   EasyPaisaDisburseAccount?    @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
   JazzCashDisburseAccount    JazzCashDisburseAccount?     @relation(fields: [JazzCashDisburseAccountId], references: [id])
   ZindigiMerchant            ZindigiMerchant?             @relation(fields: [zindigiMerchantId], references: [id])
