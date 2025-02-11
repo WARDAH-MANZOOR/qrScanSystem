@@ -107,7 +107,7 @@ async function processPendingRecordsCron(req: Request, res: Response) {
               console.log(`${txn.provider} -> ${txn.to_provider}`);
               const token = await getToken(merchant?.uid as string);
               // await updateTransaction(token?.access_token, txn, merchant?.uid as string);
-              await updateTransactionClone(token?.access_token, txn, merchant?.uid as string)
+              await updateTransactionClone (token?.access_token, txn, merchant?.uid as string)
             }
           }
           console.log(`Transaction ${txn.system_order_id} processed successfully`);
