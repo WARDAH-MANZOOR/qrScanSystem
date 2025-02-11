@@ -63,7 +63,7 @@ async function processPendingRecordsCron(req: Request, res: Response) {
     return;
   }
   const doneTransactions = [];
-
+  const failedTransactions = [];
   try {
     // Process transactions merchant by merchant
     for (const merchantId of Object.keys(records)) {
@@ -105,12 +105,14 @@ async function processPendingRecordsCron(req: Request, res: Response) {
             } else {
               console.log(`${txn.provider} -> ${txn.to_provider}`);
               const token = await getToken(merchant?.uid as string);
-              await updateTransaction(token?.access_token, txn, merchant?.uid as string);
+              // await updateTransaction(token?.access_token, txn, merchant?.uid as string);
+              await updateTransaction(token?.access_token, txn, merchant?.uid as string)
             }
           }
           console.log(`Transaction ${txn.system_order_id} processed successfully`);
-          doneTransactions.push(txn.system_order_id);
+          doneTransactions.push(txn.merchant_custom_order_id);
         } catch (error: any) {
+          failedTransactions.push(txn.merchant_custom_order_id)
           // If error message indicates "Not Enough Balance", skip the rest of this merchant's transactions.
           if (error?.message && error.message.includes("Not Enough Balance")) {
             console.log(
@@ -135,7 +137,7 @@ async function processPendingRecordsCron(req: Request, res: Response) {
     }
 
     // Once all merchants are processed, send the response.
-    res.status(200).json({ message: "Transactions processed successfully", doneTransactions });
+    res.status(200).json({ message: "Transactions processed successfully", doneTransactions, failedTransactions });
   } catch (err) {
     console.log("Unexpected error: ", err);
     res.status(500).json({ error: "Error processing the transactions", doneTransactions });
