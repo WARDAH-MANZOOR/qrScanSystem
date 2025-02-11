@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { Request, Response } from "express";
 import prisma from "prisma/client.js";
 import { easyPaisaService, jazzCashService } from "services/index.js";
-import { getToken, updateMwTransaction, updateTransaction } from "services/paymentGateway/index.js";
+import { getToken, updateMwTransaction, updateTransaction, updateTransactionClone } from "services/paymentGateway/index.js";
 
 const fetchPendingRecords = async (size: number, merchant_id: number, to_provider: string) => {
   console.log("Disbursement Cron running");
@@ -107,7 +107,7 @@ async function processPendingRecordsCron(req: Request, res: Response) {
               console.log(`${txn.provider} -> ${txn.to_provider}`);
               const token = await getToken(merchant?.uid as string);
               // await updateTransaction(token?.access_token, txn, merchant?.uid as string);
-              await updateTransaction(token?.access_token, txn, merchant?.uid as string)
+              await updateTransactionClone(token?.access_token, txn, merchant?.uid as string)
             }
           }
           console.log(`Transaction ${txn.system_order_id} processed successfully`);
