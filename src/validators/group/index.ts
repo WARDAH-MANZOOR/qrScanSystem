@@ -2,14 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { body, param, query, validationResult } from "express-validator";
 import prisma from "prisma/client.js";
 
-const validation = (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, errors: errors.array() });
-    }
-    next();
-}
-
 const validateCreateGroup = [
     body("name")
         .notEmpty()
@@ -34,7 +26,7 @@ const validateCreateGroup = [
                 throw new Error("One or more Permission IDs do not exist");
             }
         }),
-    validation
+    // validation
 ];
 
 
@@ -44,7 +36,7 @@ const validateReadGroups = [
         .isInt()
         .withMessage("Invalid Merchant ID")
         .custom(async (value) => {
-            const merchant = await prisma.merchant.findUnique({ where: { merchant_id: value } });
+            const merchant = await prisma.merchant.findUnique({ where: { merchant_id: Number(value) } });
             if (!merchant) {
                 throw new Error("Merchant ID does not exist");
             }
@@ -55,12 +47,12 @@ const validateReadGroups = [
         .isInt()
         .withMessage("Invalid Group ID")
         .custom(async (value) => {
-            const group = await prisma.group.findUnique({ where: { id: value } });
+            const group = await prisma.group.findUnique({ where: { id: Number(value) } });
             if (!group) {
                 throw new Error("Group ID does not exist");
             }
         }),
-    validation
+    // validation
 ];
 
 
@@ -71,23 +63,23 @@ const validateDeleteGroup = [
         .isInt()
         .withMessage("Invalid Group ID")
         .custom(async (value) => {
-            const group = await prisma.group.findUnique({ where: { id: value } });
+            const group = await prisma.group.findUnique({ where: { id: Number(value) } });
             if (!group) {
                 throw new Error("Group ID does not exist");
             }
         }),
-    validation
+    // validation
 ];
 
 
 const validateUpdateGroup = [
-    body("groupId")
+    param("groupId")
         .notEmpty()
         .withMessage("Group ID is required")
         .isInt()
         .withMessage("Invalid Group ID format")
         .custom(async (value) => {
-            const group = await prisma.group.findUnique({ where: { id: value } });
+            const group = await prisma.group.findUnique({ where: { id: Number(value) } });
             if (!group) {
                 throw new Error("Group ID does not exist");
             }
@@ -97,6 +89,7 @@ const validateUpdateGroup = [
         .isString()
         .withMessage("Group name must be a string"),
     body("permissionIds")
+        .optional()
         .isObject()
         .withMessage("Permission IDs must be an object with 'add' and 'remove' keys")
         .custom((value) => {
@@ -154,12 +147,12 @@ const validateUpdateGroup = [
                 }
             }
         }),
-    validation
+    // validation
 ];
 
 export default {
     validateCreateGroup,
     validateDeleteGroup,
     validateReadGroups,
-    validateUpdateGroup
+    validateUpdateGroup,
 }

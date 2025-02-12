@@ -14,7 +14,7 @@ export const createUser = async (fullName: string, email: string, password: stri
                 password: hashedPassword,
             },
         });
-    
+
         // Then create group associations if groups array exists
         if (groups && groups.length > 0) {
             await tx.user.update({
@@ -30,10 +30,10 @@ export const createUser = async (fullName: string, email: string, password: stri
                 },
             });
         }
-    
+
         return user;
     });
-    
+
 };
 
 // Get User by ID
@@ -49,14 +49,14 @@ export const getUsers = async (merchantId: number): Promise<User[] | null> => {
     });
     if (!usersOfMerchant) {
         return null
-        }
+    }
     let users = usersOfMerchant.map((user) => user.user);
 
     return users;
 };
 
 // Update User
-export const updateUser = async (userId: number, fullName: string, email: string, merchantId: number, groups?: number[], password?: string): Promise<User | null> => {
+export const updateUser = async (userId: number, fullName: string, email: string, merchantId: number, groups?: { add: number[]; remove: number[] }, password?: string): Promise<User | null> => {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
     console.log(merchantId)
     // const user = await prisma.user.findUnique({
@@ -80,25 +80,49 @@ export const updateUser = async (userId: number, fullName: string, email: string
     // if (user?.groups[0].merchantId !== merchantId) {
     //     return null;
     // }
-    const updatedUser = await prisma.user.update({
-        where: { 
-            id: userId,
-            groups: {
-                every: {
-                    merchantId,
-                },
-            }
-        },
-        data: {
-            username: fullName,
-            email,
-            password: hashedPassword,
-        },
-    });
-    if (!updatedUser) {
-        return null;
-    }
-    return updatedUser;
+    const result = await prisma.$transaction(async (tx) => {
+        if (groups?.add && groups.add.length > 0) {
+            await tx.userGroup.createMany({
+                data: groups.add.map((group) => ({
+                    userId,
+                    groupId: group,
+                    merchantId
+                }))
+            });
+        }
+        if (groups?.remove && groups.remove.length > 0) {
+            await tx.userGroup.deleteMany({
+                where: {
+                    AND: {
+                        userId,
+                        groupId: { in: groups.remove },
+                    }
+                }
+            });
+        }
+        const updatedUser = await tx.user.update({
+            where: {
+                id: userId,
+                groups: {
+                    every: {
+                        merchantId,
+                    },
+                }
+            },
+            data: {
+                username: fullName,
+                email,
+                password: hashedPassword,
+            },
+        });
+    
+        if (!updatedUser) {
+            return null;
+        }
+        return updatedUser;
+    })
+    
+    return result;
 };
 
 // Delete User
@@ -112,11 +136,11 @@ export const deleteUser = async (userId: number, merchantId: number): Promise<St
             },
         });
         const deletedUser = await tx.user.delete({
-            where: { id: userId,groups: {every: {merchantId}} },
+            where: { id: userId, groups: { every: { merchantId } } },
         });
         return "User deleted successfully";
     })
-    
+
 };
 
 export default {
