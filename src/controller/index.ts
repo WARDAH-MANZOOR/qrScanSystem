@@ -10,6 +10,7 @@ import paymentRequestController from "./paymentRequest/index.js";
 import zindigiController from "./paymentGateway/zindigi.js"
 import reportController from "./reports/excel.js"
 import ipnController from "./ipn/index.js"
+import groupController from "./group/index.js"
 
 export {
   jazzCashController,
@@ -23,5 +24,6 @@ export {
   paymentRequestController,
   zindigiController,
   reportController,
-  ipnController
+  ipnController,
+  groupController
 };
