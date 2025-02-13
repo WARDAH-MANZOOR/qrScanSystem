@@ -9,7 +9,7 @@ const validateCreateGroup = [
         .isString()
         .withMessage("Group name must be a string")
         .custom(async (value) => {
-            const existingGroup = await prisma.group.findUnique({ where: { name: value } });
+            const existingGroup = await prisma.group.findFirst({ where: { name: value } });
             if (existingGroup) {
                 throw new Error("Group name already exists");
             }
