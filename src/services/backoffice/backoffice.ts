@@ -820,11 +820,11 @@ async function processTodaySettlements() {
     // 2. Fetch all settlement reports for today including the related merchant.
     const settlementReports = await prisma.settlementReport.findMany({
         where: {
-            // settlementDate: {
-            //     gte: startOfToday,
-            //     lt: endOfToday,
-            // },
-            merchant_id: 5
+            settlementDate: {
+                gte: startOfToday,
+                lt: endOfToday,
+            },
+            // merchant_id: 5
         },
         orderBy: {
             "settlementDate": "desc"
@@ -833,7 +833,7 @@ async function processTodaySettlements() {
         include: {
             merchant: true, // so we can access merchant.disburseBalancePercent
         },
-        take: 1
+        // take: 1
     });
     // Array to store results for each merchant processing
     const results: { merchant_id: number; status: string; message: string }[] = [];

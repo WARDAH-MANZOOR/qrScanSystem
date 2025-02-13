@@ -325,6 +325,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     // console.log("saveTxn", saveTxn);
 
     const response: any = await axios.request(config);
+    console.log("response: ", response.data)
     // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
       const updateTxn = await transactionService.updateTxn(
@@ -332,6 +333,12 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
         {
           status: "completed",
           response_message: response.data.responseDesc,
+          providerDetails: {
+            id: easyPaisaMerchant[0].id,
+            name: PROVIDERS.EASYPAISA,
+            msisdn: phone,
+            transactionId: response.data.transactionId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -598,11 +605,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
       merchant_id: findMerchant.merchant_id,
       commission,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
-      providerDetails: {
-        id: easyPaisaMerchant.id,
-        name: PROVIDERS.EASYPAISA,
-        msisdn: phone,
-      },
+      
     });
 
     // Return pending status and transaction ID immediately
@@ -616,6 +619,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             {
               status: "completed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response.data.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
