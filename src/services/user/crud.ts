@@ -4,7 +4,7 @@ import { User, UserGroup } from '@prisma/client';
 import prisma from "prisma/client.js";
 
 // Create User
-export const createUser = async (fullName: string, email: string, password: string, groups: number[], merchantId?: number): Promise<User> => {
+export const createUser = async (fullName: string, email: string, password: string, groups: number, merchantId?: number): Promise<User> => {
     const hashedPassword = await bcrypt.hash(password, 10);
     return await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
@@ -16,16 +16,18 @@ export const createUser = async (fullName: string, email: string, password: stri
         });
 
         // Then create group associations if groups array exists
-        if (groups && groups.length > 0) {
+        if (groups) {
             await tx.user.update({
                 where: { id: user.id },
                 data: {
                     groups: {
-                        create: groups.map((groupId: number) => ({
+                        create: {
                             // userId: user.id,
-                            groupId,
+                            groupId: groups,
                             merchantId,
-                        })),
+                        }
+                        // )
+                    // ),
                     },
                 },
             });
@@ -56,7 +58,7 @@ export const getUsers = async (merchantId: number): Promise<User[] | null> => {
 };
 
 // Update User
-export const updateUser = async (userId: number, fullName: string, email: string, merchantId: number, groups?: { add: number[]; remove: number[] }, password?: string): Promise<User | null> => {
+export const updateUser = async (userId: number, fullName: string, email: string, merchantId: number, groups?: number, password?: string): Promise<User | null> => {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
     console.log(merchantId)
     // const user = await prisma.user.findUnique({
@@ -81,24 +83,16 @@ export const updateUser = async (userId: number, fullName: string, email: string
     //     return null;
     // }
     const result = await prisma.$transaction(async (tx) => {
-        if (groups?.add && groups.add.length > 0) {
-            await tx.userGroup.createMany({
-                data: groups.add.map((group) => ({
-                    userId,
-                    groupId: group,
-                    merchantId
-                }))
-            });
-        }
-        if (groups?.remove && groups.remove.length > 0) {
-            await tx.userGroup.deleteMany({
+        if (groups) {
+            await tx.userGroup.updateMany({
                 where: {
-                    AND: {
-                        userId,
-                        groupId: { in: groups.remove },
-                    }
-                }
-            });
+                    userId,
+                    merchantId,
+                },
+                data: {
+                    groupId: groups,
+                },
+            })
         }
         const updatedUser = await tx.user.update({
             where: {

@@ -235,11 +235,6 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
       merchant_id: findMerchant.merchant_id,
       commission,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
-      providerDetails: {
-        id: findMerchant.swichMerchantId as number,
-        name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
-        msisdn: payload.phone
-      },
     });
 
     let res = await axios.request(config);
@@ -250,6 +245,12 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         {
           status: "completed",
           response_message: res.data.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+            transactionId: res.data.orderId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -272,6 +273,12 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: res.data.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+            transactionId: res.data?.orderId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );

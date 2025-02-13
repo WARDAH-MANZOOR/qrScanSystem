@@ -78,8 +78,18 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
             commissions: true,
           },
         },
+        group: {
+          include: {
+            permissions: {
+              include: {
+                permission: true
+              }
+            }
+          }
+        }
       },
     });
+    
     // Generate JWT token
     const token = generateToken({
       email: user?.email,
@@ -102,9 +112,13 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
         id: user?.id,
         merchantId: merchant[0]?.merchantId,
         uid: merchant[0]?.merchant?.uid,
-        merchant: { ...merchant[0] },
-        commission: merchant[0].merchant?.commissions[0],
-        disburseBalancePercent: merchant[0].merchant?.disburseBalancePercent
+        merchant: { 
+          ...merchant[0],
+          group: undefined 
+        },
+        commission: merchant[0]?.merchant?.commissions[0],
+        disburseBalancePercent: merchant[0]?.merchant?.disburseBalancePercent,
+        permissions: merchant[0]?.group.permissions.map(permission => permission.permission.name)
       })
     );
   } catch (error) {

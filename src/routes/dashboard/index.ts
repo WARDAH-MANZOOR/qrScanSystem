@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { dashboardController } from "../../controller/index.js";
-import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
 import {
   adminDashboardValidation,
   merchantDashboardValidation,
@@ -12,6 +12,7 @@ const router = Router();
 router.get(
   "/merchant",
   [isLoggedIn, ...merchantDashboardValidation],
+  authorize("Dashboards"),
   dashboardController.merchantDashboardDetails
 );
 router.get(

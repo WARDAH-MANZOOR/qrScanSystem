@@ -12,6 +12,7 @@ import backofficeService from "./backoffice/backoffice.js"
 import reportService from "./reports/excel.js"
 import ipnService from "./ipn/index.js"
 import groupService from "./group/index.js"
+import permissionService from "./permissions/index.js"
 
 export {
     jazzCashService,
@@ -27,5 +28,6 @@ export {
     backofficeService,
     reportService,
     ipnService,
-    groupService
+    groupService,
+    permissionService
 };

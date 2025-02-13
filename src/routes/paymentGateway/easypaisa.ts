@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
 import { easyPaisaController } from "../../controller/index.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import {
@@ -100,7 +100,7 @@ export default function (router: Router) {
     [...validateInquiry],
     easyPaisaController.statusInquiry
   );
-  router.get("/ep-disburse",[isLoggedIn],easyPaisaController.getDisbursement)
+  router.get("/ep-disburse",[isLoggedIn], authorize("Reports"), easyPaisaController.getDisbursement)
   return router;
 }
 

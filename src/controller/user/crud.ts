@@ -6,10 +6,14 @@ import { JwtPayload } from 'jsonwebtoken';
 
 // Create User
 const createUser = async (req: Request, res: Response): Promise<void> => {
-  const { fullName, email, password, groups } = req.body;
+  const { fullName, email, password, group } = req.body;
   const merchantId = (req.user as JwtPayload)?.merchant_id; 
+  if (!merchantId) {
+    res.status(401).json(ApiResponse.error('Unauthorized',401));
+    return;
+  }
   try {
-    const user = await userService.createUser(fullName, email, password, groups, merchantId);
+    const user = await userService.createUser(fullName, email, password, group, merchantId);
     res.status(201).json(ApiResponse.success(user));
   } catch (error) {
     console.error(error);
@@ -20,6 +24,10 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
 // Get User
 const getUsers = async (req: Request, res: Response): Promise<void> => {
   const merchantId = (req.user as JwtPayload)?.merchant_id; 
+  if (!merchantId) {
+    res.status(401).json(ApiResponse.error('Unauthorized',401));
+    return;
+  }
   try {
     const user = await userService.getUsers(merchantId);
     if (!user) {
@@ -36,15 +44,19 @@ const getUsers = async (req: Request, res: Response): Promise<void> => {
 // Update User
 const updateUser = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
-  const { fullName, email, password, groups  } = req.body;
+  const { fullName, email, password, group  } = req.body;
   const merchantId = (req.user as JwtPayload)?.merchant_id; 
+  if (!merchantId) {
+    res.status(401).json(ApiResponse.error('Unauthorized',401));
+    return;
+  }
   try {
     const user = await userService.updateUser(
       parseInt(userId),
       fullName,
       email,
       merchantId,
-      groups,
+      group,
       password,
     );
     if (!user) {
@@ -62,6 +74,10 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 const deleteUser = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
   const merchantId = (req.user as JwtPayload)?.merchant_id; 
+  if (!merchantId) {
+    res.status(401).json(ApiResponse.error('Unauthorized',401));
+    return;
+  }
   try {
     const result = await userService.deleteUser(parseInt(userId),merchantId);
     if (!result) {
