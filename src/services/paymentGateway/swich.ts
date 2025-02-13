@@ -294,6 +294,10 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: err?.response?.data?.message,
+          providerDetails: {
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+          },
         },
         findMerchant?.commissions[0]?.settlementDuration as number
       );
@@ -436,6 +440,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             {
               status: "failed",
               response_message: error?.response?.data?.message || error.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+              },
             },
             findMerchant?.commissions[0]?.settlementDuration || 0
           );
@@ -457,6 +466,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: err?.response?.data?.message || err.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+          },
         },
         findMerchant?.commissions[0]?.settlementDuration || 0
       );
