@@ -1,6 +1,6 @@
 import express from 'express';
 import backOfficeController from 'controller/backoffice/backoffice.js';
-import { isAdmin, isLoggedIn } from 'utils/middleware.js';
+import { authorize, isAdmin, isLoggedIn } from 'utils/middleware.js';
 const router = express.Router();
 
 // Define routes
