@@ -865,19 +865,31 @@ async function processTodaySettlements() {
             }
             const updatedAvailableBalance = walletBalance - Number(deduction);
             await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
-            await prisma.merchant.update({
-                where: {
-                    merchant_id: merchant.merchant_id,
-                },
-                data: {
-                    // IMPORTANT:
-                    // The Merchant model provided does not include an "availableBalance" field.
-                    // Make sure to add it if you want to update the available balance.
-                    balanceToDisburse: {
-                        increment: deduction,
+            await prisma.$transaction(async (tx) => {
+                await tx.merchant.update({
+                    where: {
+                        merchant_id: merchant.merchant_id,
                     },
-                },
-            });
+                    data: {
+                        // IMPORTANT:
+                        // The Merchant model provided does not include an "availableBalance" field.
+                        // Make sure to add it if you want to update the available balance.
+                        balanceToDisburse: {
+                            increment: deduction,
+                        },
+                    },
+                });
+                await tx.disbursementRequest.create({
+                    data: {
+                        requestedAmount: deduction,
+                        merchantId: merchant.merchant_id,
+                        status: "approved",
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    }
+                })
+            })
+            
             results.push({
                 merchant_id: merchant.merchant_id,
                 status: 'success',

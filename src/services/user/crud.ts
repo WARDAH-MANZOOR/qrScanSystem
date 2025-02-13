@@ -49,10 +49,15 @@ export const getUsers = async (merchantId: number): Promise<User[] | null> => {
             group: true,
         },
     });
+    usersOfMerchant = usersOfMerchant.filter((user) => user.userId !== merchantId);
     if (!usersOfMerchant) {
         return null
     }
-    let users = usersOfMerchant.map((user) => user.user);
+    let users = usersOfMerchant.map((user) => ({
+        ...user.user,
+        groupName: user.group.name,
+        groupId: user.groupId
+    }));
 
     return users;
 };
