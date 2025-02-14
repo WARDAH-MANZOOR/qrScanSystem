@@ -67,7 +67,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
 
     // Extract the group name (role) from the user's groups
     const userGroup = user?.groups[0]; // Assuming one group per user
-    const role = "User"; // Default role if no group found
+    const role = userGroup.group.name == "Admin" || userGroup.group.name == "Merchant" ? userGroup.group.name : "User"; // Default role if no group found
     const merchant = await prisma.userGroup.findMany({
       where: {
         userId: user?.id,
