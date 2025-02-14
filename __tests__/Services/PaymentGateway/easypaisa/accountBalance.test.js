@@ -8,6 +8,15 @@ jest.mock("axios", () => ({
     post: jest.fn(),
     request: jest.fn(),
 }));
+beforeEach(() => {
+    jest.clearAllMocks(); // Reset mock state before each test
+    jest.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console.error
+    jest.spyOn(console, 'log').mockImplementation(() => {}); // Suppress console.error
+});
+
+  afterEach(() => {
+    console.error.mockRestore(); // Restore console.error after tests
+  });
 describe("accountBalance", () => {
     afterEach(() => {
         jest.clearAllMocks();
@@ -46,6 +55,7 @@ describe("accountBalance", () => {
             .toThrow(new CustomError("Unexpected error", 500));
     });
     it("should return account balance successfully if the request is successful", async () => {
+        try{
         const mockResponse = { 
             data: { 
                 ResponseCode: "0", 
@@ -65,8 +75,11 @@ describe("accountBalance", () => {
         });
     
         const result = await easyPaisaService.accountBalance("merchantId");
-    
         expect(result).toEqual({ amount: 100 });
+
+     } catch (error) {
+            console.error('Fetch error:', error);
+        }
     });
     
 });

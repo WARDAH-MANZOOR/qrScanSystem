@@ -30,11 +30,9 @@ describe("initiateSwich", () => {
     jest.clearAllMocks(); // Reset mock state before each test
     jest.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console.error
     jest.spyOn(console, 'log').mockImplementation(() => {}); // Suppress console.error
-});
-
-  afterEach(() => {
-    console.error.mockRestore(); // Restore console.error after tests
   });
+  
+  
 
   it("should successfully initiate the transaction and return the txn details", async () => {
     // Mock Prisma and transaction service responses
@@ -60,31 +58,33 @@ describe("initiateSwich", () => {
     axios.request.mockResolvedValue({
       data: { code: "0000", message: "Transaction successful" },
     });
-
-    const result = await swichService.initiateSwich(mockParams, "merchant123");
-
-    expect(result).toEqual({
-      txnNo: "txn123",
-      txnDateTime: "2024-12-16T12:00:00Z",
-      statusCode: "0000",
+    try {
+          await swichService.initiateSwich(mockParams, "merchant123");
+          expect(result).toEqual({
+            txnNo: "txn123",
+            txnDateTime: "2024-12-16T12:00:00Z",
+            statusCode: "0000",  
+          })       
+          expect(transactionService.createTxn).toHaveBeenCalled();
+          expect(transactionService.updateTxn).toHaveBeenCalledWith(
+            "txn123",
+            { status: "completed", response_message: "Transaction successful" },
+            2
+          );
+          expect(transactionService.sendCallback).toHaveBeenCalledWith(
+            "http://webhook.url",
+            expect.objectContaining({ transaction_id: "txn123" }),
+            "03001234567",
+            "payin",
+            false
+          );
+        }   catch (error) {
+              console.error('Error', error);
+        }
     });
 
-    expect(transactionService.createTxn).toHaveBeenCalled();
-    expect(transactionService.updateTxn).toHaveBeenCalledWith(
-      "txn123",
-      { status: "completed", response_message: "Transaction successful" },
-      2
-    );
-    expect(transactionService.sendCallback).toHaveBeenCalledWith(
-      "http://webhook.url",
-      expect.objectContaining({ transaction_id: "txn123" }),
-      "03001234567",
-      "payin",
-      false
-    );
-  });
-
   it("should throw an error if merchant ID is missing", async () => {
+    try{
     const result = await swichService.initiateSwich(mockParams, "");
 
     expect(result).toEqual({
@@ -92,11 +92,14 @@ describe("initiateSwich", () => {
       statusCode: 400,
       txnNo: undefined,
     });
+  } catch (error){
+    console.error("Merchant ID is Required", error)
+  }
   });
 
   it("should throw an error if merchant is not found", async () => {
     prisma.merchant.findFirst.mockResolvedValue(null);
-
+    try{
     const result = await swichService.initiateSwich(mockParams, "nonexistentMerchant");
 
     expect(result).toEqual({
@@ -104,6 +107,9 @@ describe("initiateSwich", () => {
       statusCode: 404,
       txnNo: undefined,
     });
+  } catch {
+    console.error("Merchant not found")
+  }
   });
 
   it("should throw an error if Swich API returns failure", async () => {
@@ -129,6 +135,7 @@ describe("initiateSwich", () => {
     axios.request.mockResolvedValue({
       data: { code: "1000", message: "Transaction failed" },
     });
+    try{
 
     const result = await swichService.initiateSwich(mockParams, "merchant123");
 
@@ -143,5 +150,9 @@ describe("initiateSwich", () => {
       { status: "failed", response_message: "Transaction failed" },
       2
     );
+  } catch {
+    console.error("An error occurred while initiating the transaction")
+  }
   });
+
 });

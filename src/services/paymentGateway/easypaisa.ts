@@ -3049,14 +3049,21 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
 
 export default {
   initiateEasyPaisa,
+  initiateEasyPaisaClone,
   createMerchant,
   getMerchant,
   updateMerchant,
   createRSAEncryptedPayload,
+  initiateEasyPaisaAsyncClone,
   deleteMerchant,
   easypaisainquiry,
   getMerchantChannel,
   createDisbursement,
+  updateDisbursement,
+  createDisbursementClone,
+  adjustMerchantToDisburseBalance,
+  disburseThroughBankClone,
+
   getDisbursement,
   disburseThroughBank,
   getTransaction,
@@ -3064,7 +3071,6 @@ export default {
   initiateEasyPaisaAsync,
   accountBalance,
   transactionInquiry,
-<<<<<<< HEAD
   getMerchantInquiryMethod,
   exportDisbursement
 };
@@ -3074,14 +3080,3 @@ export default {
 
 // ...(skip && { skip: +skip }),
 //         ...(take && { take: +take }),
-=======
-  exportDisbursement,
-  updateDisbursement,
-  updateDisburseThroughBank,
-  createDisbursementClone,
-  disburseThroughBankClone,
-  initiateEasyPaisaClone,
-  initiateEasyPaisaAsyncClone,
-  adjustMerchantToDisburseBalance
-};
->>>>>>> 5c28e650fa65f680fd59d082833c6a37ed42da54
