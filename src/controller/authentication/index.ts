@@ -67,7 +67,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
 
     // Extract the group name (role) from the user's groups
     const userGroup = user?.groups[0]; // Assuming one group per user
-    const role = userGroup ? userGroup.group.name : "User"; // Default role if no group found
+    const role = userGroup.group.name == "Admin" || userGroup.group.name == "Merchant" ? userGroup.group.name : "User"; // Default role if no group found
     const merchant = await prisma.userGroup.findMany({
       where: {
         userId: user?.id,
@@ -96,6 +96,8 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       role,
       id: user?.id,
       merchant_id: merchant[0]?.merchantId,
+      group: userGroup,
+      permissions: merchant[0]?.group.permissions.map(permission => permission.permission.name)
     });
 
     // Set token in cookies
@@ -118,7 +120,6 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
         },
         commission: merchant[0]?.merchant?.commissions[0],
         disburseBalancePercent: merchant[0]?.merchant?.disburseBalancePercent,
-        permissions: merchant[0]?.group.permissions.map(permission => permission.permission.name)
       })
     );
   } catch (error) {
