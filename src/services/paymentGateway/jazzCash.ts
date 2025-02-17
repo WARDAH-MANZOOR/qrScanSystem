@@ -285,7 +285,12 @@ const initiateJazzCashPayment = async (
               status: "pending",
               merchant_id: merchant.merchant_id,
               settled_amount,
-              balance: settled_amount
+              balance: settled_amount,
+              providerDetails: {
+                id: JAZZ_CASH_MERCHANT_ID,
+                name: PROVIDERS.JAZZ_CASH,
+                msisdn: phone,
+              },
             },
           });
           transactionCreated = true;
@@ -628,6 +633,11 @@ const initiateJazzCashPaymentAsync = async (
           merchant_id: merchant.merchant.merchant_id,
           settled_amount: settledAmount,
           balance: settledAmount,
+          providerDetails: {
+            id: merchant.jazzCashMerchant.id,
+            name: PROVIDERS.JAZZ_CASH,
+            msisdn: phone,
+          }
         },
       });
 
@@ -1206,6 +1216,11 @@ const initiateJazzCashCnicPayment = async (
           merchant_id: merchant.merchant_id,
           settled_amount,
           balance: settled_amount,
+          providerDetails: {
+            id: jazzCashMerchant.id,
+            name: PROVIDERS.JAZZ_CASH,
+            msisdn: paymentData.phone,
+          }
         },
       });
 
