@@ -6,6 +6,7 @@ const router = Router();
 
 router.post('/', transactionController.filterTransactions);
 router.get('/',[isLoggedIn], authorize("Transactions"), transactionController.getTransactions);
+router.get('/tele', transactionController.getTeleTransactions);
 router.get('/summary', transactionController.getDashboardSummary);
 router.get('/balance', transactionController.getProAndBal);
 router.get("/customer", [isLoggedIn], transactionController.getCustomerTransactions);

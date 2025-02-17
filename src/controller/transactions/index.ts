@@ -165,6 +165,138 @@ const getTransactions = async (req: Request, res: Response) => {
   }
 };
 
+const getTeleTransactions = async (req: Request, res: Response) => {
+  try {
+    console.log(req.user)
+    const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
+
+    let startDate = req.query?.start as string;
+    let endDate = req.query?.end as string;
+    const status = req.query?.status as string;
+    const search = req.query?.search || "" as string;
+    const msisdn = req.query?.msisdn || "" as string;
+
+    const customWhere = {} as any;
+
+    if (startDate && endDate) {
+      startDate = startDate.replace(" ", "+");
+      endDate = endDate.replace(" ", "+");
+
+      const todayStart = parse(
+        startDate,
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        new Date()
+      );
+      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
+      customWhere["date_time"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
+
+    if (status) {
+      customWhere["status"] = status;
+    }
+
+    if (search) {
+      customWhere["transaction_id"] = {
+        contains: search,
+      };
+    }
+
+    if (msisdn) {
+      customWhere["providerDetails"] = {
+        path: ['msisdn'],
+        equals: msisdn
+      }
+    }
+
+    if (merchantTransactionId) {
+      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+    }
+    let { page, limit } = req.query;
+    // Query based on provided parameters
+    let skip, take;
+    if (page && limit) {
+      skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
+      take = parseInt(limit as string);
+    }
+    const transactions = await prisma.transaction.findMany({
+      ...(skip && { skip: +skip }),
+      ...(take && { take: +take }),
+      where: {
+        ...(transactionId && { transaction_id: transactionId as string }),
+        ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+        ...(merchantName && {
+          merchant: {
+            username: merchantName as string,
+          },
+        }),
+        ...customWhere,
+      },
+      orderBy: {
+        date_time: "desc",
+      },
+      include: {
+        merchant: {
+          include: {
+            groups: {
+              include: {
+                merchant: {
+                  include: {
+                    jazzCashMerchant: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    let meta = {};
+    if (page && take) {
+      // Get the total count of transactions
+      const total = await prisma.transaction.count(
+        {
+          where: {
+            ...(transactionId && { transaction_id: transactionId as string }),
+            ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+            ...(merchantName && {
+              merchant: {
+                username: merchantName as string,
+              },
+            }),
+            ...customWhere,
+          }
+        }
+      );
+      // Calculate the total number of pages
+      const pages = Math.ceil(total / +take);
+      meta = {
+        total,
+        pages,
+        page: parseInt(page as string),
+        limit: take
+      }
+    }
+    const response = {
+      transactions: transactions.map((transaction) => ({
+        ...transaction,
+        jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
+      })),
+      meta,
+    };
+
+    res.status(200).json(response);
+  } catch (err) {
+    console.log(err)
+    const error = new CustomError("Internal Server Error", 500);
+    res.status(500).send(error);
+  }
+};
+
 const exportTransactions = async (req: Request, res: Response) => {
   try {
     const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
@@ -320,6 +452,7 @@ export default {
   getTransactions,
   getProAndBal,
   exportTransactions,
+  getTeleTransactions,
   ...analytics,
 };
 
