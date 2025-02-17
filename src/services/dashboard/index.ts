@@ -8,7 +8,7 @@ import { JwtPayload } from "jsonwebtoken";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {
-    const merchantId = (user as JwtPayload)?.merchant_id;
+    const merchantId = (user as JwtPayload)?.merchant_id || params?.merchantId;
 
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
