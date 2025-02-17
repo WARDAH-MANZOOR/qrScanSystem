@@ -2430,11 +2430,11 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
           withholdingTax: totalWithholdingTax,
           merchantAmount: body.amount ? body.amount : merchantAmount,
           platform: 0,
-          account: body.iban,
+          account: body.phone,
           provider: PROVIDERS.JAZZ_CASH,
           status: "pending",
           response_message: "pending",
-          to_provider: body.bankCode
+          to_provider: PROVIDERS.JAZZ_CASH
         },
       });
       throw new CustomError("Transaction is Pending", 202);

@@ -461,11 +461,6 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         +findMerchant.commissions[0].commissionRate +
         +findMerchant.commissions[0].commissionWithHoldingTax,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
-      providerDetails: {
-        id: easyPaisaMerchant.id,
-        name: PROVIDERS.EASYPAISA,
-        msisdn: phone,
-      },
     });
 
     // Return pending status and transaction ID immediately

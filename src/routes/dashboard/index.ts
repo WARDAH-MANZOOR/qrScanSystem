@@ -12,7 +12,7 @@ const router = Router();
 router.get(
   "/merchant",
   [isLoggedIn, ...merchantDashboardValidation],
-  authorize("Dashboards"),
+  authorize("Dashboard"),
   dashboardController.merchantDashboardDetails
 );
 router.get(

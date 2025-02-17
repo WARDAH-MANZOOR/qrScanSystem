@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { transactionController } from '../../controller/index.js';
-import { isLoggedIn } from '../../utils/middleware.js';
+import { authorize, isLoggedIn } from '../../utils/middleware.js';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ router.get('/', transactionController.getTransactions);
 router.get('/summary', transactionController.getDashboardSummary);
 router.get('/balance', transactionController.getProAndBal);
 router.get("/customer", [isLoggedIn], transactionController.getCustomerTransactions);
-router.get("/export",[isLoggedIn],transactionController.exportTransactions);
+router.get("/export",[isLoggedIn], authorize("Transactions"), transactionController.exportTransactions);
 export default router;
 
 

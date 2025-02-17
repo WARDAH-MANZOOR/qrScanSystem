@@ -9,7 +9,7 @@ const router = Router();
 router.get("/", [isLoggedIn, isAdmin], merchantController.getMerchants);
 router.put("/", [isLoggedIn, isAdmin, ...updateMerchantValidation], merchantController.updateMerchant);
 router.post("/", [isLoggedIn, isAdmin, ...addMerchantValidation], merchantController.addMerchant);
-router.post("/set-percent", [isLoggedIn], authorize("Dashboards"), merchantController.setDisbursePercent);
+router.post("/set-percent", [isLoggedIn], authorize("Dashboard"), merchantController.setDisbursePercent);
 
 
 
