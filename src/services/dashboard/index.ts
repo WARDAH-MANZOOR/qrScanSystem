@@ -7,7 +7,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {
-    const merchantId = params?.merchantId;
+    const merchantId = user?.merchant_id;
 
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
