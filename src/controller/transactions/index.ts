@@ -34,7 +34,9 @@ const createTransaction = async (
 
 const getTransactions = async (req: Request, res: Response) => {
   try {
-    const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
+    console.log(req.user)
+    const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
+    const { transactionId, merchantName, merchantTransactionId } = req.query;
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
@@ -165,7 +167,8 @@ const getTransactions = async (req: Request, res: Response) => {
 
 const exportTransactions = async (req: Request, res: Response) => {
   try {
-    const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
+    const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
+    const { transactionId, merchantName, merchantTransactionId } = req.query;
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
