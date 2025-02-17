@@ -3,8 +3,9 @@ import { Request, Response } from "express";
 import prisma from "prisma/client.js";
 import { easyPaisaService, jazzCashService } from "services/index.js";
 import { getToken, updateMwTransaction, updateTransaction, updateTransactionClone } from "services/paymentGateway/index.js";
+import CustomError from "./custom_error.js";
 
-const fetchPendingRecords = async (size: number, merchant_id: number, to_provider: string) => {
+const fetchPendingRecords = async (size: number) => {
   console.log("Disbursement Cron running");
 
   try {
@@ -55,13 +56,13 @@ const fetchPendingRecords = async (size: number, merchant_id: number, to_provide
   }
 };
 
-async function processPendingRecordsCron(req: Request, res: Response) {
-  const batchSize = req.body.size; // Number of records to process per cron job
-  const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize, req.body.merchant_id, req.body.to_provider) as { [key: string]: any[] };
+async function processPendingRecordsCron() {
+  const batchSize = 10; // Number of records to process per cron job
+  const records: { [key: string]: any[] } = await fetchPendingRecords(batchSize) as { [key: string]: any[] };
   console.log(records);
   if (!records || Object.keys(records).length === 0) {
     console.log("No pending records found.");
-    return;
+    throw new CustomError("No pending records found.", 400);
   }
   const doneTransactions = [];
   const failedTransactions = [];
@@ -137,11 +138,8 @@ async function processPendingRecordsCron(req: Request, res: Response) {
       }
     }
 
-    // Once all merchants are processed, send the response.
-    res.status(200).json({ message: "Transactions processed successfully", doneTransactions, failedTransactions });
   } catch (err) {
     console.log("Unexpected error: ", err);
-    res.status(500).json({ error: "Error processing the transactions", doneTransactions });
   }
 
 

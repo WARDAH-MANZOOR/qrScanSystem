@@ -30,6 +30,7 @@ import { JsonObject } from '@prisma/client/runtime/library';
 
 var app = express();
 cron.schedule("0 16 * * 1-5", task);
+cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
@@ -62,13 +63,6 @@ app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
 app.use('/auth_api', authRouter);
-app.post("/pending-process", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await pendingDisburse(req, res);
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Import all routes from routes/index
 routes(app);
