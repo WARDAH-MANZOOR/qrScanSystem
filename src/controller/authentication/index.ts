@@ -97,7 +97,8 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       id: user?.id,
       merchant_id: merchant[0]?.merchantId,
       group: userGroup,
-      permissions: merchant[0]?.group.permissions.map(permission => permission.permission.name)
+      permissions: merchant[0]?.group.permissions.map(permission => permission.permission.name),
+      uid: merchant[0]?.merchant?.uid,
     });
 
     // Set token in cookies
