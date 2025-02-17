@@ -34,6 +34,7 @@ const createTransaction = async (
 
 const getTransactions = async (req: Request, res: Response) => {
   try {
+    console.log(req.user)
     const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
     const { transactionId, merchantName, merchantTransactionId } = req.query;
 

@@ -5,7 +5,7 @@ import { authorize, isLoggedIn } from '../../utils/middleware.js';
 const router = Router();
 
 router.post('/', transactionController.filterTransactions);
-router.get('/', authorize("Transactions"), transactionController.getTransactions);
+router.get('/',[isLoggedIn], authorize("Transactions"), transactionController.getTransactions);
 router.get('/summary', transactionController.getDashboardSummary);
 router.get('/balance', transactionController.getProAndBal);
 router.get("/customer", [isLoggedIn], transactionController.getCustomerTransactions);

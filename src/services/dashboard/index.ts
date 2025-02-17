@@ -4,10 +4,11 @@ import CustomError from "../../utils/custom_error.js";
 import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
 import { toZonedTime } from "date-fns-tz";
 import { Decimal } from "@prisma/client/runtime/library";
+import { JwtPayload } from "jsonwebtoken";
 
 const merchantDashboardDetails = async (params: any, user: any) => {
   try {
-    const merchantId = user?.merchant_id;
+    const merchantId = (user as JwtPayload)?.merchant_id;
 
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
