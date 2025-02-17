@@ -337,7 +337,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
             id: easyPaisaMerchant[0].id,
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
-            transactionId: response.data.transactionId
+            transactionId: response?.data?.transactionId
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -363,6 +363,12 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
         {
           status: "failed",
           response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
+          providerDetails: {
+            id: easyPaisaMerchant[0].id,
+            name: PROVIDERS.EASYPAISA,
+            msisdn: phone,
+            transactionId: response?.data?.transactionId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -473,6 +479,12 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             {
               status: "completed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response.data.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -493,6 +505,12 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             {
               status: "failed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response.data.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -504,6 +522,11 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
           {
             status: "failed",
             response_message: error.message,
+            providerDetails: {
+              id: easyPaisaMerchant.id,
+              name: PROVIDERS.EASYPAISA,
+              msisdn: phone,
+            },
           },
           findMerchant.commissions[0].settlementDuration
         );
@@ -605,7 +628,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
       merchant_id: findMerchant.merchant_id,
       commission,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
-      
+      providerDetails: {
+        id: easyPaisaMerchant.id,
+        name: PROVIDERS.EASYPAISA,
+        msisdn: phone,
+      },
     });
 
     // Return pending status and transaction ID immediately
@@ -623,7 +650,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
-                transactionId: response.data.transactionId
+                transactionId: response?.data?.transactionId
               },
             },
             findMerchant.commissions[0].settlementDuration
@@ -645,6 +672,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             {
               status: "failed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response?.data?.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -656,6 +689,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
           {
             status: "failed",
             response_message: error.message,
+            providerDetails: {
+              id: easyPaisaMerchant.id,
+              name: PROVIDERS.EASYPAISA,
+              msisdn: phone,
+            },
           },
           findMerchant.commissions[0].settlementDuration
         );
