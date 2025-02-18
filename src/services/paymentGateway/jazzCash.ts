@@ -1085,10 +1085,10 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     where: {
       merchant_transaction_id: payload.transactionId,
       merchant_id: merchant?.merchant_id,
-      providerDetails: {
-        path: ['name'],
-        equals: PROVIDERS.JAZZ_CASH
-      }
+      // providerDetails: {
+      //   path: ['name'],
+      //   equals: PROVIDERS.JAZZ_CASH
+      // }
     }
   })
 

@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService, transactionService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
 
@@ -227,6 +227,22 @@ const initiateDisbursmentClone = async (req: Request, res: Response, next: NextF
   }
 }
 
+const initiateSandboxDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("IBFT Called")
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    if (req.body.amount <= 1) {
+      throw new CustomError("Amount should be greater than 0", 400);
+    }
+    const token = await simpleSandboxGetToken(req.params.merchantId);
+    const initTransaction = await simpleSandboxinitiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    res.status(200).json(ApiResponse.success(initTransaction));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
 const initiateMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
@@ -235,6 +251,22 @@ const initiateMWDisbursementClone = async (req: Request, res: Response, next: Ne
     }
     const token = await getToken(req.params.merchantId);
     const initTransaction = await mwTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    
+    res.status(200).json(ApiResponse.success(initTransaction));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
+const initiateSandboxMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    if (req.body.amount <= 1) {
+      throw new CustomError("Amount should be greater than 0", 400);
+    }
+    const token = await simpleSandboxGetToken(req.params.merchantId);
+    const initTransaction = await simpleSandboxMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
     
     res.status(200).json(ApiResponse.success(initTransaction));
   }
@@ -325,5 +357,7 @@ export default {
   jazzStatusInquiry,
   initiateJazzCashCnic,
   initiateDisbursmentClone,
-  initiateMWDisbursementClone
+  initiateMWDisbursementClone,
+  initiateSandboxMWDisbursementClone,
+  initiateSandboxDisbursmentClone
 };
