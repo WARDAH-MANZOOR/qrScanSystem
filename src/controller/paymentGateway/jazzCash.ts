@@ -266,6 +266,9 @@ const initiateSandboxMWDisbursementClone = async (req: Request, res: Response, n
       throw new CustomError("Amount should be greater than 0", 400);
     }
     const token = await simpleSandboxGetToken(req.params.merchantId);
+    if (!token?.access_token) {
+      res.status(500).json(ApiResponse.error(token));
+    }
     const initTransaction = await simpleSandboxMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
     
     res.status(200).json(ApiResponse.success(initTransaction));
