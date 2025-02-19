@@ -29,7 +29,6 @@ export default function (router: Router) {
 
   router.post(
     "/ssjz-disburse/:merchantId",
-    [apiKeyAuth],
     jazzCashController.initiateSandboxDisbursmentClone
   )
 

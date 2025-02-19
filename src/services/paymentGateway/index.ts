@@ -2972,6 +2972,7 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
   let findMerchant: any;
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
+  let obj: any = {};
   try {
     // validate Merchant
     findMerchant = await merchantService.findOne({
@@ -3081,6 +3082,12 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
       maxWait: 60000,
       timeout: 60000,
     })
+    obj["mw_request"] = {
+      receiverCNIC: body.cnic,
+      receiverMSISDN: body.phone,
+      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+      referenceId: id
+    }
     const payload = encryptData(
       {
         receiverCNIC: body.cnic,
@@ -3112,7 +3119,8 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
     console.log("MW Response", res);
     if (!res.data) {
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
-      return res;
+      obj["mw_response"] = res;
+      return obj;
       // await prisma.disbursement.create({
       //   data: {
       //     ...data,
@@ -3166,7 +3174,8 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
           response_message: res.responseDescription
         },
       });
-      return res;
+      obj["mw_response"] = res;
+      return obj;
       // throw new CustomError(res.responseDescription, 500);
     }
     return await prisma.$transaction(
@@ -3221,8 +3230,8 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
           stringToBoolean(findMerchant.encrypted as string),
           false
         );
-
-        return res;
+        obj["mw_response"] = res;
+        return obj;
       },
       {
         maxWait: 5000,
