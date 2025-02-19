@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService, transactionService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
 
@@ -312,6 +312,18 @@ const simpleDisburseInquiryController = async (req: Request, res: Response, next
   }
 }
 
+const simpleSandboxDisburseInquiryController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await simpleSandboxGetToken(req.params.merchantId);
+    const inquiry = await simpleSandboxCheckTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+    res.status(200).json(ApiResponse.success(inquiry));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
 const initiateJazzCashCnic = async (
   req: Request,
   res: Response,
@@ -362,5 +374,6 @@ export default {
   initiateDisbursmentClone,
   initiateMWDisbursementClone,
   initiateSandboxMWDisbursementClone,
-  initiateSandboxDisbursmentClone
+  initiateSandboxDisbursmentClone,
+  simpleSandboxDisburseInquiryController
 };

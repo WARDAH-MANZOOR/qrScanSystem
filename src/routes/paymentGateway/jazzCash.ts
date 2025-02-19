@@ -18,6 +18,7 @@ export default function (router: Router) {
   router.post("/jzwc-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursementClone)
   router.post("/jz-disburse-status/:merchantId",[apiKeyAuth],jazzCashController.disburseInquiryController);
   router.post("/sjz-disburse-status/:merchantId",jazzCashController.simpleDisburseInquiryController);
+  router.post("/ssjz-disburse-status/:merchantId",jazzCashController.simpleSandboxDisburseInquiryController);
   router.post("/ssjzw-disburse/:merchantId",jazzCashController.initiateSandboxMWDisbursementClone)
   // Define routes using arrow functions
   router.post(

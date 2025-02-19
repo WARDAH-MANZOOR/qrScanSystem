@@ -95,7 +95,7 @@ async function simpleSandboxGetToken(merchantId: string) {
     const myHeaders = new Headers();
     myHeaders.append("Authorization", `Basic ${findDisbureMerch.tokenKey}`);
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
-
+    console.log("Disbursement Merchant: ",findDisbureMerch)
     const urlencoded = new URLSearchParams();
     urlencoded.append("grant_type", "client_credentials");
 
@@ -1214,6 +1214,7 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
   let findMerchant: any;
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
+  let obj: any = {};
   try {
     // validate Merchant
     findMerchant = await merchantService.findOne({
@@ -1360,26 +1361,28 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     let data;
     if (!res.data) {
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      await prisma.disbursement.create({
-        data: {
-          ...data2,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: new Date(),
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: body.amount ? body.amount : merchantAmount,
-          platform: 0,
-          account: body.iban,
-          provider: PROVIDERS.JAZZ_CASH,
-          status: "pending",
-          response_message: "pending",
-          to_provider: body.bankCode
-        },
-      });
-      throw new CustomError("Transaction is Pending", 202);
+      obj["inquiry_response"] = res;
+      return obj;
+      // await prisma.disbursement.create({
+      //   data: {
+      //     ...data2,
+      //     // transaction_id: id,
+      //     merchant_id: Number(findMerchant.merchant_id),
+      //     disbursementDate: new Date(),
+      //     transactionAmount: amountDecimal,
+      //     commission: totalCommission,
+      //     gst: totalGST,
+      //     withholdingTax: totalWithholdingTax,
+      //     merchantAmount: body.amount ? body.amount : merchantAmount,
+      //     platform: 0,
+      //     account: body.iban,
+      //     provider: PROVIDERS.JAZZ_CASH,
+      //     status: "pending",
+      //     response_message: "pending",
+      //     to_provider: body.bankCode
+      //   },
+      // });
+      // throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
@@ -1413,8 +1416,11 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
           response_message: data.responseDescription
         },
       });
-      throw new CustomError(data.responseDescription, 500)
+      obj["inquiry_response"] = data;
+      return obj
+      // throw new CustomError(data.responseDescription, 500)
     }
+    obj["inquiry_response"] = data;
 
     id = transactionService.createTransactionId();
     console.log("Confirm Request: ", {
@@ -1446,26 +1452,28 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     res = await response.json();
     if (!res.data) {
       easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      await prisma.disbursement.create({
-        data: {
-          ...data2,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: new Date(),
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: body.amount ? body.amount : merchantAmount,
-          platform: 0,
-          account: body.iban,
-          provider: PROVIDERS.JAZZ_CASH,
-          status: "pending",
-          response_message: "pending",
-          to_provider: body.bankCode
-        },
-      });
-      throw new CustomError("Transaction is Pending", 202);
+      obj["payment_response"] = res;
+      return obj;
+      // await prisma.disbursement.create({
+      //   data: {
+      //     ...data2,
+      //     // transaction_id: id,
+      //     merchant_id: Number(findMerchant.merchant_id),
+      //     disbursementDate: new Date(),
+      //     transactionAmount: amountDecimal,
+      //     commission: totalCommission,
+      //     gst: totalGST,
+      //     withholdingTax: totalWithholdingTax,
+      //     merchantAmount: body.amount ? body.amount : merchantAmount,
+      //     platform: 0,
+      //     account: body.iban,
+      //     provider: PROVIDERS.JAZZ_CASH,
+      //     status: "pending",
+      //     response_message: "pending",
+      //     to_provider: body.bankCode
+      //   },
+      // });
+      // throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
@@ -1499,8 +1507,11 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
           response_message: res.responseDescription
         },
       });
-      throw new CustomError(res.responseDescription, 500)
+      obj["payment_response"] = res;
+      return obj;
+      // throw new CustomError(res.responseDescription, 500)
     }
+    obj["payment_response"] = res;
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
@@ -1553,8 +1564,8 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
           stringToBoolean(findMerchant.encrypted as string),
           false
         );
-
-        return res;
+        return obj;
+        // return res;
       }, {
       isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
       maxWait: 60000,
@@ -3553,6 +3564,70 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   return jsonResponse; // Array of status responses for each transaction ID
 }
 
+async function simpleSandboxCheckTransactionStatus(token: string, body: any, merchantId: string) {
+  // validate Merchant
+  const findMerchant = await merchantService.findOne({
+    uid: merchantId,
+  });
+
+  if (!findMerchant) {
+    throw new CustomError("Merchant not found", 404);
+  }
+
+  if (!findMerchant.JazzCashDisburseAccountId) {
+    throw new CustomError("Disbursement account not assigned.", 404);
+  }
+
+  // find disbursement merchant
+  const findDisbureMerch: any = await jazzcashDisburse
+    .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+    .then((res) => res?.data);
+
+  if (!findDisbureMerch) {
+    throw new CustomError("Disbursement account not found", 404);
+  }
+
+  const results = [];
+
+  for (const id of body.transactionIds) {
+    const transaction = await prisma.disbursement.findFirst({
+      where: {
+        merchant_custom_order_id: id,
+        merchant_id: findMerchant.merchant_id
+      }
+    });
+    if (!transaction || !transaction?.transaction_id) {
+      results.push({ id, status: "Transaction not found" });
+      continue;
+    }
+    console.log("Inquiry Payload: ", { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() })
+    const payload = encryptData(
+      { originalReferenceId: transaction.system_order_id, referenceID: transactionService.createTransactionId() },
+      findDisbureMerch.key, findDisbureMerch.initialVector
+    );
+    const requestData = {
+      data: payload
+    };
+    console.log(requestData)
+    try {
+      const response = await fetch(`https://gateway-sandbox.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      const jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+      results.push({ id, status: jsonResponse });
+    } catch (error: any) {
+      // Handle error (e.g., network issue) and add to results
+      results.push({ id, status: null, error: error?.message });
+    }
+  }
+
+  return results; // Array of status responses for each transaction ID
+}
 
 
 // Main execution function to get the token and perform transactions
@@ -3594,5 +3669,6 @@ export {
   updateTransactionClone,
   simpleSandboxGetToken,
   simpleSandboxMwTransactionClone,
-  simpleSandboxinitiateTransactionClone
+  simpleSandboxinitiateTransactionClone,
+  simpleSandboxCheckTransactionStatus
 }
