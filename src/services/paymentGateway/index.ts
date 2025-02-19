@@ -114,7 +114,7 @@ async function simpleSandboxGetToken(merchantId: string) {
     return token;
   } catch (error) {
     console.error('Fetch error:', error);
-
+    return error;
   }
 }
 
@@ -3101,26 +3101,27 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
     console.log("MW Response", res);
     if (!res.data) {
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
-      await prisma.disbursement.create({
-        data: {
-          ...data,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: new Date(),
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: body.amount ? body.amount : merchantAmount,
-          platform: 0,
-          account: body.phone,
-          provider: PROVIDERS.JAZZ_CASH,
-          status: "pending",
-          response_message: "pending",
-          to_provider: PROVIDERS.JAZZ_CASH
-        },
-      });
-      throw new CustomError("Transaction is Pending", 202);
+      return res;
+      // await prisma.disbursement.create({
+      //   data: {
+      //     ...data,
+      //     // transaction_id: id,
+      //     merchant_id: Number(findMerchant.merchant_id),
+      //     disbursementDate: new Date(),
+      //     transactionAmount: amountDecimal,
+      //     commission: totalCommission,
+      //     gst: totalGST,
+      //     withholdingTax: totalWithholdingTax,
+      //     merchantAmount: body.amount ? body.amount : merchantAmount,
+      //     platform: 0,
+      //     account: body.phone,
+      //     provider: PROVIDERS.JAZZ_CASH,
+      //     status: "pending",
+      //     response_message: "pending",
+      //     to_provider: PROVIDERS.JAZZ_CASH
+      //   },
+      // });
+      // throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
@@ -3154,7 +3155,8 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
           response_message: res.responseDescription
         },
       });
-      throw new CustomError(res.responseDescription, 500);
+      return res;
+      // throw new CustomError(res.responseDescription, 500);
     }
     return await prisma.$transaction(
       async (tx) => {
