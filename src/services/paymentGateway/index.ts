@@ -1321,6 +1321,14 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
       maxWait: 60000,
       timeout: 60000,
     })
+
+    obj["inquiry_request"] = {
+      bankAccountNumber: body.iban,
+      bankCode: body.bankCode,
+      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+      receiverMSISDN: body.phone,
+      referenceId: id
+    }
     console.log("Initiate Request: ", {
       bankAccountNumber: body.iban,
       bankCode: body.bankCode,
@@ -1423,6 +1431,10 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     obj["inquiry_response"] = data;
 
     id = transactionService.createTransactionId();
+    obj["payment_request"] = {
+      "Init_transactionID": data.transactionID,
+      "referenceID": id
+    }
     console.log("Confirm Request: ", {
       "Init_transactionID": data.transactionID,
       "referenceID": id
