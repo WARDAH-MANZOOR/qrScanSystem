@@ -231,9 +231,6 @@ const initiateSandboxDisbursmentClone = async (req: Request, res: Response, next
   try {
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    if (req.body.amount <= 1) {
-      throw new CustomError("Amount should be greater than 0", 400);
-    }
     const token = await simpleSandboxGetToken(req.params.merchantId);
     const initTransaction = await simpleSandboxinitiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
     res.status(200).json(ApiResponse.success(initTransaction));
@@ -246,6 +243,9 @@ const initiateSandboxDisbursmentClone = async (req: Request, res: Response, next
 const initiateMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    if (req.body.amount <= 1) {
+      throw new CustomError("Amount should be greater than 0", 400);
+    }
     const token = await getToken(req.params.merchantId);
     const initTransaction = await mwTransactionClone(token?.access_token, req.body, req.params.merchantId);
     
