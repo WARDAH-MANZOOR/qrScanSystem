@@ -54,10 +54,6 @@ const initiateJazzCashAsync = async (req, res, next) => {
 };
 const getJazzCashMerchant = async (req, res, next) => {
     try {
-        // const errors = validationResult(req);
-        // if (!errors.isEmpty()) {
-        //    res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
-        // }
         const query = req.query;
         const result = await jazzCashService.getJazzCashMerchant(query);
         res.status(200).json(ApiResponse.success(result));

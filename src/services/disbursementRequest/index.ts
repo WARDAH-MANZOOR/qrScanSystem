@@ -182,10 +182,6 @@ const exportDisbursementRequest = async (merchantId: number, params: any) => {
                 throw new CustomError("Unable to get disbursement history", 500);
             });
 
-
-        // res.setHeader('Content-Type', 'text/csv');
-        // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-
         const fields = [
             'merchant',
             'status',
@@ -203,19 +199,7 @@ const exportDisbursementRequest = async (merchantId: number, params: any) => {
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
         return `${csv}`;
-        // loop through disbursements and add transaction details
-        // for (let i = 0; i < disbursements.length; i++) {
-        //   if (!disbursements[i].transaction_id) {
-        //     disbursements[i].transaction = null;
-        //   } else {
-        //     const transaction = await prisma.transaction.findFirst({
-        //       where: {
-        //         transaction_id: disbursements[i].transaction_id,
-        //       },
-        //     });
-        //     disbursements[i].transaction = transaction;
-        //   }
-        // }
+        
     } catch (error: any) {
         throw new CustomError(
             error?.error || "Unable to get disbursement",

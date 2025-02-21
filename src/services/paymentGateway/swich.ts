@@ -870,12 +870,8 @@ export default {
   updateMerchant,
   deleteMerchant,
   swichTxInquiry,
-<<<<<<< HEAD
   getAuthToken,
-  initiateSwichAsync
-=======
   initiateSwichAsync,
   initiateSwichClone,
   initiateSwichAsyncClone
->>>>>>> 5c28e650fa65f680fd59d082833c6a37ed42da54
 };

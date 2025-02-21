@@ -141,7 +141,11 @@ async function adjustMerchantWalletBalanceWithoutSettlement(merchantId, targetBa
         // if (!wb) {
         const balance = await getWalletBalance(merchantId);
         walletBalance = balance.walletBalance;
-       
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
         if (walletBalance === 0) {
             throw new CustomError("Current balance is 0", 400);
         }

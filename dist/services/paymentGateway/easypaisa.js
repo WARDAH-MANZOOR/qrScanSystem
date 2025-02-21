@@ -13,6 +13,9 @@ import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
+import path, { dirname } from "path";
+import { createObjectCsvWriter } from "csv-writer";
+import { fileURLToPath } from "url";
 import { Prisma } from "@prisma/client";
 dotenv.config();
 function stringToBoolean(value) {
@@ -695,29 +698,30 @@ const corporateLogin = async (obj) => {
         throw new CustomError(error?.message || "An error occurred while initiating the transaction", 500);
     }
 };
-// const saveToCsv = async (record: any) => {
-//   // Define the path to save the CSV file
-//   const __filename = fileURLToPath(import.meta.url);
-//   const __dirname = dirname(__filename);
-//   const csvFilePath = path.join(__dirname, 'records.csv');
-//   // Configure the CSV writer
-//   const csvWriter = createObjectCsvWriter({
-//     path: csvFilePath,
-//     header: [
-//       { id: 'id', title: 'ID' },
-//       { id: 'order_amount', title: 'Order Amount' },
-//       { id: 'balance', title: 'Balance' },
-//       { id: 'status', title: 'Status' },
-//     ],
-//     append: true,
-//   });
-//   try {
-//     // Write data to the CSV file
-//     await csvWriter.writeRecords([record]);
-//     console.log('CSV file created successfully at', csvFilePath);
-//   } catch (error) {
-//     console.error('Error writing to CSV file:', error);
-//   }
+// const saveToCsv = async (record) => {
+//     // Define the path to save the CSV file
+//     const __filename = fileURLToPath(import.meta.url);
+//     const __dirname = dirname(__filename);
+//     const csvFilePath = path.join(__dirname, 'records.csv');
+//     // Configure the CSV writer
+//     const csvWriter = createObjectCsvWriter({
+//         path: csvFilePath,
+//         header: [
+//             { id: 'id', title: 'ID' },
+//             { id: 'order_amount', title: 'Order Amount' },
+//             { id: 'balance', title: 'Balance' },
+//             { id: 'status', title: 'Status' },
+//         ],
+//         append: true,
+//     });
+//     try {
+//         // Write data to the CSV file
+//         await csvWriter.writeRecords([record]);
+//         console.log('CSV file created successfully at', csvFilePath);
+//     }
+//     catch (error) {
+//         console.error('Error writing to CSV file:', error);
+//     }
 // };
 const createDisbursement = async (obj, merchantId) => {
     try {
@@ -1451,7 +1455,6 @@ const getDisbursement = async (merchantId, params) => {
             .catch((err) => {
             throw new CustomError("Unable to get disbursement history", 500);
         });
-  
         let meta = {};
         if (page && take) {
             // Get the total count of transactions
@@ -1572,7 +1575,6 @@ const exportDisbursement = async (merchantId, params) => {
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
         return `${csv}\nTotal Settled Amount,,${totalAmount}`;
-       
     }
     catch (error) {
         throw new CustomError(error?.error || "Unable to get disbursement", error?.statusCode || 500);
@@ -1607,7 +1609,11 @@ const disburseThroughBankClone = async (obj, merchantId) => {
                 throw new CustomError("Order ID already exists", 400);
             }
         }
-      
+        // Phone number validation (must start with 92)
+        // if (!obj.phone.startsWith("92")) {
+        //   throw new CustomError("Number should start with 92", 400);
+        // }
+        // Fetch merchant financial terms
         const bank = bankDetails.find((bank) => bank.BankName === obj.bankName);
         if (!bank) {
             throw new CustomError("Bank not found", 404);
@@ -2505,31 +2511,31 @@ const transactionInquiry = async (obj, merchantId) => {
 // const transactionINquiry
 export default {
     initiateEasyPaisa,
-    disburseThroughBankClone,
-    
-    // saveToCsv,
-    updateDisbursement,
     initiateEasyPaisaClone,
-    initiateEasyPaisaAsyncClone,
     createMerchant,
     getMerchant,
     updateMerchant,
     createRSAEncryptedPayload,
-    adjustMerchantToDisburseBalance,
+    initiateEasyPaisaAsyncClone,
     deleteMerchant,
     easypaisainquiry,
     getMerchantChannel,
     createDisbursement,
+    updateDisbursement,
+    createDisbursementClone,
+    adjustMerchantToDisburseBalance,
+    disburseThroughBankClone,
     getDisbursement,
     disburseThroughBank,
-    createDisbursementClone,
     getTransaction,
     // getTransaction,
     initiateEasyPaisaAsync,
     accountBalance,
     transactionInquiry,
     getMerchantInquiryMethod,
-    exportDisbursement
+    // saveToCsv,
+    exportDisbursement,
+    updateDisburseThroughBank,
 };
 // const axios = require('axios');
 // ...(skip && { skip: +skip }),

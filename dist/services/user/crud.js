@@ -51,27 +51,6 @@ export const getUsers = async (merchantId) => {
 export const updateUser = async (userId, fullName, email, merchantId, groups, password) => {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
     console.log(merchantId);
-    // const user = await prisma.user.findUnique({
-    //     where: { id: userId },
-    //     include: {
-    //         groups: {
-    //             include: {
-    //                 group: {
-    //                     include: {
-    //                         permissions: {
-    //                             include: {
-    //                                 permission: true,
-    //                             },
-    //                         },
-    //                     },
-    //                 },
-    //             },
-    //         },
-    //     },
-    // });
-    // if (user?.groups[0].merchantId !== merchantId) {
-    //     return null;
-    // }
     const updatedUser = await prisma.user.update({
         where: {
             id: userId,

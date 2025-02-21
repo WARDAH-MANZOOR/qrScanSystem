@@ -675,5 +675,7 @@ export default {
     deleteMerchant,
     swichTxInquiry,
     getAuthToken,
-    initiateSwichAsync
+    initiateSwichAsync,
+    initiateSwichClone,
+    initiateSwichAsyncClone
 };

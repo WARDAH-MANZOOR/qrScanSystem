@@ -584,6 +584,8 @@ export default {
   convertPhoneNumber,
   getMerchantChannel,
   getMerchantInquiryMethod,
-  getTransaction
+  getTransaction, 
+  switchPaymentProvider,
+  updateMerchantSwitch,
 };
 export { isValidTransactionCompletion, isValidTransactionRequest}

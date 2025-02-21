@@ -896,32 +896,32 @@ const corporateLogin = async (obj: IDisbursement) => {
   }
 };
 
-// const saveToCsv = async (record: any) => {
-//   // Define the path to save the CSV file
-//   const __filename = fileURLToPath(import.meta.url);
-//   const __dirname = dirname(__filename);
-//   const csvFilePath = path.join(__dirname, 'records.csv');
+const saveToCsv = async (record: any) => {
+  // Define the path to save the CSV file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const csvFilePath = path.join(__dirname, 'records.csv');
 
-//   // Configure the CSV writer
-//   const csvWriter = createObjectCsvWriter({
-//     path: csvFilePath,
-//     header: [
-//       { id: 'id', title: 'ID' },
-//       { id: 'order_amount', title: 'Order Amount' },
-//       { id: 'balance', title: 'Balance' },
-//       { id: 'status', title: 'Status' },
-//     ],
-//     append: true,
-//   });
+  // Configure the CSV writer
+  const csvWriter = createObjectCsvWriter({
+    path: csvFilePath,
+    header: [
+      { id: 'id', title: 'ID' },
+      { id: 'order_amount', title: 'Order Amount' },
+      { id: 'balance', title: 'Balance' },
+      { id: 'status', title: 'Status' },
+    ],
+    append: true,
+  });
 
-//   try {
-//     // Write data to the CSV file
-//     await csvWriter.writeRecords([record]);
-//     console.log('CSV file created successfully at', csvFilePath);
-//   } catch (error) {
-//     console.error('Error writing to CSV file:', error);
-//   }
-// };
+  try {
+    // Write data to the CSV file
+    await csvWriter.writeRecords([record]);
+    console.log('CSV file created successfully at', csvFilePath);
+  } catch (error) {
+    console.error('Error writing to CSV file:', error);
+  }
+};
 
 const createDisbursement = async (
   obj: DisbursementPayload,
@@ -1795,19 +1795,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
         throw new CustomError("Unable to get disbursement history", 500);
       });
 
-    // loop through disbursements and add transaction details
-    // for (let i = 0; i < disbursements.length; i++) {
-    //   if (!disbursements[i].transaction_id) {
-    //     disbursements[i].transaction = null;
-    //   } else {
-    //     const transaction = await prisma.transaction.findFirst({
-    //       where: {
-    //         transaction_id: disbursements[i].transaction_id,
-    //       },
-    //     });
-    //     disbursements[i].transaction = transaction;
-    //   }
-    // }
+ 
     let meta = {};
     if (page && take) {
       // Get the total count of transactions
@@ -1947,19 +1935,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(data);
     return `${csv}\nTotal Settled Amount,,${totalAmount}`;
-    // loop through disbursements and add transaction details
-    // for (let i = 0; i < disbursements.length; i++) {
-    //   if (!disbursements[i].transaction_id) {
-    //     disbursements[i].transaction = null;
-    //   } else {
-    //     const transaction = await prisma.transaction.findFirst({
-    //       where: {
-    //         transaction_id: disbursements[i].transaction_id,
-    //       },
-    //     });
-    //     disbursements[i].transaction = transaction;
-    //   }
-    // }
+  
   } catch (error: any) {
     throw new CustomError(
       error?.error || "Unable to get disbursement",
@@ -3072,7 +3048,9 @@ export default {
   accountBalance,
   transactionInquiry,
   getMerchantInquiryMethod,
-  exportDisbursement
+  saveToCsv,
+  exportDisbursement,
+  updateDisburseThroughBank,
 };
 
 // const axios = require('axios');
