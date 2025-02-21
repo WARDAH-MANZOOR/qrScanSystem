@@ -1250,89 +1250,20 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
         throw new CustomError("Order ID already exists", 400);
       }
     }
-    let totalCommission: Decimal = new Decimal(0);
-    let totalGST: Decimal = new Decimal(0);
-    let totalWithholdingTax: Decimal = new Decimal(0);
-    let amountDecimal: Decimal = new Decimal(body.amount);
-    let merchantAmount: Decimal = new Decimal(body.amount);
-    totalDisbursed = new Decimal(0);
+
     let id = transactionService.createTransactionId();
-    let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
-    if (body.order_id) {
-      data2["merchant_custom_order_id"] = body.order_id;
-    }
-    else {
-      data2["merchant_custom_order_id"] = id;
-    }
-    data2["system_order_id"] = id;
-    await prisma.$transaction(async (tx) => {
-      try {
-        let rate = await getMerchantRate(tx, findMerchant.merchant_id);
-
-        // Calculate total deductions and merchant amount
-        totalCommission = amountDecimal.mul(rate.disbursementRate);
-        totalGST = amountDecimal.mul(rate.disbursementGST);
-        totalWithholdingTax = amountDecimal.mul(
-          rate.disbursementWithHoldingTax
-        );
-        const totalDeductions = totalCommission
-          .plus(totalGST)
-          .plus(totalWithholdingTax);
-        merchantAmount = body.amount
-          ? amountDecimal.plus(totalDeductions)
-          : amountDecimal.minus(totalDeductions);
-
-        // Get eligible transactions
-        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
-          throw new CustomError("Insufficient balance to disburse", 400);
-        }
-        const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
-      }
-      catch (err) {
-        if (err instanceof Prisma.PrismaClientKnownRequestError) {
-          if (err.code === 'P2034') {
-            await prisma.disbursement.create({
-              data: {
-                ...data2,
-                // transaction_id: id,
-                merchant_id: Number(findMerchant.merchant_id),
-                disbursementDate: new Date(),
-                transactionAmount: amountDecimal,
-                commission: totalCommission,
-                gst: totalGST,
-                withholdingTax: totalWithholdingTax,
-                merchantAmount: body.amount ? body.amount : merchantAmount,
-                platform: 0,
-                account: body.iban,
-                provider: PROVIDERS.JAZZ_CASH,
-                status: "pending",
-                response_message: "pending",
-                to_provider: body.bankCode
-              },
-            });
-            throw new CustomError("Transaction is Pending", 202);
-          }
-        }
-        throw new CustomError("Not Enough Balance", 400);
-      }
-    }, {
-      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-      maxWait: 60000,
-      timeout: 60000,
-    })
 
     obj["inquiry_request"] = {
       bankAccountNumber: body.iban,
       bankCode: body.bankCode,
-      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+      amount: body.amount,
       receiverMSISDN: body.phone,
       referenceId: id
     }
     console.log("Initiate Request: ", {
       bankAccountNumber: body.iban,
       bankCode: body.bankCode,
-      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+      amount: body.amount,
       receiverMSISDN: body.phone,
       referenceId: id
     })
@@ -1341,7 +1272,7 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
       {
         bankAccountNumber: body.iban,
         bankCode: body.bankCode,
-        amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+        amount: body.amount,
         receiverMSISDN: body.phone,
         referenceId: id
       }
@@ -1368,7 +1299,6 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     let res = await response.json();
     let data;
     if (!res.data) {
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       obj["inquiry_response"] = res;
       return obj;
       // await prisma.disbursement.create({
@@ -1396,34 +1326,6 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      data2["transaction_id"] = data.transactionID || db_id;
-      // Get the current date
-      const date = new Date();
-
-      // Define the Pakistan timezone
-      const timeZone = 'Asia/Karachi';
-
-      // Convert the date to the Pakistan timezone
-      const zonedDate = toZonedTime(date, timeZone);
-      await prisma.disbursement.create({
-        data: {
-          ...data2,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: zonedDate,
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: body.amount ? body.amount : merchantAmount,
-          platform: 0,
-          account: body.iban,
-          provider: PROVIDERS.BANK,
-          status: "failed",
-          response_message: data.responseDescription
-        },
-      });
       obj["inquiry_response"] = data;
       return obj
       // throw new CustomError(data.responseDescription, 500)
@@ -1463,7 +1365,6 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     })
     res = await response.json();
     if (!res.data) {
-      easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       obj["payment_response"] = res;
       return obj;
       // await prisma.disbursement.create({
@@ -1491,99 +1392,13 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      data2["transaction_id"] = res.transactionID || db_id;
-      // Get the current date
-      const date = new Date();
-
-      // Define the Pakistan timezone
-      const timeZone = 'Asia/Karachi';
-
-      // Convert the date to the Pakistan timezone
-      const zonedDate = toZonedTime(date, timeZone);
-      await prisma.disbursement.create({
-        data: {
-          ...data2,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: zonedDate,
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: body.amount ? body.amount : merchantAmount,
-          platform: 0,
-          account: body.iban,
-          provider: PROVIDERS.BANK,
-          status: "failed",
-          response_message: res.responseDescription
-        },
-      });
       obj["payment_response"] = res;
       return obj;
       // throw new CustomError(res.responseDescription, 500)
     }
     obj["payment_response"] = res;
-    return await prisma.$transaction(
-      async (tx) => {
-        // Update transactions to adjust balances
-        data2["transaction_id"] = res.transactionID;
-        // }
-        // Get the current date
-        const date = new Date();
-
-        // Define the Pakistan timezone
-        const timeZone = 'Asia/Karachi';
-
-        // Convert the date to the Pakistan timezone
-        const zonedDate = toZonedTime(date, timeZone);
-        // Create disbursement record
-        let disbursement = await tx.disbursement.create({
-          data: {
-            ...data2,
-            // transaction_id: id,
-            merchant_id: Number(findMerchant.merchant_id),
-            disbursementDate: zonedDate,
-            transactionAmount: amountDecimal,
-            commission: totalCommission,
-            gst: totalGST,
-            withholdingTax: totalWithholdingTax,
-            merchantAmount: body.amount ? body.amount : merchantAmount,
-            platform: 0,
-            account: body.iban,
-            provider: PROVIDERS.BANK,
-            status: "completed",
-            response_message: "success"
-          },
-        });
-        let webhook_url: string;
-        if (findMerchant.callback_mode == "DOUBLE") {
-          webhook_url = findMerchant.payout_callback as string;
-        }
-        else {
-          webhook_url = findMerchant.webhook_url as string;
-        }
-        transactionService.sendCallback(
-          webhook_url,
-          {
-            original_amount: body.amount ? body.amount : merchantAmount,
-            date_time: zonedDate,
-            merchant_transaction_id: disbursement.merchant_custom_order_id,
-            merchant_id: findMerchant.merchant_id
-          },
-          body.phone,
-          "payout",
-          stringToBoolean(findMerchant.encrypted as string),
-          false
-        );
-        return obj;
+    return obj;
         // return res;
-      }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-      maxWait: 60000,
-      timeout: 60000,
-    }
-    );
   }
   catch (err: any) {
     console.log("Initiate Transaction Error", err);
@@ -3009,102 +2824,19 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
       throw new CustomError("Disbursement account not found", 404);
     }
 
-    // Phone number validation (must start with 92)
-    if (!body.phone.startsWith("92")) {
-      throw new CustomError("Number should start with 92", 400);
-    }
-
-    if (body.order_id) {
-      const checkOrder = await prisma.disbursement.findFirst({
-        where: {
-          merchant_custom_order_id: body.order_id,
-        },
-      });
-      if (checkOrder) {
-        throw new CustomError("Order ID already exists", 400);
-      }
-    }
-    let totalCommission: Decimal = new Decimal(0);
-    let totalGST: Decimal = new Decimal(0);
-    let totalWithholdingTax: Decimal = new Decimal(0);
-    let amountDecimal: Decimal = new Decimal(body.amount);
-    let merchantAmount: Decimal = new Decimal(body.amount);
-    let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     let id = transactionService.createTransactionId();
-    if (body.order_id) {
-      data["merchant_custom_order_id"] = body.order_id;
-    }
-    else {
-      data["merchant_custom_order_id"] = id;
-    }
-    data["system_order_id"] = id;
-    await prisma.$transaction(async (tx) => {
-      try {
-        let rate = await getMerchantRate(tx, findMerchant.merchant_id);
-
-        // Calculate total deductions and merchant amount
-        totalCommission = amountDecimal.mul(rate.disbursementRate);
-        totalGST = amountDecimal.mul(rate.disbursementGST);
-        totalWithholdingTax = amountDecimal.mul(
-          rate.disbursementWithHoldingTax
-        );
-        const totalDeductions = totalCommission
-          .plus(totalGST)
-          .plus(totalWithholdingTax);
-        merchantAmount = body.amount
-          ? amountDecimal.plus(totalDeductions)
-          : amountDecimal.minus(totalDeductions);
-
-        // Get eligible transactions
-        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
-          throw new CustomError("Insufficient balance to disburse", 400);
-        }
-        const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false); // Adjust the balance
-      }
-      catch (err) {
-        if (err instanceof Prisma.PrismaClientKnownRequestError) {
-          if (err.code === 'P2034') {
-            await prisma.disbursement.create({
-              data: {
-                ...data,
-                // transaction_id: id,
-                merchant_id: Number(findMerchant.merchant_id),
-                disbursementDate: new Date(),
-                transactionAmount: amountDecimal,
-                commission: totalCommission,
-                gst: totalGST,
-                withholdingTax: totalWithholdingTax,
-                merchantAmount: body.amount ? body.amount : merchantAmount,
-                platform: 0,
-                account: body.phone,
-                provider: PROVIDERS.JAZZ_CASH,
-                status: "pending",
-                response_message: "pending",
-                to_provider: PROVIDERS.JAZZ_CASH
-              },
-            });
-            throw new CustomError("Transaction is Pending", 202);
-          }
-        }
-        throw new CustomError("Not Enough Balance", 400);
-      }
-    }, {
-      // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-      maxWait: 60000,
-      timeout: 60000,
-    })
+    
     obj["mw_request"] = {
       receiverCNIC: body.cnic,
       receiverMSISDN: body.phone,
-      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+      amount: body.amount,
       referenceId: id
     }
     const payload = encryptData(
       {
         receiverCNIC: body.cnic,
         receiverMSISDN: body.phone,
-        amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+        amount: body.amount,
         referenceId: id
       }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
@@ -3130,7 +2862,6 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
     let res = await response.json();
     console.log("MW Response", res);
     if (!res.data) {
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       obj["mw_response"] = res;
       return obj;
       // await prisma.disbursement.create({
@@ -3158,8 +2889,6 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
 
     if (res.responseCode != "G2P-T-0") {
-      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
-      data["transaction_id"] = res?.transactionID || id;
 
       const date = new Date();
 
@@ -3168,88 +2897,13 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
 
       // Convert the date to the Pakistan timezone
       const zonedDate = toZonedTime(date, timeZone);
-      await prisma.disbursement.create({
-        data: {
-          ...data,
-          // transaction_id: id,
-          merchant_id: Number(findMerchant.merchant_id),
-          disbursementDate: zonedDate,
-          transactionAmount: amountDecimal,
-          commission: totalCommission,
-          gst: totalGST,
-          withholdingTax: totalWithholdingTax,
-          merchantAmount: body.amount ? body.amount : merchantAmount,
-          platform: 0,
-          account: body.phone,
-          provider: PROVIDERS.JAZZ_CASH,
-          status: "failed",
-          response_message: res.responseDescription
-        },
-      });
       obj["mw_response"] = res;
       return obj;
       // throw new CustomError(res.responseDescription, 500);
     }
-    return await prisma.$transaction(
-      async (tx) => {
-        // Update transactions to adjust balances
-        data["transaction_id"] = res.transactionID;
-        // }
-        // Get the current date
-        const date = new Date();
+    obj["mw_response"] = res;
 
-        // Define the Pakistan timezone
-        const timeZone = 'Asia/Karachi';
-
-        // Convert the date to the Pakistan timezone
-        const zonedDate = toZonedTime(date, timeZone);
-        // Create disbursement record
-        let disbursement = await tx.disbursement.create({
-          data: {
-            ...data,
-            // transaction_id: id,
-            merchant_id: Number(findMerchant.merchant_id),
-            disbursementDate: zonedDate,
-            transactionAmount: amountDecimal,
-            commission: totalCommission,
-            gst: totalGST,
-            withholdingTax: totalWithholdingTax,
-            merchantAmount: body.amount ? body.amount : merchantAmount,
-            platform: 0,
-            account: body.phone,
-            provider: PROVIDERS.JAZZ_CASH,
-            status: "completed",
-            response_message: "success"
-          },
-        });
-        let webhook_url: string;
-        if (findMerchant.callback_mode == "DOUBLE") {
-          webhook_url = findMerchant.payout_callback as string;
-        }
-        else {
-          webhook_url = findMerchant.webhook_url as string;
-        }
-        transactionService.sendCallback(
-          webhook_url,
-          {
-            original_amount: body.amount ? body.amount : merchantAmount,
-            date_time: zonedDate,
-            merchant_transaction_id: disbursement.merchant_custom_order_id,
-            merchant_id: findMerchant.merchant_id
-          },
-          body.phone,
-          "payout",
-          stringToBoolean(findMerchant.encrypted as string),
-          false
-        );
-        obj["mw_response"] = res;
-        return obj;
-      },
-      {
-        maxWait: 5000,
-        timeout: 60000,
-      }
-    );
+    return obj;
   }
   catch (err: any) {
     console.log("MW Transaction Error", err);
