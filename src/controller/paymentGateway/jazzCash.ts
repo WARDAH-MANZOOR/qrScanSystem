@@ -232,6 +232,9 @@ const initiateSandboxDisbursmentClone = async (req: Request, res: Response, next
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
     const token = await simpleSandboxGetToken(req.params.merchantId);
+    if (token?.access_token) {
+      res.status(500).json(ApiResponse.error(token))
+    }
     const initTransaction = await simpleSandboxinitiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
     res.status(200).json(ApiResponse.success(initTransaction));
   }
