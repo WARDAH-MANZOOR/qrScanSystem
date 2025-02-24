@@ -39,11 +39,6 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       }
 
       const fetchAggregates = [];
-      const merchant = await prisma.merchantFinancialTerms.findUnique({
-        where: {
-          merchant_id: merchantId
-        }
-      })
 
       // Fetch total transaction count
       fetchAggregates.push(
@@ -256,8 +251,6 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       ] = await Promise.all(fetchAggregates);
       let amt = (disbursementAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0
       console.log("Amount: ",amt);
-      let totalDisbursementAmount = Number(amt) + (+amt * Number(merchant?.disbursementRate))
-      console.log("Total Disbursement: ",totalDisbursementAmount)
       // Build and return the full dashboard summary
       const dashboardSummary = {
         totalTransactions: totalTransactions as number, // Ensure correct type
@@ -272,7 +265,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         availableBalance: 0,
         disbursementBalance: disbursementBalance,
         disburseBalancePercent,
-        disbursementAmount: totalDisbursementAmount,
+        disbursementAmount: amt,
         transactionSuccessRate: 0,
         lastWeek:
           (lastWeek as { _sum: { original_amount: number | null } })._sum
