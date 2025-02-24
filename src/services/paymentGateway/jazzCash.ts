@@ -1142,6 +1142,79 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   }
 };
 
+const simpleStatusInquiry = async (payload: any, merchantId: string) => {
+  let merchant = await prisma.merchant.findFirst({
+    where: { uid: merchantId },
+    include: {
+      jazzCashMerchant: true,
+    },
+  });
+
+  if (!merchant) {
+    throw new CustomError("Merchant Not Found", 400);
+  }
+
+  const txn = await prisma.transaction.findFirst({
+    where: {
+      merchant_transaction_id: payload.transactionId,
+      // merchant_id: merchant?.merchant_id,
+      providerDetails: {
+        path: ['name'],
+        equals: PROVIDERS.JAZZ_CASH
+      }
+    }
+  })
+
+  if (!txn) {
+    console.log("Transaction");
+    throw new CustomError("Transaction Not Found", 400)
+  }
+  let sendData = {
+    pp_TxnRefNo: payload.transactionId,
+    pp_MerchantID: merchant?.jazzCashMerchant?.jazzMerchantId,
+    pp_Password: merchant?.jazzCashMerchant?.password,
+    pp_SecureHash: "",
+  };
+  console.log(sendData)
+  sendData.pp_SecureHash = getSecureHash(
+    sendData,
+    merchant?.jazzCashMerchant?.integritySalt as string
+  );
+  let data = JSON.stringify(sendData);
+
+  let config = {
+    method: "post",
+    maxBodyLength: Infinity,
+    url: "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire",
+    //   "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire" 
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: data,
+  };
+
+  let res = await axios.request(config);
+  console.log("Response: ", res.data)
+  if (res.data.pp_ResponseCode == "000") {
+    delete res.data.pp_SecureHash;
+    return {
+      "orderId": payload.transactionId,
+      "transactionStatus": res.data.pp_Status,
+      "transactionAmount": txn?.original_amount,
+      "transactionDateTime": txn?.date_time,
+      "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+      "responseDesc": res.data.pp_PaymentResponseMessage,
+      "responseMode": "MA"
+    }
+    // return res.data;
+  } else {
+    return {
+      message: "Transaction Not Found",
+      statusCode: 500
+    }
+  }
+};
+
 const callback = async (body: any) => {
   try {
     console.log("Encrypted Body: ", body);
@@ -1455,5 +1528,6 @@ export default {
   statusInquiry,
   callback,
   initiateJazzCashPaymentAsync,
-  initiateJazzCashCnicPayment
+  initiateJazzCashCnicPayment,
+  simpleStatusInquiry
 };
