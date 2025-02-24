@@ -84,6 +84,9 @@ export default function (router: Router) {
   router.get("/status-inquiry/:merchantId",
     jazzCashController.statusInquiry
   );
+  router.get("/simple-status-inquiry/:merchantId",
+    jazzCashController.simpleStatusInquiry
+  );
   router.post("/status-inquiry/:merchantId",
     jazzCashController.jazzStatusInquiry
   );
