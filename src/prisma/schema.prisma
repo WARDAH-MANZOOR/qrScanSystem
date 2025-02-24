@@ -315,7 +315,7 @@ model ZindigiMerchant {
 
 model Disbursement {
   id                       Int      @id @default(autoincrement())
-  transaction_id           String   @unique @default(uuid())
+  transaction_id           String   @default(uuid())
   merchant_id              Int
   disbursementDate         DateTime
   transactionAmount        Decimal
@@ -338,7 +338,6 @@ model Disbursement {
   callback_response String?
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
-  @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
 }
 
 model EasyPaisaDisburseAccount {
