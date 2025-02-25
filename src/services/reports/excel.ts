@@ -3,13 +3,27 @@ import ExcelJS from "exceljs";
 import prisma from "prisma/client.js";
 import { JsonObject } from "@prisma/client/runtime/library";
 import { toZonedTime, format } from "date-fns-tz"; // For time zone conversion
+import { parseISO } from "date-fns";
 
 const TIMEZONE = "Asia/Karachi"; // Pakistan Time Zone
 
-export const generateExcelReportService = async (): Promise<string> => {
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
+export const generateExcelReportService = async (params: any): Promise<string> => {
+    let customWhere = {
+        date_time: {}
+    };
+    let disbursementDateWhere: any = {};
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+    if (startDate && endDate) {
+        const todayStart = parseISO(startDate as string);
+        const todayEnd = parseISO(endDate as string);
 
+        customWhere["date_time"] = {
+            gte: todayStart,
+            lt: todayEnd,
+        };
+        disbursementDateWhere = customWhere["date_time"]
+    }
     // Fetch merchants and their commissions
     const merchants = await prisma.merchant.findMany({
         include: {
@@ -31,7 +45,7 @@ export const generateExcelReportService = async (): Promise<string> => {
     // Fetch transactions in bulk
     const transactions = await prisma.transaction.findMany({
         where: {
-            date_time: { gte: last30Days },
+            date_time: customWhere["date_time"],
             status: "completed",
         },
         select: {
@@ -45,13 +59,14 @@ export const generateExcelReportService = async (): Promise<string> => {
     // Fetch disbursements in bulk
     const disbursements = await prisma.disbursement.findMany({
         where: {
-            disbursementDate: { gte: last30Days },
+            disbursementDate: disbursementDateWhere,
             status: "completed",
         },
         select: {
             merchant_id: true,
             transactionAmount: true,
             disbursementDate: true,
+            commission: true
         },
     });
 
@@ -77,12 +92,12 @@ export const generateExcelReportService = async (): Promise<string> => {
         );
 
         // Group transactions and disbursements by day (in PKT)
-        const dailyData: Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number }> = {};
+        const dailyData: Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number; DisbursementCommission: number }> = {};
 
         merchantTransactions.forEach((txn) => {
             const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
             if (!dailyData[pktDate]) {
-                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0 };
+                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
             }
 
             if (
@@ -106,10 +121,11 @@ export const generateExcelReportService = async (): Promise<string> => {
             const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
 
             if (!dailyData[pktDate]) {
-                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0 };
+                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
             }
 
             dailyData[pktDate].Disbursement += +d.transactionAmount;
+            dailyData[pktDate].DisbursementCommission += +d.commission
         });
 
         // Calculate commissions for each day
@@ -147,10 +163,7 @@ export const generateExcelReportService = async (): Promise<string> => {
                                 Number(commissionGST) +
                                 Number(commissionWithHoldingTax))),
                 Disbursement:
-                    (daily.Disbursement *
-                        (Number(disbursementRate) +
-                            Number(disbursementGST) +
-                            Number(disbursementWithHoldingTax))),
+                    daily.DisbursementCommission,
             };
             return result;
         }, {} as Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number }>);
