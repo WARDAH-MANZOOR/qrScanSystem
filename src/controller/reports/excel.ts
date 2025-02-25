@@ -3,7 +3,8 @@ import { reportService } from "services/index.js";
 const generateExcelReportController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Call the service method
-        const reportPath = await reportService.generateExcelReportService();
+        const params = req.query;
+        const reportPath = await reportService.generateExcelReportService(params);
 
         // Send the generated Excel file to the client
         res.download(reportPath, "merchant_report.xlsx", (err) => {
