@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { CustomError } from '../../../../dist/utils/custom_error.js'; // Replace with actual path
-import zindigiService from '../../../../dist/services/paymentGateway/zindigi.js'; // Replace with actual path
+import zindigiService from '../../../../dist/seyrvices/paymentGateway/zindigi.js'; // Replace with actual path
 
 jest.mock('axios'); // Mock axios globally
 
