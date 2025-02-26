@@ -864,7 +864,7 @@ async function processTodaySettlements() {
                 throw new CustomError("Deduction larger than balance", 500)
             }
             const updatedAvailableBalance = walletBalance - Number(deduction);
-            await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
+            await adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
             await prisma.$transaction(async (tx) => {
                 await tx.merchant.update({
                     where: {
