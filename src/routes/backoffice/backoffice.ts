@@ -1,5 +1,6 @@
 import express from 'express';
 import backOfficeController from 'controller/backoffice/backoffice.js';
+import backOfficeValidator from 'validators/backoffice/index.js';
 import { authorize, isAdmin, isLoggedIn } from 'utils/middleware.js';
 const router = express.Router();
 
@@ -36,6 +37,7 @@ router.post("/div-settlements",[isLoggedIn, isAdmin], backOfficeController.divid
 
 router.get("/process-today",[isLoggedIn, isAdmin], backOfficeController.processTodaySettlements)
 
+router.post("/usdt-settlement",[isLoggedIn, isAdmin, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, backOfficeController.createUSDTSettlement)
 
 
 export default router;

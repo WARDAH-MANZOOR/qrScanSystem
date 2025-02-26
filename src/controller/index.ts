@@ -12,6 +12,8 @@ import reportController from "./reports/excel.js"
 import ipnController from "./ipn/index.js"
 import groupController from "./group/index.js"
 import permissionController from "./permissions/index.js"
+import usdtSettlementController from "./usdt-settlement/index.js"
+
 export {
   jazzCashController,
   transactionController,
@@ -26,5 +28,6 @@ export {
   reportController,
   ipnController,
   groupController,
-  permissionController
+  permissionController,
+  usdtSettlementController
 };
