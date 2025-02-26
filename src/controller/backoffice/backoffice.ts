@@ -1,12 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import {backofficeService} from "../../services/index.js";
-import ApiResponse from "../../utils/ApiResponse.js";
-import CustomError from "../../utils/custom_error.js";
+import { backofficeService } from "services/index.js";
+import ApiResponse from "utils/ApiResponse.js";
+import CustomError from "utils/custom_error.js";
 
 const removeMerchantFinanceData = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
-            throw new CustomError("Merchant Id must be given",404);
+            throw new CustomError("Merchant Id must be given", 404);
         }
         const result = await backofficeService.removeMerchantFinanceData(Number(req.params.merchantId));
         res.status(200).json(ApiResponse.success(result));
@@ -19,7 +19,7 @@ const removeMerchantFinanceData = async (req: Request, res: Response) => {
 const zeroMerchantWalletBalance = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
-            throw new CustomError("Merchant Id must be given",404);
+            throw new CustomError("Merchant Id must be given", 404);
         }
         const result = await backofficeService.zeroMerchantWalletBalance(Number(req.params.merchantId));
         res.status(200).send(ApiResponse.success(result));
@@ -34,7 +34,7 @@ const adjustMerchantWalletBalance = async (req: Request, res: Response) => {
         const { target } = req.body;
         console.log(req.params.merchantId)
         if (!req.params.merchantId || target == undefined) {
-            throw new CustomError("Merchant Id and target balance must be given",404);
+            throw new CustomError("Merchant Id and target balance must be given", 404);
         }
         const result = await backofficeService.adjustMerchantWalletBalance(Number(req.params.merchantId), target, true);
         res.status(200).json(ApiResponse.success(result));
@@ -49,7 +49,7 @@ const adjustMerchantWalletBalanceWithoutSettlement = async (req: Request, res: R
         const { target } = req.body;
         console.log(req.params.merchantId)
         if (!req.params.merchantId || target == undefined) {
-            throw new CustomError("Merchant Id and target balance must be given",404);
+            throw new CustomError("Merchant Id and target balance must be given", 404);
         }
         const result = await backofficeService.adjustMerchantWalletBalanceWithoutSettlement(Number(req.params.merchantId), target, true);
         res.status(200).json(ApiResponse.success(result));
@@ -62,7 +62,7 @@ const adjustMerchantWalletBalanceWithoutSettlement = async (req: Request, res: R
 const checkMerchantTransactionStats = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
-            throw new CustomError("Merchant Id must be given",404);
+            throw new CustomError("Merchant Id must be given", 404);
         }
         const stats = await backofficeService.checkMerchantTransactionStats(Number(req.params.merchantId));
         res.status(200).json(stats);
@@ -122,7 +122,7 @@ const failDisbursementsForTelegram = async (req: Request, res: Response) => {
 const settleAllMerchantTransactions = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
-            throw new CustomError("Merchant Id must be given",404);
+            throw new CustomError("Merchant Id must be given", 404);
         }
         const result = await backofficeService.settleAllMerchantTransactions(Number(req.params.merchantId));
         res.status(200).json(ApiResponse.success(result));
@@ -135,15 +135,15 @@ const settleAllMerchantTransactions = async (req: Request, res: Response) => {
 const createTransactionController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.params.merchantId) {
-            throw new CustomError("Merchant Id must be given",404);
+            throw new CustomError("Merchant Id must be given", 404);
         }
         if (!req.body.original_amount || !req.body.provider_name || !req.body.provider_account || !(req.body.settlement == true || req.body.settlement == false)) {
-            throw new CustomError("original_amount, provider_name, provider_account and settlement must be given",404);
+            throw new CustomError("original_amount, provider_name, provider_account and settlement must be given", 404);
         }
         const result = await backofficeService.createTransactionService(req.body, req.params.merchantId as string);
         res.status(201).json(ApiResponse.success(result));
     }
-    catch(err) {
+    catch (err) {
         next(err)
     }
 }
@@ -151,12 +151,12 @@ const createTransactionController = async (req: Request, res: Response, next: Ne
 const deleteMerchantDataController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.params.merchantId) {
-            throw new CustomError("Merchant Id must be given",404);
+            throw new CustomError("Merchant Id must be given", 404);
         }
         const result = await backofficeService.deleteMerchantData(+req.params.merchantId);
         res.status(201).json(ApiResponse.success(result));
     }
-    catch(err) {
+    catch (err) {
         next(err)
     }
 }
@@ -191,7 +191,7 @@ const payoutCallback = async (req: Request, res: Response) => {
 
 const divideSettlementRecords = async (req: Request, res: Response) => {
     try {
-        const {ids, factor} = req.body;
+        const { ids, factor } = req.body;
         const result = await backofficeService.divideSettlementRecords(ids, factor);
         res.status(200).json(ApiResponse.success(result))
     }
@@ -207,6 +207,15 @@ const processTodaySettlements = async (req: Request, res: Response) => {
     }
     catch (err: any) {
         res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+}
+
+const createUSDTSettlement = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const record = await backofficeService.createUSDTSettlement(req.body);
+        res.status(201).json({ record });
+    } catch (error) {
+        next(error)
     }
 }
 
@@ -226,5 +235,6 @@ export default {
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactionsForTelegram,
     failDisbursementsForTelegram,
-    processTodaySettlements
+    processTodaySettlements,
+    createUSDTSettlement
 }

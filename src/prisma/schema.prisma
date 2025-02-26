@@ -190,6 +190,7 @@ model User {
   decryptionKey String? @unique
 
   @@index([email])
+  USDTSettlement USDTSettlement[] @relation("MerchantUSDTSettlements")
 }
 
 model Transaction {
@@ -275,6 +276,22 @@ model SettlementReport {
   updatedAt         DateTime @updatedAt
 
   @@unique([merchant_id, settlementDate]) // Prevent duplicate settlements for the same merchant and date
+}
+
+model USDTSettlement {
+  id                Int      @id @default(autoincrement())
+  merchant_id       Int
+  date              DateTime @default(now())
+  pkr_amount        Float
+  usdt_amount       Float
+  usdt_pkr_rate     Float
+  conversion_charges Float
+  total_usdt        Float
+  wallet_address    String
+  
+  merchant        User             @relation("MerchantUSDTSettlements", fields: [merchant_id], references: [id])
+  
+  @@map("usdt_settlements")
 }
 
 model JazzCashMerchant {

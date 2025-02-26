@@ -889,7 +889,7 @@ async function processTodaySettlements() {
                     }
                 })
             })
-            
+
             results.push({
                 merchant_id: merchant.merchant_id,
                 status: 'success',
@@ -906,6 +906,27 @@ async function processTodaySettlements() {
         }
     }
     return results;
+}
+
+async function createUSDTSettlement(body: any) {
+    try {
+        const settlement = await prisma.uSDTSettlement.create({
+            data: {
+                merchant_id: body.merchant_id,
+                date: toZonedTime(new Date(), 'Asia/Karachi'),
+                pkr_amount: body.pkr_amount,
+                usdt_amount: body.usdt_amount,
+                usdt_pkr_rate: body.usdt_pkr_rate,
+                conversion_charges: body.conversion_charges,
+                total_usdt: body.total_usdt,
+                wallet_address: body.wallet_address,
+            },
+        });
+        return settlement;
+    }
+    catch (err: any) {
+        throw new CustomError(err?.message, 500)
+    }
 }
 
 
@@ -925,5 +946,6 @@ export default {
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactions,
     failDisbursements,
-    processTodaySettlements
+    processTodaySettlements,
+    createUSDTSettlement
 }

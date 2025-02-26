@@ -36,7 +36,7 @@ const getTransactions = async (req: Request, res: Response) => {
   try {
     console.log(req.user)
     const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
-    const { transactionId, merchantName, merchantTransactionId } = req.query;
+    const { transactionId, merchantName, merchantTransactionId, response_message } = req.query;
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
@@ -82,6 +82,10 @@ const getTransactions = async (req: Request, res: Response) => {
 
     if (merchantTransactionId) {
       customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+    }
+
+    if (response_message) {
+      customWhere["response_message"] = {contains: response_message}
     }
     let { page, limit } = req.query;
     // Query based on provided parameters
@@ -168,7 +172,7 @@ const getTransactions = async (req: Request, res: Response) => {
 const getTeleTransactions = async (req: Request, res: Response) => {
   try {
     console.log(req.user)
-    const { merchantId, transactionId, merchantName, merchantTransactionId } = req.query;
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
@@ -214,6 +218,10 @@ const getTeleTransactions = async (req: Request, res: Response) => {
 
     if (merchantTransactionId) {
       customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+    }
+
+    if (response_message) {
+      customWhere["response_message"] = {contains: response_message}
     }
     let { page, limit } = req.query;
     // Query based on provided parameters
