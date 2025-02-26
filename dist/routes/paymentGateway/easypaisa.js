@@ -1,4 +1,4 @@
-import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
 import { easyPaisaController } from "../../controller/index.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import { validateEasypaisaTxn, validateCreateMerchant, validateUpdateMerchant, validateInquiry, } from "../../validators/paymentGateway/easypaisa.js";
@@ -19,7 +19,7 @@ export default function (router) {
     router.put("/ep-merchant/:merchantId", [isLoggedIn, isAdmin, ...validateUpdateMerchant], easyPaisaController.updateEasyPaisaMerchant);
     router.delete("/ep-merchant/:merchantId", [isLoggedIn, isAdmin, ...validateUpdateMerchant], easyPaisaController.deleteEasyPaisaMerchant);
     router.get("/inquiry-ep/:merchantId", [...validateInquiry], easyPaisaController.statusInquiry);
-    router.get("/ep-disburse", [isLoggedIn], easyPaisaController.getDisbursement);
+    router.get("/ep-disburse", [isLoggedIn], authorize("Reports"), easyPaisaController.getDisbursement);
     return router;
 }
 /**

@@ -54,6 +54,7 @@ const calculateWalletBalance = async (merchantId) => {
             settlement: true,
             balance: { gt: new Decimal(0) },
             merchant_id: merchantId,
+            status: 'completed',
         },
     });
     // Find the todays transaction sum

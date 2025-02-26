@@ -18,4 +18,5 @@ router.delete("/delete-merchant-data/:merchantId", [isLoggedIn, isAdmin], backOf
 router.post("/payin-callback", backOfficeController.payinCallback);
 router.post("/payout-callback", backOfficeController.payoutCallback);
 router.post("/div-settlements", [isLoggedIn, isAdmin], backOfficeController.divideSettlementRecords);
+router.get("/process-today", [isLoggedIn, isAdmin], backOfficeController.processTodaySettlements);
 export default router;

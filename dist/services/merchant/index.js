@@ -188,4 +188,31 @@ const addMerchant = async (payload) => {
         throw new CustomError(error.message || "Internal Server Error", error.statusCode || 500);
     }
 };
-export default { updateMerchant, getMerchants, addMerchant, findOne };
+const setDisbursePercent = async (merchant_id, percent) => {
+    try {
+        const merchant = await prisma.merchant.findUnique({
+            where: {
+                merchant_id: merchant_id
+            }
+        });
+        if (!merchant) {
+            throw new CustomError("Merchant Not Found", 404);
+        }
+        if (!percent || percent < 0) {
+            throw new CustomError("Percent value not valid", 400);
+        }
+        let result = await prisma.merchant.update({
+            where: {
+                merchant_id,
+            },
+            data: {
+                disburseBalancePercent: (+percent) / 100
+            }
+        });
+        return result;
+    }
+    catch (err) {
+        throw new CustomError(err?.message, err?.statusCode);
+    }
+};
+export default { updateMerchant, getMerchants, addMerchant, findOne, setDisbursePercent };

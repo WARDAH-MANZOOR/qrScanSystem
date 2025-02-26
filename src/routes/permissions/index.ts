@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { permissionController } from "controller/index.js"
-import { isLoggedIn } from "utils/middleware.js";
+import { permissionController } from "../../controller/index.js"
+import { isLoggedIn } from "../../utils/middleware.js";
 
 const router = Router()
 

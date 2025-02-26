@@ -11,6 +11,8 @@ import user from "./user/crud.js";
 import disbursementRequest from "./disbursementRequest/index.js";
 import report from "./reports/excel.js";
 import ipn from "./ipn/index.js";
+import group from "./group/index.js";
+import permissions from "./permissions/index.js";
 export default function (app) {
     app.use("/payment", payment);
     app.use("/merchant", merchant);
@@ -25,4 +27,6 @@ export default function (app) {
     app.use('/disbursement-request', disbursementRequest);
     app.use('/report', report);
     app.use("/ipn", ipn);
+    app.use("/group", group);
+    app.use("/permissions", permissions);
 }

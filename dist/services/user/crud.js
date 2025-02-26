@@ -13,16 +13,18 @@ export const createUser = async (fullName, email, password, groups, merchantId) 
             },
         });
         // Then create group associations if groups array exists
-        if (groups && groups.length > 0) {
+        if (groups) {
             await tx.user.update({
                 where: { id: user.id },
                 data: {
                     groups: {
-                        create: groups.map((groupId) => ({
+                        create: {
                             // userId: user.id,
-                            groupId,
+                            groupId: groups,
                             merchantId,
-                        })),
+                        }
+                        // )
+                        // ),
                     },
                 },
             });
@@ -41,45 +43,91 @@ export const getUsers = async (merchantId) => {
             group: true,
         },
     });
+    usersOfMerchant = usersOfMerchant.filter((user) => user.userId !== merchantId);
     if (!usersOfMerchant) {
         return null;
     }
-    let users = usersOfMerchant.map((user) => user.user);
+    let users = usersOfMerchant.map((user) => ({
+        ...user.user,
+        groupName: user.group.name,
+        groupId: user.groupId
+    }));
     return users;
 };
 // Update User
 export const updateUser = async (userId, fullName, email, merchantId, groups, password) => {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
     console.log(merchantId);
-    const updatedUser = await prisma.user.update({
-        where: {
-            id: userId,
-            groups: {
-                every: {
+    // const user = await prisma.user.findUnique({
+    //     where: { id: userId },
+    //     include: {
+    //         groups: {
+    //             include: {
+    //                 group: {
+    //                     include: {
+    //                         permissions: {
+    //                             include: {
+    //                                 permission: true,
+    //                             },
+    //                         },
+    //                     },
+    //                 },
+    //             },
+    //         },
+    //     },
+    // });
+    // if (user?.groups[0].merchantId !== merchantId) {
+    //     return null;
+    // }
+    const result = await prisma.$transaction(async (tx) => {
+        if (groups) {
+            await tx.userGroup.updateMany({
+                where: {
+                    userId,
                     merchantId,
                 },
-            }
-        },
-        data: {
-            username: fullName,
-            email,
-            password: hashedPassword,
-        },
+                data: {
+                    groupId: groups,
+                },
+            });
+        }
+        const updatedUser = await tx.user.update({
+            where: {
+                id: userId,
+                groups: {
+                    every: {
+                        merchantId,
+                    },
+                }
+            },
+            data: {
+                username: fullName,
+                email,
+                password: hashedPassword,
+            },
+        });
+        if (!updatedUser) {
+            return null;
+        }
+        return updatedUser;
     });
-    if (!updatedUser) {
-        return null;
-    }
-    return updatedUser;
+    return result;
 };
 // Delete User
 export const deleteUser = async (userId, merchantId) => {
-    const deletedUser = await prisma.user.delete({
-        where: { id: userId, groups: { every: { merchantId } } },
+    console.log(userId, merchantId);
+    return await prisma.$transaction(async (tx) => {
+        const deletedGroup = await tx.userGroup.deleteMany({
+            where: {
+                userId,
+                merchantId,
+            },
+        });
+        const deletedUser = await tx.user.delete({
+            where: { id: userId, groups: { every: { merchantId } } },
+        });
+        return "User deleted successfully";
     });
-    if (!deletedUser) {
-        return null;
-    }
-    return deletedUser;
 };
 export default {
     createUser,

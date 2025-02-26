@@ -1,17 +1,17 @@
 import { Router } from "express";
 import { login, logout, signup } from "../../controller/authentication/index.js";
 import { validateLoginData } from "../../services/authentication/index.js";
-import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
 import { populateEncryptedApiKeysForExistingUsers, populateEncryptedDecryptionKeysForExistingUsers } from "../../scripts/populateEncryptedApiKeys.js";
 import { authenticationController } from "../../controller/index.js";
 const router = Router();
 router.get("/logout", logout);
-router.get("/generate-key/:id", [isLoggedIn], authenticationController.createAPIKey);
-router.get("/generate-api-key/:id", [isLoggedIn], authenticationController.createDecryptionKey);
+router.get("/generate-key/:id", [isLoggedIn], authorize("Setting"), authenticationController.createAPIKey);
+router.get("/generate-api-key/:id", [isLoggedIn], authorize("Setting"), authenticationController.createDecryptionKey);
 router.post("/login", validateLoginData, login);
 router.post("/signup", validateLoginData, signup);
-router.get("/get-key/:id", [isLoggedIn], authenticationController.getAPIKey);
-router.get("/get-api-key/:id", [isLoggedIn], authenticationController.getDecryptionKey);
+router.get("/get-key/:id", [isLoggedIn], authorize("Setting"), authenticationController.getAPIKey);
+router.get("/get-api-key/:id", [isLoggedIn], authorize("Setting"), authenticationController.getDecryptionKey);
 router.post("/populate_encrypted_api_keys", [isLoggedIn, isAdmin], async (req, res) => {
     try {
         await populateEncryptedApiKeysForExistingUsers();
@@ -38,7 +38,7 @@ router.post("/populate_encrypted_decryption_keys", [isLoggedIn, isAdmin], async 
             .json({ message: error?.message || "Internal server error" });
     }
 });
-router.post("/update-password", [isLoggedIn], authenticationController.updatePassword);
+router.post("/update-password", [isLoggedIn], authorize("Setting"), authenticationController.updatePassword);
 export default router;
 /**
  * @swagger

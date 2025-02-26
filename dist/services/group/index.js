@@ -1,36 +1,34 @@
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
-
-const createGroup = async (name: string, merchant_id: number, permissionIds: number[]) => {
+const createGroup = async (name, merchant_id, permissionIds) => {
     try {
         const data = await prisma.$transaction(async (tx) => {
             const group = await prisma.group.create({
                 data: { name, merchant_id },
             });
-            const objs = permissionIds.map(obj => ({ groupId: group.id, permissionId: obj }))
+            const objs = permissionIds.map(obj => ({ groupId: group.id, permissionId: obj }));
             const groupPermission = await prisma.groupPermission.createMany({
                 data: objs,
             });
             return {
                 group, groupPermission
-            }
-        })
+            };
+        });
         //   res.json({ success: true, group });
-        return { success: true, data }
-    } catch (error: any) {
+        return { success: true, data };
+    }
+    catch (error) {
         throw new CustomError(error.message, 500);
     }
 };
-
-const readGroups = async (merchantId?: number, groupId?: number) => {
+const readGroups = async (merchantId, groupId) => {
     try {
         //   const { merchant_id, groupId } = req.query;
-
         const groups = await prisma.group.findMany({
             where: {
                 AND: {
-                ...(merchantId && { merchant_id: merchantId }),
-                ...(groupId && { id: groupId }),
+                    ...(merchantId && { merchant_id: merchantId }),
+                    ...(groupId && { id: groupId }),
                 }
             },
             include: {
@@ -40,38 +38,35 @@ const readGroups = async (merchantId?: number, groupId?: number) => {
                 },
             },
         });
-
         //   res.json({ success: true, groups });
-        return groups
-    } catch (error: any) {
-        throw new CustomError(error?.message, 500)
+        return groups;
+    }
+    catch (error) {
+        throw new CustomError(error?.message, 500);
         //   res.status(500).json({ success: false, message: error.message });
     }
 };
-
-const deleteGroup = async (groupId: number) => {
+const deleteGroup = async (groupId) => {
     try {
         // const { groupId } = req.body;
-
         // Remove associated user groups and permissions
         await prisma.$transaction(async (tx) => {
             await tx.userGroup.deleteMany({ where: { groupId } });
             await tx.groupPermission.deleteMany({ where: { groupId } });
-
             // Delete the group
             await tx.group.delete({ where: { id: groupId } });
-        })
+        });
         return {
             success: true,
             message: "Group successfully deleted"
-        }
+        };
         // res.json({ success: true, message: "Group successfully deleted" });
-    } catch (error: any) {
+    }
+    catch (error) {
         throw new CustomError(error?.message, 500);
     }
 };
-
-const updateGroupPermissions = async (groupId: number, permissionIds: { add: number[]; remove: number[] }, name: string) => {
+const updateGroupPermissions = async (groupId, permissionIds, name) => {
     try {
         //   const { groupId, permissionIds } = req.body;
         const { add = [], remove = [] } = permissionIds;
@@ -86,7 +81,6 @@ const updateGroupPermissions = async (groupId: number, permissionIds: { add: num
                     skipDuplicates: true,
                 });
             }
-
             // Remove permissions
             if (remove.length > 0) {
                 await tx.groupPermission.deleteMany({
@@ -105,22 +99,21 @@ const updateGroupPermissions = async (groupId: number, permissionIds: { add: num
                 data: {
                     name
                 }
-            })
-        })
+            });
+        });
         return {
             success: true,
             message: `Permissions updated successfully`,
-        }
-
-    } catch (error: any) {
+        };
+    }
+    catch (error) {
         // res.status(500).json({ success: false, message: error.message });
-        throw new CustomError(error?.message, 500)
+        throw new CustomError(error?.message, 500);
     }
 };
-
 export default {
     createGroup,
     deleteGroup,
     readGroups,
     updateGroupPermissions,
-}
+};

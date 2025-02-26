@@ -2,10 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { jazzCashService, transactionService } from 'services/index.js';
-import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
-import CustomError from 'utils/custom_error.js';
-import { addWeekdays } from 'utils/date_method.js';
+import { jazzCashService, transactionService } from '../../services/index.js';
+import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
+import CustomError from '../../utils/custom_error.js';
+import { addWeekdays } from '../../utils/date_method.js';
 const prisma = new PrismaClient();
 
 // Delete all finance data for a merchant
@@ -864,7 +864,7 @@ async function processTodaySettlements() {
                 throw new CustomError("Deduction larger than balance", 500)
             }
             const updatedAvailableBalance = walletBalance - Number(deduction);
-            await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
+            await adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
             await prisma.$transaction(async (tx) => {
                 await tx.merchant.update({
                     where: {

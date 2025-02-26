@@ -8,8 +8,11 @@ export default function (router) {
     router.post("/jzwc-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateMWDisbursementClone);
     router.post("/jz-disburse-status/:merchantId", [apiKeyAuth], jazzCashController.disburseInquiryController);
     router.post("/sjz-disburse-status/:merchantId", jazzCashController.simpleDisburseInquiryController);
+    router.post("/ssjz-disburse-status/:merchantId", jazzCashController.simpleSandboxDisburseInquiryController);
+    router.post("/ssjzw-disburse/:merchantId", jazzCashController.initiateSandboxMWDisbursementClone);
     // Define routes using arrow functions
     router.post("/jz-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateDisbursmentClone);
+    router.post("/ssjz-disburse/:merchantId", jazzCashController.initiateSandboxDisbursmentClone);
     router.post("/jzc-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateDisbursmentClone);
     router.post("/initiate-jz/:merchantId", validateJazzcashRequest, jazzCashController.initiateJazzCash);
     router.post("/initiate-jzc/:merchantId", validateJazzcashCnicRequest, jazzCashController.initiateJazzCashCnic);
@@ -22,6 +25,7 @@ export default function (router) {
     router.put("/merchant-config/:merchantId", [isLoggedIn, isAdmin], validateUpdateJazzcashMerchant, jazzCashController.updateJazzCashMerchant);
     router.delete("/merchant-config/:merchantId", [isLoggedIn, isAdmin], validateDeleteJazzcashMerchant, jazzCashController.deleteJazzCashMerchant);
     router.get("/status-inquiry/:merchantId", jazzCashController.statusInquiry);
+    router.get("/simple-status-inquiry/:merchantId", jazzCashController.simpleStatusInquiry);
     router.post("/status-inquiry/:merchantId", jazzCashController.jazzStatusInquiry);
     return router;
 }

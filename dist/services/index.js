@@ -9,10 +9,9 @@ import authenticationService from './authentication/index.js';
 import paymentRequestService from './paymentRequest/index.js';
 import zindigiService from "./paymentGateway/zindigi.js";
 import backofficeService from "./backoffice/backoffice.js";
-// <<<<<<< HEAD
 import transactionCreateService from './transactions/create.js';
-// =======
-// import reportService from "./reports/excel.js";
+import reportService from "./reports/excel.js";
 import ipnService from "./ipn/index.js";
-// >>>>>>> 5c28e650fa65f680fd59d082833c6a37ed42da54
-export { jazzCashService, transactionCreateService, transactionService, merchantService, dashboardService, easyPaisaService, swichService, easyPaisaDisburse, authenticationService, paymentRequestService, zindigiService, backofficeService, ipnService };
+import groupService from "./group/index.js";
+import permissionService from "./permissions/index.js";
+export { jazzCashService, transactionCreateService, transactionService, merchantService, dashboardService, easyPaisaService, swichService, easyPaisaDisburse, authenticationService, paymentRequestService, zindigiService, backofficeService, reportService, ipnService, groupService, permissionService };

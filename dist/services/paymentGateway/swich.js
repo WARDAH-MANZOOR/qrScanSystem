@@ -194,14 +194,20 @@ const initiateSwichClone = async (payload, merchantId) => {
             providerDetails: {
                 id: findMerchant.swichMerchantId,
                 name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
-                msisdn: payload.phone
-            },
+                msisdn: payload.phone,
+            }
         });
         let res = await axios.request(config);
         if (res.data.code === "0000") {
             const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "completed",
                 response_message: res.data.message,
+                providerDetails: {
+                    id: findMerchant.swichMerchantId,
+                    name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                    msisdn: payload.phone,
+                    transactionId: res?.data?.orderId
+                },
             }, findMerchant.commissions[0].settlementDuration);
             transactionService.sendCallback(findMerchant.webhook_url, saveTxn, payload.phone, "payin", false, true);
             return {
@@ -214,6 +220,12 @@ const initiateSwichClone = async (payload, merchantId) => {
             const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "failed",
                 response_message: res.data.message,
+                providerDetails: {
+                    id: findMerchant.swichMerchantId,
+                    name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                    msisdn: payload.phone,
+                    transactionId: res?.data?.orderId
+                },
             }, findMerchant.commissions[0].settlementDuration);
             throw new CustomError("An error occurred while initiating the transaction", 500);
         }
@@ -224,6 +236,10 @@ const initiateSwichClone = async (payload, merchantId) => {
             const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "failed",
                 response_message: err?.response?.data?.message,
+                providerDetails: {
+                    name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                    msisdn: payload.phone,
+                }
             }, findMerchant?.commissions[0]?.settlementDuration);
             return {
                 message: err?.message || "An error occurred while initiating the transaction",
@@ -273,11 +289,6 @@ const initiateSwichAsync = async (payload, merchantId) => {
                 +findMerchant.commissions[0].commissionRate +
                 +findMerchant.commissions[0].commissionWithHoldingTax,
             settlementDuration: findMerchant.commissions[0].settlementDuration,
-            providerDetails: {
-                id: findMerchant.swichMerchantId,
-                name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
-                msisdn: payload.phone,
-            },
         });
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
@@ -313,6 +324,11 @@ const initiateSwichAsync = async (payload, merchantId) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "completed",
                         response_message: res.data.message,
+                        providerDetails: {
+                            id: findMerchant.swichMerchantId,
+                            name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                            msisdn: payload.phone,
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                     transactionService.sendCallback(findMerchant.webhook_url, saveTxn, payload.phone, "payin", true, true);
                 }
@@ -320,6 +336,11 @@ const initiateSwichAsync = async (payload, merchantId) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "failed",
                         response_message: res.data.message,
+                        providerDetails: {
+                            id: findMerchant.swichMerchantId,
+                            name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                            msisdn: payload.phone,
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                 }
             }
@@ -329,6 +350,11 @@ const initiateSwichAsync = async (payload, merchantId) => {
                     await transactionService.updateTxn(saveTxn.transaction_id, {
                         status: "failed",
                         response_message: error?.response?.data?.message || error.message,
+                        providerDetails: {
+                            id: findMerchant.swichMerchantId,
+                            name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                            msisdn: payload.phone,
+                        },
                     }, findMerchant?.commissions[0]?.settlementDuration || 0);
                 }
             }
@@ -345,6 +371,11 @@ const initiateSwichAsync = async (payload, merchantId) => {
             await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "failed",
                 response_message: err?.response?.data?.message || err.message,
+                providerDetails: {
+                    id: findMerchant.swichMerchantId,
+                    name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                    msisdn: payload.phone,
+                },
             }, findMerchant?.commissions[0]?.settlementDuration || 0);
         }
         return {
@@ -440,6 +471,12 @@ const initiateSwichAsyncClone = async (payload, merchantId) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "completed",
                         response_message: res.data.message,
+                        providerDetails: {
+                            id: findMerchant.swichMerchantId,
+                            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                            msisdn: payload.phone,
+                            transactionId: res?.data?.orderId
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                     transactionService.sendCallback(findMerchant.webhook_url, saveTxn, payload.phone, "payin", true, true);
                 }
@@ -447,6 +484,12 @@ const initiateSwichAsyncClone = async (payload, merchantId) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "failed",
                         response_message: res.data.message,
+                        providerDetails: {
+                            id: findMerchant.swichMerchantId,
+                            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                            msisdn: payload.phone,
+                            transactionId: res?.data?.orderId
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                 }
             }
@@ -456,6 +499,11 @@ const initiateSwichAsyncClone = async (payload, merchantId) => {
                     await transactionService.updateTxn(saveTxn.transaction_id, {
                         status: "failed",
                         response_message: error?.response?.data?.message || error.message,
+                        providerDetails: {
+                            id: findMerchant.swichMerchantId,
+                            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                            msisdn: payload.phone,
+                        },
                     }, findMerchant?.commissions[0]?.settlementDuration || 0);
                 }
             }
@@ -472,6 +520,11 @@ const initiateSwichAsyncClone = async (payload, merchantId) => {
             await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "failed",
                 response_message: err?.response?.data?.message || err.message,
+                providerDetails: {
+                    id: findMerchant.swichMerchantId,
+                    name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                    msisdn: payload.phone,
+                },
             }, findMerchant?.commissions[0]?.settlementDuration || 0);
         }
         return {

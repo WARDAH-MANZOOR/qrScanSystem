@@ -82,6 +82,9 @@ const getDisbursementRequests = async (params, merchantId) => {
             },
             orderBy: {
                 createdAt: "desc",
+            },
+            include: {
+                merchant: true
             }
         });
         let meta = {};
@@ -105,6 +108,7 @@ const getDisbursementRequests = async (params, merchantId) => {
         const response = {
             transactions: transactions.map((transaction) => ({
                 ...transaction,
+                merchant_name: transaction.merchant.full_name
             })),
             meta,
         };

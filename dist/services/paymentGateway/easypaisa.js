@@ -11,7 +11,7 @@ import { easyPaisaDisburse } from "../../services/index.js";
 import { Decimal } from "@prisma/client/runtime/library";
 import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { format, toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
 import path, { dirname } from "path";
 import { createObjectCsvWriter } from "csv-writer";
@@ -263,11 +263,18 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
         });
         // console.log("saveTxn", saveTxn);
         const response = await axios.request(config);
+        console.log("response: ", response.data);
         // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
         if (response?.data.responseCode == "0000") {
             const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "completed",
                 response_message: response.data.responseDesc,
+                providerDetails: {
+                    id: easyPaisaMerchant[0].id,
+                    name: PROVIDERS.EASYPAISA,
+                    msisdn: phone,
+                    transactionId: response?.data?.transactionId
+                },
             }, findMerchant.commissions[0].settlementDuration);
             transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", findMerchant.encrypted == "True" ? true : false, true);
             return {
@@ -282,6 +289,12 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
             const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
                 status: "failed",
                 response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
+                providerDetails: {
+                    id: easyPaisaMerchant[0].id,
+                    name: PROVIDERS.EASYPAISA,
+                    msisdn: phone,
+                    transactionId: response?.data?.transactionId
+                },
             }, findMerchant.commissions[0].settlementDuration);
             throw new CustomError(response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc, 500);
         }
@@ -355,11 +368,6 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                 +findMerchant.commissions[0].commissionRate +
                 +findMerchant.commissions[0].commissionWithHoldingTax,
             settlementDuration: findMerchant.commissions[0].settlementDuration,
-            providerDetails: {
-                id: easyPaisaMerchant.id,
-                name: PROVIDERS.EASYPAISA,
-                msisdn: phone,
-            },
         });
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
@@ -369,6 +377,12 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "completed",
                         response_message: response.data.responseDesc,
+                        providerDetails: {
+                            id: easyPaisaMerchant.id,
+                            name: PROVIDERS.EASYPAISA,
+                            msisdn: phone,
+                            transactionId: response.data.transactionId
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                     transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", true, true);
                 }
@@ -377,6 +391,12 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "failed",
                         response_message: response.data.responseDesc,
+                        providerDetails: {
+                            id: easyPaisaMerchant.id,
+                            name: PROVIDERS.EASYPAISA,
+                            msisdn: phone,
+                            transactionId: response.data.transactionId
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                 }
             }
@@ -385,6 +405,11 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                 await transactionService.updateTxn(saveTxn?.transaction_id, {
                     status: "failed",
                     response_message: error.message,
+                    providerDetails: {
+                        id: easyPaisaMerchant.id,
+                        name: PROVIDERS.EASYPAISA,
+                        msisdn: phone,
+                    },
                 }, findMerchant.commissions[0].settlementDuration);
             }
         });
@@ -485,6 +510,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "completed",
                         response_message: response.data.responseDesc,
+                        providerDetails: {
+                            id: easyPaisaMerchant.id,
+                            name: PROVIDERS.EASYPAISA,
+                            msisdn: phone,
+                            transactionId: response?.data?.transactionId
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                     transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", true, true);
                 }
@@ -493,6 +524,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
                         status: "failed",
                         response_message: response.data.responseDesc,
+                        providerDetails: {
+                            id: easyPaisaMerchant.id,
+                            name: PROVIDERS.EASYPAISA,
+                            msisdn: phone,
+                            transactionId: response?.data?.transactionId
+                        },
                     }, findMerchant.commissions[0].settlementDuration);
                 }
             }
@@ -501,6 +538,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                 await transactionService.updateTxn(saveTxn?.transaction_id, {
                     status: "failed",
                     response_message: error.message,
+                    providerDetails: {
+                        id: easyPaisaMerchant.id,
+                        name: PROVIDERS.EASYPAISA,
+                        msisdn: phone,
+                    },
                 }, findMerchant.commissions[0].settlementDuration);
             }
         });
@@ -698,31 +740,31 @@ const corporateLogin = async (obj) => {
         throw new CustomError(error?.message || "An error occurred while initiating the transaction", 500);
     }
 };
-// const saveToCsv = async (record) => {
-//     // Define the path to save the CSV file
-//     const __filename = fileURLToPath(import.meta.url);
-//     const __dirname = dirname(__filename);
-//     const csvFilePath = path.join(__dirname, 'records.csv');
-//     // Configure the CSV writer
-//     const csvWriter = createObjectCsvWriter({
-//         path: csvFilePath,
-//         header: [
-//             { id: 'id', title: 'ID' },
-//             { id: 'order_amount', title: 'Order Amount' },
-//             { id: 'balance', title: 'Balance' },
-//             { id: 'status', title: 'Status' },
-//         ],
-//         append: true,
-//     });
-//     try {
-//         // Write data to the CSV file
-//         await csvWriter.writeRecords([record]);
-//         console.log('CSV file created successfully at', csvFilePath);
-//     }
-//     catch (error) {
-//         console.error('Error writing to CSV file:', error);
-//     }
-// };
+const saveToCsv = async (record) => {
+    // Define the path to save the CSV file
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const csvFilePath = path.join(__dirname, 'records.csv');
+    // Configure the CSV writer
+    const csvWriter = createObjectCsvWriter({
+        path: csvFilePath,
+        header: [
+            { id: 'id', title: 'ID' },
+            { id: 'order_amount', title: 'Order Amount' },
+            { id: 'balance', title: 'Balance' },
+            { id: 'status', title: 'Status' },
+        ],
+        append: true,
+    });
+    try {
+        // Write data to the CSV file
+        await csvWriter.writeRecords([record]);
+        console.log('CSV file created successfully at', csvFilePath);
+    }
+    catch (error) {
+        console.error('Error writing to CSV file:', error);
+    }
+};
 const createDisbursement = async (obj, merchantId) => {
     try {
         // validate Merchant
@@ -989,6 +1031,10 @@ const updateDisbursement = async (obj, merchantId) => {
         await prisma.$transaction(async (tx) => {
             try {
                 let rate = await getMerchantRate(tx, findMerchant.merchant_id);
+                if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+                    throw new CustomError("Insufficient balance to disburse", 400);
+                }
+                const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
             }
             catch (err) {
                 if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1556,21 +1602,24 @@ const exportDisbursement = async (merchantId, params) => {
             'withholding_tax',
             'merchant_amount',
             'status',
-            'provider'
+            'provider',
+            'callback_sent'
         ];
+        const timeZone = 'Asia/Karachi';
         const data = disbursements.map(transaction => ({
             merchant: transaction.merchant.full_name,
             account: transaction.account,
             transaction_id: transaction.transaction_id,
             merchant_order_id: transaction.merchant_custom_order_id,
-            disbursement_date: transaction.disbursementDate,
+            disbursement_date: format(toZonedTime(transaction.disbursementDate, timeZone), 'yyyy-MM-dd HH:mm:ss', { timeZone }),
             transaction_amount: transaction.transactionAmount,
             commission: transaction.commission,
             gst: transaction.gst,
             withholding_tax: transaction.withholdingTax,
             merchant_amount: transaction.merchantAmount,
             status: transaction.status,
-            provider: transaction.provider
+            provider: transaction.provider,
+            callback_sent: transaction.callback_sent
         }));
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
@@ -2533,7 +2582,7 @@ export default {
     accountBalance,
     transactionInquiry,
     getMerchantInquiryMethod,
-    // saveToCsv,
+    saveToCsv,
     exportDisbursement,
     updateDisburseThroughBank,
 };

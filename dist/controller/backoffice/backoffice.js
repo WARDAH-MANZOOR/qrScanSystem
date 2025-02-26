@@ -183,6 +183,15 @@ const divideSettlementRecords = async (req, res) => {
         res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
     }
 };
+const processTodaySettlements = async (req, res) => {
+    try {
+        const result = await backofficeService.processTodaySettlements();
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -198,5 +207,6 @@ export default {
     divideSettlementRecords,
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactionsForTelegram,
-    failDisbursementsForTelegram
+    failDisbursementsForTelegram,
+    processTodaySettlements
 };

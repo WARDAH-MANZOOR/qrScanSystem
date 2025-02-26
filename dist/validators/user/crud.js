@@ -1,5 +1,6 @@
 // src/validators/userValidators.ts
 import { body, param, validationResult } from 'express-validator';
+import prisma from 'prisma/client.js';
 // Validator for creating a user
 const createUserValidator = [
     body('fullName').notEmpty().withMessage('Full name is required'),
@@ -8,20 +9,24 @@ const createUserValidator = [
         .withMessage('Must be a valid email')
         .normalizeEmail(),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('groups')
-        .isArray({ min: 1 })
-        .withMessage('At least one group ID must be provided')
-        .bail()
-        .custom((value) => value.every((id) => Number.isInteger(id)))
-        .withMessage('Group IDs must be an array of integers'),
-    body('merchantId')
-        .optional()
+    body('group')
         .isInt()
-        .withMessage('Merchant ID must be an integer'),
+        .withMessage('Group ID must be an integer')
+        .custom(async (value) => {
+        const group = await prisma.group.findUnique({ where: { id: Number(value) } });
+        if (!group) {
+            throw new Error("Group ID does not exist");
+        }
+    }),
 ];
 // Validator for updating a user
 const updateUserValidator = [
-    param('userId').isInt().withMessage('User ID must be an integer'),
+    param('userId').isInt().withMessage('User ID must be an integer').custom(async (value) => {
+        const user = await prisma.user.findUnique({ where: { id: Number(value) } });
+        if (!user) {
+            throw new Error("User ID does not exist");
+        }
+    }),
     body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
     body('email')
         .optional()
@@ -32,21 +37,30 @@ const updateUserValidator = [
         .optional()
         .isLength({ min: 6 })
         .withMessage('Password must be at least 6 characters'),
-    body('groups')
-        .optional()
-        .isArray({ min: 1 })
-        .withMessage('At least one group ID must be provided')
-        .bail()
-        .custom((value) => value.every((id) => Number.isInteger(id)))
-        .withMessage('Group IDs must be an array of integers'),
-    body('merchantId')
+    body("group")
         .optional()
         .isInt()
-        .withMessage('Merchant ID must be an integer'),
+        .withMessage("Group ID must be an integer")
+        .custom(async (value) => {
+        const groups = await prisma.group.findUnique({
+            where: { id: value },
+        });
+        if (!groups) {
+            throw new Error("Group ID does not exist");
+        }
+    }),
 ];
 // Validator for deleting a user
 const deleteUserValidator = [
-    param('userId').isInt().withMessage('User ID must be an integer'),
+    param('userId')
+        .isInt().
+        withMessage('User ID must be an integer')
+        .custom(async (value, { req }) => {
+        const group = await prisma.user.findUnique({ where: { id: +value } });
+        if (!group) {
+            throw new Error("User ID does not exist");
+        }
+    }),
 ];
 // Custom middleware to handle validation errors
 const handleValidationErrors = (req, res, next) => {
