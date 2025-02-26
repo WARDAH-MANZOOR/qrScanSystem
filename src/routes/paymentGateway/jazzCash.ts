@@ -18,11 +18,18 @@ export default function (router: Router) {
   router.post("/jzwc-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursementClone)
   router.post("/jz-disburse-status/:merchantId",[apiKeyAuth],jazzCashController.disburseInquiryController);
   router.post("/sjz-disburse-status/:merchantId",jazzCashController.simpleDisburseInquiryController);
+  router.post("/ssjz-disburse-status/:merchantId",jazzCashController.simpleSandboxDisburseInquiryController);
+  router.post("/ssjzw-disburse/:merchantId",jazzCashController.initiateSandboxMWDisbursementClone)
   // Define routes using arrow functions
   router.post(
     "/jz-disburse/:merchantId",
     [apiKeyAuth],
     jazzCashController.initiateDisbursmentClone
+  )
+
+  router.post(
+    "/ssjz-disburse/:merchantId",
+    jazzCashController.initiateSandboxDisbursmentClone
   )
 
   router.post(
@@ -76,6 +83,9 @@ export default function (router: Router) {
   );
   router.get("/status-inquiry/:merchantId",
     jazzCashController.statusInquiry
+  );
+  router.get("/simple-status-inquiry/:merchantId",
+    jazzCashController.simpleStatusInquiry
   );
   router.post("/status-inquiry/:merchantId",
     jazzCashController.jazzStatusInquiry

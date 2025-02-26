@@ -1,7 +1,7 @@
 // src/controllers/paymentController.ts
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
-import { jazzCashService, transactionService } from "../../services/index.js";
+import { jazzCashService, transactionService } from "services/index.js";
 import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
@@ -167,6 +167,22 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
+const simpleStatusInquiry = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const merchantId = req.params.merchantId;
+    const payload = req.body;
+    if (!merchantId) {
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return
+    }
+    const result = await jazzCashService.simpleStatusInquiry(payload, merchantId);
+    res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
+  }
+  catch (err) {
+    next(err);
+  }
+};
+
 const jazzStatusInquiry = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.params.merchantId;
@@ -224,6 +240,22 @@ const initiateDisbursmentClone = async (req: Request, res: Response, next: NextF
   }
 }
 
+const initiateSandboxDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("IBFT Called")
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await simpleSandboxGetToken(req.params.merchantId);
+    if (!token?.access_token) {
+      res.status(500).json(ApiResponse.error(token))
+    }
+    const initTransaction = await simpleSandboxinitiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    res.status(200).json(ApiResponse.success(initTransaction));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
 const initiateMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
@@ -232,6 +264,22 @@ const initiateMWDisbursementClone = async (req: Request, res: Response, next: Ne
     }
     const token = await getToken(req.params.merchantId);
     const initTransaction = await mwTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    
+    res.status(200).json(ApiResponse.success(initTransaction));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
+const initiateSandboxMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await simpleSandboxGetToken(req.params.merchantId);
+    if (!token?.access_token) {
+      res.status(500).json(ApiResponse.error(token));
+    }
+    const initTransaction = await simpleSandboxMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
     
     res.status(200).json(ApiResponse.success(initTransaction));
   }
@@ -267,6 +315,18 @@ const simpleDisburseInquiryController = async (req: Request, res: Response, next
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
     const token = await simpleGetToken(req.params.merchantId);
     const inquiry = await simpleCheckTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+    res.status(200).json(ApiResponse.success(inquiry));
+  }
+  catch (err) {
+    next(err)
+  }
+}
+
+const simpleSandboxDisburseInquiryController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    const token = await simpleSandboxGetToken(req.params.merchantId);
+    const inquiry = await simpleSandboxCheckTransactionStatus(token?.access_token, req.body, req.params.merchantId);
     res.status(200).json(ApiResponse.success(inquiry));
   }
   catch (err) {
@@ -322,5 +382,9 @@ export default {
   jazzStatusInquiry,
   initiateJazzCashCnic,
   initiateDisbursmentClone,
-  initiateMWDisbursementClone
+  initiateMWDisbursementClone,
+  initiateSandboxMWDisbursementClone,
+  initiateSandboxDisbursmentClone,
+  simpleSandboxDisburseInquiryController,
+  simpleStatusInquiry
 };

@@ -90,7 +90,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       data: data,
     };
 
-    
+
     saveTxn = await transactionService.createTxn({
       order_id: id2,
       transaction_id: id,
@@ -218,13 +218,13 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
     let commission;
     if (findMerchant.commissions[0].commissionMode == "SINGLE") {
       commission = +findMerchant.commissions[0].commissionGST +
-      +findMerchant.commissions[0].commissionRate +
-      +findMerchant.commissions[0].commissionWithHoldingTax
-    }  
+        +findMerchant.commissions[0].commissionRate +
+        +findMerchant.commissions[0].commissionWithHoldingTax
+    }
     else {
       commission = +findMerchant.commissions[0].commissionGST +
-      +(findMerchant.commissions[0]?.easypaisaRate || 0) +
-      +findMerchant.commissions[0].commissionWithHoldingTax
+        +(findMerchant.commissions[0]?.easypaisaRate || 0) +
+        +findMerchant.commissions[0].commissionWithHoldingTax
     }
     saveTxn = await transactionService.createTxn({
       order_id: id2,
@@ -238,8 +238,8 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
       providerDetails: {
         id: findMerchant.swichMerchantId as number,
         name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
-        msisdn: payload.phone
-      },
+        msisdn: payload.phone,
+      }
     });
 
     let res = await axios.request(config);
@@ -250,6 +250,12 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         {
           status: "completed",
           response_message: res.data.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+            transactionId: res?.data?.orderId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -272,6 +278,12 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: res.data.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+            transactionId: res?.data?.orderId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -288,6 +300,10 @@ const initiateSwichClone = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: err?.response?.data?.message,
+          providerDetails: {
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+          }
         },
         findMerchant?.commissions[0]?.settlementDuration as number
       );
@@ -345,11 +361,6 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
         +findMerchant.commissions[0].commissionRate +
         +findMerchant.commissions[0].commissionWithHoldingTax,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
-      providerDetails: {
-        id: findMerchant.swichMerchantId as number,
-        name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
-        msisdn: payload.phone,
-      },
     });
 
     // Return pending status and transaction ID immediately
@@ -394,6 +405,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             {
               status: "completed",
               response_message: res.data.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -412,6 +428,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             {
               status: "failed",
               response_message: res.data.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -425,6 +446,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             {
               status: "failed",
               response_message: error?.response?.data?.message || error.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+              },
             },
             findMerchant?.commissions[0]?.settlementDuration || 0
           );
@@ -446,6 +472,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: err?.response?.data?.message || err.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel === 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+          },
         },
         findMerchant?.commissions[0]?.settlementDuration || 0
       );
@@ -490,13 +521,13 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
     let commission;
     if (findMerchant.commissions[0].commissionMode == "SINGLE") {
       commission = +findMerchant.commissions[0].commissionGST +
-      +findMerchant.commissions[0].commissionRate +
-      +findMerchant.commissions[0].commissionWithHoldingTax
-    }  
+        +findMerchant.commissions[0].commissionRate +
+        +findMerchant.commissions[0].commissionWithHoldingTax
+    }
     else {
       commission = +findMerchant.commissions[0].commissionGST +
-      +(findMerchant.commissions[0]?.easypaisaRate || 0) +
-      +findMerchant.commissions[0].commissionWithHoldingTax
+        +(findMerchant.commissions[0]?.easypaisaRate || 0) +
+        +findMerchant.commissions[0].commissionWithHoldingTax
     }
     console.log(commission)
     // Save transaction immediately with pending status
@@ -558,6 +589,12 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
             {
               status: "completed",
               response_message: res.data.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+                transactionId: res?.data?.orderId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -576,6 +613,12 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
             {
               status: "failed",
               response_message: res.data.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+                transactionId: res?.data?.orderId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -589,6 +632,11 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
             {
               status: "failed",
               response_message: error?.response?.data?.message || error.message,
+              providerDetails: {
+                id: findMerchant.swichMerchantId as number,
+                name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+                msisdn: payload.phone,
+              },
             },
             findMerchant?.commissions[0]?.settlementDuration || 0
           );
@@ -610,6 +658,12 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
         {
           status: "failed",
           response_message: err?.response?.data?.message || err.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+          },
+
         },
         findMerchant?.commissions[0]?.settlementDuration || 0
       );

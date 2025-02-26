@@ -1,6 +1,6 @@
 import express from 'express';
 import backOfficeController from 'controller/backoffice/backoffice.js';
-import { isAdmin, isLoggedIn } from 'utils/middleware.js';
+import { authorize, isAdmin, isLoggedIn } from 'utils/middleware.js';
 const router = express.Router();
 
 // Define routes
@@ -33,6 +33,8 @@ router.post("/payin-callback",backOfficeController.payinCallback)
 router.post("/payout-callback",backOfficeController.payoutCallback)
 
 router.post("/div-settlements",[isLoggedIn, isAdmin], backOfficeController.divideSettlementRecords)
+
+router.get("/process-today",[isLoggedIn, isAdmin], backOfficeController.processTodaySettlements)
 
 
 

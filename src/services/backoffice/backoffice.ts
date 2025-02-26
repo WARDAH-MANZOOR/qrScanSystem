@@ -2,10 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { jazzCashService, transactionService } from '../../services/index.js';
-import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
-import CustomError from '../../utils/custom_error.js';
-import { addWeekdays } from '../../utils/date_method.js';
+import { jazzCashService, transactionService } from 'services/index.js';
+import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
+import CustomError from 'utils/custom_error.js';
+import { addWeekdays } from 'utils/date_method.js';
 const prisma = new PrismaClient();
 
 // Delete all finance data for a merchant
@@ -809,6 +809,105 @@ async function divideSettlementRecords(ids: number[], factor: number) {
     return "Records divided successfully";
 }
 
+async function processTodaySettlements() {
+    // 1. Define the start and end of today.
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    // 2. Fetch all settlement reports for today including the related merchant.
+    const settlementReports = await prisma.settlementReport.findMany({
+        where: {
+            settlementDate: {
+                gte: startOfToday,
+                lt: endOfToday,
+            },
+            // merchant_id: 5
+        },
+        orderBy: {
+            "settlementDate": "desc"
+        },
+        distinct: ['merchant_id'], // returns one record per merchant
+        include: {
+            merchant: true, // so we can access merchant.disburseBalancePercent
+        },
+        // take: 1
+    });
+    // Array to store results for each merchant processing
+    const results: { merchant_id: number; status: string; message: string }[] = [];
+    console.log(settlementReports)
+    // 3 & 4. For each settlement report, calculate the deduction and update the merchant.
+    //    We assume each merchant has an "availableBalance" field.
+    for (const report of settlementReports) {
+        try {
+            const merchant = report.merchant;
+            // Calculate the deduction:
+            // For example: if disburseBalancePercent is 10 (10%) and merchantAmount is 100,
+            // then deduction = (10 / 100) * 100 = 10.
+            let deduction;
+            if (Number(merchant.disburseBalancePercent) === 0) {
+                throw new CustomError("Percentage not set", 500)
+            }
+            deduction = Number(merchant.disburseBalancePercent) * Number(report.merchantAmount);
+
+            // Log the details (optional)
+            console.log(
+                `Updating merchant ${merchant.merchant_id}: Deducting ${deduction} from available balance and adding it to disbursement balance.`
+            );
+
+            // 4. Update the merchant record.
+            //    We use atomic operations 'decrement' and 'increment' to update the balances.
+            const { walletBalance } = await getWalletBalance(merchant.merchant_id) as { walletBalance: number };
+            if (deduction > walletBalance) {
+                throw new CustomError("Deduction larger than balance", 500)
+            }
+            const updatedAvailableBalance = walletBalance - Number(deduction);
+            await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
+            await prisma.$transaction(async (tx) => {
+                await tx.merchant.update({
+                    where: {
+                        merchant_id: merchant.merchant_id,
+                    },
+                    data: {
+                        // IMPORTANT:
+                        // The Merchant model provided does not include an "availableBalance" field.
+                        // Make sure to add it if you want to update the available balance.
+                        balanceToDisburse: {
+                            increment: deduction,
+                        },
+                    },
+                });
+                await tx.disbursementRequest.create({
+                    data: {
+                        requestedAmount: deduction,
+                        merchantId: merchant.merchant_id,
+                        status: "approved",
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    }
+                })
+            })
+            
+            results.push({
+                merchant_id: merchant.merchant_id,
+                status: 'success',
+                message: `Merchant ${merchant.merchant_id} processed successfully with a deduction of ${deduction}.`,
+            });
+        }
+        catch (err: any) {
+            // Record a failure message for this merchant.
+            results.push({
+                merchant_id: report.merchant.merchant_id,
+                status: 'failure',
+                message: `Error processing merchant ${report.merchant.merchant_id}: ${err?.message || err}`,
+            });
+        }
+    }
+    return results;
+}
+
 
 export default {
     adjustMerchantWalletBalance,
@@ -825,5 +924,6 @@ export default {
     divideSettlementRecords,
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactions,
-    failDisbursements
+    failDisbursements,
+    processTodaySettlements
 }

@@ -12,6 +12,8 @@ import disbursementRequest from "./disbursementRequest/index.js";
 import report from "./reports/excel.js";
 import ipn from "./ipn/index.js";
 import express from "express";
+import group from "./group/index.js"
+import permissions from "./permissions/index.js"
 
 export default function (app: express.Application) {
   app.use("/payment", payment);
@@ -27,4 +29,6 @@ export default function (app: express.Application) {
   app.use('/disbursement-request',disbursementRequest);
   app.use('/report',report);
   app.use("/ipn",ipn);
+  app.use("/group",group)
+  app.use("/permissions",permissions)
 }

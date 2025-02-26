@@ -25,7 +25,7 @@ import { easyPaisaDisburse } from "../../services/index.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import bankDetails from "../../data/banks.json" with { type: 'json' };
 import { parse, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { format, toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
 import path, { dirname } from "path";
 import { createObjectCsvWriter } from "csv-writer";
@@ -325,6 +325,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     // console.log("saveTxn", saveTxn);
 
     const response: any = await axios.request(config);
+    console.log("response: ", response.data)
     // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
       const updateTxn = await transactionService.updateTxn(
@@ -332,6 +333,12 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
         {
           status: "completed",
           response_message: response.data.responseDesc,
+          providerDetails: {
+            id: easyPaisaMerchant[0].id,
+            name: PROVIDERS.EASYPAISA,
+            msisdn: phone,
+            transactionId: response?.data?.transactionId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -356,6 +363,12 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
         {
           status: "failed",
           response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
+          providerDetails: {
+            id: easyPaisaMerchant[0].id,
+            name: PROVIDERS.EASYPAISA,
+            msisdn: phone,
+            transactionId: response?.data?.transactionId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -448,11 +461,6 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         +findMerchant.commissions[0].commissionRate +
         +findMerchant.commissions[0].commissionWithHoldingTax,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
-      providerDetails: {
-        id: easyPaisaMerchant.id,
-        name: PROVIDERS.EASYPAISA,
-        msisdn: phone,
-      },
     });
 
     // Return pending status and transaction ID immediately
@@ -466,6 +474,12 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             {
               status: "completed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response.data.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -486,6 +500,12 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             {
               status: "failed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response.data.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -497,6 +517,11 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
           {
             status: "failed",
             response_message: error.message,
+            providerDetails: {
+              id: easyPaisaMerchant.id,
+              name: PROVIDERS.EASYPAISA,
+              msisdn: phone,
+            },
           },
           findMerchant.commissions[0].settlementDuration
         );
@@ -616,6 +641,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             {
               status: "completed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response?.data?.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -636,6 +667,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             {
               status: "failed",
               response_message: response.data.responseDesc,
+              providerDetails: {
+                id: easyPaisaMerchant.id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                transactionId: response?.data?.transactionId
+              },
             },
             findMerchant.commissions[0].settlementDuration
           );
@@ -647,6 +684,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
           {
             status: "failed",
             response_message: error.message,
+            providerDetails: {
+              id: easyPaisaMerchant.id,
+              name: PROVIDERS.EASYPAISA,
+              msisdn: phone,
+            },
           },
           findMerchant.commissions[0].settlementDuration
         );
@@ -1245,7 +1287,10 @@ const updateDisbursement = async (
       try {
         let rate = await getMerchantRate(tx, findMerchant.merchant_id);
 
-        
+        if (findMerchant?.balanceToDisburse && merchantAmount.gt(findMerchant.balanceToDisburse)) {
+          throw new CustomError("Insufficient balance to disburse", 400);
+        }
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1914,22 +1959,28 @@ const exportDisbursement = async (merchantId: number, params: any) => {
       'withholding_tax',
       'merchant_amount',
       'status',
-      'provider'
+      'provider',
+      'callback_sent'
     ];
 
+    const timeZone = 'Asia/Karachi'
     const data = disbursements.map(transaction => ({
       merchant: transaction.merchant.full_name,
       account: transaction.account,
       transaction_id: transaction.transaction_id,
       merchant_order_id: transaction.merchant_custom_order_id,
-      disbursement_date: transaction.disbursementDate,
+      disbursement_date: format(
+        toZonedTime(transaction.disbursementDate, timeZone),
+        'yyyy-MM-dd HH:mm:ss', { timeZone }
+      ),
       transaction_amount: transaction.transactionAmount,
       commission: transaction.commission,
       gst: transaction.gst,
       withholding_tax: transaction.withholdingTax,
       merchant_amount: transaction.merchantAmount,
       status: transaction.status,
-      provider: transaction.provider
+      provider: transaction.provider,
+      callback_sent: transaction.callback_sent
     }));
 
     const json2csvParser = new Parser({ fields });

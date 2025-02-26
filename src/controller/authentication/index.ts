@@ -67,7 +67,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
 
     // Extract the group name (role) from the user's groups
     const userGroup = user?.groups[0]; // Assuming one group per user
-    const role = userGroup ? userGroup.group.name : "User"; // Default role if no group found
+    const role = userGroup.group.name == "Admin" || userGroup.group.name == "Merchant" ? userGroup.group.name : "User"; // Default role if no group found
     const merchant = await prisma.userGroup.findMany({
       where: {
         userId: user?.id,
@@ -78,14 +78,27 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
             commissions: true,
           },
         },
+        group: {
+          include: {
+            permissions: {
+              include: {
+                permission: true
+              }
+            }
+          }
+        }
       },
     });
+    
     // Generate JWT token
     const token = generateToken({
       email: user?.email,
       role,
       id: user?.id,
       merchant_id: merchant[0]?.merchantId,
+      group: userGroup,
+      permissions: merchant[0]?.group.permissions.map(permission => permission.permission.name),
+      uid: merchant[0]?.merchant?.uid,
     });
 
     // Set token in cookies
@@ -102,8 +115,12 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
         id: user?.id,
         merchantId: merchant[0]?.merchantId,
         uid: merchant[0]?.merchant?.uid,
-        merchant: { ...merchant[0] },
-        commission: merchant[0].merchant?.commissions[0],
+        merchant: { 
+          ...merchant[0],
+          group: undefined 
+        },
+        commission: merchant[0]?.merchant?.commissions[0],
+        disburseBalancePercent: merchant[0]?.merchant?.disburseBalancePercent,
       })
     );
   } catch (error) {

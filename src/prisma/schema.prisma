@@ -49,9 +49,11 @@ enum CommissionMode {
 
 model Group {
   id          Int               @id @default(autoincrement())
-  name        String            @unique
+  name        String            
   permissions GroupPermission[]
   users       UserGroup[]
+  merchant_id Int?
+  merchant    Merchant? @relation(fields: [merchant_id], references: [merchant_id])
 }
 
 model Permission {
@@ -100,6 +102,7 @@ model Merchant {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
   balanceToDisburse  Decimal?              @default(0.00) @db.Decimal(10, 2)
+  disburseBalancePercent Decimal @default(0.00)
 
   // Relations
   disbursementRequests DisbursementRequest[]
@@ -110,6 +113,7 @@ model Merchant {
   MerchantProviderCredential MerchantProviderCredential[]
   Disbursement               Disbursement[]
   SettlementReport           SettlementReport[]
+  groups Group[]
   EasyPaisaDisburseAccount   EasyPaisaDisburseAccount?    @relation(fields: [EasyPaisaDisburseAccountId], references: [id])
   JazzCashDisburseAccount    JazzCashDisburseAccount?     @relation(fields: [JazzCashDisburseAccountId], references: [id])
   ZindigiMerchant            ZindigiMerchant?             @relation(fields: [zindigiMerchantId], references: [id])
@@ -311,7 +315,7 @@ model ZindigiMerchant {
 
 model Disbursement {
   id                       Int      @id @default(autoincrement())
-  transaction_id           String   @unique @default(uuid())
+  transaction_id           String   @default(uuid())
   merchant_id              Int
   disbursementDate         DateTime
   transactionAmount        Decimal
@@ -334,7 +338,6 @@ model Disbursement {
   callback_response String?
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
-  @@unique([merchant_id, disbursementDate]) // Prevent duplicate settlements for the same merchant and date
 }
 
 model EasyPaisaDisburseAccount {

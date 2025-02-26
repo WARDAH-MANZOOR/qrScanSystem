@@ -95,6 +95,9 @@ const getDisbursementRequests = async (params: any, merchantId: any) => {
             },
             orderBy: {
                 createdAt: "desc",
+            },
+            include: {
+                merchant: true
             }
         });
 
@@ -121,6 +124,7 @@ const getDisbursementRequests = async (params: any, merchantId: any) => {
         const response = {
             transactions: transactions.map((transaction) => ({
                 ...transaction,
+                merchant_name: transaction.merchant.full_name
             })),
             meta,
         };
