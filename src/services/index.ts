@@ -13,6 +13,7 @@ import reportService from "./reports/excel.js"
 import ipnService from "./ipn/index.js"
 import groupService from "./group/index.js"
 import permissionService from "./permissions/index.js"
+import usdtSettlementService from "./usdt-settlement/index.js"
 
 export {
     jazzCashService,
@@ -29,5 +30,6 @@ export {
     reportService,
     ipnService,
     groupService,
-    permissionService
+    permissionService,
+    usdtSettlementService
 };

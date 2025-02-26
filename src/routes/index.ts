@@ -14,6 +14,7 @@ import ipn from "./ipn/index.js";
 import express from "express";
 import group from "./group/index.js"
 import permissions from "./permissions/index.js"
+import usdtSettlements from "./usdt-settlement/index.js"
 
 export default function (app: express.Application) {
   app.use("/payment", payment);
@@ -31,4 +32,5 @@ export default function (app: express.Application) {
   app.use("/ipn",ipn);
   app.use("/group",group)
   app.use("/permissions",permissions)
+  app.use("/usdt-settlement",usdtSettlements)
 }

@@ -281,7 +281,7 @@ model SettlementReport {
 model USDTSettlement {
   id                Int      @id @default(autoincrement())
   merchant_id       Int
-  date              DateTime
+  date              DateTime @default(now())
   pkr_amount        Float
   usdt_amount       Float
   usdt_pkr_rate     Float
