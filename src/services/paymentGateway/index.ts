@@ -110,8 +110,8 @@ async function simpleSandboxGetToken(merchantId: string) {
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
-    console.log(token);
-    return token;
+    console.log({request: requestOptions, response: token});
+    return {request: requestOptions, response: token};
   } catch (error) {
     console.error('Fetch error:', error);
     return error;
