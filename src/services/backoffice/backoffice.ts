@@ -913,7 +913,7 @@ async function createUSDTSettlement(body: any) {
         const settlement = await prisma.uSDTSettlement.create({
             data: {
                 merchant_id: body.merchant_id,
-                date: toZonedTime(new Date(), 'Asia/Karachi'),
+                date: toZonedTime(new Date(body.date), 'Asia/Karachi'),
                 pkr_amount: body.pkr_amount,
                 usdt_amount: body.usdt_amount,
                 usdt_pkr_rate: body.usdt_pkr_rate,
