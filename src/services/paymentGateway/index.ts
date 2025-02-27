@@ -69,7 +69,7 @@ async function getToken(merchantId: string) {
   }
 }
 
-async function simpleSandboxGetToken(merchantId: string): Promise<any> {
+async function simpleSandboxGetToken(merchantId: string) {
   try {
     // validate Merchant
     const findMerchant = await merchantService.findOne({
@@ -110,8 +110,8 @@ async function simpleSandboxGetToken(merchantId: string): Promise<any> {
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
-    console.log({request: requestOptions, response: token});
-    return {request: requestOptions, response: token};
+    console.log(token);
+    return token;
   } catch (error) {
     console.error('Fetch error:', error);
     return error;
