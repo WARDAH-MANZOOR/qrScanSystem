@@ -41,8 +41,8 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
                 merchant: true
             }
         });
-        let records2 = records.map((record) => ({...record, merchant_name: record.merchant.username}))
-        console.log("Records: ", records2)
+        records = records.map((record) => ({...record, merchant_name: record.merchant.username}))
+        console.log("Records: ", records)
         let meta = {};
         if (page && take) {
             // Get the total count of transactions
@@ -62,7 +62,7 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
                 limit: take
             }
         }
-        return { records2, meta };
+        return { records, meta };
     }
     catch (error: any) {
         console.log(error)
