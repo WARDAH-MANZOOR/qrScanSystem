@@ -11,15 +11,16 @@ const validateSettlement = [
                 where: {
                     merchant_id: value
                 }
-            }) 
+            })
             if (!merchant) {
-                throw new CustomError("Invalid Merchant Id",500);
+                throw new CustomError("Invalid Merchant Id", 500);
             }
         }),
+    body('date').isString().withMessage('Date must be a valid date'),
     body('pkr_amount').isFloat({ min: 0 }).withMessage('PKR Amount must be a positive float'),
     body('usdt_amount').isFloat({ min: 0 }).withMessage('USDT Amount must be a positive float'),
     body('usdt_pkr_rate').isFloat({ min: 0 }).withMessage('USDT PKR Rate must be a positive float'),
-    body('conversion_charges').isFloat({ min: 0 }).withMessage('Conversion Charges must be a positive float'),
+    body('conversion_charges').isString().isLength({ min: 0 }).withMessage('Conversion Charges must be a string'),
     body('total_usdt').isFloat({ min: 0 }).withMessage('Total USDT must be a positive float'),
     body('wallet_address').isString().isLength({ min: 1 }).withMessage('Wallet Address must be a non-empty string'),
 ];

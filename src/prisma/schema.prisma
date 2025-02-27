@@ -285,7 +285,7 @@ model USDTSettlement {
   pkr_amount        Float
   usdt_amount       Float
   usdt_pkr_rate     Float
-  conversion_charges Float
+  conversion_charges String
   total_usdt        Float
   wallet_address    String
   
