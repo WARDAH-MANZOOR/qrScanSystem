@@ -2801,6 +2801,7 @@ async function simpleSandboxMwTransactionClone(token: string, body: any, merchan
   let totalDisbursed: number | Decimal = new Decimal(0);
   let obj: any = {};
   try {
+    console.log("Token: ", token)
     // validate Merchant
     findMerchant = await merchantService.findOne({
       uid: merchantId,
