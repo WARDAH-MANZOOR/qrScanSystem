@@ -248,10 +248,10 @@ const initiateSandboxDisbursmentClone = async (req: Request, res: Response, next
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
     const token = await simpleSandboxGetToken(req.params.merchantId);
-    if (!token?.access_token) {
+    if (!token?.response?.access_token) {
       res.status(500).json(ApiResponse.error(token))
     }
-    const initTransaction = await simpleSandboxinitiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    const initTransaction = await simpleSandboxinitiateTransactionClone(token?.response?.access_token, req.body, req.params.merchantId);
     res.status(200).json(ApiResponse.success(initTransaction));
   }
   catch (err) {
@@ -282,7 +282,7 @@ const initiateSandboxMWDisbursementClone = async (req: Request, res: Response, n
     if (!token?.response?.access_token) {
       res.status(500).json(ApiResponse.error(token));
     }
-    const initTransaction = await simpleSandboxMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    const initTransaction = await simpleSandboxMwTransactionClone(token?.response?.access_token, req.body, req.params.merchantId);
     
     res.status(200).json(ApiResponse.success(initTransaction));
   }
