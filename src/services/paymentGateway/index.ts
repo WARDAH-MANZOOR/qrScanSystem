@@ -69,7 +69,7 @@ async function getToken(merchantId: string) {
   }
 }
 
-async function simpleSandboxGetToken(merchantId: string) {
+async function simpleSandboxGetToken(merchantId: string): Promise<any> {
   try {
     // validate Merchant
     const findMerchant = await merchantService.findOne({
