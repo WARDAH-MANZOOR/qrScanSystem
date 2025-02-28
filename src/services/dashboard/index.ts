@@ -258,10 +258,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             status: 'completed',
             merchant_id: +merchantId,
             ScheduledTask: {
-              status: 'pending',
-              scheduledAt: {
-                gte: new Date()
-              }
+              status: 'pending'
             }
           }
         })
