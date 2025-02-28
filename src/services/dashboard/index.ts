@@ -248,6 +248,25 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         })
       );
 
+      fetchAggregates.push(
+        prisma.transaction.aggregate({
+          _sum: {
+            original_amount: true
+          },
+          where: {
+            settlement: false,
+            status: 'completed',
+            merchant_id: +merchantId,
+            ScheduledTask: {
+              status: 'pending',
+              scheduledAt: {
+                gte: new Date()
+              }
+            }
+          }
+        })
+      )
+
       // Execute all queries in parallel
       const [
         totalTransactions,
@@ -262,10 +281,10 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         disbursementBalance,
         disburseBalancePercent,
         disbursementAmount,
-        totalUsdtSettlement
+        totalUsdtSettlement,
+        remainingSettlements
       ] = await Promise.all(fetchAggregates);
       let amt = (disbursementAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0
-      console.log("Amount: ",amt);
       // Build and return the full dashboard summary
       const dashboardSummary = {
         totalTransactions: totalTransactions as number, // Ensure correct type
@@ -282,6 +301,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         disburseBalancePercent,
         disbursementAmount: amt,
         totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
+        remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0,
         transactionSuccessRate: 0,
         lastWeek:
           (lastWeek as { _sum: { original_amount: number | null } })._sum
@@ -478,9 +498,26 @@ const adminDashboardDetails = async (params: any) => {
       })
     );
 
+    fetchAggregates.push(
+      prisma.transaction.aggregate({
+        _sum: {
+          original_amount: true
+        },
+        where: {
+          settlement: false,
+          status: 'completed',
+          ScheduledTask: {
+            status: 'pending',
+            scheduledAt: {
+              gte: new Date()
+            }
+          }
+        }
+      })
+    )
 
     // Execute all queries in parallel
-    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance, totalSettlementAmount, totalUsdtSettlement] =
+    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance, totalSettlementAmount, totalUsdtSettlement, remainingSettlements] =
       await Promise.all(fetchAggregates);
 
     // Build and return the full dashboard summary
@@ -498,6 +535,7 @@ const adminDashboardDetails = async (params: any) => {
       totalSettlementBalance: (totalSettlementBalance as { _sum: { balance: number | null } })._sum.balance?.toFixed(2) || 0,
       totalSettlementAmount: (totalSettlementAmount as { _sum: { merchantAmount: number | null } })._sum.merchantAmount?.toFixed(2) || 0,
       totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
+      remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0
     };
 
     return dashboardSummary;
