@@ -58,6 +58,9 @@ const getSettlement = async (params: any, user: JwtPayload) => {
             full_name: true,
           },
         },
+      },
+      orderBy: {
+        settlementDate: "desc"
       }
     });
     let meta = {};
