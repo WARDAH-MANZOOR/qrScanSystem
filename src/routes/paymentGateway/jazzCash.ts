@@ -14,7 +14,7 @@ import { limiter } from "utils/rate_limit.js";
 
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
-  router.post("/jzw-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursementClone)
+  router.post("/jzw-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursement)
   router.post("/jzwc-disburse/:merchantId",[apiKeyAuth],jazzCashController.initiateMWDisbursement)
   router.post("/jz-disburse-status/:merchantId",[apiKeyAuth],jazzCashController.disburseInquiryController);
   router.post("/sjz-disburse-status/:merchantId",jazzCashController.simpleDisburseInquiryController);
@@ -24,7 +24,7 @@ export default function (router: Router) {
   router.post(
     "/jz-disburse/:merchantId",
     [apiKeyAuth],
-    jazzCashController.initiateDisbursmentClone
+    jazzCashController.initiateDisbursment
   )
 
   router.post(
