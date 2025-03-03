@@ -323,18 +323,20 @@ export const generateExcelReportService = async (params: any): Promise<string> =
 export const payinPerWalletService = async (params: any) => {
     try {
         const { startDate, endDate } = params;
-
-        // Convert query parameters to Date objects
-        let start_date = new Date(format(
-            toZonedTime(startDate, "Asia/Karachi"),
-            'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }
-          ));
-        const end_date = new Date(format(
-            toZonedTime(endDate, "Asia/Karachi"),
-            'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }
-          ));
-        
-        console.log(start_date, endDate)
+        let customWhere = {} as any;
+        let start_date, end_date;
+        if (startDate && endDate) {
+            // Convert query parameters to Date objects
+            start_date = new Date(format(
+                toZonedTime(startDate, "Asia/Karachi"),
+                'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }
+            ));
+            end_date = new Date(format(
+                toZonedTime(endDate, "Asia/Karachi"),
+                'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }
+            ));
+        }
+        console.log(start_date, end_date)
         // Fetch transactions (JazzCash)
         const jazzCashTransactions = await prisma.transaction.findMany({
             where: {
@@ -390,17 +392,17 @@ export const payinPerWalletService = async (params: any) => {
         }, {} as Record<number, { total_amount: number; provider_name: string }>);
 
         // Get merchant IDs
-        const jazzCashMerchantIds = Object.keys(jazzCashAggregation).map(Number);
-        const easyPaisaMerchantIds = Object.keys(easyPaisaAggregation).map(Number);
-
+        let jazzCashMerchantIds = Object.keys(jazzCashAggregation).map(Number);
+        let easyPaisaMerchantIds = Object.keys(easyPaisaAggregation).map(Number);
+        
         // Fetch merchants
         const jazzCashMerchants = await prisma.jazzCashMerchant.findMany({
-            where: { id: { in: jazzCashMerchantIds } },
+            where: { id: { in: jazzCashMerchantIds.slice(0,jazzCashMerchantIds.length - 1) } },
             select: { id: true, returnUrl: true },
         });
 
         const easyPaisaMerchants = await prisma.easyPaisaMerchant.findMany({
-            where: { id: { in: easyPaisaMerchantIds } },
+            where: { id: { in: easyPaisaMerchantIds.slice(0,easyPaisaMerchantIds.length - 1) } },
             select: { id: true, username: true },
         });
 
@@ -424,7 +426,7 @@ export const payinPerWalletService = async (params: any) => {
 
     } catch (error) {
         console.error(error);
-        throw new CustomError("Internal Server Error",400);
+        throw new CustomError("Internal Server Error", 400);
     }
 };
 
