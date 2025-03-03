@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { reportService } from "services/index.js";
+import ApiResponse from "utils/ApiResponse.js";
 const generateExcelReportController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Call the service method
@@ -19,4 +20,17 @@ const generateExcelReportController = async (req: Request, res: Response, next: 
     }
 };
 
-export default {generateExcelReportController}
+const payinPerWalletController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Call the service method
+        const params = req.query;
+        const result = await reportService.payinPerWalletService(params);
+
+        return res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        console.error(error);
+        next(error); // Pass the error to the global error handler
+    }
+};
+
+export default {generateExcelReportController, payinPerWalletController}
