@@ -1434,6 +1434,202 @@ async function simpleSandboxinitiateTransactionClone(token: string, body: any, m
   }
 }
 
+async function simpleProductionInitiateTransactionClone(token: string, body: any, merchantId: string) {
+  let findMerchant: any;
+  let walletBalance;
+  let totalDisbursed: number | Decimal = new Decimal(0);
+  let obj: any = {};
+  try {
+    // validate Merchant
+    findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+
+    let balance = await getWalletBalance(findMerchant?.merchant_id) as { walletBalance: number };
+    walletBalance = balance.walletBalance;
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.JazzCashDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await jazzcashDisburse
+      .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    if (body.order_id) {
+      const checkOrder = await prisma.disbursement.findFirst({
+        where: {
+          merchant_custom_order_id: body.order_id,
+        },
+      });
+      if (checkOrder) {
+        throw new CustomError("Order ID already exists", 400);
+      }
+    }
+
+    let id = transactionService.createTransactionId();
+
+    obj["inquiry_request"] = {
+      bankAccountNumber: body.iban,
+      bankCode: body.bankCode,
+      amount: body.amount,
+      receiverMSISDN: body.phone,
+      referenceId: id
+    }
+    console.log("Initiate Request: ", {
+      bankAccountNumber: body.iban,
+      bankCode: body.bankCode,
+      amount: body.amount,
+      receiverMSISDN: body.phone,
+      referenceId: id
+    })
+
+    let payload = encryptData(
+      {
+        bankAccountNumber: body.iban,
+        bankCode: body.bankCode,
+        amount: body.amount,
+        receiverMSISDN: body.phone,
+        referenceId: id
+      }
+      , findDisbureMerch.key, findDisbureMerch.initialVector)
+    let db_id = id;
+    let requestData = {
+      data: payload,
+    };
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Example usage
+    (async () => {
+      await delay(1000); // Wait for 1 second
+    })();
+    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    let res = await response.json();
+    let data;
+    if (!res.data) {
+      obj["inquiry_response"] = res;
+      return obj;
+      // await prisma.disbursement.create({
+      //   data: {
+      //     ...data2,
+      //     // transaction_id: id,
+      //     merchant_id: Number(findMerchant.merchant_id),
+      //     disbursementDate: new Date(),
+      //     transactionAmount: amountDecimal,
+      //     commission: totalCommission,
+      //     gst: totalGST,
+      //     withholdingTax: totalWithholdingTax,
+      //     merchantAmount: body.amount ? body.amount : merchantAmount,
+      //     platform: 0,
+      //     account: body.iban,
+      //     provider: PROVIDERS.JAZZ_CASH,
+      //     status: "pending",
+      //     response_message: "pending",
+      //     to_provider: body.bankCode
+      //   },
+      // });
+      // throw new CustomError("Transaction is Pending", 202);
+    }
+    data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log("Initiate Response: ", data)
+    if (data.responseCode != "G2P-T-0") {
+      console.log("IBFT Response: ", data);
+      obj["inquiry_response"] = data;
+      return obj
+      // throw new CustomError(data.responseDescription, 500)
+    }
+    obj["inquiry_response"] = data;
+
+    id = transactionService.createTransactionId();
+    obj["payment_request"] = {
+      "Init_transactionID": data.transactionID,
+      "referenceID": id
+    }
+    console.log("Confirm Request: ", {
+      "Init_transactionID": data.transactionID,
+      "referenceID": id
+    })
+
+    payload = encryptData({
+      "Init_transactionID": data.transactionID,
+      "referenceID": id
+    }, findDisbureMerch.key, findDisbureMerch.initialVector)
+
+    requestData = {
+      data: payload
+    };
+    // Example usage
+    (async () => {
+      await delay(1000); // Wait for 1 second
+    })();
+    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+      method: "POST",
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    })
+    res = await response.json();
+    if (!res.data) {
+      obj["payment_response"] = res;
+      return obj;
+      // await prisma.disbursement.create({
+      //   data: {
+      //     ...data2,
+      //     // transaction_id: id,
+      //     merchant_id: Number(findMerchant.merchant_id),
+      //     disbursementDate: new Date(),
+      //     transactionAmount: amountDecimal,
+      //     commission: totalCommission,
+      //     gst: totalGST,
+      //     withholdingTax: totalWithholdingTax,
+      //     merchantAmount: body.amount ? body.amount : merchantAmount,
+      //     platform: 0,
+      //     account: body.iban,
+      //     provider: PROVIDERS.JAZZ_CASH,
+      //     status: "pending",
+      //     response_message: "pending",
+      //     to_provider: body.bankCode
+      //   },
+      // });
+      // throw new CustomError("Transaction is Pending", 202);
+    }
+    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
+    if (res.responseCode != "G2P-T-0") {
+      console.log("IBFT Response: ", data);
+      obj["payment_response"] = res;
+      return obj;
+      // throw new CustomError(res.responseDescription, 500)
+    }
+    obj["payment_response"] = res;
+    return obj;
+    // return res;
+  }
+  catch (err: any) {
+    console.log("Initiate Transaction Error", err);
+    throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
+  }
+}
+
 async function updateTransaction(token: string, body: UpdateDisbursementPayload, merchantId: string) {
   let findMerchant: any;
   let walletBalance;
@@ -2841,6 +3037,123 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
   }
 }
 
+async function simpleProductionMwTransactionClone(token: string, body: any, merchantId: string) {
+  let findMerchant: any;
+  let walletBalance;
+  let totalDisbursed: number | Decimal = new Decimal(0);
+  let obj: any = {};
+  try {
+    console.log("Token: ", token)
+    // validate Merchant
+    findMerchant = await merchantService.findOne({
+      uid: merchantId,
+    });
+    const balance = await getWalletBalance(findMerchant?.merchant_id) as { walletBalance: number };
+    walletBalance = balance.walletBalance; // Get the wallet balance
+    if (!findMerchant) {
+      throw new CustomError("Merchant not found", 404);
+    }
+
+    if (!findMerchant.JazzCashDisburseAccountId) {
+      throw new CustomError("Disbursement account not assigned.", 404);
+    }
+
+    // find disbursement merchant
+    const findDisbureMerch: any = await jazzcashDisburse
+      .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+      .then((res) => res?.data);
+
+    if (!findDisbureMerch) {
+      throw new CustomError("Disbursement account not found", 404);
+    }
+
+    let id = transactionService.createTransactionId();
+
+    obj["mw_request"] = {
+      receiverCNIC: body.cnic,
+      receiverMSISDN: body.phone,
+      amount: body.amount,
+      referenceId: id
+    }
+    const payload = encryptData(
+      {
+        receiverCNIC: body.cnic,
+        receiverMSISDN: body.phone,
+        amount: body.amount,
+        referenceId: id
+      }, findDisbureMerch.key, findDisbureMerch.initialVector)
+
+    const requestData = {
+      data: payload
+    };
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Example usage
+    (async () => {
+      await delay(1000); // Wait for 1 second
+    })();
+
+    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    let res = await response.json();
+    console.log("MW Response", res);
+    if (!res.data) {
+      obj["mw_response"] = res;
+      return obj;
+      // await prisma.disbursement.create({
+      //   data: {
+      //     ...data,
+      //     // transaction_id: id,
+      //     merchant_id: Number(findMerchant.merchant_id),
+      //     disbursementDate: new Date(),
+      //     transactionAmount: amountDecimal,
+      //     commission: totalCommission,
+      //     gst: totalGST,
+      //     withholdingTax: totalWithholdingTax,
+      //     merchantAmount: body.amount ? body.amount : merchantAmount,
+      //     platform: 0,
+      //     account: body.phone,
+      //     provider: PROVIDERS.JAZZ_CASH,
+      //     status: "pending",
+      //     response_message: "pending",
+      //     to_provider: PROVIDERS.JAZZ_CASH
+      //   },
+      // });
+      // throw new CustomError("Transaction is Pending", 202);
+    }
+    res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
+
+    if (res.responseCode != "G2P-T-0") {
+
+      const date = new Date();
+
+      // Define the Pakistan timezone
+      const timeZone = 'Asia/Karachi';
+
+      // Convert the date to the Pakistan timezone
+      const zonedDate = toZonedTime(date, timeZone);
+      obj["mw_response"] = res;
+      return obj;
+      // throw new CustomError(res.responseDescription, 500);
+    }
+    obj["mw_response"] = res;
+
+    return obj;
+  }
+  catch (err: any) {
+    console.log("MW Transaction Error", err);
+    throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
+  }
+}
+
 async function simpleSandboxMwTransactionClone(token: string, body: any, merchantId: string) {
   let findMerchant: any;
   let walletBalance;
@@ -3392,5 +3705,7 @@ export {
   simpleSandboxGetToken,
   simpleSandboxMwTransactionClone,
   simpleSandboxinitiateTransactionClone,
-  simpleSandboxCheckTransactionStatus
+  simpleSandboxCheckTransactionStatus,
+  simpleProductionMwTransactionClone,
+  simpleProductionInitiateTransactionClone
 }
