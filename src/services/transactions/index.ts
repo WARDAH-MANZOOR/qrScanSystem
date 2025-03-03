@@ -408,7 +408,7 @@ async function updateMerchantSwitch(provider: "DIRECT" | "SWITCH", merchantId: n
 const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean, checkLimit: boolean) => {
   setTimeout(async () => {
     try {
-      console.log("Callback Payload: ", payload);
+      console.log("Callback Payload: ", JSON.stringify(payload));
       let data = JSON.stringify({
         "amount": payload.original_amount,
         "msisdn": msisdn,

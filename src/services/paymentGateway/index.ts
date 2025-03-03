@@ -880,6 +880,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
   let totalDisbursed: number | Decimal = new Decimal(0);
   let balanceDeducted = false;
   let merchantAmount: Decimal = new Decimal(0);
+  let id = '';
   try {
     console.log(JSON.stringify({ event: "INITIATE_TRANSACTION", merchantId, orderId: body.order_id, amount: body.amount }));
     // validate Merchant
@@ -924,7 +925,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let amountDecimal: Decimal = new Decimal(body.amount);
     merchantAmount = new Decimal(body.amount);
     totalDisbursed = new Decimal(0);
-    let id = transactionService.createTransactionId();
+    id = transactionService.createTransactionId();
     console.log(JSON.stringify({ event: "TRANSACTION_ID_CREATED", transactionId: id }));
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     if (body.order_id) {
@@ -957,7 +958,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
         }
         const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
         balanceDeducted = true;
-        console.log(JSON.stringify({ event: "BALANCE_ADJUSTED", merchantId, deductedAmount: merchantAmount.toString() }));
+        console.log(JSON.stringify({ event: "BALANCE_ADJUSTED", merchantId, deductedAmount: merchantAmount.toString(), id: id }));
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1028,7 +1029,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let res = await response.json();
     let data;
     if (!res.data) {
-      console.log(JSON.stringify({event: "IBFT_INQUIRY_DATA_NOT_RECIEVED", response: res}))
+      console.log(JSON.stringify({event: "IBFT_INQUIRY_DATA_NOT_RECIEVED", response: res, id}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
@@ -1053,10 +1054,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    console.log(JSON.stringify({ event: "API_RESPONSE_RECEIVED", responseCode: data.responseCode, description: data.responseDescription }));
+    console.log(JSON.stringify({ event: "API_RESPONSE_RECEIVED", responseCode: data.responseCode, description: data.responseDescription, id }));
     // console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
-      console.log(JSON.stringify({event: "IBFT_INQUIRY_ERROR", response: data}))
+      console.log(JSON.stringify({event: "IBFT_INQUIRY_ERROR", response: data, id}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = data.transactionID || db_id;
       // Get the current date
@@ -1118,7 +1119,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     })
     res = await response.json();
     if (!res.data) {
-      console.log(JSON.stringify({event: "IBFT_PAYMENT_DATA_NOT_RECIEVED", response: res}))
+      console.log(JSON.stringify({event: "IBFT_PAYMENT_DATA_NOT_RECIEVED", response: res, id}))
       easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
@@ -1143,11 +1144,11 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    console.log(JSON.stringify({ event: "FINAL_RESPONSE_RECEIVED", transactionStatus: res.responseCode, transactionId: res.transactionID }));
+    console.log(JSON.stringify({ event: "FINAL_RESPONSE_RECEIVED", transactionStatus: res.responseCode, transactionId: res.transactionID, id }));
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       // console.log("IBFT Response: ", data);
-      console.log(JSON.stringify({event: "IBFT_PAYMENT_ERROR", response: res}))
+      console.log(JSON.stringify({event: "IBFT_PAYMENT_ERROR", response: res, id}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || db_id;
       // Get the current date
@@ -1180,7 +1181,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError(res.responseDescription, 500)
     }
 
-    console.log(JSON.stringify({ event: "TRANSACTION_SUCCESS", transactionId: res.transactionID, merchantId, finalAmount: merchantAmount.toString() }));
+    console.log(JSON.stringify({ event: "TRANSACTION_SUCCESS", transactionId: res.transactionID, merchantId, finalAmount: merchantAmount.toString(), id }));
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
@@ -1254,10 +1255,9 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
   }
   catch (err: any) {
     // console.log("Initiate Transaction Error", err);
-    console.log(JSON.stringify({ event: "TRANSACTION_ERROR", errorMessage: err?.message, statusCode: err?.statusCode || 500 }));
+    console.log(JSON.stringify({ event: "TRANSACTION_ERROR", errorMessage: err?.message, statusCode: err?.statusCode || 500, id }));
     if (balanceDeducted) {
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-
     }
     throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
@@ -2509,6 +2509,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   let totalDisbursed: number | Decimal = new Decimal(0);
   let balanceDeducted = false;
   let merchantAmount = new Decimal(0);
+  let id = '';
   try {
     // validate Merchant
     findMerchant = await merchantService.findOne({
@@ -2554,7 +2555,8 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     let amountDecimal: Decimal = new Decimal(body.amount);
     merchantAmount = new Decimal(body.amount);
     let data: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
-    let id = transactionService.createTransactionId();
+    id = transactionService.createTransactionId();
+    console.log(JSON.stringify({event: "TRANSACTION_ID_CREATED", id}))
     if (body.order_id) {
       data["merchant_custom_order_id"] = body.order_id;
     }
@@ -2584,7 +2586,8 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           throw new CustomError("Insufficient balance to disburse", 400);
         }
         const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
-        balanceDeducted = true; // Adjust the balance
+        balanceDeducted = true;
+        console.log(JSON.stringify({event: "BALANCE_ADJUSTED", id, amount: +merchantAmount.toString()})) // Adjust the balance
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -2626,7 +2629,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
         referenceId: id
       }, findDisbureMerch.key, findDisbureMerch.initialVector)
-
+    console.log(JSON.stringify({event: "PAYLOAD_ENCRYPTED", id: id}))
     const requestData = {
       data: payload
     };
@@ -2647,8 +2650,8 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       body: JSON.stringify(requestData)
     });
     let res = await response.json();
-    console.log("MW Response", res);
     if (!res.data) {
+      console.log(JSON.stringify({event: "MW_RESPONSE_DATA_NOT_RECIEVED", res, id}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       await prisma.disbursement.create({
         data: {
@@ -2676,6 +2679,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
 
     if (res.responseCode != "G2P-T-0") {
+      console.log(JSON.stringify({event: "MW_PAYMENT_ERROR", res, id}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       data["transaction_id"] = res?.transactionID || id;
 
@@ -2707,6 +2711,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500);
     }
+    console.log(JSON.stringify({event: "MW_TRANSACTION_SUCCESS", id: id}))
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
@@ -2779,7 +2784,9 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     );
   }
   catch (err: any) {
-    console.log("MW Transaction Error", err);
+    // console.log("MW Transaction Error", err);
+    console.log(JSON.stringify({event: "MW_TRANSACTION_ERROR", message: err?.message, statusCode: err?.statusCode == 202 ? 202 : 500, id: id}))
+
     if (balanceDeducted) {
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
     }
