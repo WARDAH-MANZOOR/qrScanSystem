@@ -878,14 +878,15 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
   let findMerchant: any;
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
+  let balanceDeducted = false;
+  let merchantAmount: Decimal = new Decimal(0);
   try {
+    console.log(JSON.stringify({ event: "INITIATE_TRANSACTION", merchantId, orderId: body.order_id, amount: body.amount }));
     // validate Merchant
     findMerchant = await merchantService.findOne({
       uid: merchantId,
     });
 
-    let balance = await getWalletBalance(findMerchant?.merchant_id) as { walletBalance: number };
-    walletBalance = balance.walletBalance;
     if (!findMerchant) {
       throw new CustomError("Merchant not found", 404);
     }
@@ -893,6 +894,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     if (!findMerchant.JazzCashDisburseAccountId) {
       throw new CustomError("Disbursement account not assigned.", 404);
     }
+
+    let balance = await getWalletBalance(findMerchant?.merchant_id) as { walletBalance: number };
+    walletBalance = balance.walletBalance;
+    console.log(JSON.stringify({ event: "MERCHANT_VALIDATED", merchantId, balance: walletBalance }));
 
     // find disbursement merchant
     const findDisbureMerch: any = await jazzcashDisburse
@@ -917,9 +922,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let totalGST: Decimal = new Decimal(0);
     let totalWithholdingTax: Decimal = new Decimal(0);
     let amountDecimal: Decimal = new Decimal(body.amount);
-    let merchantAmount: Decimal = new Decimal(body.amount);
+    merchantAmount = new Decimal(body.amount);
     totalDisbursed = new Decimal(0);
     let id = transactionService.createTransactionId();
+    console.log(JSON.stringify({ event: "TRANSACTION_ID_CREATED", transactionId: id }));
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string; } = {};
     if (body.order_id) {
       data2["merchant_custom_order_id"] = body.order_id;
@@ -950,6 +956,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           throw new CustomError("Insufficient balance to disburse", 400);
         }
         const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
+        balanceDeducted = true;
+        console.log(JSON.stringify({ event: "BALANCE_ADJUSTED", merchantId, deductedAmount: merchantAmount.toString() }));
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -984,13 +992,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       maxWait: 60000,
       timeout: 60000,
     })
-    console.log("Initiate Request: ", {
-      bankAccountNumber: body.iban,
-      bankCode: body.bankCode,
-      amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-      receiverMSISDN: body.phone,
-      referenceId: id
-    })
+
+    console.log(JSON.stringify({ event: "TRANSACTION_INITIATED", transactionId: id, merchantAmount: merchantAmount.toString() }));
 
     let payload = encryptData(
       {
@@ -1001,6 +1004,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
         referenceId: id
       }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
+
+      console.log(JSON.stringify({ event: "PAYLOAD_ENCRYPTED", referenceId: id }));
     let db_id = id;
     let requestData = {
       data: payload,
@@ -1023,6 +1028,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let res = await response.json();
     let data;
     if (!res.data) {
+      console.log(JSON.stringify({event: "IBFT_INQUIRY_DATA_NOT_RECIEVED", response: res}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
@@ -1043,12 +1049,14 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           to_provider: body.bankCode
         },
       });
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
-    console.log("Initiate Response: ", data)
+    console.log(JSON.stringify({ event: "API_RESPONSE_RECEIVED", responseCode: data.responseCode, description: data.responseDescription }));
+    // console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
-      console.log("IBFT Response: ", data);
+      console.log(JSON.stringify({event: "IBFT_INQUIRY_ERROR", response: data}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = data.transactionID || db_id;
       // Get the current date
@@ -1077,6 +1085,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           response_message: data.responseDescription
         },
       });
+      balanceDeducted = false;
       throw new CustomError(data.responseDescription, 500)
     }
 
@@ -1090,7 +1099,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       "Init_transactionID": data.transactionID,
       "referenceID": id
     }, findDisbureMerch.key, findDisbureMerch.initialVector)
-
+    console.log(JSON.stringify({ event: "TRANSACTION_CONFIRMED", initTransactionID: data.transactionID, referenceID: id }));
     requestData = {
       data: payload
     };
@@ -1109,6 +1118,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     })
     res = await response.json();
     if (!res.data) {
+      console.log(JSON.stringify({event: "IBFT_PAYMENT_DATA_NOT_RECIEVED", response: res}))
       easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
@@ -1129,12 +1139,15 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           to_provider: body.bankCode
         },
       });
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log(JSON.stringify({ event: "FINAL_RESPONSE_RECEIVED", transactionStatus: res.responseCode, transactionId: res.transactionID }));
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
-      console.log("IBFT Response: ", data);
+      // console.log("IBFT Response: ", data);
+      console.log(JSON.stringify({event: "IBFT_PAYMENT_ERROR", response: res}))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || db_id;
       // Get the current date
@@ -1163,8 +1176,11 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           response_message: res.responseDescription
         },
       });
+      balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500)
     }
+
+    console.log(JSON.stringify({ event: "TRANSACTION_SUCCESS", transactionId: res.transactionID, merchantId, finalAmount: merchantAmount.toString() }));
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
@@ -1237,7 +1253,12 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     );
   }
   catch (err: any) {
-    console.log("Initiate Transaction Error", err);
+    // console.log("Initiate Transaction Error", err);
+    console.log(JSON.stringify({ event: "TRANSACTION_ERROR", errorMessage: err?.message, statusCode: err?.statusCode || 500 }));
+    if (balanceDeducted) {
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+
+    }
     throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }

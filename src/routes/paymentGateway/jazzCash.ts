@@ -42,7 +42,7 @@ export default function (router: Router) {
   router.post(
     "/jzc-disburse/:merchantId",
     [apiKeyAuth],
-    jazzCashController.initiateDisbursment
+    jazzCashController.initiateDisbursmentClone
   );
 
   router.post(
