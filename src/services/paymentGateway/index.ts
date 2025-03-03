@@ -667,6 +667,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           to_provider: body.bankCode
         },
       });
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -701,6 +702,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           response_message: data.responseDescription
         },
       });
+      balanceDeducted = false;
       throw new CustomError(data.responseDescription, 500)
     }
 
@@ -753,6 +755,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           to_provider: body.bankCode
         },
       });
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -787,6 +790,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
           response_message: res.responseDescription
         },
       });
+      balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500)
     }
     return await prisma.$transaction(
@@ -2644,6 +2648,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           to_provider: PROVIDERS.JAZZ_CASH
         },
       });
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -2678,6 +2683,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           response_message: res.responseDescription
         },
       });
+      balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500);
     }
     return await prisma.$transaction(
