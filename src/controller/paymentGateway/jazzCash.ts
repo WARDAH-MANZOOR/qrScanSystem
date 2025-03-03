@@ -263,7 +263,7 @@ const initiateProductionDisbursmentClone = async (req: Request, res: Response, n
   try {
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await simpleSandboxGetToken(req.params.merchantId);
+    const token = await getToken(req.params.merchantId);
     if (!token?.access_token) {
       res.status(500).json(ApiResponse.error(token))
     }
@@ -310,7 +310,7 @@ const initiateSandboxMWDisbursementClone = async (req: Request, res: Response, n
 const initiateProductionMWDisbursementClone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await simpleSandboxGetToken(req.params.merchantId);
+    const token = await getToken(req.params.merchantId);
     if (!token?.access_token) {
       res.status(500).json(ApiResponse.error(token));
     }
