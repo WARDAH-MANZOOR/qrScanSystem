@@ -5,6 +5,6 @@ import { isAdmin, isLoggedIn } from 'utils/middleware.js';
 const router = express.Router();
 
 router.get('/excel', [isLoggedIn, isAdmin], reportController.generateExcelReportController as express.RequestHandler);
-router.get('/payin-per-wallet', [isLoggedIn, isAdmin], reportController.payinPerWalletController as express.RequestHandler);
+router.get('/payin-per-wallet', reportController.payinPerWalletController as express.RequestHandler);
 
 export default router;
