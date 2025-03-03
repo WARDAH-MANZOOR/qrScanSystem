@@ -351,10 +351,13 @@ async function updateTransactionsAndTasks(
 ) {
   // Update transactions as settled
   const transactionIds = transactions.map((t) => t.transaction_id);
-  await prisma.transaction.updateMany({
-    where: { transaction_id: { in: transactionIds } },
-    data: { settlement: true },
-  });
+  const CHUNK_SIZE = 5000;
+  for (let i = 0; i < transactionIds.length; i += CHUNK_SIZE) {
+    await prisma.transaction.updateMany({
+      where: { transaction_id: { in: transactionIds.slice(i, i + CHUNK_SIZE) } },
+      data: { settlement: true },
+    });
+  }
 
   // Update scheduled tasks as completed
   const taskIds = transactionIds
@@ -368,10 +371,12 @@ async function updateTransactionsAndTasks(
 
   // Convert the date to the Pakistan timezone
   const zonedDate = toZonedTime(today, timeZone);
-  await prisma.scheduledTask.updateMany({
-    where: { id: { in: taskIds }, status: 'pending' },
-    data: { status: 'completed', executedAt: zonedDate },
-  });
+  for (let i = 0; i < transactionIds.length; i += CHUNK_SIZE) {
+    await prisma.scheduledTask.updateMany({
+      where: { id: { in: taskIds.slice(i, i + CHUNK_SIZE) }, status: 'pending' },
+      data: { status: 'completed', executedAt: zonedDate },
+    });
+  }
 }
 
 export default task;
