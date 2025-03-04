@@ -395,14 +395,17 @@ export const payinPerWalletService = async (params: any) => {
         let jazzCashMerchantIds = Object.keys(jazzCashAggregation).map(Number);
         let easyPaisaMerchantIds = Object.keys(easyPaisaAggregation).map(Number);
         
+        jazzCashMerchantIds = jazzCashMerchantIds.filter((num) => !Number.isNaN(num))
+        easyPaisaMerchantIds = easyPaisaMerchantIds.filter((num) => !Number.isNaN(num))
+        console.log(jazzCashMerchantIds, easyPaisaMerchantIds)
         // Fetch merchants
         const jazzCashMerchants = await prisma.jazzCashMerchant.findMany({
-            where: { id: { in: jazzCashMerchantIds.slice(0,jazzCashMerchantIds.length - 1) } },
+            where: { id: { in: jazzCashMerchantIds } },
             select: { id: true, returnUrl: true },
         });
 
         const easyPaisaMerchants = await prisma.easyPaisaMerchant.findMany({
-            where: { id: { in: easyPaisaMerchantIds.slice(0,easyPaisaMerchantIds.length - 1) } },
+            where: { id: { in: easyPaisaMerchantIds } },
             select: { id: true, username: true },
         });
 
