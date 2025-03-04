@@ -13,6 +13,7 @@ import ipnController from "./ipn/index.js"
 import groupController from "./group/index.js"
 import permissionController from "./permissions/index.js"
 import usdtSettlementController from "./usdt-settlement/index.js"
+import refundController from "./refund/index.js"
 
 export {
   jazzCashController,
@@ -29,5 +30,6 @@ export {
   ipnController,
   groupController,
   permissionController,
-  usdtSettlementController
+  usdtSettlementController,
+  refundController
 };
