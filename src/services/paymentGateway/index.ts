@@ -3650,19 +3650,10 @@ async function simpleSandboxCheckTransactionStatus(token: string, body: any, mer
   const results = [];
 
   for (const id of body.transactionIds) {
-    const transaction = await prisma.disbursement.findFirst({
-      where: {
-        merchant_custom_order_id: id,
-        merchant_id: findMerchant.merchant_id
-      }
-    });
-    if (!transaction || !transaction?.transaction_id) {
-      results.push({ id, status: "Transaction not found" });
-      continue;
-    }
-    console.log("Inquiry Payload: ", { originalReferenceId: transaction.transaction_id, referenceID: transactionService.createTransactionId() })
+    
+    console.log("Inquiry Payload: ", { originalReferenceId: id, referenceID: transactionService.createTransactionId() })
     const payload = encryptData(
-      { originalReferenceId: transaction.system_order_id, referenceID: transactionService.createTransactionId() },
+      { originalReferenceId: id, referenceID: transactionService.createTransactionId() },
       findDisbureMerch.key, findDisbureMerch.initialVector
     );
     const requestData = {
