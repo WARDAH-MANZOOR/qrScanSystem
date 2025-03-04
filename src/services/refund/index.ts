@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
+import { parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import prisma from "prisma/client.js";
 import { easyPaisaService, merchantService, transactionService } from "services/index.js";
@@ -599,8 +600,133 @@ async function refundMwTransaction(token: string, body: any, merchantId: string)
   }
 }
 
+const getRefund = async (merchantId: number, params: any) => {
+  try {
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+
+    const customWhere = {
+      deletedAt: null,
+    } as any;
+
+    if (merchantId) {
+      customWhere["merchant_id"] = +merchantId;
+    }
+
+    if (params.account) {
+      customWhere["account"] = {
+        contains: params.account
+      };
+    }
+
+    if (params.transaction_id) {
+      customWhere["transaction_id"] = {
+        contains: params.transaction_id
+      }
+    }
+
+    if (startDate && endDate) {
+      const todayStart = parseISO(startDate as string);
+      const todayEnd = parseISO(endDate as string);
+
+      customWhere["disbursementDate"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
+
+    if (params.merchantTransactionId) {
+      customWhere["merchant_custom_order_id"] = {
+        contains: params.merchantTransactionId
+      }
+    }
+
+    if (params.status) {
+      customWhere["status"] = params.status;
+    }
+    let { page, limit } = params;
+    // Query based on provided parameters
+    let skip, take;
+    if (page && limit) {
+      skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
+      take = parseInt(limit as string);
+    }
+
+    const disbursements = await prisma.refund
+      .findMany({
+        ...(skip && { skip: +skip }),
+        ...(take && { take: +take }),
+        where: {
+          ...customWhere,
+
+        },
+        orderBy: {
+          disbursementDate: "desc",
+        },
+        include: {
+          merchant: {
+            select: {
+              uid: true,
+              full_name: true,
+            },
+          },
+        },
+      })
+      .catch((err) => {
+        throw new CustomError("Unable to get disbursement history", 500);
+      });
+
+    // loop through disbursements and add transaction details
+    // for (let i = 0; i < disbursements.length; i++) {
+    //   if (!disbursements[i].transaction_id) {
+    //     disbursements[i].transaction = null;
+    //   } else {
+    //     const transaction = await prisma.transaction.findFirst({
+    //       where: {
+    //         transaction_id: disbursements[i].transaction_id,
+    //       },
+    //     });
+    //     disbursements[i].transaction = transaction;
+    //   }
+    // }
+    let meta = {};
+    if (page && take) {
+      // Get the total count of transactions
+      const total = await prisma.refund.count({
+        where: {
+          ...customWhere,
+
+        },
+      });
+
+      // Calculate the total number of pages
+      const pages = Math.ceil(total / +take);
+      meta = {
+        total,
+        pages,
+        page: parseInt(page as string),
+        limit: take
+      }
+    }
+    const response = {
+      transactions: disbursements.map((transaction) => ({
+        ...transaction,
+        jazzCashMerchant: transaction.merchant,
+      })),
+      meta,
+    };
+    return response;
+  } catch (error: any) {
+    throw new CustomError(
+      error?.error || "Unable to get disbursement",
+      error?.statusCode || 500
+    );
+  }
+};
+
 
 export default {
   refundIBFTTransaction,
-  refundMwTransaction
+  refundMwTransaction,
+  getRefund
 }
