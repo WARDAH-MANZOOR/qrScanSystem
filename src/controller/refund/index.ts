@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { JwtPayload } from "jsonwebtoken";
 import { refundService } from "services/index.js";
 import { getToken } from "services/paymentGateway/index.js";
 import ApiResponse from "utils/ApiResponse.js";
@@ -33,7 +34,19 @@ const refundDisbursmentClone = async (req: Request, res: Response, next: NextFun
     }
 }
 
+const getRefund = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { query } = req;
+      const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+      const merchant = await refundService.getRefund(id, query);
+      res.status(200).json(ApiResponse.success(merchant));
+    } catch (error) {
+      next(error);
+    }
+  }
+
 export default {
     refundDisbursmentClone,
-    refundMWDisbursement
+    refundMWDisbursement,
+    getRefund
 }
