@@ -264,6 +264,19 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         })
       )
 
+      fetchAggregates.push(
+        prisma.refund.aggregate({
+          _sum: {
+            transactionAmount: true,
+          },
+          where: {
+            disbursementDate: disbursement_date,
+            status: "completed",
+            merchant_id: +merchantId,
+          }
+        })
+      );
+
       // Execute all queries in parallel
       const [
         totalTransactions,
@@ -279,7 +292,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         disburseBalancePercent,
         disbursementAmount,
         totalUsdtSettlement,
-        remainingSettlements
+        remainingSettlements,
+        totalRefund
       ] = await Promise.all(fetchAggregates);
       let amt = (disbursementAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0
       // Build and return the full dashboard summary
@@ -299,6 +313,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         disbursementAmount: amt,
         totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
         remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0,
+        totalRefund: (totalRefund as {_sum: {transactionAmount: number | null}})._sum.transactionAmount?.toFixed(2) || 0,
         transactionSuccessRate: 0,
         lastWeek:
           (lastWeek as { _sum: { original_amount: number | null } })._sum
@@ -513,8 +528,20 @@ const adminDashboardDetails = async (params: any) => {
       })
     )
 
+    fetchAggregates.push(
+      prisma.refund.aggregate({
+        _sum: {
+          transactionAmount: true,
+        },
+        where: {
+          disbursementDate: disbursement_date,
+          status: "completed",
+        }
+      })
+    );
+
     // Execute all queries in parallel
-    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance, totalSettlementAmount, totalUsdtSettlement, remainingSettlements] =
+    const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance, totalSettlementAmount, totalUsdtSettlement, remainingSettlements, totalRefund] =
       await Promise.all(fetchAggregates);
 
     // Build and return the full dashboard summary
@@ -532,7 +559,8 @@ const adminDashboardDetails = async (params: any) => {
       totalSettlementBalance: (totalSettlementBalance as { _sum: { balance: number | null } })._sum.balance?.toFixed(2) || 0,
       totalSettlementAmount: (totalSettlementAmount as { _sum: { merchantAmount: number | null } })._sum.merchantAmount?.toFixed(2) || 0,
       totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
-      remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0
+      remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0,
+      totalRefund: (totalRefund as {_sum: {transactionAmount: number | null}})._sum.transactionAmount?.toFixed(2) || 0
     };
 
     return dashboardSummary;
