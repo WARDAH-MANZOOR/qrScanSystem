@@ -645,6 +645,10 @@ const getRefund = async (merchantId: number, params: any) => {
     if (params.status) {
       customWhere["status"] = params.status;
     }
+
+    if (params.reason) {
+      customWhere["reason"] = {contains: params.reason};
+    }
     let { page, limit } = params;
     // Query based on provided parameters
     let skip, take;
@@ -659,7 +663,6 @@ const getRefund = async (merchantId: number, params: any) => {
         ...(take && { take: +take }),
         where: {
           ...customWhere,
-
         },
         orderBy: {
           disbursementDate: "desc",
@@ -770,6 +773,9 @@ const exportRefund = async (merchantId: number, params: any) => {
       customWhere["status"] = params.status;
     }
 
+    if (params.reason) {
+      customWhere["reason"] = {contains: params.reason}
+    }
     const disbursements = await prisma.refund
       .findMany({
         where: {
