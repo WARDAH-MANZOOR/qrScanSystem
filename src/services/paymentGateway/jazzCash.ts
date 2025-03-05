@@ -1310,6 +1310,7 @@ const initiateJazzCashCnicPayment = async (
     // Prepare Payload for JazzCash Wallet API
     const { jazzCashMerchant } = result;
     const payload = {
+      
       pp_Language: "EN",
       pp_MerchantID: jazzCashMerchant.jazzMerchantId,
       pp_Password: jazzCashMerchant.password,
@@ -1329,7 +1330,7 @@ const initiateJazzCashCnicPayment = async (
       ppmpf_4: '',
       ppmpf_5: '',
     };
-
+    console.log("Payload: ",payload)
     // Generate Secure Hash
     const secureHash = getSecureHash(payload, jazzCashMerchant.integritySalt);
     console.log(secureHash);

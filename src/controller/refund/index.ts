@@ -36,17 +36,31 @@ const refundDisbursmentClone = async (req: Request, res: Response, next: NextFun
 
 const getRefund = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { query } = req;
-      const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
-      const merchant = await refundService.getRefund(id, query);
-      res.status(200).json(ApiResponse.success(merchant));
+        const { query } = req;
+        const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+        const merchant = await refundService.getRefund(id, query);
+        res.status(200).json(ApiResponse.success(merchant));
     } catch (error) {
-      next(error);
+        next(error);
     }
-  }
+}
+
+const exportRefund = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { query } = req;
+        const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+        const merchant = await refundService.exportRefund(id, query);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+        res.send(merchant);
+    } catch (error) {
+        next(error);
+    }
+}
 
 export default {
     refundDisbursmentClone,
     refundMWDisbursement,
-    getRefund
+    getRefund,
+    exportRefund
 }

@@ -27,10 +27,11 @@ import pendingDisburse from "./utils/pending_disburse_cron.js"
 import ExcelJS from "exceljs"
 import prisma from 'prisma/client.js';
 import { JsonObject } from '@prisma/client/runtime/library';
+import { calculateHmacSha256 } from 'services/paymentGateway/newJazzCash.js';
 
 var app = express();
-cron.schedule("0 16 * * 1-5", task);
-cron.schedule("*/5 * * * *", pendingDisburse);
+// cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
@@ -94,7 +95,29 @@ app.listen(process.env.PORT || 3001, () => {
   console.log(`Server is running on port ${process.env.PORT || 3001}`);
 });
 
-
+console.log(calculateHmacSha256(JSON.stringify({
+  "pp_Version": "1.1",
+  "pp_TxnType": "MWALLET",
+  "pp_Language": "EN",
+  "pp_MerchantID": "12478544",
+  "pp_SubMerchantID": "",
+  "pp_Password": "uczu5269d1",
+  "pp_TxnRefNo": "T202503051333290asdz",
+  "pp_Amount": 1000,
+  "pp_DiscountedAmount": "",
+  "pp_TxnCurrency": "PKR",
+  "pp_TxnDateTime": "20250305133329",
+  "pp_BillReference": "billRef",
+  "pp_Description": "buy",
+  "pp_TxnExpiryDateTime": "20250305143329",
+  "pp_ReturnURL": "https://devtects.com/thankyou.html",
+  "ppmpf_1": "03142304891",
+  "ppmpf_2": "",
+  "ppmpf_3": "",
+  "ppmpf_4": "",
+  "ppmpf_5": "",
+  "pp_SecureHash": "c729fa24133a5230791185df5352fb3b48038991692d1b7fdd4a6377cb4fe792"
+}), "e6t384f1fu"))
 // Example usage
 
 // const encryptedData = await callbackEncrypt(JSON.stringify({

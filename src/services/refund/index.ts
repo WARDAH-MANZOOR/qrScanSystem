@@ -2,7 +2,8 @@ import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
 import { parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { format, toZonedTime } from "date-fns-tz";
+import { Parser } from "json2csv";
 import prisma from "prisma/client.js";
 import { easyPaisaService, merchantService, transactionService } from "services/index.js";
 import { getMerchantRate, getWalletBalance } from "services/paymentGateway/disbursement.js";
@@ -724,9 +725,143 @@ const getRefund = async (merchantId: number, params: any) => {
   }
 };
 
+const exportRefund = async (merchantId: number, params: any) => {
+  try {
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+
+    const customWhere = {
+      deletedAt: null,
+    } as any;
+
+    if (merchantId) {
+      customWhere["merchant_id"] = +merchantId;
+    }
+
+    if (params.account) {
+      customWhere["account"] = {
+        contains: params.account
+      };
+    }
+
+    if (params.transaction_id) {
+      customWhere["transaction_id"] = {
+        contains: params.transaction_id
+      }
+    }
+
+    if (startDate && endDate) {
+      const todayStart = parseISO(startDate as string);
+      const todayEnd = parseISO(endDate as string);
+
+      customWhere["disbursementDate"] = {
+        gte: todayStart,
+        lt: todayEnd,
+      };
+    }
+
+    if (params.merchantTransactionId) {
+      customWhere["merchant_custom_order_id"] = {
+        contains: params.merchantTransactionId
+      }
+    }
+
+    if (params.status) {
+      customWhere["status"] = params.status;
+    }
+
+    const disbursements = await prisma.refund
+      .findMany({
+        where: {
+          ...customWhere,
+        },
+        orderBy: {
+          disbursementDate: "desc",
+        },
+        include: {
+          merchant: {
+            select: {
+              uid: true,
+              full_name: true,
+            },
+          },
+        },
+      })
+      .catch((err) => {
+        throw new CustomError("Unable to get disbursement history", 500);
+      });
+
+    const totalAmount = disbursements.reduce((sum, transaction) => sum + Number(transaction.merchantAmount), 0);
+
+    // res.setHeader('Content-Type', 'text/csv');
+    // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+
+    const fields = [
+      'merchant',
+      'account',
+      'transaction_id',
+      'merchant_order_id',
+      'disbursement_date',
+      'transaction_amount',
+      'commission',
+      'gst',
+      'withholding_tax',
+      'merchant_amount',
+      'status',
+      'provider',
+      'callback_sent',
+      'reason'
+    ];
+
+    const timeZone = 'Asia/Karachi'
+    const data = disbursements.map(transaction => ({
+      merchant: transaction.merchant.full_name,
+      account: transaction.account,
+      transaction_id: transaction.transaction_id,
+      merchant_order_id: transaction.merchant_custom_order_id,
+      disbursement_date: format(
+        toZonedTime(transaction.disbursementDate, timeZone),
+        'yyyy-MM-dd HH:mm:ss', { timeZone }
+      ),
+      transaction_amount: transaction.transactionAmount,
+      commission: transaction.commission,
+      gst: transaction.gst,
+      withholding_tax: transaction.withholdingTax,
+      merchant_amount: transaction.merchantAmount,
+      status: transaction.status,
+      provider: transaction.provider,
+      callback_sent: transaction.callback_sent,
+      reason: transaction?.reason
+    }));
+
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(data);
+    return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+    // loop through disbursements and add transaction details
+    // for (let i = 0; i < disbursements.length; i++) {
+    //   if (!disbursements[i].transaction_id) {
+    //     disbursements[i].transaction = null;
+    //   } else {
+    //     const transaction = await prisma.transaction.findFirst({
+    //       where: {
+    //         transaction_id: disbursements[i].transaction_id,
+    //       },
+    //     });
+    //     disbursements[i].transaction = transaction;
+    //   }
+    // }
+  } catch (error: any) {
+    throw new CustomError(
+      error?.error || "Unable to get disbursement",
+      error?.statusCode || 500
+    );
+  }
+};
+
 
 export default {
   refundIBFTTransaction,
   refundMwTransaction,
-  getRefund
+  getRefund,
+  exportRefund
 }
