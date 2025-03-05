@@ -3344,7 +3344,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     data2["merchant_custom_order_id"] = body.merchant_custom_order_id;
-    data2["system_order_id"] = body.system_order_id;
+    data2["system_order_id"] = transactionService.createTransactionId();
     // Fetch merchant financial terms
     await prisma.$transaction(async (tx) => {
       try {
@@ -3384,7 +3384,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         receiverCNIC: body.cnic,
         receiverMSISDN: body.account,
         amount: body.merchantAmount ? formatAmount(+body.merchantAmount) : formatAmount(+merchantAmount),
-        referenceId: body.system_order_id
+        referenceId: data2.system_order_id
       }, findDisbureMerch.key, findDisbureMerch.initialVector)
 
     const requestData = {
@@ -3431,7 +3431,8 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         data: {
           transaction_id: data2.transaction_id,
           status: "failed",
-          response_message: res.responseDescription
+          response_message: res.responseDescription,
+          system_order_id: data2.system_order_id
         },
       });
       throw new CustomError(res.responseDescription, 500);
@@ -3458,7 +3459,8 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
           data: {
             transaction_id: data2.transaction_id,
             status: "completed",
-            response_message: "success"
+            response_message: "success",
+            system_order_id: data2.system_order_id
           },
         });
         let webhook_url: string;
