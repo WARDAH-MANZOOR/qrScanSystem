@@ -15,6 +15,7 @@ import groupService from "./group/index.js"
 import permissionService from "./permissions/index.js"
 import usdtSettlementService from "./usdt-settlement/index.js"
 import refundService from "./refund/index.js"
+import newJazzCashService from "./paymentGateway/newJazzCash.js"
 
 export {
     jazzCashService,
@@ -33,5 +34,6 @@ export {
     groupService,
     permissionService,
     usdtSettlementService,
-    refundService
+    refundService,
+    newJazzCashService
 };
