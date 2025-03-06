@@ -519,10 +519,7 @@ const adminDashboardDetails = async (params: any) => {
           settlement: false,
           status: 'completed',
           ScheduledTask: {
-            status: 'pending',
-            scheduledAt: {
-              gte: new Date()
-            }
+            status: 'pending'
           }
         }
       })
