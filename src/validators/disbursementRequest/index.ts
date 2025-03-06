@@ -20,8 +20,8 @@ const validateDisbursementRequest = [
             }
 
             // Fetch the total_to_disburse balance from the database
-            const {walletBalance} = await getWalletBalance(merchantId) as {walletBalance: number};
- 
+            const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
+
             // Check if the requestedAmount exceeds the balanceToDisburse
             if (value > walletBalance) {
                 throw new Error(
@@ -31,6 +31,23 @@ const validateDisbursementRequest = [
 
             return true; // Validation passed
         }),
+    body('merchant_id')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("Merchant id should be greater than 0")
+        .custom(async (value, { req }) => {
+            const merchant = await prisma.merchant.findUnique({
+                where: {
+                    merchant_id: value
+                }
+            })
+            if (!merchant) {
+                throw new Error(
+                    "Merchant Not Found"
+                )
+            }
+            return true;
+        })
 ];
 
 const updateDisbursementRequestStatus = [
