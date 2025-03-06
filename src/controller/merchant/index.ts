@@ -58,7 +58,7 @@ const addMerchant = async (req: Request, res: Response, next: NextFunction): Pro
 
 const setDisbursePercent = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const merchant_id = (req.user as JwtPayload)?.merchant_id;
+    const merchant_id = (req.user as JwtPayload)?.merchant_id || req.body.merchant_id;
     const percent = req.body.percent;
     const result = await merchantService.setDisbursePercent(merchant_id, percent);
     res.status(200).json(ApiResponse.success(result));

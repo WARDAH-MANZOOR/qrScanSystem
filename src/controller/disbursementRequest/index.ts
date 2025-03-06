@@ -7,7 +7,7 @@ import disbursementRequestService from "services/disbursementRequest/index.js";
 const createDisbursementRequest = async (req: Request, res: Response) => {
     try {
         const { requested_amount } = req.body;
-        const merchantId = (req.user as JwtPayload)?.merchant_id;
+        const merchantId = (req.user as JwtPayload)?.merchant_id || req.body.merchant_id;
         const validationErrors = validationResult(req);
         if (!validationErrors.isEmpty()) {
             res.status(400).json(ApiResponse.error(validationErrors.array()[0] as unknown as string));
