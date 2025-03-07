@@ -543,7 +543,8 @@ const initiateJazzCashPayment = async (
           redirect_url: paymentData.redirect_url,
           txnNo: r.pp_TxnRefNo,
           txnDateTime: r.pp_TxnDateTime,
-          statusCode: r.pp_ResponseCode
+          statusCode: r.pp_ResponseCode,
+          
         };
       } else {
         throw new CustomError(
