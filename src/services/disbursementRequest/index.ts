@@ -10,7 +10,7 @@ const createDisbursementRequest = async (requested_amount: number, merchant_id: 
         await prisma.disbursementRequest.create({
             data: {
                 requestedAmount: requested_amount,
-                merchantId: merchant_id,
+                merchantId: Number(merchant_id),
                 status: "pending"
             }
         });
