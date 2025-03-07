@@ -14,9 +14,9 @@ const createDisbursementRequest = async (requested_amount: number, merchant_id: 
                 status: "pending"
             }
         });
-        const { walletBalance } = await getWalletBalance(merchant_id) as { walletBalance: number };
+        const { walletBalance } = await getWalletBalance(Number(merchant_id)) as { walletBalance: number };
         const updatedAvailableBalance = walletBalance - Number(requested_amount);
-        await backofficeService.adjustMerchantWalletBalance(merchant_id, updatedAvailableBalance, false);
+        await backofficeService.adjustMerchantWalletBalance(Number(merchant_id), updatedAvailableBalance, false);
     }
     catch (err: any) {
         throw new CustomError(err.message, 500);
