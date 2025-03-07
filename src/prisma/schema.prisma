@@ -302,6 +302,7 @@ model JazzCashMerchant {
   returnUrl      String
   integritySalt  String
   metadata       Json       @default("{}")
+  merchant_of    String?
   merchantId     Int
   merchant       Merchant[] // One-to-many relationship with Merchant
 }
@@ -313,6 +314,7 @@ model EasyPaisaMerchant {
   credentials   String
   metadata      Json       @default("{}")
   accountNumber String?
+  merchant_of   String?
   merchant      Merchant[] // One-to-many relationship with Merchant
 }
 
