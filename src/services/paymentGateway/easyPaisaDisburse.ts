@@ -13,6 +13,7 @@ const addDisburseAccount = async (payload: any) => {
           pin: payload.pin,
           createdAt: new Date(),
           updatedAt: new Date(),
+          merchant_of: payload?.merchant_of
         },
       });
     });
@@ -97,6 +98,7 @@ const updateDisburseAccount = async (accountId: string, payload: any) => {
           xChannel: payload.xChannel,
           pin: payload.pin,
           updatedAt: new Date(),
+          merchant_of: payload?.merchant_of
         },
       });
     });
