@@ -8,7 +8,8 @@ const addDisburseAccount = async (payload: any) => {
                 data: {
                     initialVector: payload.initialVector,
                     key: payload.key,
-                    tokenKey: payload.tokenKey
+                    tokenKey: payload.tokenKey,
+                    merchant_of: payload?.merchant_of
                 },
             });
         });
@@ -89,7 +90,8 @@ const updateDisburseAccount = async (accountId: string, payload: any) => {
                 data: {
                     initialVector: payload.initialVector,
                     key: payload.key,
-                    tokenKey: payload.tokenKey
+                    tokenKey: payload.tokenKey,
+                    merchant_of: payload?.merchant_of
                 },
             });
         });
