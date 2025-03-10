@@ -68,7 +68,7 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
                 limit: take
             }
         }
-        return { records2, meta };
+        return { records: records2, meta };
     }
     catch (error: any) {
         console.log(error)
