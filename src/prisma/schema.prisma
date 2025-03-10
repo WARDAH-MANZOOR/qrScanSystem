@@ -367,6 +367,7 @@ model EasyPaisaDisburseAccount {
   clientSecret String
   xChannel     String
   pin          String
+  merchant_of  String?
   merchant     Merchant[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -378,6 +379,7 @@ model JazzCashDisburseAccount {
   tokenKey      String
   initialVector String
   key           String
+  merchant_of   String?
   merchant      Merchant[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
