@@ -307,12 +307,48 @@ const getTeleTransactions = async (req: Request, res: Response) => {
 
 const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
   try {
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
+
+    let startDate = req.query?.start as string;
+    let endDate = req.query?.end as string;
+    const status = req.query?.status as string;
+    const search = req.query?.search || "" as string;
+    const msisdn = req.query?.msisdn || "" as string;
+
+    const customWhere = {} as any;
+
+    if (status) {
+      customWhere["status"] = status;
+    }
+
+    if (search) {
+      customWhere["transaction_id"] = {
+        contains: search,
+      };
+    }
+
+    if (msisdn) {
+      customWhere["providerDetails"] = {
+        path: ['msisdn'],
+        equals: msisdn
+      }
+    }
+
+    if (merchantTransactionId) {
+      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+    }
+
+    if (response_message) {
+      customWhere["response_message"] = { contains: response_message }
+    }
+
     const timezone = 'Asia/Karachi';
     const currentTime = toZonedTime(new Date(), timezone);
     const fifteenMinutesAgo = subMinutes(currentTime, 15);
 
     const transactions = await prisma.transaction.findMany({
       where: {
+        ...customWhere,
         date_time: {
           gte: fifteenMinutesAgo,
           lte: currentTime,
