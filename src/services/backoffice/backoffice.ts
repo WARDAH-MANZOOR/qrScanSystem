@@ -149,6 +149,97 @@ async function adjustMerchantWalletBalance(merchantId: number, targetBalance: nu
     }
 }
 
+async function adjustMerchantWalletBalanceithTx(merchantId: number, targetBalance: number, record: boolean, tx: any, wb?: number) {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        walletBalance = balance.walletBalance;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
+        }
+        console.log(targetBalance)
+        console.log(targetBalance, walletBalance)
+        console.log(targetBalance / walletBalance)
+
+
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+
+        // Execute in transaction
+        // Update transaction balances
+        await tx.transaction.updateMany({
+            where: {
+                merchant_id: merchantId,
+                status: 'completed',
+                settlement: true,
+                balance: { gt: 0 },
+            },
+            data: {
+                balance: { multiply: targetBalance / walletBalance }
+            }
+        });
+        const currentTime = Date.now();
+        const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
+        const fractionalMilliseconds = Math.floor(
+            (currentTime - Math.floor(currentTime)) * 1000
+        );
+        const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`
+        // Create appropriate record
+        if (record) {
+            if (isSettlement) {
+                await tx.settlementReport.create({
+                    data: {
+                        merchant_id: merchantId,
+                        settlementDate: new Date(),
+                        transactionAmount: Math.abs(balanceDifference),
+                        merchantAmount: Math.abs(balanceDifference),
+                        commission: 0,
+                        gst: 0,
+                        withholdingTax: 0,
+                        transactionCount: 1
+                    }
+                });
+            } else {
+                await tx.disbursement.create({
+                    data: {
+                        merchant_id: merchantId,
+                        disbursementDate: new Date(),
+                        transactionAmount: Math.abs(balanceDifference),
+                        merchantAmount: Math.abs(balanceDifference),
+                        commission: 0,
+                        gst: 0,
+                        withholdingTax: 0,
+                        status: 'completed',
+                        response_message: 'Wallet adjustment',
+                        merchant_custom_order_id: txnId,
+                        system_order_id: txnId
+                    }
+                });
+            }
+        }
+        return {
+            success: true,
+            type: isSettlement ? 'settlement' : 'disbursement',
+            previousBalance: walletBalance,
+            newBalance: targetBalance,
+            difference: Math.abs(balanceDifference)
+        };
+
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
+    }
+}
+
 async function adjustMerchantWalletBalanceWithoutSettlement(merchantId: number, targetBalance: number, record: boolean, wb?: number) {
     try {
         // Get current balance
@@ -947,5 +1038,6 @@ export default {
     failTransactions,
     failDisbursements,
     processTodaySettlements,
-    createUSDTSettlement
+    createUSDTSettlement,
+    adjustMerchantWalletBalanceithTx
 }
