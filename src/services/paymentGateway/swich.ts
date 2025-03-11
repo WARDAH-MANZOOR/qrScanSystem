@@ -509,7 +509,9 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
       },
     });
 
-    if (!findMerchant || !findMerchant.switchMerchantId) {
+    console.log("Swich ID: ",findMerchant)
+
+    if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
 
