@@ -18,7 +18,6 @@ class ApiResponse {
       message,
       data,
       statusCode,
-      status: 'Completed'
     };
   }
 
@@ -27,7 +26,6 @@ class ApiResponse {
       success: false,
       message,
       statusCode,
-      status: 'Failed'
     };
   }
 }
