@@ -343,7 +343,7 @@ const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
     }
 
     if (merchantId) {
-      customWhere["merchant_id"] = merchantId;
+      customWhere["merchant_id"] = Number(merchantId);
     }
     const timezone = 'Asia/Karachi';
     const currentTime = toZonedTime(new Date(), timezone);
