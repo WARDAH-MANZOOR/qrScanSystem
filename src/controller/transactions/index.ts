@@ -342,6 +342,9 @@ const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
       customWhere["response_message"] = { contains: response_message }
     }
 
+    if (merchantId) {
+      customWhere["merchant_id"] = merchantId;
+    }
     const timezone = 'Asia/Karachi';
     const currentTime = toZonedTime(new Date(), timezone);
     const fifteenMinutesAgo = subMinutes(currentTime, 15);
