@@ -240,6 +240,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
 const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
   let saveTxn;
   try {
+    console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_ERROR", order_id: params.order_id }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -321,6 +322,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
         msisdn: phone
       },
     });
+    console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))
 
     // console.log("saveTxn", saveTxn);
 
@@ -328,6 +330,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     console.log("response: ", response.data)
     // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
     if (response?.data.responseCode == "0000") {
+      console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_SUCCESS", order_id: params.order_id, response }))
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
@@ -356,8 +359,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
         statusCode: response?.data.responseCode
       };
     } else {
-      console.log("Error Payload: ", response.data)
-      console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
+      console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_FAILED", order_id: params.order_id, response }))
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
@@ -379,7 +381,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
       );
     }
   } catch (error: any) {
-    console.log("Error: ", error)
+    console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_ERROR", order_id: params.order_id, error }))
     return {
       message: error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,
@@ -391,6 +393,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
 const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
   let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
   try {
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -462,6 +465,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         +findMerchant.commissions[0].commissionWithHoldingTax,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
     });
+    console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))
 
     // Return pending status and transaction ID immediately
     setImmediate(async () => {
@@ -469,6 +473,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         const response: any = await axios.request(config);
 
         if (response?.data.responseCode === "0000") {
+          console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_SUCCESS", order_id: params.order_id, response }))
           await transactionService.updateTxn(
             saveTxn?.transaction_id as string,
             {
@@ -493,7 +498,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             true
           );
         } else {
-          console.log("🚀 EasyPaisa Error", response.data?.responseDesc);
+          console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_FAILED", order_id: params.order_id, response }))
 
           await transactionService.updateTxn(
             saveTxn?.transaction_id as string,
@@ -511,7 +516,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
           );
         }
       } catch (error: any) {
-        console.error("🚀 Error processing Easypaisa response:", error.message);
+        console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_ERROR", order_id: params.order_id, error }))
         await transactionService.updateTxn(
           saveTxn?.transaction_id as string,
           {
@@ -534,6 +539,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
       statusCode: "pending",
     };
   } catch (error: any) {
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_ERROR", order_id: params.order_id, error }))
     return {
       message:
         error?.message || "An error occurred while initiating the transaction",
@@ -2465,7 +2471,7 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
       const zonedDate = toZonedTime(date, timeZone);
       console.log("Transfer Inquiry Error: ", res.data);
       await prisma.$transaction(async (tx) => {
-        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);        
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
         await prisma.disbursement.update({
           where: {
             merchant_custom_order_id: data2.merchant_custom_order_id,
@@ -2520,7 +2526,7 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
       // Convert the date to the Pakistan timezone
       const zonedDate = toZonedTime(date, timeZone);
       await prisma.$transaction(async (tx) => {
-        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);        
+        const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
         await prisma.disbursement.update({
           where: {
             merchant_custom_order_id: data2.merchant_custom_order_id

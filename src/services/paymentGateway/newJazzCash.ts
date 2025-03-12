@@ -622,8 +622,6 @@ const newInitiateJazzCashCnicPayment = async (
         // Prepare Payload for JazzCash Wallet API
         const { jazzCashMerchant } = result;
         const payload = {
-            pp_TxnType: 'MWALLET',
-            pp_Version: '2.0',
             pp_Language: "EN",
             pp_MerchantID: jazzCashMerchant.jazzMerchantId,
             pp_Password: jazzCashMerchant.password,
