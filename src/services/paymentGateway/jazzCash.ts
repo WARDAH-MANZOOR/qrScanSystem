@@ -146,6 +146,7 @@ const initiateJazzCashPayment = async (
 ) => {
   let refNo: string = "";
   try {
+    
     console.log(JSON.stringify({ event: "JASSCASH_PAYIN_INITIATED", orderId: paymentData.order_id }))
     var JAZZ_CASH_MERCHANT_ID: any = null;
     // Get the current date
