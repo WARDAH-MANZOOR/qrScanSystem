@@ -12,12 +12,16 @@ const createDisbursementRequest = async (requested_amount: number, merchant_id: 
                 data: {
                     requestedAmount: requested_amount,
                     merchantId: Number(merchant_id),
-                    status: "pending"
+                    status: "approved"
                 }
             });
             const { walletBalance } = await getWalletBalance(Number(merchant_id)) as { walletBalance: number };
             const updatedAvailableBalance = walletBalance - Number(requested_amount);
             await backofficeService.adjustMerchantWalletBalanceithTx(Number(merchant_id), updatedAvailableBalance, false, tx);
+            await tx.merchant.update({
+                where: { merchant_id: Number(merchant_id) },
+                data: { balanceToDisburse: { increment: Number(requested_amount) } }
+            });
         },
         {
             timeout: 10000,
