@@ -22,7 +22,7 @@ async function prismaRetry<T>(fn: () => Promise<T>): Promise<T> {
     });
 }
 const prisma = new PrismaClient();
-prisma.$use(async (params, next) => {
-    return prismaRetry(() => next(params));
-})
+// prisma.$use(async (params, next) => {
+//     return prismaRetry(() => next(params));
+// })
 export default prisma;
