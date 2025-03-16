@@ -30,6 +30,7 @@ enum ProviderEnum {
 enum EasypaisaPaymentMethodEnum {
   DIRECT // Direct Easypaisa payment
   SWITCH // Easypaisa payment via Switch
+  PAYFAST
 }
 
 enum EasypaisaInquiryMethod {
@@ -133,6 +134,7 @@ model Merchant {
   @@index([phone_number])
 
   Refund Refund[]
+  PayFastMerchant PayFastMerchant[]
 }
 
 model MerchantProviderCredential {
@@ -322,6 +324,14 @@ model SwichMerchant {
   id           Int        @id @default(autoincrement())
   clientId     String
   clientSecret String?
+  merchant     Merchant[] // One-to-many relationship with Merchant
+}
+
+model PayFastMerchant {
+  id           Int        @id @default(autoincrement())
+  name         String   
+  securedKey   String
+  merchantId   String?
   merchant     Merchant[] // One-to-many relationship with Merchant
 }
 
