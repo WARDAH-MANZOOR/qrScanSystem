@@ -6,6 +6,7 @@ import easyPaisaDisburse from "./easyPaisaDisburse.js";
 import zindigiRouter from "./zindigi.js"
 import jazzcashDisburse from "./jazzcashDisburse.js";
 import newJazzCashRouter from "./newJazzCash.js"
+import payFast from "./payFast.js";
 const router = Router();
  
 jazzCashRouter(router);
@@ -15,5 +16,6 @@ easyPaisaDisburse(router);
 zindigiRouter(router);
 jazzcashDisburse(router);
 newJazzCashRouter(router);
+payFast(router)
 
 export default router;

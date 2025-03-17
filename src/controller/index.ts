@@ -15,6 +15,7 @@ import permissionController from "./permissions/index.js"
 import usdtSettlementController from "./usdt-settlement/index.js"
 import refundController from "./refund/index.js"
 import newJazzCashController from "./paymentGateway/newJazzCash.js";
+import payfastController from "./paymentGateway/payfast.js"
 
 export {
   jazzCashController,
@@ -33,5 +34,6 @@ export {
   permissionController,
   usdtSettlementController,
   refundController,
-  newJazzCashController
+  newJazzCashController,
+  payfastController
 };
