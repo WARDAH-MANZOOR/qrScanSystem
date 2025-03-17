@@ -54,13 +54,13 @@ export default function (router: Router) {
   router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
-    easyPaisaController.initiateEasyPaisaClone
+    easyPaisaController.initiateEasyPaisa
   );
 
   router.post(
     "/initiate-epa/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn],
-    easyPaisaController.initiateEasyPaisaAsyncClone
+    easyPaisaController.initiateEasyPaisaAsync
   );
 
   router.post(
