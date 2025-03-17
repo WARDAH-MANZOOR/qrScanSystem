@@ -11,13 +11,32 @@ const formatter = new Intl.DateTimeFormat('en-CA', {
 });
 
 const getApiToken = async (merchantId: string, params: any) => {
+    let findMerchant = await prisma.merchant.findFirst({
+        where: {
+            uid: merchantId
+        },
+        include: {
+            commissions: true
+        }
+    })
+
+    if (!findMerchant || !findMerchant.payFastMerchantId) {
+        throw new CustomError("Merchant Not Found", 500);
+    }
+
+    const payFastMerchant = await prisma.payFastMerchant.findFirst({
+        where: {
+            id: findMerchant.payFastMerchantId
+        }
+    })
+
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
 
     const urlencoded = new URLSearchParams();
     urlencoded.append("grant_type", "client_credentials");
-    urlencoded.append("secured_key", "HbRqMqNCY9Gfl1yKEOGNwZob");
-    urlencoded.append("merchant_id", "24663");
+    urlencoded.append("secured_key", `${payFastMerchant?.securedKey}`);
+    urlencoded.append("merchant_id", `${payFastMerchant?.merchantId}`);
 
     const requestOptions = {
         method: "POST",
