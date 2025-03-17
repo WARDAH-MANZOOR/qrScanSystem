@@ -16,12 +16,13 @@ export interface Merchant {
   disbursementWithHoldingTax: number;
   settlementDuration: number;
   jazzCashMerchantId: number;
+  payFastMerchantId: number;
   easyPaisaMerchantId: number;
   swichMerchantId: number;
   webhook_url: string;
   uid?: string;
   EasyPaisaDisburseAccountId?: number | null;
-  easypaisaPaymentMethod: "DIRECT" | "SWITCH";
+  easypaisaPaymentMethod: "DIRECT" | "SWITCH" | "PAYFAST";
   easypaisaInquiryMethod: "DATABASE" | "WALLET";
   JazzCashDisburseAccountId: number;
   encrypted: string;
