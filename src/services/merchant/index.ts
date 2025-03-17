@@ -56,7 +56,7 @@ const updateMerchant = async (payload: Merchant) => {
         })
       }
       let method = easypaisaPaymentMethod?.toUpperCase();
-      if (method != "DIRECT" && method != "SWITCH") {
+      if (method != "DIRECT" && method != "SWITCH" && method != "PAYFAST") {
         throw new CustomError("Easy Paisa Method not valid", 400);
       }
       let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
