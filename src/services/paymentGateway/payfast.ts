@@ -230,7 +230,7 @@ const payAsync = async (merchantId: string, params: any) => {
         myHeaders.append("Authorization", `Bearer ${params.token}`);
 
         const urlencoded = new URLSearchParams();
-        urlencoded.append("basket_id", transactionService.createTransactionId());
+        urlencoded.append("basket_id", id2);
         urlencoded.append("txnamt", params.amount);
         urlencoded.append("customer_email_address", params.email);
         urlencoded.append("account_type_id", "4");

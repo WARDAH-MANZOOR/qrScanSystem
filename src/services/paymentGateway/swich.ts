@@ -45,7 +45,9 @@ const getAuthToken = async (id: number) => {
 };
 const initiateSwich = async (payload: any, merchantId: string) => {
   let saveTxn, findMerchant;
+  let id = transactionService.createTransactionId();
   try {
+    console.log(JSON.stringify({ event: "SWICH_PAYIN_INITIATED", order_id: payload.order_id, system_id: id }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -59,11 +61,10 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       },
     });
 
-    if (!findMerchant) {
+    if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
 
-    let id = transactionService.createTransactionId();
     let id2 = payload.order_id || id;
     let data = JSON.stringify({
       customerTransactionId: id2,
@@ -79,6 +80,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     const authToken = await getAuthToken(
       findMerchant.swichMerchantId as number
     );
+
     let config = {
       method: "post",
       maxBodyLength: Infinity,
@@ -90,7 +92,17 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       data: data,
     };
 
-
+    let commission;
+    if (findMerchant.commissions[0].commissionMode == "SINGLE") {
+      commission = +findMerchant.commissions[0].commissionGST +
+        +findMerchant.commissions[0].commissionRate +
+        +findMerchant.commissions[0].commissionWithHoldingTax
+    }
+    else {
+      commission = +findMerchant.commissions[0].commissionGST +
+        +(findMerchant.commissions[0]?.easypaisaRate || 0) +
+        +findMerchant.commissions[0].commissionWithHoldingTax
+    }
     saveTxn = await transactionService.createTxn({
       order_id: id2,
       transaction_id: id,
@@ -98,26 +110,32 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       status: "pending",
       type: payload.type,
       merchant_id: findMerchant.merchant_id,
-      commission:
-        +findMerchant.commissions[0].commissionGST +
-        +findMerchant.commissions[0].commissionRate +
-        +findMerchant.commissions[0].commissionWithHoldingTax,
+      commission,
       settlementDuration: findMerchant.commissions[0].settlementDuration,
       providerDetails: {
         id: findMerchant.swichMerchantId as number,
         name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
-        msisdn: payload.phone
-      },
+        msisdn: payload.phone,
+      }
     });
+    console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: payload.order_id, system_id: id }))
+
 
     let res = await axios.request(config);
 
     if (res.data.code === "0000") {
+      console.log(JSON.stringify({ event: "SWICH_PAYIN_SUCCESS", order_id: payload.order_id, response: res.data, system_id: id }))
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
           status: "completed",
           response_message: res.data.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+            transactionId: res?.data?.orderId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -135,11 +153,18 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         statusCode: res.data.code
       };
     } else {
+      console.log(JSON.stringify({ event: "SWICH_PAYIN_FAILED", order_id: payload.order_id, response: res.data, system_id: id }))
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
           status: "failed",
           response_message: res.data.message,
+          providerDetails: {
+            id: findMerchant.swichMerchantId as number,
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+            transactionId: res?.data?.orderId
+          },
         },
         findMerchant.commissions[0].settlementDuration
       );
@@ -149,16 +174,33 @@ const initiateSwich = async (payload: any, merchantId: string) => {
       );
     }
   } catch (err: any) {
-    console.log(err);
+    console.log(JSON.stringify({
+      event: "SWICH_PAYIN_ERROR", order_id: payload.order_id, system_id: id, error: {
+        message: err?.message,
+        response: err?.response?.data || null,
+        statusCode: err?.statusCode || err?.response?.status || null,
+      }
+    }))
     if (saveTxn && saveTxn.transaction_id) {
       const updateTxn = await transactionService.updateTxn(
         saveTxn.transaction_id,
         {
           status: "failed",
           response_message: err?.response?.data?.message,
+          providerDetails: {
+            name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
+            msisdn: payload.phone,
+          }
         },
         findMerchant?.commissions[0]?.settlementDuration as number
       );
+      return {
+        message: err?.message || "An error occurred while initiating the transaction",
+        statusCode: err?.statusCode || 500,
+        txnNo: saveTxn?.merchant_transaction_id
+      }
+    }
+    else {
       return {
         message: err?.message || "An error occurred while initiating the transaction",
         statusCode: err?.statusCode || 500,
