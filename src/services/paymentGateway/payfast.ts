@@ -309,7 +309,7 @@ const payAsync = async (merchantId: string, params: any) => {
                         true
                     );
                 } else {
-                    console.log("Response: ",result)
+                    console.log("Response: ", result)
                     console.log(JSON.stringify({ event: "PAYFAST_ASYNC_FAILED", order_id: params.order_id, system_id: id, response: result }))
 
                     await transactionService.updateTxn(
@@ -373,9 +373,78 @@ const payAsync = async (merchantId: string, params: any) => {
     }
 };
 
+const getPayFastMerchant = async (params: any) => {
+    try {
+        const where: any = {};
+
+        if (params?.merchantId) where["merchantId"] = parseInt(params.merchantId);
+
+        const jazzCashConfig = await prisma.payFastMerchant.findMany({
+            where,
+        });
+
+        if (!jazzCashConfig) {
+            throw new CustomError("JazzCash configuration not found", 404);
+        }
+
+        return jazzCashConfig;
+    } catch (error: any) {
+        throw new CustomError(error?.message || "An error occurred", 500);
+    }
+};
+
+const createPayFastMerchant = async (merchantData: any) => {
+    try {
+        const jazzCashConfig = await prisma.$transaction(async (prisma) => {
+            const newMerchant = await prisma.payFastMerchant.create({
+                data: merchantData,
+            });
+            return newMerchant;
+        });
+
+        return jazzCashConfig;
+    } catch (error: any) {
+        throw new CustomError(error?.message || "An error occurred", 500);
+    }
+};
+
+const updatePayFastMerchant = async (merchantId: number, updateData: any) => {
+    try {
+        const updatedMerchant = await prisma.$transaction(async (prisma) => {
+            const merchant = await prisma.payFastMerchant.update({
+                where: { id: merchantId },
+                data: updateData,
+            });
+            return merchant;
+        });
+
+        return updatedMerchant;
+    } catch (error: any) {
+        throw new CustomError(error?.message || "An error occurred", 500);
+    }
+};
+
+const deletePayFastMerchant = async (merchantId: number) => {
+    try {
+        const deletedMerchant = await prisma.$transaction(async (prisma) => {
+            const merchant = await prisma.payFastMerchant.delete({
+                where: { id: merchantId },
+            });
+            return merchant;
+        });
+
+        return deletedMerchant;
+    } catch (error: any) {
+        throw new CustomError(error?.message || "An error occurred", 500);
+    }
+};
 export default {
     pay,
     validateCustomerInformation,
     getApiToken,
-    payAsync
+    payAsync,
+    getPayFastMerchant,
+    createPayFastMerchant,
+    updatePayFastMerchant,
+    deletePayFastMerchant
 }

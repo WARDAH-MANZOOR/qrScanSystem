@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { validationResult } from "express-validator";
 import { payfast } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
@@ -22,12 +23,97 @@ const pay = async (req: Request, res: Response, next: NextFunction) => {
             bankCode: '13',
             transaction_id: validation?.transaction_id,
             ...req.body
-        }) 
+        })
         res.status(200).json(ApiResponse.success(payment));
     }
-    catch(err) {
+    catch (err) {
         next(err);
     }
 }
 
-export default {pay}
+const getPayFastMerchant = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        // const errors = validationResult(req);
+        // if (!errors.isEmpty()) {
+        //    res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+        // }
+        const query: any = req.query;
+        const result = await payfast.getPayFastMerchant(query);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        next(error);
+    }
+}
+
+const createPayFastMerchant = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+        }
+        const merchantData = req.body;
+        const result = await payfast.createPayFastMerchant(merchantData);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        next(error);
+    }
+}
+
+const updatePayFastMerchant = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+            return
+        }
+
+        const merchantId = parseInt(req.params.merchantId);
+        const updateData = req.body;
+
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return
+
+        }
+
+        const result = await payfast.updatePayFastMerchant(merchantId, updateData);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deletePayFastMerchant = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const merchantId = parseInt(req.params.merchantId);
+
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return
+
+        }
+
+        const result = await payfast.deletePayFastMerchant(merchantId);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export default { pay, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant }
