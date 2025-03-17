@@ -309,6 +309,7 @@ const payAsync = async (merchantId: string, params: any) => {
                         true
                     );
                 } else {
+                    console.log("Response: ",result)
                     console.log(JSON.stringify({ event: "PAYFAST_ASYNC_FAILED", order_id: params.order_id, system_id: id, response: result }))
 
                     await transactionService.updateTxn(
