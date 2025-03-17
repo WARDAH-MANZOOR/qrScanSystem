@@ -99,6 +99,7 @@ model Merchant {
   easyPaisaMerchantId Int?
   swichMerchantId     Int?
   zindigiMerchantId   Int?
+  payFastMerchantId   Int?
   encrypted           String?   @default("false")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
@@ -134,7 +135,7 @@ model Merchant {
   @@index([phone_number])
 
   Refund Refund[]
-  PayFastMerchant PayFastMerchant[]
+  payFastMerchant PayFastMerchant? @relation(fields: [payFastMerchantId], references: [id])
 }
 
 model MerchantProviderCredential {
