@@ -72,6 +72,8 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
 const pay = async (merchantId: string, params: any) => {
     let saveTxn;
     try {
+        let id = transactionService.createTransactionId();
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: params.order_id, system_order_id: id }))
         let findMerchant = await prisma.merchant.findFirst({
             where: {
                 uid: merchantId
@@ -85,7 +87,6 @@ const pay = async (merchantId: string, params: any) => {
             throw new CustomError("Merchant Not Found", 500);
         }
         const phone = transactionService.convertPhoneNumber(params.phone)
-        let id = transactionService.createTransactionId();
         let id2 = params.order_id || id;
         const myHeaders = new Headers();
         myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
@@ -137,12 +138,16 @@ const pay = async (merchantId: string, params: any) => {
             },
         });
 
+        console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
+
+
         let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
 
         if (result.status_code == "00") {
+            console.log(JSON.stringify({ event: "PAYFAST_PAYIN_SUCCESS", order_id: params.order_id, system_order_id: id, response: result }))
             const updateTxn = await transactionService.updateTxn(
                 saveTxn.transaction_id,
                 {
@@ -166,8 +171,7 @@ const pay = async (merchantId: string, params: any) => {
             };
         }
         else {
-            console.log("Error Payload: ", result)
-            console.log("🚀 EasyPaisa Error", result.message);
+            console.log(JSON.stringify({ event: "PAYFAST_PAYIN_FAILED", order_id: params.order_id, system_order_id: id, response: result }))
             const updateTxn = await transactionService.updateTxn(
                 saveTxn.transaction_id,
                 {
@@ -178,17 +182,21 @@ const pay = async (merchantId: string, params: any) => {
             );
 
             throw new CustomError(
-                result.data?.responseDesc,
+                result?.status_msg,
                 500
             );
         }
-        console.log("Result: ", result);
-        return result;
     }
     catch (err: any) {
-        console.log("Error: ", err)
+        console.log(JSON.stringify({
+            event: "PAYFAST_PAYIN_ERROR", order_id: params.order_id, error: {
+                message: err?.message || "An error occurred while initiating the transaction",
+                statusCode: err?.statusCode || 500,
+                txnNo: saveTxn?.merchant_transaction_id
+            }
+        }))
         return {
-            message: err?.message || "An err occurred while initiating the transaction",
+            message: err?.message || "An error occurred while initiating the transaction",
             statusCode: err?.statusCode || 500,
             txnNo: saveTxn?.merchant_transaction_id
         }
@@ -198,9 +206,8 @@ const pay = async (merchantId: string, params: any) => {
 const payAsync = async (merchantId: string, params: any) => {
     let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
     let id = transactionService.createTransactionId();
-
     try {
-
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: params.order_id, system_order_id: id }))
         const findMerchant = await prisma.merchant.findFirst({
             where: {
                 uid: merchantId,
@@ -349,6 +356,13 @@ const payAsync = async (merchantId: string, params: any) => {
             statusCode: "pending",
         };
     } catch (error: any) {
+        console.log(JSON.stringify({
+            event: "PAYFAST_ASYNC_ERROR", order_id: params.order_id, error: {
+                message: error?.message || "An error occurred while initiating the transaction",
+                statusCode: error?.statusCode || 500,
+                txnNo: saveTxn?.merchant_transaction_id
+            }
+        }))
         return {
             message:
                 error?.message || "An error occurred while initiating the transaction",
