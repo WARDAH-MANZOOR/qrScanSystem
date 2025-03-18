@@ -236,7 +236,7 @@ const payAsync = async (merchantId: string, params: any) => {
             },
         });
 
-        if (!findMerchant || !findMerchant.easyPaisaMerchantId) {
+        if (!findMerchant || !findMerchant.payFastMerchantId) {
             throw new CustomError("Merchant not found", 404);
         }
 
