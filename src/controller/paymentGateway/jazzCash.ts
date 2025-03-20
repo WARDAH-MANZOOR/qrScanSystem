@@ -173,7 +173,7 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
 const simpleStatusInquiry = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const merchantId = req.params.merchantId;
-    const payload = req.body;
+    const payload = req.query;
     if (!merchantId) {
       res.status(400).json(ApiResponse.error("Merchant ID is required"));
       return

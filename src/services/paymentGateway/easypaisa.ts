@@ -551,7 +551,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             saveTxn?.transaction_id as string,
             {
               status: "failed",
-              response_message: response.data.responseDesc,
+              response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
               providerDetails: {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
@@ -561,6 +561,10 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             },
             findMerchant.commissions[0].settlementDuration
           );
+          throw new CustomError(
+            response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
+            500
+          )
         }
       } catch (error: any) {
         console.log(JSON.stringify({
