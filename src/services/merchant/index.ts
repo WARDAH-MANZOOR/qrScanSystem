@@ -36,7 +36,8 @@ const updateMerchant = async (payload: Merchant) => {
     easypaisaLimit,
     swichLimit,
     commissionMode,
-    easypaisaRate
+    easypaisaRate,
+    payFastMerchantId
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
@@ -55,7 +56,7 @@ const updateMerchant = async (payload: Merchant) => {
         })
       }
       let method = easypaisaPaymentMethod?.toUpperCase();
-      if (method != "DIRECT" && method != "SWITCH") {
+      if (method != "DIRECT" && method != "SWITCH" && method != "PAYFAST") {
         throw new CustomError("Easy Paisa Method not valid", 400);
       }
       let payoutCallbackUrl = callback_mode === "SINGLE" ? null : payout_callback;
@@ -80,7 +81,8 @@ const updateMerchant = async (payload: Merchant) => {
           callback_mode,
           payout_callback: payoutCallbackUrl,
           easypaisaLimit,
-          swichLimit
+          swichLimit,
+          payFastMerchantId
         },
         where: { merchant_id: +merchantId },
       });
@@ -186,7 +188,8 @@ const addMerchant = async (payload: Merchant) => {
     easypaisaLimit,
     swichLimit,
     commissionMode,
-    easypaisaRate
+    easypaisaRate,
+    payFastMerchantId
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -221,6 +224,7 @@ const addMerchant = async (payload: Merchant) => {
           jazzCashMerchantId,
           easyPaisaMerchantId,
           swichMerchantId,
+          payFastMerchantId,
           webhook_url,
           easypaisaPaymentMethod: easypaisaPaymentMethod,
           easypaisaInquiryMethod,

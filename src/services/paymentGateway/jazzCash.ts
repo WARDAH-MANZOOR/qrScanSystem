@@ -146,6 +146,8 @@ const initiateJazzCashPayment = async (
 ) => {
   let refNo: string = "";
   try {
+    
+    console.log(JSON.stringify({ event: "JASSCASH_PAYIN_INITIATED", orderId: paymentData.order_id }))
     var JAZZ_CASH_MERCHANT_ID: any = null;
     // Get the current date
     const date2 = new Date();
@@ -293,13 +295,13 @@ const initiateJazzCashPayment = async (
               },
             },
           });
+          console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }))
           transactionCreated = true;
         }
         catch (err) {
           throw new CustomError("Transaction not Created", 400)
         }
       }
-      console.log("Data: ", data);
       // Return necessary data for further processing
       return {
         merchant,
@@ -316,7 +318,6 @@ const initiateJazzCashPayment = async (
     const { merchant, integritySalt } = result;
     refNo = result.refNo;
     txnRefNo = result.txnRefNo;
-    console.log("Ref No: ", refNo)
     jazzCashMerchantIntegritySalt = integritySalt;
     const amount = paymentData.amount;
 
@@ -429,13 +430,16 @@ const initiateJazzCashPayment = async (
       const r = response.data;
       console.log(r);
       if (!r) {
+        console.log(JSON.stringify({ event: "JAZZCASH_PAYIN_DATA_NOT_RECIEVED", orderId: paymentData.order_id }))
         throw new CustomError(response.statusText, 500);
       }
 
       let status = "completed";
       if (r.pp_ResponseCode !== "000") {
+        console.log(JSON.stringify({ event: "JAZZCASH_PAYIN_FAILED", orderId: paymentData.order_id, response: r }))
         status = "failed";
       }
+      console.log(JSON.stringify({ event: "JAZZCASH_PAYIN_COMPLETED", orderId: paymentData.order_id, response: r }))
       r.pp_ResponseMessage = r.pp_ResponseMessage == "Transaction is Pending" ? "User did not respond" : r.pp_ResponseMessage
       // Update Transaction after receiving response
       await prisma.$transaction(async (tx) => {
@@ -446,7 +450,6 @@ const initiateJazzCashPayment = async (
         ) {
           return;
         }
-        console.log("Ref No: ", refNo)
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
@@ -543,7 +546,8 @@ const initiateJazzCashPayment = async (
           redirect_url: paymentData.redirect_url,
           txnNo: r.pp_TxnRefNo,
           txnDateTime: r.pp_TxnDateTime,
-          statusCode: r.pp_ResponseCode
+          statusCode: r.pp_ResponseCode,
+
         };
       } else {
         throw new CustomError(
@@ -553,7 +557,7 @@ const initiateJazzCashPayment = async (
       }
     }
   } catch (error: any) {
-    console.log("🚀 ~ error:", error)
+    console.log(JSON.stringify({ event: "JASSCASH_PAYIN_ERROR", order_id: paymentData.order_id, error }))
     return {
       message: error?.message || "An Error Occured",
       statusCode: error?.statusCode || 500,
@@ -566,6 +570,7 @@ const initiateJazzCashPaymentAsync = async (
   paymentData: any,
   merchant_uid?: string
 ) => {
+  console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_INITIATED", order_id: paymentData.order_id }))
   let txnRefNo: string;
   let refNo: string = "";
   const date2 = new Date();
@@ -640,7 +645,7 @@ const initiateJazzCashPaymentAsync = async (
           }
         },
       });
-
+      console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }))
       return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
     });
     txnRefNo = result.txnRefNo as string;
@@ -667,7 +672,7 @@ const initiateJazzCashPaymentAsync = async (
           throw new CustomError("Invalid payment type", 400);
         }
       } catch (error: any) {
-        console.error("🚀 Error during JazzCash async processing:", error);
+        console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error }))
         // Update transaction as failed in case of error
         await prisma.transaction.update({
           where: { transaction_id: refNo },
@@ -686,7 +691,7 @@ const initiateJazzCashPaymentAsync = async (
       message: "Transaction is being processed",
     };
   } catch (error: any) {
-    console.error("🚀 Error in initiateJazzCashPayment:", error);
+    console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error }))
     return {
       message: error?.message || "An Error Occurred",
       statusCode: error?.statusCode || 500,
@@ -822,16 +827,18 @@ const processWalletPayment = async (
   }
 
   const status = r.pp_ResponseCode === "000" ? "completed" : "failed";
-
+  console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_RESPONSE_RECIEVED", order_id: refNo, response: r }))
   // Update transaction status in the database
   await prisma.transaction.update({
     where: { merchant_transaction_id: refNo },
-    data: { status, response_message: r.pp_ResponseMessage, providerDetails: {
-      id: jazzCashMerchant.id,
-      name: PROVIDERS.JAZZ_CASH,
-      msisdn: phone,
-      transactionId: r.pp_RetrievalReferenceNo
-    }, },
+    data: {
+      status, response_message: r.pp_ResponseMessage, providerDetails: {
+        id: jazzCashMerchant.id,
+        name: PROVIDERS.JAZZ_CASH,
+        msisdn: phone,
+        transactionId: r.pp_RetrievalReferenceNo
+      },
+    },
   });
 
   if (status === "completed") {
@@ -1233,6 +1240,7 @@ const initiateJazzCashCnicPayment = async (
   let refNo: string = "";
   try {
     // Timezone and Date Formatting
+    console.log(JSON.stringify({ event: "JAZZCASH_CNIC_INITIATED", order_id: paymentData.order_id }))
     const currentTime = new Date();
     const expiryTime = addDays(currentTime, 1);
 
@@ -1296,6 +1304,7 @@ const initiateJazzCashCnicPayment = async (
           }
         },
       });
+      console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id }))
 
       return {
         merchant,
@@ -1310,6 +1319,7 @@ const initiateJazzCashCnicPayment = async (
     // Prepare Payload for JazzCash Wallet API
     const { jazzCashMerchant } = result;
     const payload = {
+
       pp_Language: "EN",
       pp_MerchantID: jazzCashMerchant.jazzMerchantId,
       pp_Password: jazzCashMerchant.password,
@@ -1329,7 +1339,7 @@ const initiateJazzCashCnicPayment = async (
       ppmpf_4: '',
       ppmpf_5: '',
     };
-
+    console.log("Payload: ", payload)
     // Generate Secure Hash
     const secureHash = getSecureHash(payload, jazzCashMerchant.integritySalt);
     console.log(secureHash);
@@ -1351,6 +1361,8 @@ const initiateJazzCashCnicPayment = async (
 
     // Handle Response and Update Transaction
     const status = data.pp_ResponseCode === "000" ? "completed" : "failed";
+    console.log(JSON.stringify({ event: "JAZZCASH_CNIC_RESPONSE", order_id: paymentData.order_id, response: data }))
+
     const transaction = await prisma.transaction.update({
       where: { transaction_id: txnRefNo },
       data: {
@@ -1393,6 +1405,7 @@ const initiateJazzCashCnicPayment = async (
       txnRefNo,
     };
   } catch (error: any) {
+    console.log(JSON.stringify({ event: "JAZZCASH_CNIC_ERROR", order_id: paymentData.order_id, error }))
     console.error("🚀 ~ Error:", error.message);
     return {
       message: error.message || "An Error Occurred",

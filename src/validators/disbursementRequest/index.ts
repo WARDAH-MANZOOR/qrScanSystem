@@ -5,6 +5,23 @@ import { getWalletBalance } from "services/paymentGateway/disbursement.js";
 
 const validateDisbursementRequest = [
     // Validate that the requestedAmount is a positive number
+    body('merchant_id')
+        .optional()
+        .isString()
+        .withMessage("Merchant id must be greater than 0")
+        .custom(async (value, { req }) => {
+            const merchant = await prisma.merchant.findUnique({
+                where: {
+                    merchant_id: Number(value)
+                }
+            })
+            if (!merchant) {
+                throw new Error(
+                    "Merchant Not Found"
+                )
+            }
+            return true;
+        }),
     body('requested_amount')
         .isFloat({ gt: 0 })
         .withMessage('Requested amount must be a positive number')
@@ -12,7 +29,7 @@ const validateDisbursementRequest = [
         // Custom validator to check against the database
         .custom(async (value, { req }) => {
             console.log(req.user)
-            const merchantId = (req.user as JwtPayload)?.merchant_id;
+            const merchantId = (req.user as JwtPayload)?.merchant_id || Number(req.body.merchant_id);
 
             // Ensure merchantId is provided
             if (!merchantId) {
@@ -20,8 +37,8 @@ const validateDisbursementRequest = [
             }
 
             // Fetch the total_to_disburse balance from the database
-            const {walletBalance} = await getWalletBalance(merchantId) as {walletBalance: number};
- 
+            const { walletBalance } = await getWalletBalance(merchantId) as { walletBalance: number };
+
             // Check if the requestedAmount exceeds the balanceToDisburse
             if (value > walletBalance) {
                 throw new Error(
@@ -30,7 +47,7 @@ const validateDisbursementRequest = [
             }
 
             return true; // Validation passed
-        }),
+        })
 ];
 
 const updateDisbursementRequestStatus = [

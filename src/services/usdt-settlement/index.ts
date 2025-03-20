@@ -31,14 +31,24 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
             skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
             take = parseInt(limit as string);
         }
-        const records = await prisma.uSDTSettlement.findMany({
+        let records = await prisma.uSDTSettlement.findMany({
             ...(skip && { skip: +skip }),
             ...(take && { take: +take }),
             where: {
                 ...customWhere,
+            },
+            include: {
+                merchant: true
+            },
+            orderBy: {
+                date: 'desc'
             }
         });
-        console.log("Records: ", records)
+        let records2 = records.map((record) => ({
+            ...record,
+            merchant_name: record.merchant.username,
+        }));
+        console.log("Records: ", records2);
         let meta = {};
         if (page && take) {
             // Get the total count of transactions
@@ -58,7 +68,7 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
                 limit: take
             }
         }
-        return { records, meta };
+        return { records: records2, meta };
     }
     catch (error: any) {
         console.log(error)

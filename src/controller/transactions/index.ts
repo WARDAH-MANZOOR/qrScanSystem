@@ -10,7 +10,7 @@ import {
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { getDateRange } from "../../utils/date_method.js";
-import { parse } from "date-fns";
+import { parse, subMinutes } from "date-fns";
 
 import analytics from "./analytics.js";
 import { Parser } from "json2csv";
@@ -85,7 +85,7 @@ const getTransactions = async (req: Request, res: Response) => {
     }
 
     if (response_message) {
-      customWhere["response_message"] = {contains: response_message}
+      customWhere["response_message"] = { contains: response_message }
     }
     let { page, limit } = req.query;
     // Query based on provided parameters
@@ -221,7 +221,7 @@ const getTeleTransactions = async (req: Request, res: Response) => {
     }
 
     if (response_message) {
-      customWhere["response_message"] = {contains: response_message}
+      customWhere["response_message"] = { contains: response_message }
     }
     let { page, limit } = req.query;
     // Query based on provided parameters
@@ -302,6 +302,85 @@ const getTeleTransactions = async (req: Request, res: Response) => {
     console.log(err)
     const error = new CustomError("Internal Server Error", 500);
     res.status(500).send(error);
+  }
+};
+
+const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
+  try {
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
+
+    let startDate = req.query?.start as string;
+    let endDate = req.query?.end as string;
+    const status = req.query?.status as string;
+    const search = req.query?.search || "" as string;
+    const msisdn = req.query?.msisdn || "" as string;
+
+    const customWhere = {} as any;
+
+    if (status) {
+      customWhere["status"] = status;
+    }
+
+    if (search) {
+      customWhere["transaction_id"] = {
+        contains: search,
+      };
+    }
+
+    if (msisdn) {
+      customWhere["providerDetails"] = {
+        path: ['msisdn'],
+        equals: msisdn
+      }
+    }
+
+    if (merchantTransactionId) {
+      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+    }
+
+    if (response_message) {
+      customWhere["response_message"] = { contains: response_message }
+    }
+
+    if (merchantId) {
+      customWhere["merchant_id"] = Number(merchantId);
+    }
+    const timezone = 'Asia/Karachi';
+    const currentTime = toZonedTime(new Date(), timezone);
+    const fifteenMinutesAgo = subMinutes(currentTime, 15);
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        ...customWhere,
+        date_time: {
+          gte: fifteenMinutesAgo,
+          lte: currentTime,
+        },
+      },
+      orderBy: {
+        date_time: 'desc',
+      },
+      include: {
+        merchant: {
+          include: {
+            groups: {
+              include: {
+                merchant: {
+                  include: {
+                    jazzCashMerchant: true,
+                  },
+                },
+              },
+            },
+          },
+        }
+      }
+    });
+
+    res.status(200).json({ transactions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -461,6 +540,7 @@ export default {
   getProAndBal,
   exportTransactions,
   getTeleTransactions,
+  getTeleTransactionsLast15Mins,
   ...analytics,
 };
 

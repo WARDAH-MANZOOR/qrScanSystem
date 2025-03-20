@@ -60,7 +60,11 @@ const validateCreateJazzcashMerchant = [
         .notEmpty()
         .withMessage("jazzMerchantId is required")
         .isString()
-        .withMessage("jazzMerchantId must be a string")
+        .withMessage("jazzMerchantId must be a string"),
+    body('merchant_of')
+        .optional()
+        .isString()
+        .withMessage('Merchant name should be a string')
 ]
 
 const validateUpdateJazzcashMerchant = [
@@ -84,7 +88,11 @@ const validateUpdateJazzcashMerchant = [
     body('jazzMerchantId')
         .optional()
         .isString()
-        .withMessage("jazzMerchantId must be a string")
+        .withMessage("jazzMerchantId must be a string"),
+    body('merchant_of')
+        .optional()
+        .isString()
+        .withMessage('Merchant name should be a string')
 ]
 
 const validateDeleteJazzcashMerchant = [
@@ -102,7 +110,7 @@ const validateJazzcashCnicRequest = [
         .withMessage('Cnic is required')
         .isString()
         .withMessage('Cnic must be a string')
-        .isLength({min: 13, max: 13})
+        .isLength({ min: 13, max: 13 })
         .withMessage('CNIC must be 6 digits')
 
 ]

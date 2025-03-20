@@ -4,6 +4,7 @@ import prisma from "prisma/client.js";
 import { JsonObject } from "@prisma/client/runtime/library";
 import { toZonedTime, format } from "date-fns-tz"; // For time zone conversion
 import { parseISO } from "date-fns";
+import CustomError from "utils/custom_error.js";
 
 const TIMEZONE = "Asia/Karachi"; // Pakistan Time Zone
 
@@ -319,8 +320,120 @@ export const generateExcelReportService = async (params: any): Promise<string> =
     return filePath;
 };
 
+export const payinPerWalletService = async (params: any) => {
+    try {
+        const { startDate, endDate } = params;
+        let customWhere = {} as any;
+        let start_date, end_date;
+        if (startDate && endDate) {
+            // Convert query parameters to Date objects
+            start_date = new Date(format(
+                toZonedTime(startDate, "Asia/Karachi"),
+                'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }
+            ));
+            end_date = new Date(format(
+                toZonedTime(endDate, "Asia/Karachi"),
+                'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }
+            ));
+        }
+        console.log(start_date, end_date)
+        // Fetch transactions (JazzCash)
+        const jazzCashTransactions = await prisma.transaction.findMany({
+            where: {
+                status: 'completed',
+                date_time: {
+                    gte: start_date,
+                    lt: end_date,
+                },
+                providerDetails: {
+                    path: ['name'],
+                    equals: 'JazzCash',
+                },
+            },
+            select: {
+                providerDetails: true,
+                original_amount: true,
+            },
+        });
 
+        // Fetch transactions (Easypaisa)
+        const easyPaisaTransactions = await prisma.transaction.findMany({
+            where: {
+                status: 'completed',
+                date_time: {
+                    gte: start_date,
+                    lt: end_date,
+                },
+                providerDetails: {
+                    path: ['name'],
+                    equals: 'Easypaisa',
+                },
+            },
+            select: {
+                providerDetails: true,
+                original_amount: true,
+            },
+        });
+
+        // Aggregate JazzCash Transactions
+        const jazzCashAggregation = jazzCashTransactions.reduce((acc, t) => {
+            const merchantId = Number((t.providerDetails as JsonObject)?.id);
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
+            acc[merchantId].total_amount += Number(t.original_amount);
+            return acc;
+        }, {} as Record<number, { total_amount: number; provider_name: string }>);
+
+        // Aggregate Easypaisa Transactions
+        const easyPaisaAggregation = easyPaisaTransactions.reduce((acc, t) => {
+            const merchantId = Number((t.providerDetails as JsonObject)?.id);
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'Easypaisa' };
+            acc[merchantId].total_amount += Number(t.original_amount);
+            return acc;
+        }, {} as Record<number, { total_amount: number; provider_name: string }>);
+
+        // Get merchant IDs
+        let jazzCashMerchantIds = Object.keys(jazzCashAggregation).map(Number);
+        let easyPaisaMerchantIds = Object.keys(easyPaisaAggregation).map(Number);
+        
+        jazzCashMerchantIds = jazzCashMerchantIds.filter((num) => !Number.isNaN(num))
+        easyPaisaMerchantIds = easyPaisaMerchantIds.filter((num) => !Number.isNaN(num))
+        console.log(jazzCashMerchantIds, easyPaisaMerchantIds)
+        // Fetch merchants
+        const jazzCashMerchants = await prisma.jazzCashMerchant.findMany({
+            where: { id: { in: jazzCashMerchantIds } },
+            select: { id: true, returnUrl: true },
+        });
+
+        const easyPaisaMerchants = await prisma.easyPaisaMerchant.findMany({
+            where: { id: { in: easyPaisaMerchantIds } },
+            select: { id: true, username: true },
+        });
+
+        // Merge results
+        const jazzCashResult = jazzCashMerchants.map((m) => ({
+            returnUrl: m.returnUrl,
+            total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
+            provider_name: 'JazzCash',
+        }));
+
+        const easyPaisaResult = easyPaisaMerchants.map((m) => ({
+            username: m.username,
+            total_amount: easyPaisaAggregation[m.id]?.total_amount || 0,
+            provider_name: 'Easypaisa',
+        }));
+
+        return {
+            jazzCashTransactions: jazzCashResult,
+            easyPaisaTransactions: easyPaisaResult,
+        };
+
+    } catch (error) {
+        console.error(error);
+        throw new CustomError("Internal Server Error", 400);
+    }
+};
 
 export default {
-    generateExcelReportService
+    generateExcelReportService,
+    payinPerWalletService
 }

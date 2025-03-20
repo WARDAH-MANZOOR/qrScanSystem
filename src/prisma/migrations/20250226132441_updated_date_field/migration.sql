@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "usdt_settlements" ALTER COLUMN "date" SET DEFAULT CURRENT_TIMESTAMP;

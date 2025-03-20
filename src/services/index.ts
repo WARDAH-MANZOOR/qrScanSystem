@@ -17,6 +17,9 @@ import ipnService from "./ipn/index.js"
 import groupService from "./group/index.js"
 import permissionService from "./permissions/index.js"
 import usdtSettlementService from "./usdt-settlement/index.js"
+import refundService from "./refund/index.js"
+import newJazzCashService from "./paymentGateway/newJazzCash.js"
+import payfast from './paymentGateway/payfast.js';
 
 export {
     jazzCashService,
@@ -35,5 +38,8 @@ export {
     ipnService,
     groupService,
     permissionService,
-    usdtSettlementService
+    usdtSettlementService,
+    refundService,
+    newJazzCashService,
+    payfast
 };
