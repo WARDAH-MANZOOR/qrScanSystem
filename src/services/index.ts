@@ -17,6 +17,7 @@ import usdtSettlementService from "./usdt-settlement/index.js"
 import refundService from "./refund/index.js"
 import newJazzCashService from "./paymentGateway/newJazzCash.js"
 import payfast from './paymentGateway/payfast.js';
+import disbursementDispute  from './disbursementDispute/index.js';
 
 export {
     jazzCashService,
@@ -37,5 +38,6 @@ export {
     usdtSettlementService,
     refundService,
     newJazzCashService,
-    payfast
+    payfast,
+    disbursementDispute  
 };
