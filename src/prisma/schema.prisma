@@ -136,6 +136,7 @@ model Merchant {
 
   Refund Refund[]
   payFastMerchant PayFastMerchant? @relation(fields: [payFastMerchantId], references: [id])
+  DisbursementDispute DisbursementDispute[]
 }
 
 model MerchantProviderCredential {
@@ -441,6 +442,7 @@ model DisbursementDispute {
   status            String?
   message           String?    
   merchant_id       Int 
+  merchant          Merchant @relation(fields: [merchant_id], references: [merchant_id])
 }
 
 model Refund {
