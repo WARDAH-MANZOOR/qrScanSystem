@@ -16,6 +16,7 @@ import group from "./group/index.js"
 import permissions from "./permissions/index.js"
 import usdtSettlements from "./usdt-settlement/index.js"
 import refund from "./refund/index.js"
+import disbursementDispute from "./disbursementDispute/index.js"
 
 export default function (app: express.Application) {
   app.use("/payment", payment);
@@ -35,4 +36,5 @@ export default function (app: express.Application) {
   app.use("/permissions",permissions)
   app.use("/usdt-settlement",usdtSettlements)
   app.use("/refund",refund)
+  app.use("/disbursement-dispute",disbursementDispute)
 }
