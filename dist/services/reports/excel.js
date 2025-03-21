@@ -2,10 +2,25 @@ import path from "path";
 import ExcelJS from "exceljs";
 import prisma from "prisma/client.js";
 import { toZonedTime, format } from "date-fns-tz"; // For time zone conversion
+import { parseISO } from "date-fns";
+import CustomError from "utils/custom_error.js";
 const TIMEZONE = "Asia/Karachi"; // Pakistan Time Zone
-export const generateExcelReportService = async () => {
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
+export const generateExcelReportService = async (params) => {
+    let customWhere = {
+        date_time: {}
+    };
+    let disbursementDateWhere = {};
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+    if (startDate && endDate) {
+        const todayStart = parseISO(startDate);
+        const todayEnd = parseISO(endDate);
+        customWhere["date_time"] = {
+            gte: todayStart,
+            lt: todayEnd,
+        };
+        disbursementDateWhere = customWhere["date_time"];
+    }
     // Fetch merchants and their commissions
     const merchants = await prisma.merchant.findMany({
         include: {
@@ -26,7 +41,7 @@ export const generateExcelReportService = async () => {
     // Fetch transactions in bulk
     const transactions = await prisma.transaction.findMany({
         where: {
-            date_time: { gte: last30Days },
+            date_time: customWhere["date_time"],
             status: "completed",
         },
         select: {
@@ -39,13 +54,14 @@ export const generateExcelReportService = async () => {
     // Fetch disbursements in bulk
     const disbursements = await prisma.disbursement.findMany({
         where: {
-            disbursementDate: { gte: last30Days },
+            disbursementDate: disbursementDateWhere,
             status: "completed",
         },
         select: {
             merchant_id: true,
             transactionAmount: true,
             disbursementDate: true,
+            commission: true
         },
     });
     // Collect all unique dates across all merchants
@@ -68,7 +84,7 @@ export const generateExcelReportService = async () => {
         merchantTransactions.forEach((txn) => {
             const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
             if (!dailyData[pktDate]) {
-                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0 };
+                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
             }
             if (txn.providerDetails &&
                 txn.providerDetails?.name?.includes("Easypaisa")) {
@@ -86,9 +102,10 @@ export const generateExcelReportService = async () => {
         merchantDisbursements.forEach((d) => {
             const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
             if (!dailyData[pktDate]) {
-                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0 };
+                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
             }
             dailyData[pktDate].Disbursement += +d.transactionAmount;
+            dailyData[pktDate].DisbursementCommission += +d.commission;
         });
         // Calculate commissions for each day
         const { commissionMode, commissionRate, easypaisaRate, commissionGST, commissionWithHoldingTax, disbursementRate, disbursementGST, disbursementWithHoldingTax, } = merchant.commissions[0] || {};
@@ -113,10 +130,7 @@ export const generateExcelReportService = async () => {
                         (Number(commissionRate) +
                             Number(commissionGST) +
                             Number(commissionWithHoldingTax))),
-                Disbursement: (daily.Disbursement *
-                    (Number(disbursementRate) +
-                        Number(disbursementGST) +
-                        Number(disbursementWithHoldingTax))),
+                Disbursement: daily.DisbursementCommission,
             };
             return result;
         }, {});
@@ -237,6 +251,104 @@ export const generateExcelReportService = async () => {
     await workbook.xlsx.writeFile(filePath);
     return filePath;
 };
+export const payinPerWalletService = async (params) => {
+    try {
+        const { startDate, endDate } = params;
+        let customWhere = {};
+        let start_date, end_date;
+        if (startDate && endDate) {
+            // Convert query parameters to Date objects
+            start_date = new Date(format(toZonedTime(startDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
+            end_date = new Date(format(toZonedTime(endDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
+        }
+        console.log(start_date, end_date);
+        // Fetch transactions (JazzCash)
+        const jazzCashTransactions = await prisma.transaction.findMany({
+            where: {
+                status: 'completed',
+                date_time: {
+                    gte: start_date,
+                    lt: end_date,
+                },
+                providerDetails: {
+                    path: ['name'],
+                    equals: 'JazzCash',
+                },
+            },
+            select: {
+                providerDetails: true,
+                original_amount: true,
+            },
+        });
+        // Fetch transactions (Easypaisa)
+        const easyPaisaTransactions = await prisma.transaction.findMany({
+            where: {
+                status: 'completed',
+                date_time: {
+                    gte: start_date,
+                    lt: end_date,
+                },
+                providerDetails: {
+                    path: ['name'],
+                    equals: 'Easypaisa',
+                },
+            },
+            select: {
+                providerDetails: true,
+                original_amount: true,
+            },
+        });
+        // Aggregate JazzCash Transactions
+        const jazzCashAggregation = jazzCashTransactions.reduce((acc, t) => {
+            const merchantId = Number(t.providerDetails?.id);
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
+            acc[merchantId].total_amount += Number(t.original_amount);
+            return acc;
+        }, {});
+        // Aggregate Easypaisa Transactions
+        const easyPaisaAggregation = easyPaisaTransactions.reduce((acc, t) => {
+            const merchantId = Number(t.providerDetails?.id);
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'Easypaisa' };
+            acc[merchantId].total_amount += Number(t.original_amount);
+            return acc;
+        }, {});
+        // Get merchant IDs
+        let jazzCashMerchantIds = Object.keys(jazzCashAggregation).map(Number);
+        let easyPaisaMerchantIds = Object.keys(easyPaisaAggregation).map(Number);
+        jazzCashMerchantIds = jazzCashMerchantIds.filter((num) => !Number.isNaN(num));
+        easyPaisaMerchantIds = easyPaisaMerchantIds.filter((num) => !Number.isNaN(num));
+        console.log(jazzCashMerchantIds, easyPaisaMerchantIds);
+        // Fetch merchants
+        const jazzCashMerchants = await prisma.jazzCashMerchant.findMany({
+            where: { id: { in: jazzCashMerchantIds } },
+            select: { id: true, returnUrl: true },
+        });
+        const easyPaisaMerchants = await prisma.easyPaisaMerchant.findMany({
+            where: { id: { in: easyPaisaMerchantIds } },
+            select: { id: true, username: true },
+        });
+        // Merge results
+        const jazzCashResult = jazzCashMerchants.map((m) => ({
+            returnUrl: m.returnUrl,
+            total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
+            provider_name: 'JazzCash',
+        }));
+        const easyPaisaResult = easyPaisaMerchants.map((m) => ({
+            username: m.username,
+            total_amount: easyPaisaAggregation[m.id]?.total_amount || 0,
+            provider_name: 'Easypaisa',
+        }));
+        return {
+            jazzCashTransactions: jazzCashResult,
+            easyPaisaTransactions: easyPaisaResult,
+        };
+    }
+    catch (error) {
+        console.error(error);
+        throw new CustomError("Internal Server Error", 400);
+    }
+};
 export default {
-    generateExcelReportService
+    generateExcelReportService,
+    payinPerWalletService
 };

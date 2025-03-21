@@ -3,13 +3,28 @@ import prisma from "prisma/client.js";
 import { getWalletBalance } from "services/paymentGateway/disbursement.js";
 const validateDisbursementRequest = [
     // Validate that the requestedAmount is a positive number
+    body('merchant_id')
+        .optional()
+        .isString()
+        .withMessage("Merchant id must be greater than 0")
+        .custom(async (value, { req }) => {
+        const merchant = await prisma.merchant.findUnique({
+            where: {
+                merchant_id: Number(value)
+            }
+        });
+        if (!merchant) {
+            throw new Error("Merchant Not Found");
+        }
+        return true;
+    }),
     body('requested_amount')
         .isFloat({ gt: 0 })
         .withMessage('Requested amount must be a positive number')
         // Custom validator to check against the database
         .custom(async (value, { req }) => {
         console.log(req.user);
-        const merchantId = req.user?.merchant_id;
+        const merchantId = req.user?.merchant_id || Number(req.body.merchant_id);
         // Ensure merchantId is provided
         if (!merchantId) {
             throw new Error('Merchant ID is required');
@@ -21,7 +36,7 @@ const validateDisbursementRequest = [
             throw new Error(`Requested amount exceeds available balance. Available balance is ${walletBalance}`);
         }
         return true; // Validation passed
-    }),
+    })
 ];
 const updateDisbursementRequestStatus = [
     // Validate that the requestedAmount is a positive number

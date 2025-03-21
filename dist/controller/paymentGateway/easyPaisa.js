@@ -1,5 +1,5 @@
 import { validationResult } from "express-validator";
-import { easyPaisaService, swichService, transactionService } from "../../services/index.js";
+import { easyPaisaService, payfast, swichService, transactionService } from "../../services/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
 const initiateEasyPaisa = async (req, res, next) => {
@@ -23,7 +23,7 @@ const initiateEasyPaisa = async (req, res, next) => {
                 return;
             }
         }
-        else {
+        else if (channel == "SWITCH") {
             result = await swichService.initiateSwich({
                 channel: 1749,
                 amount: req.body.amount,
@@ -33,6 +33,31 @@ const initiateEasyPaisa = async (req, res, next) => {
                 type: req.body.type
             }, merchantId);
             if (result.statusCode != "0000") {
+                res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
+                return;
+            }
+        }
+        else {
+            const token = await payfast.getApiToken(req.params.merchantId, req.body);
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+                token: token?.token,
+                bankCode: '13',
+                ...req.body
+            });
+            if (!validation?.transaction_id) {
+                res.status(500).send(ApiResponse.error(result, 500));
+                return;
+            }
+            result = await payfast.pay(req.params.merchantId, {
+                token: token?.token,
+                bankCode: '13',
+                transaction_id: validation?.transaction_id,
+                ...req.body
+            });
+            if (result?.statusCode != "00") {
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
             }
@@ -64,7 +89,7 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
                 return;
             }
         }
-        else {
+        else if (channel == "SWITCH") {
             result = await swichService.initiateSwichAsync({
                 channel: 1749,
                 amount: req.body.amount,
@@ -75,6 +100,31 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
             }, merchantId);
             if (result.statusCode != "pending") {
                 res.status(result.statusCode).send(ApiResponse.error(result));
+                return;
+            }
+        }
+        else {
+            const token = await payfast.getApiToken(req.params.merchantId, req.body);
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+                token: token?.token,
+                bankCode: '13',
+                ...req.body
+            });
+            if (!validation?.transaction_id) {
+                res.status(500).send(ApiResponse.error(result, 500));
+                return;
+            }
+            result = await payfast.payAsync(req.params.merchantId, {
+                token: token?.token,
+                bankCode: '13',
+                transaction_id: validation?.transaction_id,
+                ...req.body
+            });
+            if (result?.statusCode != "pending") {
+                res.status(result.statusCode).send(ApiResponse.error(result, result.statusCode));
                 return;
             }
         }
@@ -120,6 +170,7 @@ const initiateEasyPaisaClone = async (req, res, next) => {
                 return;
             }
         }
+        console.log("Result:", result);
         res.status(200).json(ApiResponse.success(result));
     }
     catch (error) {

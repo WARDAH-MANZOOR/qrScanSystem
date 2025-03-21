@@ -1,6 +1,6 @@
-import { backofficeService } from "../../services/index.js";
-import ApiResponse from "../../utils/ApiResponse.js";
-import CustomError from "../../utils/custom_error.js";
+import { backofficeService } from "services/index.js";
+import ApiResponse from "utils/ApiResponse.js";
+import CustomError from "utils/custom_error.js";
 const removeMerchantFinanceData = async (req, res) => {
     try {
         if (!req.params.merchantId) {
@@ -192,6 +192,15 @@ const processTodaySettlements = async (req, res) => {
         res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
     }
 };
+const createUSDTSettlement = async (req, res, next) => {
+    try {
+        const record = await backofficeService.createUSDTSettlement(req.body);
+        res.status(201).json({ record });
+    }
+    catch (error) {
+        next(error);
+    }
+};
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -208,5 +217,6 @@ export default {
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactionsForTelegram,
     failDisbursementsForTelegram,
-    processTodaySettlements
+    processTodaySettlements,
+    createUSDTSettlement
 };

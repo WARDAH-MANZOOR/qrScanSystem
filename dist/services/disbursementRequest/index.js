@@ -6,16 +6,25 @@ import { getWalletBalance } from "../../services/paymentGateway/disbursement.js"
 import CustomError from "../../utils/custom_error.js";
 const createDisbursementRequest = async (requested_amount, merchant_id) => {
     try {
-        await prisma.disbursementRequest.create({
-            data: {
-                requestedAmount: requested_amount,
-                merchantId: merchant_id,
-                status: "pending"
-            }
+        await prisma.$transaction(async (tx) => {
+            await tx.disbursementRequest.create({
+                data: {
+                    requestedAmount: requested_amount,
+                    merchantId: Number(merchant_id),
+                    status: "approved"
+                }
+            });
+            const { walletBalance } = await getWalletBalance(Number(merchant_id));
+            const updatedAvailableBalance = walletBalance - Number(requested_amount);
+            await backofficeService.adjustMerchantWalletBalanceithTx(Number(merchant_id), updatedAvailableBalance, false, tx);
+            await tx.merchant.update({
+                where: { merchant_id: Number(merchant_id) },
+                data: { balanceToDisburse: { increment: Number(requested_amount) } }
+            });
+        }, {
+            timeout: 10000,
+            maxWait: 10000
         });
-        const { walletBalance } = await getWalletBalance(merchant_id);
-        const updatedAvailableBalance = walletBalance - Number(requested_amount);
-        await backofficeService.adjustMerchantWalletBalance(merchant_id, updatedAvailableBalance, false);
     }
     catch (err) {
         throw new CustomError(err.message, 500);

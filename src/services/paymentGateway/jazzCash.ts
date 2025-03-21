@@ -1541,6 +1541,7 @@ export default {
   statusInquiry,
   callback,
   initiateJazzCashPaymentAsync,
-  initiateJazzCashCnicPayment
+  initiateJazzCashCnicPayment,
+  simpleStatusInquiry
 };
 export { jazzCashCardPayment,prepareJazzCashPayload,calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber,fetchMerchantAndJazzCash,findTransaction, processCardPayment, processWalletPayment, validatePaymentData}

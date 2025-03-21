@@ -1,6 +1,8 @@
 import { get_pending_settlements } from "@prisma/client/sql";
 import { NextFunction, Request, Response } from "express";
+import prisma from "prisma/client.js";
 import { reportService } from "services/index.js";
+import ApiResponse from "utils/ApiResponse.js";
 const generateExcelReportController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Call the service method

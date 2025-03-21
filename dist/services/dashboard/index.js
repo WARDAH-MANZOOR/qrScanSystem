@@ -17,6 +17,7 @@ const merchantDashboardDetails = async (params, user) => {
             const endDate = params?.end?.replace(" ", "+");
             const customWhere = {};
             let disbursement_date;
+            let usdt_settlement_date;
             if (startDate && endDate) {
                 const todayStart = parse(startDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
                 const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
@@ -25,6 +26,7 @@ const merchantDashboardDetails = async (params, user) => {
                     lt: todayEnd,
                 };
                 disbursement_date = customWhere["date_time"];
+                usdt_settlement_date = customWhere["date_time"];
             }
             const fetchAggregates = [];
             // Fetch total transaction count
@@ -189,10 +191,41 @@ const merchantDashboardDetails = async (params, user) => {
                     merchant_id: +merchantId,
                 }
             }));
+            fetchAggregates.push(prisma.uSDTSettlement.aggregate({
+                _sum: {
+                    pkr_amount: true,
+                },
+                where: {
+                    date: usdt_settlement_date,
+                    merchant_id: +merchantId,
+                }
+            }));
+            fetchAggregates.push(prisma.transaction.aggregate({
+                _sum: {
+                    original_amount: true
+                },
+                where: {
+                    settlement: false,
+                    status: 'completed',
+                    merchant_id: +merchantId,
+                    ScheduledTask: {
+                        status: 'pending'
+                    }
+                }
+            }));
+            fetchAggregates.push(prisma.refund.aggregate({
+                _sum: {
+                    transactionAmount: true,
+                },
+                where: {
+                    disbursementDate: disbursement_date,
+                    status: "completed",
+                    merchant_id: +merchantId,
+                }
+            }));
             // Execute all queries in parallel
-            const [totalTransactions, totalIncome, todayIncome, statusCounts, latestTransactions, lastWeek, thisWeek, jazzCashTotal, easyPaisaTotal, disbursementBalance, disburseBalancePercent, disbursementAmount] = await Promise.all(fetchAggregates);
+            const [totalTransactions, totalIncome, todayIncome, statusCounts, latestTransactions, lastWeek, thisWeek, jazzCashTotal, easyPaisaTotal, disbursementBalance, disburseBalancePercent, disbursementAmount, totalUsdtSettlement, remainingSettlements, totalRefund] = await Promise.all(fetchAggregates);
             let amt = disbursementAmount._sum.transactionAmount?.toFixed(2) || 0;
-            console.log("Amount: ", amt);
             // Build and return the full dashboard summary
             const dashboardSummary = {
                 totalTransactions: totalTransactions, // Ensure correct type
@@ -206,6 +239,9 @@ const merchantDashboardDetails = async (params, user) => {
                 disbursementBalance: disbursementBalance,
                 disburseBalancePercent,
                 disbursementAmount: amt,
+                totalUsdtSettlement: totalUsdtSettlement._sum.pkr_amount || 0,
+                remainingSettlements: remainingSettlements._sum.original_amount || 0,
+                totalRefund: totalRefund._sum.transactionAmount?.toFixed(2) || 0,
                 transactionSuccessRate: 0,
                 lastWeek: lastWeek._sum
                     ?.original_amount || 0,
@@ -256,6 +292,7 @@ const adminDashboardDetails = async (params) => {
         const customWhere = {};
         let disbursement_date;
         let settlement_date;
+        let usdt_settlement_date;
         if (startDate && endDate) {
             const todayStart = parse(startDate, "yyyy-MM-dd'T'HH:mm:ssXXX", startDate);
             const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", endDate);
@@ -265,6 +302,7 @@ const adminDashboardDetails = async (params) => {
             };
             disbursement_date = customWhere["date_time"];
             settlement_date = customWhere["date_time"];
+            usdt_settlement_date = customWhere["date_time"];
         }
         const fetchAggregates = [];
         // Fetch total number of merchants
@@ -348,8 +386,37 @@ const adminDashboardDetails = async (params) => {
                 settlementDate: settlement_date,
             }
         }));
+        fetchAggregates.push(prisma.uSDTSettlement.aggregate({
+            _sum: {
+                pkr_amount: true,
+            },
+            where: {
+                date: usdt_settlement_date,
+            }
+        }));
+        fetchAggregates.push(prisma.transaction.aggregate({
+            _sum: {
+                original_amount: true
+            },
+            where: {
+                settlement: false,
+                status: 'completed',
+                ScheduledTask: {
+                    status: 'pending'
+                }
+            }
+        }));
+        fetchAggregates.push(prisma.refund.aggregate({
+            _sum: {
+                transactionAmount: true,
+            },
+            where: {
+                disbursementDate: disbursement_date,
+                status: "completed",
+            }
+        }));
         // Execute all queries in parallel
-        const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance, totalSettlementAmount] = await Promise.all(fetchAggregates);
+        const [totalMerchants, totalIncome, todayIncome, latestTransactions, totalBalanceToDisburse, totalDisbursmentAmount, totalSettlementBalance, totalSettlementAmount, totalUsdtSettlement, remainingSettlements, totalRefund] = await Promise.all(fetchAggregates);
         // Build and return the full dashboard summary
         const dashboardSummary = {
             totalMerchants: totalMerchants, // Ensure correct type
@@ -361,7 +428,10 @@ const adminDashboardDetails = async (params) => {
             totalBalanceToDisburse: totalBalanceToDisburse._sum.balanceToDisburse || 0,
             totalDisbursmentAmount: totalDisbursmentAmount._sum.transactionAmount?.toFixed(2) || 0,
             totalSettlementBalance: totalSettlementBalance._sum.balance?.toFixed(2) || 0,
-            totalSettlementAmount: totalSettlementAmount._sum.merchantAmount?.toFixed(2) || 0
+            totalSettlementAmount: totalSettlementAmount._sum.merchantAmount?.toFixed(2) || 0,
+            totalUsdtSettlement: totalUsdtSettlement._sum.pkr_amount || 0,
+            remainingSettlements: remainingSettlements._sum.original_amount || 0,
+            totalRefund: totalRefund._sum.transactionAmount?.toFixed(2) || 0
         };
         return dashboardSummary;
     }

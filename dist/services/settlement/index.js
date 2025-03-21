@@ -44,6 +44,9 @@ const getSettlement = async (params, user) => {
                         full_name: true,
                     },
                 },
+            },
+            orderBy: {
+                settlementDate: "desc"
             }
         });
         let meta = {};

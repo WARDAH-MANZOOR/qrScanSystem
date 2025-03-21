@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { transactionService } from '../../services/index.js';
 import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
 import CustomError from '../../utils/custom_error.js';
@@ -129,6 +130,89 @@ async function adjustMerchantWalletBalance(merchantId, targetBalance, record, wb
                 difference: Math.abs(balanceDifference)
             };
         });
+    }
+    catch (error) {
+        throw new CustomError(error instanceof Error ? error.message : 'Failed to adjust wallet balance', 500);
+    }
+}
+async function adjustMerchantWalletBalanceithTx(merchantId, targetBalance, record, tx, wb) {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await getWalletBalance(merchantId);
+        walletBalance = balance.walletBalance;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        // walletBalance = wb;
+        // }
+        if (walletBalance === 0) {
+            throw new CustomError("Current balance is 0", 400);
+        }
+        console.log(targetBalance);
+        console.log(targetBalance, walletBalance);
+        console.log(targetBalance / walletBalance);
+        const balanceDifference = targetBalance - walletBalance;
+        const isSettlement = balanceDifference > 0;
+        // Execute in transaction
+        // Update transaction balances
+        await tx.transaction.updateMany({
+            where: {
+                merchant_id: merchantId,
+                status: 'completed',
+                settlement: true,
+                balance: { gt: 0 },
+            },
+            data: {
+                balance: { multiply: targetBalance / walletBalance }
+            }
+        });
+        const currentTime = Date.now();
+        const formattedDate = format(new Date(), 'yyyyMMddHHmmss');
+        const fractionalMilliseconds = Math.floor((currentTime - Math.floor(currentTime)) * 1000);
+        const txnId = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`;
+        // Create appropriate record
+        if (record) {
+            if (isSettlement) {
+                await tx.settlementReport.create({
+                    data: {
+                        merchant_id: merchantId,
+                        settlementDate: new Date(),
+                        transactionAmount: Math.abs(balanceDifference),
+                        merchantAmount: Math.abs(balanceDifference),
+                        commission: 0,
+                        gst: 0,
+                        withholdingTax: 0,
+                        transactionCount: 1
+                    }
+                });
+            }
+            else {
+                await tx.disbursement.create({
+                    data: {
+                        merchant_id: merchantId,
+                        disbursementDate: new Date(),
+                        transactionAmount: Math.abs(balanceDifference),
+                        merchantAmount: Math.abs(balanceDifference),
+                        commission: 0,
+                        gst: 0,
+                        withholdingTax: 0,
+                        status: 'completed',
+                        response_message: 'Wallet adjustment',
+                        merchant_custom_order_id: txnId,
+                        system_order_id: txnId
+                    }
+                });
+            }
+        }
+        return {
+            success: true,
+            type: isSettlement ? 'settlement' : 'disbursement',
+            previousBalance: walletBalance,
+            newBalance: targetBalance,
+            difference: Math.abs(balanceDifference)
+        };
     }
     catch (error) {
         throw new CustomError(error instanceof Error ? error.message : 'Failed to adjust wallet balance', 500);
@@ -763,7 +847,7 @@ async function processTodaySettlements() {
                 throw new CustomError("Deduction larger than balance", 500);
             }
             const updatedAvailableBalance = walletBalance - Number(deduction);
-            await backofficeService.adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
+            await adjustMerchantWalletBalance(merchant.merchant_id, updatedAvailableBalance, false);
             await prisma.$transaction(async (tx) => {
                 await tx.merchant.update({
                     where: {
@@ -805,6 +889,26 @@ async function processTodaySettlements() {
     }
     return results;
 }
+async function createUSDTSettlement(body) {
+    try {
+        const settlement = await prisma.uSDTSettlement.create({
+            data: {
+                merchant_id: body.merchant_id,
+                date: toZonedTime(new Date(body.date), 'Asia/Karachi'),
+                pkr_amount: body.pkr_amount,
+                usdt_amount: body.usdt_amount,
+                usdt_pkr_rate: body.usdt_pkr_rate,
+                conversion_charges: body.conversion_charges,
+                total_usdt: body.total_usdt,
+                wallet_address: body.wallet_address,
+            },
+        });
+        return settlement;
+    }
+    catch (err) {
+        throw new CustomError(err?.message, 500);
+    }
+}
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -821,5 +925,7 @@ export default {
     adjustMerchantWalletBalanceWithoutSettlement,
     failTransactions,
     failDisbursements,
-    processTodaySettlements
+    processTodaySettlements,
+    createUSDTSettlement,
+    adjustMerchantWalletBalanceithTx
 };

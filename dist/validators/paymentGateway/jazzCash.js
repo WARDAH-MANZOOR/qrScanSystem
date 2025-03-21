@@ -57,7 +57,11 @@ const validateCreateJazzcashMerchant = [
         .notEmpty()
         .withMessage("jazzMerchantId is required")
         .isString()
-        .withMessage("jazzMerchantId must be a string")
+        .withMessage("jazzMerchantId must be a string"),
+    body('merchant_of')
+        .optional()
+        .isString()
+        .withMessage('Merchant name should be a string')
 ];
 const validateUpdateJazzcashMerchant = [
     param('merchantId')
@@ -80,7 +84,11 @@ const validateUpdateJazzcashMerchant = [
     body('jazzMerchantId')
         .optional()
         .isString()
-        .withMessage("jazzMerchantId must be a string")
+        .withMessage("jazzMerchantId must be a string"),
+    body('merchant_of')
+        .optional()
+        .isString()
+        .withMessage('Merchant name should be a string')
 ];
 const validateDeleteJazzcashMerchant = [
     param('merchantId')

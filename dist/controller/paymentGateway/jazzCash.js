@@ -1,6 +1,6 @@
 import { validationResult } from "express-validator";
-import { jazzCashService } from "../../services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
+import { jazzCashService } from "services/index.js";
+import { checkTransactionStatus, getToken, initiateTransaction, simpleProductionMwTransactionClone, simpleProductionInitiateTransactionClone, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
 const initiateJazzCash = async (req, res, next) => {
@@ -208,6 +208,21 @@ const initiateSandboxDisbursmentClone = async (req, res, next) => {
         next(err);
     }
 };
+const initiateProductionDisbursmentClone = async (req, res, next) => {
+    try {
+        console.log("IBFT Called");
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+        const token = await getToken(req.params.merchantId);
+        if (!token?.access_token) {
+            res.status(500).json(ApiResponse.error(token));
+        }
+        const initTransaction = await simpleProductionInitiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+        res.status(200).json(ApiResponse.success(initTransaction));
+    }
+    catch (err) {
+        next(err);
+    }
+};
 const initiateMWDisbursementClone = async (req, res, next) => {
     try {
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
@@ -230,6 +245,20 @@ const initiateSandboxMWDisbursementClone = async (req, res, next) => {
             res.status(500).json(ApiResponse.error(token));
         }
         const initTransaction = await simpleSandboxMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
+        res.status(200).json(ApiResponse.success(initTransaction));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const initiateProductionMWDisbursementClone = async (req, res, next) => {
+    try {
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+        const token = await getToken(req.params.merchantId);
+        if (!token?.access_token) {
+            res.status(500).json(ApiResponse.error(token));
+        }
+        const initTransaction = await simpleProductionMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
         res.status(200).json(ApiResponse.success(initTransaction));
     }
     catch (err) {
@@ -323,5 +352,7 @@ export default {
     initiateSandboxMWDisbursementClone,
     initiateSandboxDisbursmentClone,
     simpleSandboxDisburseInquiryController,
-    simpleStatusInquiry
+    simpleStatusInquiry,
+    initiateProductionMWDisbursementClone,
+    initiateProductionDisbursmentClone
 };

@@ -13,6 +13,8 @@ import report from "./reports/excel.js";
 import ipn from "./ipn/index.js";
 import group from "./group/index.js";
 import permissions from "./permissions/index.js";
+import usdtSettlements from "./usdt-settlement/index.js";
+import refund from "./refund/index.js";
 export default function (app) {
     app.use("/payment", payment);
     app.use("/merchant", merchant);
@@ -29,4 +31,6 @@ export default function (app) {
     app.use("/ipn", ipn);
     app.use("/group", group);
     app.use("/permissions", permissions);
+    app.use("/usdt-settlement", usdtSettlements);
+    app.use("/refund", refund);
 }
