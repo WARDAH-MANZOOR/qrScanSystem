@@ -369,6 +369,7 @@ model Disbursement {
   callback_response String?
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
+
 }
 
 model EasyPaisaDisburseAccount {
@@ -427,6 +428,18 @@ model DisbursementRequest {
   // Relations
   merchant         Merchant @relation(fields: [merchantId], references: [merchant_id])
 
+}
+
+model DisbursementDispute {
+  id Int @id @default(autoincrement())
+  transactionId     String
+  account           String
+  amount            Float
+  disbursementDate  DateTime
+  sender            String
+  status            String?
+  message           String?    
+  merchant_id       Int 
 }
 
 model Refund {
