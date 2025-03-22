@@ -292,14 +292,20 @@ const createTxn = async (obj: any) => {
 
 const updateTxn = async (transaction_id: string, obj: any, duration: number) => {
   return await prisma.$transaction(async (tx) => {
-    let transaction = await tx.transaction.update({
-      where: {
-        transaction_id: transaction_id,
-      },
-      data: {
-        ...obj,
-      },
+    const existingTransaction = await tx.transaction.findUnique({
+      where: { transaction_id: transaction_id }
     });
+    
+    if (existingTransaction) {
+      await tx.transaction.update({
+        where: { transaction_id: transaction_id },
+        data: {
+          ...obj
+        },
+      });
+    } else {
+      console.error("Transaction not found for updating:", transaction_id);
+    }
 
     const provider = await tx.provider.upsert({
       where: {

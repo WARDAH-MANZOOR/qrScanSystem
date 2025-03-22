@@ -146,7 +146,7 @@ const initiateJazzCashPayment = async (
 ) => {
   let refNo: string = "";
   try {
-    
+
     console.log(JSON.stringify({ event: "JASSCASH_PAYIN_INITIATED", orderId: paymentData.order_id }))
     var JAZZ_CASH_MERCHANT_ID: any = null;
     // Get the current date
@@ -672,15 +672,29 @@ const initiateJazzCashPaymentAsync = async (
           throw new CustomError("Invalid payment type", 400);
         }
       } catch (error: any) {
-        console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error }))
-        // Update transaction as failed in case of error
-        await prisma.transaction.update({
-          where: { transaction_id: refNo },
-          data: {
-            status: "failed",
-            response_message: error?.message || "Async processing failed",
-          },
+        console.log(JSON.stringify({
+          event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error: {
+            message: error?.message || "An Error Occurred",
+            statusCode: error?.statusCode || 500,
+            txnNo: refNo,
+          }
+        }))
+        // Safely attempt transaction update
+        const existingTransaction = await prisma.transaction.findUnique({
+          where: { transaction_id: refNo }
         });
+
+        if (existingTransaction) {
+          await prisma.transaction.update({
+            where: { transaction_id: refNo },
+            data: {
+              status: "failed",
+              response_message: error?.message || "Async processing failed",
+            },
+          });
+        } else {
+          console.error("Transaction record not found for refNo:", refNo);
+        }
       }
     });
 
