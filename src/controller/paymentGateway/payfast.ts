@@ -31,6 +31,61 @@ const pay = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
+const upaisa = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '14',
+            ...req.body
+        })
+        if (!validation?.transaction_id) {
+            throw new CustomError("No Transaction ID Recieved", 500);
+        }
+        const payment = await payfast.payCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '14',
+            transaction_id: validation?.transaction_id,
+            otp: validation?.otp,
+            ...req.body
+        })
+        res.status(200).json(ApiResponse.success(payment));
+    }
+    catch (err) {
+        next(err);
+    }
+}
+
+const zindigi = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            ...req.body
+        })
+        if (!validation?.transaction_id) {
+            throw new CustomError("No Transaction ID Recieved", 500);
+        }
+        const payment = await payfast.payCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            transaction_id: validation?.transaction_id,
+            ...req.body
+        })
+        res.status(200).json(ApiResponse.success(payment));
+    }
+    catch (err) {
+        next(err);
+    }
+}
+
 const getPayFastMerchant = async (
     req: Request,
     res: Response,
@@ -116,4 +171,4 @@ const deletePayFastMerchant = async (
     }
 };
 
-export default { pay, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant }
+export default { pay, upaisa, zindigi, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant }

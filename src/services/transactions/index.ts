@@ -532,6 +532,25 @@ const getMerchantInquiryMethod = async (merchantId: string) => {
   })
 }
 
+function convertDateLocal(dateString: string) {
+  console.log(dateString)
+  const date = new Date(dateString);
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+
+  let hours: number | string = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const amPm = hours >= 12 ? 'PM' : 'AM';
+  console.log(hours, minutes, amPm)
+  hours = hours % 12 || 12; 
+  hours = String(hours).padStart(2, '0');
+
+  return `${day}/${month}/${year} ${hours}:${minutes} ${amPm}`;
+}
+
+
 const getTransaction = async (merchantId: string, transactionId: string) => {
   try {
     const id = await prisma.merchant.findFirst({
@@ -564,13 +583,13 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
     // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
     let data = {
       "orderId": txn?.merchant_transaction_id,
-      "transactionStatus": txn?.status,
-      "transactionAmount": txn?.original_amount,
-      "transactionDateTime": txn?.date_time,
+      "transactionStatus": txn?.status.toUpperCase(),
+      "transactionAmount": Number(txn?.original_amount),
+      "transactionDateTime": convertDateLocal(txn?.date_time.toISOString()),
       "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
-      "responseDesc": txn?.response_message,
+      "responseDesc": txn?.response_message || "",
       "responseMode": "MA",
-      "statusCode": 201
+      // "statusCode": 201
     }
     return data;
   }
