@@ -949,7 +949,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   if (res.data.responseCode == "0000") {
     return {
       "orderId": res.data.orderId,
-      "transactionStatus": res.data.transactionStatus == "PAID" ? "Completed" : res.data.transactionStatus,
+      "transactionStatus": res.data.transactionStatus == "PAID" ? "COMPLETED" : res.data.transactionStatus,
       "transactionAmount": res.data.transactionAmount,
       "transactionDateTime": res.data.transactionDateTime,
       "msisdn": res.data.msisdn,
