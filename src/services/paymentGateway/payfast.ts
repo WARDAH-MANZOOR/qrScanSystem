@@ -272,7 +272,7 @@ const pay = async (merchantId: string, params: any) => {
                         id: 1,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transaction_id: params.transaction_id
+                        transactionId: params.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -302,7 +302,7 @@ const pay = async (merchantId: string, params: any) => {
                         id: 1,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transaction_id: params.transaction_id
+                        transactionId: params.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -471,7 +471,7 @@ const payAsync = async (merchantId: string, params: any) => {
                             id: 1,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
-                            transaction_id: params.transaction_id
+                            transactionId: params.transaction_id
                         },
                     },
                     findMerchant.commissions[0].settlementDuration
@@ -525,6 +525,7 @@ const payCnic = async (merchantId: string, params: any) => {
             }
         });
 
+        console.log((saveTxn?.providerDetails as JsonObject)?.cnic as unknown as string)
         const myHeaders = new Headers();
         myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
         myHeaders.append("Authorization", `Bearer ${params.token}`);
@@ -570,7 +571,7 @@ const payCnic = async (merchantId: string, params: any) => {
                         id: 1,
                         name: params.bankCode == "14" ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
                         msisdn: (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string,
-                        transaction_id: params.transaction_id
+                        transactionId: params.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -600,7 +601,8 @@ const payCnic = async (merchantId: string, params: any) => {
                         id: 1,
                         name: params.bankCode == "14" ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
                         msisdn: (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string,
-                        transaction_id: params.transaction_id
+                        transactionId: params.transaction_id,
+                        cnic: (saveTxn?.providerDetails as JsonObject)?.cnic as unknown as string
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -698,63 +700,129 @@ const deletePayFastMerchant = async (merchantId: number) => {
 function convertDateLocal(dateString: string) {
     console.log(dateString)
     const date = new Date(dateString);
-    
+
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-  
+
     let hours: number | string = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const amPm = hours >= 12 ? 'PM' : 'AM';
     console.log(hours, minutes, amPm)
-    hours = hours % 12 || 12; 
+    hours = hours % 12 || 12;
     hours = String(hours).padStart(2, '0');
-  
-    return `${day}/${month}/${year} ${hours}:${minutes} ${amPm}`;
-  }
 
-const statusInquiry = async (merchantId: string, transactionId: string) => {
+    return `${day}/${month}/${year} ${hours}:${minutes} ${amPm}`;
+}
+
+const databaseStatusInquiry = async (merchantId: string, transactionId: string) => {
     try {
-      const id = await prisma.merchant.findFirst({
-        where: {
-          uid: merchantId,
-        },
-        select: {
-          merchant_id: true
+        const id = await prisma.merchant.findFirst({
+            where: {
+                uid: merchantId,
+            },
+            select: {
+                merchant_id: true
+            }
+        })
+        if (!id) {
+            throw new CustomError("Merchant Not Found", 400)
         }
-      })
-      if (!id) {
-        throw new CustomError("Merchant Not Found", 400)
-      }
-      const txn = await prisma.transaction.findFirst({
-        where: {
-          merchant_transaction_id: transactionId,
-          merchant_id: id?.merchant_id,
-        },
-      })
-      if (!txn) {
-        return {
-          message: "Transaction not found",
-          statusCode: 500
+        const txn = await prisma.transaction.findFirst({
+            where: {
+                merchant_transaction_id: transactionId,
+                merchant_id: id?.merchant_id,
+            },
+        })
+        if (!txn) {
+            return {
+                message: "Transaction not found",
+                statusCode: 500
+            }
         }
-      }
-      // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
-      let data = {
-        "orderId": txn?.merchant_transaction_id,
-        "transactionStatus": txn?.status.toUpperCase(),
-        "transactionAmount": Number(txn?.original_amount),
-        "transactionDateTime": convertDateLocal(txn?.date_time.toISOString()),
-        "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
-        "responseDesc": txn?.response_message || "",
-        "responseMode": "MA",
-        // "statusCode": 201
-      }
-      return data;
+        // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
+        let data = {
+            "orderId": txn?.merchant_transaction_id,
+            "transactionStatus": txn?.status.toUpperCase(),
+            "transactionAmount": Number(txn?.original_amount),
+            "transactionDateTime": convertDateLocal(txn?.date_time.toISOString()),
+            "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+            "responseDesc": txn?.response_message || "",
+            "responseMode": "MA",
+            // "statusCode": 201
+        }
+        return data;
     }
     catch (err: any) {
-      throw new CustomError(err?.message || "Error getting transaction", 500);
+        throw new CustomError(err?.message || "Error getting transaction", 500);
     }
-  }
+}
+
+const getPayfastInquiryMethod = async (merchantId: string) => {
+  return await prisma.merchant.findFirst({
+    where: {
+      uid: merchantId
+    },
+    select: {
+      payfastInquiryMethod: true
+    }
+  })
+}
+
+const payfastStatusInquiry = async (merchantId: string, transactionId: string, token: string) => {
+    try {
+        const id = await prisma.merchant.findFirst({
+            where: {
+                uid: merchantId,
+            },
+            select: {
+                merchant_id: true
+            }
+        })
+        if (!id) {
+            throw new CustomError("Merchant Not Found", 400)
+        }
+        const txn = await prisma.transaction.findFirst({
+            where: {
+                merchant_transaction_id: transactionId,
+                merchant_id: id?.merchant_id,
+            },
+        })
+        if (!txn) {
+            return {
+                message: "Transaction not found",
+                statusCode: 500
+            }
+        }
+        const myHeaders = new Headers();
+        myHeaders.append("Authorization", `Bearer ${token}`);
+
+        const requestOptions = {
+            method: "GET",
+            headers: myHeaders,
+            redirect: "follow" as RequestRedirect
+        };
+
+        const result = await fetch(`https://apipxy.apps.net.pk:8443/api/transaction/${(txn?.providerDetails as JsonObject)?.transactionId}`, requestOptions)
+            .then((response) => response.json())
+            .then((result) => result)
+            .catch((error) => error);
+        console.log(result)
+        let data = {
+            "orderId": txn?.merchant_transaction_id,
+            "transactionStatus": result?.status_msg.toUpperCase() == "SUCCESS" ? "COMPLETED" : "FAILED",
+            "transactionAmount": Number(txn?.original_amount),
+            "transactionDateTime": convertDateLocal(txn?.date_time.toISOString()),
+            "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+            "responseDesc": txn?.response_message || "",
+            "responseMode": "MA",
+        }
+        return data;
+    }
+    catch (err: any) {
+        throw new CustomError(err?.message || "Error getting transaction", 500);
+    }
+}
 
 export default {
     pay,
@@ -767,5 +835,7 @@ export default {
     deletePayFastMerchant,
     payCnic,
     validateCustomerInformationForCnic,
-    statusInquiry
+    databaseStatusInquiry,
+    payfastStatusInquiry,
+    getPayfastInquiryMethod
 }
