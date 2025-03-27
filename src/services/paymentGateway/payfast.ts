@@ -1,3 +1,4 @@
+import { JsonObject } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
 import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
@@ -72,10 +73,6 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
     urlencoded.append("bank_code", params.bankCode);
     urlencoded.append("order_date", formatter.format(new Date()));
     urlencoded.append("account_number", phone);
-    if (params.cnic) {
-        urlencoded.append('cnic_number', params.cnic)
-        // urlencoded.append('otp', otp)
-    }
 
     const requestOptions = {
         method: "POST",
@@ -89,8 +86,102 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
         .then((result) => result)
         .catch((error) => error);
 
-    console.log("Result: ", {...result, otp});
-    return {...result, otp};
+    console.log("Result: ", { ...result, otp });
+    return { ...result, otp };
+}
+
+const validateCustomerInformationForCnic = async (merchantId: string, params: any) => {
+    let findMerchant = await prisma.merchant.findFirst({
+        where: {
+            uid: merchantId
+        },
+        include: {
+            commissions: true
+        }
+    })
+
+    if (!findMerchant) {
+        throw new CustomError("Merchant Not Found", 500);
+    }
+    const myHeaders = new Headers();
+    const phone = transactionService.convertPhoneNumber(params.phone)
+    let id = transactionService.createTransactionId();
+    let id2 = params.order_id || id;
+    myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+    myHeaders.append("Authorization", `Bearer ${params.token}`);
+
+    const urlencoded = new URLSearchParams();
+    const otp = JSON.stringify(Math.floor(100000 + Math.random() * 900000))
+    urlencoded.append("basket_id", id2);
+    urlencoded.append("txnamt", params.amount);
+    urlencoded.append("customer_mobile_no", "03453076714");
+    urlencoded.append("customer_email_address", params.email);
+    urlencoded.append("account_type_id", "4");
+    urlencoded.append("bank_code", params.bankCode);
+    urlencoded.append("order_date", formatter.format(new Date()));
+    urlencoded.append("account_number", phone);
+    // if (params.cnic) {
+    urlencoded.append('cnic_number', params.cnic)
+    // urlencoded.append('otp', otp)
+    // }
+
+    const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: urlencoded,
+        redirect: "follow"
+    };
+
+    let commission;
+    commission = +findMerchant.commissions[0].commissionGST +
+        +findMerchant.commissions[0].commissionRate +
+        +findMerchant.commissions[0].commissionWithHoldingTax
+    console.log(params.amount)
+    let saveTxn = await transactionService.createTxn({
+        order_id: id2,
+        transaction_id: id,
+        amount: params.amount,
+        status: "pending",
+        type: params.type,
+        merchant_id: findMerchant.merchant_id,
+        commission,
+        settlementDuration: findMerchant.commissions[0].settlementDuration,
+        providerDetails: {
+            id: 1,
+            name: params.bankCode == '14' ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
+            msisdn: phone,
+            cnic: params.cnic
+        },
+    });
+
+    let result = await fetch("https://apipxy.apps.net.pk:8443/api/customer/validate", requestOptions as RequestInit)
+        .then((response) => response.json())
+        .then((result) => result)
+        .catch((error) => error);
+    console.log("Result: ", { ...result, otp });
+
+    if (result?.code != "00") {
+        transactionService.updateTxn(
+            saveTxn.transaction_id,
+            {
+                status: "failed",
+                response_message: result.message,
+            },
+            findMerchant.commissions[0].settlementDuration
+        );
+        return {
+            response_message: result.message || "An error occurred while initiating the transaction",
+            statusCode: 500,
+            txnNo: saveTxn?.merchant_transaction_id
+        }
+    }
+    return {
+        txnNo: saveTxn?.merchant_transaction_id,
+        txnDateTime: saveTxn?.date_time,
+        statusCode: result?.status_code,
+        transaction_id: result.transaction_id,
+        response_message: result?.message
+    };;
 }
 
 const pay = async (merchantId: string, params: any) => {
@@ -177,6 +268,12 @@ const pay = async (merchantId: string, params: any) => {
                 {
                     status: "completed",
                     response_message: result.message,
+                    providerDetails: {
+                        id: 1,
+                        name: PROVIDERS.EASYPAISA,
+                        msisdn: phone,
+                        transaction_id: params.transaction_id
+                    }
                 },
                 findMerchant.commissions[0].settlementDuration
             );
@@ -201,6 +298,12 @@ const pay = async (merchantId: string, params: any) => {
                 {
                     status: "failed",
                     response_message: result.message,
+                    providerDetails: {
+                        id: 1,
+                        name: PROVIDERS.EASYPAISA,
+                        msisdn: phone,
+                        transaction_id: params.transaction_id
+                    }
                 },
                 findMerchant.commissions[0].settlementDuration
             );
@@ -368,6 +471,7 @@ const payAsync = async (merchantId: string, params: any) => {
                             id: 1,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
+                            transaction_id: params.transaction_id
                         },
                     },
                     findMerchant.commissions[0].settlementDuration
@@ -414,25 +518,30 @@ const payCnic = async (merchantId: string, params: any) => {
         if (!findMerchant) {
             throw new CustomError("Merchant Not Found", 500);
         }
-        const phone = transactionService.convertPhoneNumber(params.phone)
         let id2 = params.order_id || id;
+        saveTxn = await prisma.transaction.findUnique({
+            where: {
+                transaction_id: params.transactionId
+            }
+        });
+
         const myHeaders = new Headers();
         myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
         myHeaders.append("Authorization", `Bearer ${params.token}`);
-
+        console.log(JSON.stringify(saveTxn?.original_amount))
         const urlencoded = new URLSearchParams();
         urlencoded.append("basket_id", id2);
-        urlencoded.append("txnamt", params.amount);
-        urlencoded.append("customer_email_address", params.email);
+        urlencoded.append("txnamt", saveTxn?.original_amount as unknown as string);
+        urlencoded.append("customer_email_address", "example@example.com");
         urlencoded.append("account_type_id", "4");
         urlencoded.append("customer_mobile_no", "03453076786");
-        urlencoded.append("account_number", params.phone);
+        urlencoded.append("account_number", (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string);
         urlencoded.append("bank_code", params.bankCode);
         urlencoded.append("order_date", formatter.format(new Date()));
         urlencoded.append("transaction_id", params.transaction_id);
-        urlencoded.append("cnic_number", params.cnic)
-        // urlencoded.append('otp', params.otp)
-
+        urlencoded.append("cnic_number", (saveTxn?.providerDetails as JsonObject)?.cnic as unknown as string)
+        urlencoded.append('otp', params.otp)
+        console.log(urlencoded)
         const requestOptions = {
             method: "POST",
             headers: myHeaders,
@@ -441,26 +550,6 @@ const payCnic = async (merchantId: string, params: any) => {
         };
 
         // Save transaction immediately with "pending" status
-        let commission;
-        commission = +findMerchant.commissions[0].commissionGST +
-            +findMerchant.commissions[0].commissionRate +
-            +findMerchant.commissions[0].commissionWithHoldingTax
-
-        saveTxn = await transactionService.createTxn({
-            order_id: id2,
-            transaction_id: id,
-            amount: params.amount,
-            status: "pending",
-            type: params.type,
-            merchant_id: findMerchant.merchant_id,
-            commission,
-            settlementDuration: findMerchant.commissions[0].settlementDuration,
-            providerDetails: {
-                id: 1,
-                name: PROVIDERS.EASYPAISA,
-                msisdn: phone
-            },
-        });
 
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 
@@ -473,34 +562,46 @@ const payCnic = async (merchantId: string, params: any) => {
         if (result.status_code == "00") {
             console.log(JSON.stringify({ event: "PAYFAST_PAYIN_SUCCESS", order_id: params.order_id, system_order_id: id, response: result }))
             const updateTxn = await transactionService.updateTxn(
-                saveTxn.transaction_id,
+                saveTxn?.transaction_id as string,
                 {
                     status: "completed",
                     response_message: result.message,
+                    providerDetails: {
+                        id: 1,
+                        name: params.bankCode == "14" ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
+                        msisdn: (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string,
+                        transaction_id: params.transaction_id
+                    }
                 },
                 findMerchant.commissions[0].settlementDuration
             );
             transactionService.sendCallback(
                 findMerchant.webhook_url as string,
                 saveTxn,
-                phone,
+                JSON.stringify((saveTxn?.providerDetails as JsonObject)?.msisdn),
                 "payin",
                 findMerchant.encrypted == "True" ? true : false,
                 true
             );
             return {
-                txnNo: saveTxn.merchant_transaction_id,
-                txnDateTime: saveTxn.date_time,
+                txnNo: saveTxn?.merchant_transaction_id,
+                txnDateTime: saveTxn?.date_time,
                 statusCode: result?.status_code
             };
         }
         else {
             console.log(JSON.stringify({ event: "PAYFAST_PAYIN_FAILED", order_id: params.order_id, system_order_id: id, response: result }))
             const updateTxn = await transactionService.updateTxn(
-                saveTxn.transaction_id,
+                saveTxn?.transaction_id as string,
                 {
                     status: "failed",
                     response_message: result.message,
+                    providerDetails: {
+                        id: 1,
+                        name: params.bankCode == "14" ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
+                        msisdn: (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string,
+                        transaction_id: params.transaction_id
+                    }
                 },
                 findMerchant.commissions[0].settlementDuration
             );
@@ -512,6 +613,7 @@ const payCnic = async (merchantId: string, params: any) => {
         }
     }
     catch (err: any) {
+        console.log(err)
         console.log(JSON.stringify({
             event: "PAYFAST_PAYIN_ERROR", order_id: params.order_id, error: {
                 message: err?.message || "An error occurred while initiating the transaction",
@@ -592,6 +694,68 @@ const deletePayFastMerchant = async (merchantId: number) => {
         throw new CustomError(error?.message || "An error occurred", 500);
     }
 };
+
+function convertDateLocal(dateString: string) {
+    console.log(dateString)
+    const date = new Date(dateString);
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+  
+    let hours: number | string = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const amPm = hours >= 12 ? 'PM' : 'AM';
+    console.log(hours, minutes, amPm)
+    hours = hours % 12 || 12; 
+    hours = String(hours).padStart(2, '0');
+  
+    return `${day}/${month}/${year} ${hours}:${minutes} ${amPm}`;
+  }
+
+const statusInquiry = async (merchantId: string, transactionId: string) => {
+    try {
+      const id = await prisma.merchant.findFirst({
+        where: {
+          uid: merchantId,
+        },
+        select: {
+          merchant_id: true
+        }
+      })
+      if (!id) {
+        throw new CustomError("Merchant Not Found", 400)
+      }
+      const txn = await prisma.transaction.findFirst({
+        where: {
+          merchant_transaction_id: transactionId,
+          merchant_id: id?.merchant_id,
+        },
+      })
+      if (!txn) {
+        return {
+          message: "Transaction not found",
+          statusCode: 500
+        }
+      }
+      // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
+      let data = {
+        "orderId": txn?.merchant_transaction_id,
+        "transactionStatus": txn?.status.toUpperCase(),
+        "transactionAmount": Number(txn?.original_amount),
+        "transactionDateTime": convertDateLocal(txn?.date_time.toISOString()),
+        "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+        "responseDesc": txn?.response_message || "",
+        "responseMode": "MA",
+        // "statusCode": 201
+      }
+      return data;
+    }
+    catch (err: any) {
+      throw new CustomError(err?.message || "Error getting transaction", 500);
+    }
+  }
+
 export default {
     pay,
     validateCustomerInformation,
@@ -601,5 +765,7 @@ export default {
     createPayFastMerchant,
     updatePayFastMerchant,
     deletePayFastMerchant,
-    payCnic
+    payCnic,
+    validateCustomerInformationForCnic,
+    statusInquiry
 }

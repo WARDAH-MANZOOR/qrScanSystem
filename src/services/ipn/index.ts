@@ -1,4 +1,6 @@
+import { JsonObject } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
+import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 
 // Example of the request body fields
@@ -26,7 +28,13 @@ export interface PaymentResponse {
 
 const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentResponse> => {
     try {
+        console.log(JSON.stringify({ event: "IPN_RECIEVED", order_id: requestBody.pp_TxnRefNo, requestBody }))
         if (requestBody.pp_ResponseCode == "121") {
+            const txn = await prisma.transaction.findUnique({
+                where: {
+                    merchant_transaction_id: requestBody.pp_TxnRefNo
+                }
+            })
             await prisma.transaction.update({
                 where: {
                     merchant_transaction_id: requestBody.pp_TxnRefNo
@@ -36,6 +44,23 @@ const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentRespo
                     response_message: requestBody.pp_ResponseMessage
                 }
             })
+            if (txn?.status != "completed") {
+                const findMerchant = await prisma.merchant.findUnique({
+                    where: {
+                        merchant_id: txn?.merchant_id
+                    }
+                })
+                setTimeout(async () => {
+                    transactionService.sendCallback(
+                        findMerchant?.webhook_url as string,
+                        txn,
+                        (txn?.providerDetails as JsonObject)?.account as string,
+                        "payin",
+                        findMerchant?.encrypted == "True" ? true : false,
+                        false
+                    )
+                }, 30000)
+            }
         }
         else if (requestBody.pp_ResponseCode == "199" || requestBody.pp_ResponseCode == "999") {
             await prisma.transaction.update({
