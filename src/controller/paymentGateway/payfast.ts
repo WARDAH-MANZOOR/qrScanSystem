@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
-import { payfast } from "services/index.js";
+import { payfast, transactionService } from "services/index.js";
 import ApiResponse from "utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
 
@@ -240,11 +240,23 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
     try {
         const merchantId = req.params.merchantId;
         const transactionId = req.query.transactionId;
-        const result = await payfast.statusInquiry(merchantId, transactionId as string)
+        const method = (await payfast.getPayfastInquiryMethod(merchantId))?.payfastInquiryMethod;
+        let result;
+        if (method == "DATABASE") {
+            result = await payfast.databaseStatusInquiry(merchantId, transactionId as string)
+        }
+        else {
+            const token = await payfast.getApiToken(req.params.merchantId, req.body);
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            result = await payfast.payfastStatusInquiry(merchantId, transactionId as string, token?.token)
+        }
         res.status(200).json(ApiResponse.success(result));
     }
-    catch(err) {
+    catch (err) {
         next(err);
     }
 }
+
 export default { pay, upaisaValidation, zindigi, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant, upaisaPay, zindigiValidation, zindigiPay, statusInquiry }
