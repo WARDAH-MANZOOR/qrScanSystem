@@ -947,14 +947,27 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   let res: any = await axios.request(config);
   console.log(res.data)
   if (res.data.responseCode == "0000") {
-    return {
-      "orderId": res.data.orderId,
-      "transactionStatus": res.data.transactionStatus == "PAID" ? "COMPLETED" : res.data.transactionStatus,
-      "transactionAmount": res.data.transactionAmount,
-      "transactionDateTime": res.data.transactionDateTime,
-      "msisdn": res.data.msisdn,
-      "responseDesc": res.data.responseDesc,
-      "responseMode": "MA"
+    if (res.data.transactionStatus == "PAID") {
+      return {
+        "orderId": res.data.orderId,
+        "transactionStatus": res.data.transactionStatus == "PAID" ? "COMPLETED" : res.data.transactionStatus,
+        "transactionAmount": res.data.transactionAmount,
+        "transactionDateTime": res.data.transactionDateTime,
+        "msisdn": res.data.msisdn,
+        "responseDesc": res.data.responseDesc,
+        "responseMode": "MA"
+      }
+    }
+    else {
+      return {
+        "orderId": res.data.orderId,
+        "transactionStatus": res.data.transactionStatus,
+        "transactionAmount": res.data.transactionAmount,
+        "transactionDateTime": res.data.transactionDateTime,
+        "msisdn": res.data.msisdn,
+        "responseDesc": res.data.errorCode,
+        "responseMode": "MA"
+      }
     }
   } else {
     return {

@@ -123,6 +123,7 @@ model Merchant {
   // Easypaisa-specific
   easypaisaPaymentMethod     EasypaisaPaymentMethodEnum @default(SWITCH)
   easypaisaInquiryMethod     EasypaisaInquiryMethod     @default(DATABASE)
+  payfastInquiryMethod       EasypaisaInquiryMethod     @default(DATABASE)
   EasyPaisaDisburseAccountId Int?
   JazzCashDisburseAccountId  Int?
   jazzCashMerchant           JazzCashMerchant?          @relation(fields: [jazzCashMerchantId], references: [id])
