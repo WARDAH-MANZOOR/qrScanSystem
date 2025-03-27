@@ -31,25 +31,90 @@ const pay = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-const upaisa = async (req: Request, res: Response, next: NextFunction) => {
+const upaisaValidation = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const token = await payfast.getApiToken(req.params.merchantId, req.body);
         if (!token?.token) {
             throw new CustomError("No Token Recieved", 500);
         }
-        const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+        const validation = await payfast.validateCustomerInformationForCnic(req.params.merchantId, {
             token: token?.token,
             bankCode: '14',
             ...req.body
         })
         if (!validation?.transaction_id) {
-            throw new CustomError("No Transaction ID Recieved", 500);
+            // throw new CustomError(validation?.response_message, 500);
+            res.status(500).json(validation)
+            return
+        }
+        // const payment = await payfast.payCnic(req.params.merchantId, {
+        //     token: token?.token,
+        //     bankCode: '14',
+        //     transaction_id: validation?.transaction_id,
+        //     ...req.body
+        // })
+        res.status(200).json(ApiResponse.success(validation));
+    }
+    catch (err) {
+        next(err);
+    }
+}
+
+const zindigiValidation = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformationForCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            ...req.body
+        })
+        if (!validation?.transaction_id) {
+            res.status(500).json(validation)
+            return
+        }
+        // const payment = await payfast.payCnic(req.params.merchantId, {
+        //     token: token?.token,
+        //     bankCode: '14',
+        //     transaction_id: validation?.transaction_id,
+        //     ...req.body
+        // })
+        res.status(200).json(ApiResponse.success(validation));
+    }
+    catch (err) {
+        next(err);
+    }
+}
+
+const upaisaPay = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
         }
         const payment = await payfast.payCnic(req.params.merchantId, {
             token: token?.token,
             bankCode: '14',
-            transaction_id: validation?.transaction_id,
-            otp: validation?.otp,
+            ...req.body
+        })
+        res.status(200).json(ApiResponse.success(payment));
+    }
+    catch (err) {
+        next(err);
+    }
+}
+
+const zindigiPay = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const payment = await payfast.payCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
             ...req.body
         })
         res.status(200).json(ApiResponse.success(payment));
@@ -171,4 +236,15 @@ const deletePayFastMerchant = async (
     }
 };
 
-export default { pay, upaisa, zindigi, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant }
+const statusInquiry = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const merchantId = req.params.merchantId;
+        const transactionId = req.query.transactionId;
+        const result = await payfast.statusInquiry(merchantId, transactionId as string)
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch(err) {
+        next(err);
+    }
+}
+export default { pay, upaisaValidation, zindigi, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant, upaisaPay, zindigiValidation, zindigiPay, statusInquiry }
