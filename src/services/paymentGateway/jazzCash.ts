@@ -1239,7 +1239,18 @@ const simpleStatusInquiry = async (payload: any, merchantId: string) => {
 const callback = async (body: any) => {
   try {
     console.log("Encrypted Body: ", body);
-    const payload = await callbackDecrypt(body.encrypted_data, body.iv, body.tag)
+    const encryptionMode = await prisma.merchant.findUnique({
+      where: {
+        merchant_id: 5
+      },
+      select: {
+        encrypted: true
+      }
+    })
+    let payload;
+    if (encryptionMode?.encrypted == "true") {
+      payload = await callbackDecrypt(body.encrypted_data, body.iv, body.tag)
+    }
     console.log("Callback Body: ", payload);
     return "success";
   } catch {
