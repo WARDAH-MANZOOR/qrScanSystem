@@ -30,7 +30,7 @@ import { JsonObject } from '@prisma/client/runtime/library';
 import { calculateHmacSha256 } from 'services/paymentGateway/newJazzCash.js';
 
 var app = express();
-cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("0 16 * * 1-5", task);
 cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
