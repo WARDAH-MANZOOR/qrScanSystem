@@ -489,12 +489,13 @@ const exportTransactions = async (req: Request, res: Response) => {
       callback_sent: transaction.callback_sent
     }));
 
-    const json2csvParser = new Parser({ fields });
+    const json2csvParser = new Parser({ fields, quote: '' });
     const csv = json2csvParser.parse(data);
+    const csvNoQuotes = csv.replace(/"/g, '');
 
     res.header('Content-Type', 'text/csv');
     res.attachment('transaction_report.csv');
-    res.send(`${csv}\nTotal Settled Amount,,${totalAmount}`);
+    res.send(`${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`);
   } catch (err) {
     console.error(err);
     const error = new CustomError("Internal Server Error", 500);
