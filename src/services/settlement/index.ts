@@ -175,7 +175,8 @@ const exportSettlement = async (params: any, user: JwtPayload) => {
 
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(data);
-    return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+    const csvNoQuotes = csv.replace(/"/g, '');
+    return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
     // res.header('Content-Type', 'text/csv');
     // res.attachment('transaction_report.csv');
     // res.send(`${csv}\nTotal Settled Amount,,${totalAmount}`);

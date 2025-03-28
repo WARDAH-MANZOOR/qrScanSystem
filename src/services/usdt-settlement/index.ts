@@ -142,7 +142,8 @@ const exportUsdtSettlements = async (merchantId: number, params: any) => {
 
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
-        return `${csv}`;
+        const csvNoQuotes = csv.replace(/"/g, '');
+        return `${csvNoQuotes}`;
     } catch (error: any) {
         throw new CustomError(
             error?.error || "Unable to get disbursement",
