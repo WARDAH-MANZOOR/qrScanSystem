@@ -2081,7 +2081,9 @@ const exportDisbursement = async (merchantId: number, params: any) => {
 
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(data);
-    return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+    const csvNoQuotes = csv.replace(/"/g, '');
+
+    return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
     // loop through disbursements and add transaction details
     // for (let i = 0; i < disbursements.length; i++) {
     //   if (!disbursements[i].transaction_id) {
