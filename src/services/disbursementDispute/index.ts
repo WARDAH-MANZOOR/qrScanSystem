@@ -105,7 +105,7 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
             const total = await prisma.disbursementDispute.count(
                 {
                     where: {
-                        ...(merchantId && { merchantId: parseInt(merchantId as string) }),
+                        ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
                         ...customWhere,
                     },
                 }
