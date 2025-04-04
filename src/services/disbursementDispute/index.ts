@@ -131,8 +131,7 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
         return response;
     } catch (err) {
         console.log(err)
-        const error = new CustomError("Internal Server Error", 500);
-        return error;
+        throw new CustomError("Internal Server Error", 500);
     }
 };
 
