@@ -144,7 +144,7 @@ const exportDisbursementDispute = async (merchantId: number, params: any) => {
         } as any;
 
         if (merchantId) {
-            customWhere["merchantId"] = +merchantId;
+            customWhere["merchant_id"] = +merchantId;
         }
 
 

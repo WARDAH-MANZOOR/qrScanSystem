@@ -42,7 +42,7 @@ const getDisbursementDisputes = async (req: Request, res: Response) => {
 const exportDisbursementDisputes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { query } = req;
-    const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+    const id = (req.user as JwtPayload)?.merchant_id || query.merchantId;
     const merchant = await disbursementDispute.exportDisbursementDispute(id, query);
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
