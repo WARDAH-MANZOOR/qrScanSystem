@@ -734,6 +734,7 @@ const databaseStatusInquiry = async (merchantId: string, transactionId: string) 
                 merchant_id: id?.merchant_id,
             },
         })
+        console.log(transactionId)
         if (!txn) {
             return {
                 message: "Transaction not found",
@@ -782,10 +783,11 @@ const payfastStatusInquiry = async (merchantId: string, transactionId: string, t
         if (!id) {
             throw new CustomError("Merchant Not Found", 400)
         }
+        console.log(transactionId)
         const txn = await prisma.transaction.findFirst({
             where: {
                 merchant_transaction_id: transactionId,
-                merchant_id: id?.merchant_id,
+                // merchant_id: id?.merchant_id,
             },
         })
         if (!txn) {
