@@ -426,7 +426,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       if (doEncryption) {
         data = JSON.stringify(await callbackEncrypt(data, payload?.merchant_id));
       }
-
+      console.log("Data: ",data);
       let config = {
         method: 'post',
         maxBodyLength: Infinity,
