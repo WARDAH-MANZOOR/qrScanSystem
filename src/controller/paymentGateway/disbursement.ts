@@ -5,6 +5,7 @@ import { JwtPayload } from "jsonwebtoken";
 import prisma from "../../prisma/client.js";
 import {
   calculateDisbursement,
+  getDisbursementBalanceWithKey,
   getEligibleTransactions,
   getMerchantRate,
   getWalletBalance,
@@ -44,6 +45,24 @@ const getWalletBalanceControllerWithKey = async (
   }
   try {
     const balance: any = await getWalletBalanceWithKey(merchantId);
+    res.status(200).json(ApiResponse.success({ ...balance }));
+  } catch (error) {
+    next(error); // Pass the error to the error handling middleware
+  }
+};
+
+const getDisbursementBalanceControllerWithKey = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const merchantId = req.params.merchantId;
+  if (!merchantId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  try {
+    const balance: any = await getDisbursementBalanceWithKey(merchantId);
     res.status(200).json(ApiResponse.success({ ...balance }));
   } catch (error) {
     next(error); // Pass the error to the error handling middleware
@@ -126,4 +145,4 @@ const disburseTransactions = async (
     }
   }
 };
-export { getWalletBalanceController, disburseTransactions, getWalletBalanceControllerWithKey };
+export { getWalletBalanceController, disburseTransactions, getWalletBalanceControllerWithKey, getDisbursementBalanceControllerWithKey };
