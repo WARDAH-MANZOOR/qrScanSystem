@@ -186,7 +186,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             amount: paymentRequest.amount,
             type: "wallet",
             phone: paymentRequestObj.accountNo,
-            email: paymentRequest.email,
+            email: "example@example.com",
             // orderId: `SPAY-PR-${paymentRequest.id}`,
           }
         );
