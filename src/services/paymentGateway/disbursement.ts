@@ -110,6 +110,7 @@ const calculateWalletBalanceWithKey = async (merchantId: string): Promise<Object
             settlement: true,
             balance: { gt: new Decimal(0) },
             merchant_id: merchant?.merchant_id,
+            status: 'completed'
         },
     });
 
@@ -169,6 +170,38 @@ const getWalletBalanceWithKey = async (merchantId: string): Promise<Object> => {
 
         // Calculate and return the wallet balance
         const walletBalance = await calculateWalletBalanceWithKey(merchantId);
+        return walletBalance;
+    } catch (error) {
+        if (error instanceof CustomError) {
+            throw error; // Re-throw custom errors with proper status codes
+        }
+        console.error('Error fetching wallet balance:', error);
+        throw new CustomError('Unable to fetch wallet balance', 500);
+    }
+};
+const getDisbursementBalanceWithKey = async (merchantId: string): Promise<Object> => {
+    try {
+        // Check if the merchant exists
+        const merchantExists = await checkMerchantExistsWithKey(merchantId);
+        if (!merchantExists) {
+            throw new CustomError('Merchant not found', 404);
+        }
+        console.log(merchantId)
+        // Calculate and return the wallet balance
+        const walletBalance = await prisma.merchant.findFirst({
+            where: {
+              uid: merchantId,
+            },
+            select: {
+              balanceToDisburse: true,
+            }
+          });
+
+        if (walletBalance === null) {
+            throw new CustomError('Wallet balance not found', 404);
+        }
+
+        console.log(walletBalance);
         return walletBalance;
     } catch (error) {
         if (error instanceof CustomError) {
@@ -238,4 +271,4 @@ const updateTransactions = async (updates: TransactionUpdate[], prsma: Prisma.Tr
     );
     await Promise.all(updatePromises);
 };
-export { getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey };
+export { getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey, getDisbursementBalanceWithKey };
