@@ -272,7 +272,7 @@ const pay = async (merchantId: string, params: any) => {
                         id: 1,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transactionId: params.transaction_id
+                        transactionId: result.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -302,7 +302,7 @@ const pay = async (merchantId: string, params: any) => {
                         id: 1,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transactionId: params.transaction_id
+                        transactionId: result.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -571,7 +571,7 @@ const payCnic = async (merchantId: string, params: any) => {
                         id: 1,
                         name: params.bankCode == "14" ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
                         msisdn: (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string,
-                        transactionId: params.transaction_id
+                        transactionId: result.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -601,7 +601,7 @@ const payCnic = async (merchantId: string, params: any) => {
                         id: 1,
                         name: params.bankCode == "14" ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
                         msisdn: (saveTxn?.providerDetails as JsonObject)?.msisdn as unknown as string,
-                        transactionId: params.transaction_id,
+                        transactionId: result.transaction_id,
                         cnic: (saveTxn?.providerDetails as JsonObject)?.cnic as unknown as string
                     }
                 },
