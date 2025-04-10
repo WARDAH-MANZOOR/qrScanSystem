@@ -285,6 +285,7 @@ const createTxn = async (obj: any) => {
       });
     }
     catch (err) {
+      console.log(err)
       throw new CustomError("Transaction not Created", 400)
     }
   });

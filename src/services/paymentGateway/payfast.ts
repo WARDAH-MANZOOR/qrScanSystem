@@ -136,7 +136,7 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
     commission = +findMerchant.commissions[0].commissionGST +
         +findMerchant.commissions[0].commissionRate +
         +findMerchant.commissions[0].commissionWithHoldingTax
-    console.log(params.amount)
+    console.log(id2)
     let saveTxn = await transactionService.createTxn({
         order_id: id2,
         transaction_id: id,
@@ -150,7 +150,7 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
             id: 1,
             name: params.bankCode == '14' ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
             msisdn: phone,
-            cnic: params.cnic
+            cnic: params?.cnic
         },
     });
 
