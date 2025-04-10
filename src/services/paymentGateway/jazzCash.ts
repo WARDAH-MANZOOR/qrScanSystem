@@ -1397,7 +1397,8 @@ const initiateJazzCashCnicPayment = async (
           id: jazzCashMerchant.id,
           name: PROVIDERS.JAZZ_CASH,
           msisdn: paymentData.phone,
-          transactionId: data.pp_RetrievalReferenceNo
+          transactionId: data.pp_RetrievalReferenceNo,
+          cnic: paymentData.cnic
         }
       },
     });

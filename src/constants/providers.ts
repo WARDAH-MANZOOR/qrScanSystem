@@ -4,5 +4,6 @@ export const PROVIDERS = {
     SWICH: "Swich",
     BANK: "Bank",
     UPAISA: "UPAISA",
-    ZINDIGI: "ZINDIGI"
+    ZINDIGI: "ZINDIGI",
+    CARD: "CARD"
 }
