@@ -427,7 +427,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       if (doEncryption) {
         data = JSON.stringify(await callbackEncrypt(data, payload?.merchant_id));
       }
-      console.log("Data: ",data);
+      console.log(`Data (${payload.merchant_transaction_id}): ${data}`);
       let config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -440,7 +440,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
 
       let res = await axios.request(config)
       if (res.data == "success") {
-        console.log("Callback sent successfully")
+        console.log(`${payload.merchant_transaction_id} Callback sent successfully`)
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
@@ -467,6 +467,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       }
       else {
         console.log("Error sending callback")
+        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res.data}))
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
