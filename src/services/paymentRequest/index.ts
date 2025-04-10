@@ -257,13 +257,23 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
       },
     });
 
+    console.log("Payment Request", paymentRequest)
+
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
     }
+    const credentials = await prisma.merchant.findUnique({
+      where: {
+        merchant_id: paymentRequest.userId as number
+      },
+      include: {
+        JazzCashCardMerchant: true
+      }
+    })
 
     return {
       message: "Payment request retrieved successfully",
-      data: paymentRequest,
+      data: {...paymentRequest, credentials: credentials?.JazzCashCardMerchant},
     };
   } catch (error: any) {
     throw new CustomError(
