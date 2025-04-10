@@ -138,6 +138,7 @@ model Merchant {
   Refund Refund[]
   payFastMerchant PayFastMerchant? @relation(fields: [payFastMerchantId], references: [id])
   DisbursementDispute DisbursementDispute[]
+  JazzCashCardMerchant JazzCashCardMerchant[]
 }
 
 model MerchantProviderCredential {
@@ -301,6 +302,18 @@ model USDTSettlement {
 }
 
 model JazzCashMerchant {
+  id             Int        @id @default(autoincrement())
+  jazzMerchantId String
+  password       String
+  returnUrl      String
+  integritySalt  String
+  metadata       Json       @default("{}")
+  merchant_of    String?
+  merchantId     Int
+  merchant       Merchant[] // One-to-many relationship with Merchant
+}
+
+model JazzCashCardMerchant {
   id             Int        @id @default(autoincrement())
   jazzMerchantId String
   password       String

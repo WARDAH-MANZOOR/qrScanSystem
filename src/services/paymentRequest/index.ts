@@ -23,7 +23,7 @@ const createPaymentRequest = async (data: any, user: any) => {
           userId: user.id,
           amount: data.amount,
           status: "pending",
-          email: data.store_name,
+          email: data.store_name || data.email,
           description: data.description,
           transactionId: data.transactionId,
           dueDate: data.dueDate,
@@ -84,7 +84,7 @@ const createPaymentRequestClone = async (data: any, user: any) => {
           userId: user2?.merchant_id,
           amount: data.amount,
           status: "pending",
-          email: data.store_name,
+          email: data.store_name || data.email,
           description: data.description,
           transactionId: data.transactionId,
           dueDate: data.dueDate,
@@ -169,8 +169,9 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         merchant.uid
       );
       if (jazzCashPayment.statusCode != "000") {
+        console.log(jazzCashPayment)
         throw new CustomError(
-          "An error occurred while paying the payment request",
+          jazzCashPayment.message,
           500
         );
       }
@@ -193,7 +194,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
 
         if (easyPaisaPayment.statusCode != "0000") {
           throw new CustomError(
-            "An error occurred while paying the payment request",
+            easyPaisaPayment.message,
             500
           );
         }
@@ -214,7 +215,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
 
         if (swichPayment?.statusCode != "0000") {
           throw new CustomError(
-            "An error occurred while paying the payment request",
+            swichPayment.message,
             500
           );
         }

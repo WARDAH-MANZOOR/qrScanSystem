@@ -31,7 +31,7 @@ const pay = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-const upaisaValidation = async (req: Request, res: Response, next: NextFunction) => {
+const  upaisaValidation = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const token = await payfast.getApiToken(req.params.merchantId, req.body);
         if (!token?.token) {
@@ -42,6 +42,7 @@ const upaisaValidation = async (req: Request, res: Response, next: NextFunction)
             bankCode: '14',
             ...req.body
         })
+        console.log(validation)
         if (!validation?.transaction_id) {
             // throw new CustomError(validation?.response_message, 500);
             res.status(500).json(validation)
