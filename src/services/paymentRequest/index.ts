@@ -7,6 +7,7 @@ import {
   transactionService,
 } from "../../services/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
+import { PROVIDERS } from "constants/providers.js";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -152,6 +153,9 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       where: {
         merchant_id: paymentRequest.userId,
       },
+      include: {
+        commissions: true
+      }
     });
 
     if (!merchant || !merchant.uid) {
@@ -222,6 +226,31 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         }
       }
     }
+    else if (
+      paymentRequestObj.provider?.toLocaleLowerCase() === "card"
+    ) {
+      let commission = +merchant?.commissions[0].commissionGST +
+      +merchant.commissions[0].commissionRate +
+      +merchant.commissions[0].commissionWithHoldingTax 
+      let id = transactionService.createTransactionId();
+      let id2 = paymentRequest.merchant_transaction_id || id;
+      await transactionService.createTxn({
+        order_id: id2,
+        transaction_id: id,
+        amount: paymentRequest.amount,
+        status: "pending",
+        type: "card",
+        merchant_id: merchant.merchant_id,
+        commission,
+        settlementDuration: merchant.commissions[0].settlementDuration,
+        providerDetails: {
+          id: merchant.swichMerchantId as number,
+          name: PROVIDERS.CARD,
+          msisdn: paymentRequestObj.accountNo,
+          requestId: paymentRequestObj.payId
+        }
+      })
+    }
 
     const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
       return tx.paymentRequest.update({
@@ -275,8 +304,8 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
     if (credentials?.JazzCashCardMerchant) {
       creds = encryptUtf(JSON.stringify({
         jazzMerchantId: credentials?.JazzCashCardMerchant?.jazzMerchantId,
-        password: credentials?.JazzCashCardMerchant?.jazzMerchantId,
-        integritySalt: credentials?.JazzCashCardMerchant?.jazzMerchantId,
+        password: credentials?.JazzCashCardMerchant?.password,
+        integritySalt: credentials?.JazzCashCardMerchant?.integritySalt,
         returnUrl: credentials?.JazzCashCardMerchant?.returnUrl
       }))
     }
