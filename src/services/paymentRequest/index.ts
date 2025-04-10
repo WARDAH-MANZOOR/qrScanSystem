@@ -6,6 +6,7 @@ import {
   swichService,
   transactionService,
 } from "../../services/index.js";
+import { encryptUtf } from "utils/enc_dec.js";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -57,7 +58,7 @@ const createPaymentRequest = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`},
+      data: { ...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}` },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -70,7 +71,7 @@ const createPaymentRequest = async (data: any, user: any) => {
 const createPaymentRequestClone = async (data: any, user: any) => {
   try {
     if (!user) {
-      throw new CustomError("User Id not given",404);
+      throw new CustomError("User Id not given", 404);
     }
 
     let user2 = await prisma.merchant.findFirst({
@@ -119,7 +120,7 @@ const createPaymentRequestClone = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: {...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id},
+      data: { ...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -270,15 +271,29 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
         JazzCashCardMerchant: true
       }
     })
-
+    let creds;
+    if (credentials?.JazzCashCardMerchant) {
+      creds = encryptUtf(JSON.stringify({
+        jazzMerchantId: credentials?.JazzCashCardMerchant?.jazzMerchantId,
+        password: credentials?.JazzCashCardMerchant?.jazzMerchantId,
+        integritySalt: credentials?.JazzCashCardMerchant?.jazzMerchantId,
+        returnUrl: credentials?.JazzCashCardMerchant?.returnUrl
+      }))
+    }
+    else {
+      creds = {}
+    }
     return {
       message: "Payment request retrieved successfully",
-      data: {...paymentRequest, credentials: credentials?.JazzCashCardMerchant},
+      data: {
+        ...paymentRequest, 
+        credentials: creds
+      },
     };
   } catch (error: any) {
     throw new CustomError(
       error?.message ||
-        "An error occurred while retrieving the payment request",
+      "An error occurred while retrieving the payment request",
       error?.statusCode || 500
     );
   }
@@ -327,7 +342,7 @@ const getPaymentRequest = async (obj: any) => {
   } catch (error: any) {
     throw new CustomError(
       error?.message ||
-        "An error occurred while retrieving the payment request",
+      "An error occurred while retrieving the payment request",
       error?.statusCode || 500
     );
   }

@@ -22,6 +22,20 @@ function encrypt(text: string) {
     console.log("Encryption Error: ",err);
   }
 }
+
+function encryptUtf(text: string) {
+  try {
+  const iv = crypto.randomBytes(16); // Initialization vector
+  const cipher = crypto.createCipheriv(algorithm, key as CipherKey, new Uint8Array(iv));
+  let encrypted = cipher.update(text, 'utf8');
+  encrypted = Buffer.concat([new Uint8Array(encrypted), new Uint8Array(cipher.final())]);
+  // Return iv and encrypted data combined
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+  }
+  catch(err) {
+    console.log("Encryption Error: ",err);
+  }
+}
  
 // Decrypt function 
 function decrypt(text: string) {
@@ -35,6 +49,22 @@ function decrypt(text: string) {
     return decrypted.toString('hex');
   }
   catch (err) {
+    console.log("Decryption Error: ", err);
+  }
+}
+
+function decryptUtf(text: string): string | undefined {
+  try {
+    const [ivHex, encryptedHex] = text.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const encryptedText = Buffer.from(encryptedHex, 'hex');
+
+    const decipher = crypto.createDecipheriv(algorithm, key as CipherKey, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+    return decrypted.toString('utf8'); // ✅ match the original input encoding
+  } catch (err) {
     console.log("Decryption Error: ", err);
   }
 }
@@ -115,4 +145,4 @@ async function callbackDecrypt(encryptedData: string, iv: string, tag: string) {
   }
 }
 
-export { encrypt, decrypt, encryptData, decryptData, callbackEncrypt, callbackDecrypt };
+export { encrypt, decrypt, encryptData, decryptData, callbackEncrypt, callbackDecrypt, decryptUtf, encryptUtf };
