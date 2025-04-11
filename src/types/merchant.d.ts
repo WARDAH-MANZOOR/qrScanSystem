@@ -32,6 +32,8 @@ export interface Merchant {
   swichLimit: number;
   commissionMode: "SINGLE" | "DOUBLE";
   easypaisaRate: number;
+  payfastInquiryMethod: "DATABASE" | "WALLET";
+  jazzCashCardMerchantId: number;
 }
 
 export interface IjazzCashConfigParams {

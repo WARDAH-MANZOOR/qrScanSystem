@@ -18,6 +18,7 @@ import refundService from "./refund/index.js"
 import newJazzCashService from "./paymentGateway/newJazzCash.js"
 import payfast from './paymentGateway/payfast.js';
 import disbursementDispute  from './disbursementDispute/index.js';
+import jazzCashCardCrud from './paymentGateway/jazzCashCardCrud.js';
 
 export {
     jazzCashService,
@@ -39,5 +40,6 @@ export {
     refundService,
     newJazzCashService,
     payfast,
-    disbursementDispute  
+    disbursementDispute,
+    jazzCashCardCrud
 };
