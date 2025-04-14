@@ -43,50 +43,68 @@ const getTransactions = async (req: Request, res: Response) => {
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
     const msisdn = req.query?.msisdn || "" as string;
+    const provider = req.query?.provider || "" as string;
 
-    const customWhere = {} as any;
+    const customWhere = {AND: []} as any;
 
     if (startDate && endDate) {
-      startDate = startDate.replace(" ", "+");
-      endDate = endDate.replace(" ", "+");
-
-      const todayStart = parse(
-        startDate,
-        "yyyy-MM-dd'T'HH:mm:ssXXX",
-        new Date()
-      );
-      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
-
-      customWhere["date_time"] = {
-        gte: todayStart,
-        lt: todayEnd,
-      };
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+    
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
     }
-
+    
     if (status) {
-      customWhere["status"] = status;
+      customWhere.AND.push({ status });
     }
-
+    
     if (search) {
-      customWhere["transaction_id"] = {
-        contains: search,
-      };
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
     }
-
+    
     if (msisdn) {
-      customWhere["providerDetails"] = {
-        path: ['msisdn'],
-        equals: msisdn
-      }
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
     }
-
+    
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+    
     if (merchantTransactionId) {
-      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+      customWhere.AND.push({
+        merchant_transaction_id: {
+          contains: merchantTransactionId
+        }
+      });
+    }
+    
+    if (response_message) {
+      customWhere.AND.push({
+        response_message: {
+          contains: response_message
+        }
+      });
     }
 
-    if (response_message) {
-      customWhere["response_message"] = { contains: response_message }
-    }
     let { page, limit } = req.query;
     // Query based on provided parameters
     let skip, take;
@@ -179,49 +197,65 @@ const getTeleTransactions = async (req: Request, res: Response) => {
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
     const msisdn = req.query?.msisdn || "" as string;
-
-    const customWhere = {} as any;
+    const provider = req.query?.provider || "" as string;
+    const customWhere = {AND: []} as any;
 
     if (startDate && endDate) {
-      startDate = startDate.replace(" ", "+");
-      endDate = endDate.replace(" ", "+");
-
-      const todayStart = parse(
-        startDate,
-        "yyyy-MM-dd'T'HH:mm:ssXXX",
-        new Date()
-      );
-      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
-
-      customWhere["date_time"] = {
-        gte: todayStart,
-        lt: todayEnd,
-      };
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+    
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
     }
-
+    
     if (status) {
-      customWhere["status"] = status;
+      customWhere.AND.push({ status });
     }
-
+    
     if (search) {
-      customWhere["transaction_id"] = {
-        contains: search,
-      };
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
     }
-
+    
     if (msisdn) {
-      customWhere["providerDetails"] = {
-        path: ['msisdn'],
-        equals: msisdn
-      }
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
     }
-
+    
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+    
     if (merchantTransactionId) {
-      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+      customWhere.AND.push({
+        merchant_transaction_id: {
+          contains: merchantTransactionId
+        }
+      });
     }
-
+    
     if (response_message) {
-      customWhere["response_message"] = { contains: response_message }
+      customWhere.AND.push({
+        response_message: {
+          contains: response_message
+        }
+      });
     }
     let { page, limit } = req.query;
     // Query based on provided parameters
@@ -314,32 +348,65 @@ const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
     const msisdn = req.query?.msisdn || "" as string;
+    const provider = req.query?.provider || "" as string;
+    const customWhere = {AND: []} as any;
 
-    const customWhere = {} as any;
-
+    if (startDate && endDate) {
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+    
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
+    }
+    
     if (status) {
-      customWhere["status"] = status;
+      customWhere.AND.push({ status });
     }
-
+    
     if (search) {
-      customWhere["transaction_id"] = {
-        contains: search,
-      };
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
     }
-
+    
     if (msisdn) {
-      customWhere["providerDetails"] = {
-        path: ['msisdn'],
-        equals: msisdn
-      }
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
     }
-
+    
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+    
     if (merchantTransactionId) {
-      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+      customWhere.AND.push({
+        merchant_transaction_id: {
+          contains: merchantTransactionId
+        }
+      });
     }
-
+    
     if (response_message) {
-      customWhere["response_message"] = { contains: response_message }
+      customWhere.AND.push({
+        response_message: {
+          contains: response_message
+        }
+      });
     }
 
     if (merchantId) {
@@ -394,45 +461,57 @@ const exportTransactions = async (req: Request, res: Response) => {
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
     const msisdn = req.query?.msisdn || "" as string;
-
-    const customWhere = {} as any;
+    const provider = req.query?.provider || "" as string;
+    const customWhere = {AND: []} as any;
 
     if (startDate && endDate) {
-      startDate = startDate.replace(" ", "+");
-      endDate = endDate.replace(" ", "+");
-
-      const todayStart = parse(
-        startDate,
-        "yyyy-MM-dd'T'HH:mm:ssXXX",
-        new Date()
-      );
-      const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
-
-      customWhere["date_time"] = {
-        gte: todayStart,
-        lt: todayEnd,
-      };
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+    
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
     }
-
+    
     if (status) {
-      customWhere["status"] = status;
+      customWhere.AND.push({ status });
     }
-
+    
     if (search) {
-      customWhere["transaction_id"] = {
-        contains: search,
-      };
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
     }
-
+    
     if (msisdn) {
-      customWhere["providerDetails"] = {
-        path: ['msisdn'],
-        equals: msisdn
-      };
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
     }
-
+    
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+    
     if (merchantTransactionId) {
-      customWhere["merchant_transaction_id"] = { contains: merchantTransactionId };
+      customWhere.AND.push({
+        merchant_transaction_id: {
+          contains: merchantTransactionId
+        }
+      });
     }
 
     const transactions = await prisma.transaction.findMany({

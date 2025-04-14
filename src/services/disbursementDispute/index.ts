@@ -152,7 +152,7 @@ const exportDisbursementDispute = async (merchantId: number, params: any) => {
             const todayStart = parseISO(startDate as string);
             const todayEnd = parseISO(endDate as string);
 
-            customWhere["createdAt"] = {
+            customWhere["disbursementDate"] = {
                 gte: todayStart,
                 lt: todayEnd,
             };

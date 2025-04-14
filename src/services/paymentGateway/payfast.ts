@@ -147,7 +147,7 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
         commission,
         settlementDuration: findMerchant.commissions[0].settlementDuration,
         providerDetails: {
-            id: 1,
+            id: findMerchant.payFastMerchantId,
             name: params.bankCode == '14' ? PROVIDERS.UPAISA : PROVIDERS.ZINDIGI,
             msisdn: phone,
             cnic: params?.cnic
@@ -247,7 +247,7 @@ const pay = async (merchantId: string, params: any) => {
             commission,
             settlementDuration: findMerchant.commissions[0].settlementDuration,
             providerDetails: {
-                id: 1,
+                id: findMerchant.payFastMerchantId,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone
             },
@@ -269,7 +269,7 @@ const pay = async (merchantId: string, params: any) => {
                     status: "completed",
                     response_message: result.message,
                     providerDetails: {
-                        id: 1,
+                        id: findMerchant.payFastMerchantId,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
                         transactionId: result.transaction_id
@@ -299,7 +299,7 @@ const pay = async (merchantId: string, params: any) => {
                     status: "failed",
                     response_message: result.message,
                     providerDetails: {
-                        id: 1,
+                        id: findMerchant.payFastMerchantId,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
                         transactionId: result.transaction_id
@@ -396,7 +396,7 @@ const payAsync = async (merchantId: string, params: any) => {
             commission,
             settlementDuration: findMerchant.commissions[0].settlementDuration,
             providerDetails: {
-                id: 1,
+                id: findMerchant.payFastMerchantId,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
             },
@@ -418,7 +418,7 @@ const payAsync = async (merchantId: string, params: any) => {
                             status: "completed",
                             response_message: result.message,
                             providerDetails: {
-                                id: 1,
+                                id: findMerchant.payFastMerchantId,
                                 name: PROVIDERS.EASYPAISA,
                                 msisdn: phone,
                                 transactionId: result.transaction_id
@@ -445,7 +445,7 @@ const payAsync = async (merchantId: string, params: any) => {
                             status: "failed",
                             response_message: result.message,
                             providerDetails: {
-                                id: 1,
+                                id: findMerchant.payFastMerchantId,
                                 name: PROVIDERS.EASYPAISA,
                                 msisdn: phone,
                                 transactionId: result.transaction_id
@@ -468,7 +468,7 @@ const payAsync = async (merchantId: string, params: any) => {
                         status: "failed",
                         response_message: error.message,
                         providerDetails: {
-                            id: 1,
+                            id: findMerchant.payFastMerchantId,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
                             transactionId: params.transaction_id
