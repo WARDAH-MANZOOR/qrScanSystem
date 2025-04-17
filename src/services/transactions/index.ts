@@ -281,6 +281,7 @@ const createTxn = async (obj: any) => {
           settled_amount: settledAmount,
           balance: settledAmount,
           providerDetails: obj.providerDetails,
+          response_message: obj.response_message
         },
       });
     }

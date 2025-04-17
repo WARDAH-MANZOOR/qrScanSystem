@@ -24,12 +24,11 @@ const createDisbursementDispute = async (body: any, merchant_id: number) => {
         {
             timeout: 10000,
             maxWait: 10000
-        })
-    }
-    catch (err: any) {
+        });
+    } catch (err: any) {
         throw new CustomError(err.message, 500);
     }
-}
+};
 
 const updateDisbursementDispute = async (requestId: number, body: any) => {
     try {
@@ -41,18 +40,18 @@ const updateDisbursementDispute = async (requestId: number, body: any) => {
             id: disbursementDispute.id,
             status: disbursementDispute.status,
             message: disbursementDispute.message
-        }
-    }
-    catch (err: any) {
+        };
+    } catch (err: any) {
         throw new CustomError(err.message, 500);
     }
-}
+};
 
 const getDisbursementDisputes = async (params: any, merchantId: any) => {
     try {
         let startDate = params.start as string;
         let endDate = params.end as string;
         const status = params.status as string;
+        const merchantOrderId = params.merchantOrderId as string; // NEW: Extract merchantOrderId from params
 
         const customWhere = {} as any;
 
@@ -77,13 +76,17 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
             customWhere["status"] = status;
         }
 
+        if (merchantOrderId) { // NEW: Add merchantOrderId filter if provided
+            customWhere["orderId"] = merchantOrderId;
+        }
+
         let { page, limit } = params;
-        // Query based on provided parameters
         let skip, take;
         if (page && limit) {
             skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
             take = parseInt(limit as string);
         }
+
         const disputes = await prisma.disbursementDispute.findMany({
             ...(skip && { skip: +skip }),
             ...(take && { take: +take }),
@@ -101,24 +104,21 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
 
         let meta = {};
         if (page && take) {
-            // Get the total count of transactions
-            const total = await prisma.disbursementDispute.count(
-                {
-                    where: {
-                        ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
-                        ...customWhere,
-                    },
-                }
-            );
-            // Calculate the total number of pages
+            const total = await prisma.disbursementDispute.count({
+                where: {
+                    ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+                    ...customWhere,
+                },
+            });
             const pages = Math.ceil(total / +take);
             meta = {
                 total,
                 pages,
                 page: parseInt(page as string),
                 limit: take
-            }
+            };
         }
+
         const response = {
             disputes: disputes.map((dispute) => ({
                 ...dispute,
@@ -130,7 +130,7 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
 
         return response;
     } catch (err) {
-        console.log(err)
+        console.log(err);
         throw new CustomError("Internal Server Error", 500);
     }
 };
@@ -139,14 +139,14 @@ const exportDisbursementDispute = async (merchantId: number, params: any) => {
     try {
         const startDate = params?.start?.replace(" ", "+");
         const endDate = params?.end?.replace(" ", "+");
+        const status = params?.status as string; // NEW: Explicitly type status
+        const merchantOrderId = params?.merchantOrderId as string; // NEW: Extract merchantOrderId from params
 
-        const customWhere = {
-        } as any;
+        const customWhere = {} as any;
 
         if (merchantId) {
-            customWhere["merchant_id"] = +merchantId;
+            customWhere["merchantId"] = +merchantId;
         }
-
 
         if (startDate && endDate) {
             const todayStart = parseISO(startDate as string);
@@ -158,8 +158,12 @@ const exportDisbursementDispute = async (merchantId: number, params: any) => {
             };
         }
 
-        if (params.status) {
-            customWhere["status"] = params.status;
+        if (status) {
+            customWhere["status"] = status;
+        }
+
+        if (merchantOrderId) { // NEW: Add merchantOrderId filter if provided
+            customWhere["orderId"] = merchantOrderId;
         }
 
         const disputes = await prisma.disbursementDispute
@@ -180,13 +184,9 @@ const exportDisbursementDispute = async (merchantId: number, params: any) => {
                 },
             })
             .catch((err) => {
-                console.log(err)
+                console.log(err);
                 throw new CustomError("Unable to get disbursement history", 500);
             });
-
-
-        // res.setHeader('Content-Type', 'text/csv');
-        // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
 
         const fields = [
             'merchant',
@@ -208,19 +208,6 @@ const exportDisbursementDispute = async (merchantId: number, params: any) => {
         const csv = json2csvParser.parse(data);
         const csvNoQuotes = csv.replace(/"/g, '');
         return `${csvNoQuotes}`;
-        // loop through disbursements and add transaction details
-        // for (let i = 0; i < disbursements.length; i++) {
-        //   if (!disbursements[i].transaction_id) {
-        //     disbursements[i].transaction = null;
-        //   } else {
-        //     const transaction = await prisma.transaction.findFirst({
-        //       where: {
-        //         transaction_id: disbursements[i].transaction_id,
-        //       },
-        //     });
-        //     disbursements[i].transaction = transaction;
-        //   }
-        // }
     } catch (error: any) {
         throw new CustomError(
             error?.error || "Unable to get disbursement",
@@ -234,4 +221,4 @@ export default {
     updateDisbursementDispute,
     getDisbursementDisputes,
     exportDisbursementDispute
-}
+};
