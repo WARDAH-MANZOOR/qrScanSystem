@@ -19,6 +19,7 @@ import payfastController from "./paymentGateway/payfast.js"
 import disbursementDispute from "./disbursementDispute/index.js";
 import jazzCashCrud from "./paymentGateway/jazzCashCrud.js";
 import newStatusInquiry from "./paymentGateway/newStatusInquiry.js";
+import block_phone_number from "./block_phone_number/index.js";
 export {
   jazzCashController,
   transactionController,
@@ -40,5 +41,6 @@ export {
   payfastController,
   disbursementDispute,
   jazzCashCrud,
-  newStatusInquiry
+  newStatusInquiry,
+  block_phone_number
 };
