@@ -486,3 +486,8 @@ model Refund {
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
 }
+
+model BlockedPhoneNumbers {
+  id                       Int      @unique @default(autoincrement())
+  phoneNumber              String   @unique 
+}
