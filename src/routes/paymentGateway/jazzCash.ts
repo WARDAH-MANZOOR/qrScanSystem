@@ -11,6 +11,7 @@ import {
 } from "../../validators/paymentGateway/jazzCash.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import { limiter } from "utils/rate_limit.js";
+import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 
 export default function (router: Router) {
   router.post("/dummy-callback",jazzCashController.dummyCallback)
@@ -48,18 +49,20 @@ export default function (router: Router) {
   router.post(
     "/initiate-jz/:merchantId",
     validateJazzcashRequest,
+    block_phone_number_middleware.blockPhoneNumber,
     jazzCashController.initiateJazzCash
   );
 
   router.post(
     "/initiate-jzc/:merchantId",
     validateJazzcashCnicRequest,
+    block_phone_number_middleware.blockPhoneNumber,
     jazzCashController.initiateJazzCashCnic
   );
 
   router.post(
     "/initiate-jza/:merchantId",
-    [apiKeyAuth, ...validateJazzcashRequest],
+    [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber],
     jazzCashController.initiateJazzCashAsync
   );
 
