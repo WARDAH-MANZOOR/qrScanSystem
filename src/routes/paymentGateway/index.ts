@@ -8,6 +8,7 @@ import jazzcashDisburse from "./jazzcashDisburse.js";
 import newJazzCashRouter from "./newJazzCash.js"
 import payFast from "./payFast.js";
 import jazzCashCrud from "./jazzCashCrud.js";
+import newStatusInquiry from "./newStatusInquiry.js";
 const router = Router();
  
 jazzCashRouter(router);
@@ -19,5 +20,5 @@ jazzcashDisburse(router);
 newJazzCashRouter(router);
 payFast(router);
 jazzCashCrud(router);
-
+newStatusInquiry(router)
 export default router;
