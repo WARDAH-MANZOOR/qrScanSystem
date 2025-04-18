@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { authorize, isAdmin, isLoggedIn } from "../../utils/middleware.js";
 import { paymentRequestController } from "../../controller/index.js";
+import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 
 const router = Router();
 
 router.post(
   "/pay",
+  block_phone_number_middleware.blockPhoneNumberInRedirection,
   paymentRequestController.payRequestedPayment
 );
 

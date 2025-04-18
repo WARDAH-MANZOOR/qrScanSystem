@@ -19,6 +19,7 @@ import newJazzCashService from "./paymentGateway/newJazzCash.js"
 import payfast from './paymentGateway/payfast.js';
 import disbursementDispute  from './disbursementDispute/index.js';
 import jazzCashCardCrud from './paymentGateway/jazzCashCardCrud.js';
+import block_phone_number from './block_phone_number/index.js';
 
 export {
     jazzCashService,
@@ -41,5 +42,6 @@ export {
     newJazzCashService,
     payfast,
     disbursementDispute,
-    jazzCashCardCrud
+    jazzCashCardCrud,
+    block_phone_number
 };
