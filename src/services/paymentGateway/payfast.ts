@@ -272,7 +272,7 @@ const pay = async (merchantId: string, params: any) => {
                         id: findMerchant.payFastMerchantId,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transactionId: result.transaction_id
+                        transactionId: result?.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -302,7 +302,7 @@ const pay = async (merchantId: string, params: any) => {
                         id: findMerchant.payFastMerchantId,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transactionId: result.transaction_id
+                        transactionId: result?.transaction_id
                     }
                 },
                 findMerchant.commissions[0].settlementDuration
@@ -421,7 +421,7 @@ const payAsync = async (merchantId: string, params: any) => {
                                 id: findMerchant.payFastMerchantId,
                                 name: PROVIDERS.EASYPAISA,
                                 msisdn: phone,
-                                transactionId: result.transaction_id
+                                transactionId: result?.transaction_id
                             },
                         },
                         findMerchant.commissions[0].settlementDuration
@@ -448,7 +448,7 @@ const payAsync = async (merchantId: string, params: any) => {
                                 id: findMerchant.payFastMerchantId,
                                 name: PROVIDERS.EASYPAISA,
                                 msisdn: phone,
-                                transactionId: result.transaction_id
+                                transactionId: result?.transaction_id
                             },
                         },
                         findMerchant.commissions[0].settlementDuration
@@ -471,7 +471,7 @@ const payAsync = async (merchantId: string, params: any) => {
                             id: findMerchant.payFastMerchantId,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
-                            transactionId: params.transaction_id
+                            transactionId: params?.transaction_id
                         },
                     },
                     findMerchant.commissions[0].settlementDuration
