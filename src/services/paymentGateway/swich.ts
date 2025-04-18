@@ -190,6 +190,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
           providerDetails: {
             name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
             msisdn: payload.phone,
+            transactionId: err?.response?.data?.orderId
           }
         },
         findMerchant?.commissions[0]?.settlementDuration as number
@@ -531,6 +532,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
                 id: findMerchant.swichMerchantId as number,
                 name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
                 msisdn: payload.phone,
+                transactionId: error?.response?.data?.orderId
               },
             },
             findMerchant?.commissions[0]?.settlementDuration || 0
@@ -561,6 +563,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             id: findMerchant.swichMerchantId as number,
             name: payload.channel == 5649 ? PROVIDERS.JAZZ_CASH : PROVIDERS.EASYPAISA,
             msisdn: payload.phone,
+            transactionId: err?.response?.data?.orderId
           },
 
         },

@@ -583,6 +583,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
               id: easyPaisaMerchant.id,
               name: PROVIDERS.EASYPAISA,
               msisdn: phone,
+              transactionId: error?.response?.data?.transactionId
             },
           },
           findMerchant.commissions[0].settlementDuration
