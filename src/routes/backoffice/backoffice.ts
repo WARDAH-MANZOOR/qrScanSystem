@@ -25,6 +25,8 @@ router.post('/fail-disbursements/tele', backOfficeController.failDisbursementsFo
 
 router.post('/settle-all/:merchantId', [isLoggedIn, isAdmin], backOfficeController.settleAllMerchantTransactions);
 
+router.post('/settle-all-upd/:merchantId', [isLoggedIn, isAdmin], backOfficeController.settleAllMerchantTransactionsUpdated);
+
 router.post("/dummy-transaction/:merchantId",[isLoggedIn, isAdmin], backOfficeController.createTransactionController)
 
 router.delete("/delete-merchant-data/:merchantId",[isLoggedIn, isAdmin], backOfficeController.deleteMerchantDataController)

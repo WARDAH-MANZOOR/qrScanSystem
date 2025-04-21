@@ -42,7 +42,8 @@ app.use(cors({
   origin: [
     'https://sahulatpay.com',
     `https://merchant.sahulatpay.com`,
-    'https://dev.sahulatpay.com',
+    `https://merchant.assanpay.com`,
+    'https://assanpay.com',
     `https://devtectsadmin.sahulatpay.com`,
     'http://localhost:3005',
     'http://localhost:*',
