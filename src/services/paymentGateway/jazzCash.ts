@@ -450,6 +450,7 @@ const initiateJazzCashPayment = async (
         ) {
           return;
         }
+        console.log("Response: ",r)
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
@@ -462,7 +463,7 @@ const initiateJazzCashPayment = async (
               id: JAZZ_CASH_MERCHANT_ID,
               name: PROVIDERS.JAZZ_CASH,
               msisdn: phone,
-              transactionId: r.pp_RetrievalReferenceNo
+              transactionId: r.pp_RetreivalReferenceNo
             },
             // Update other necessary fields
           },
@@ -850,7 +851,7 @@ const processWalletPayment = async (
         id: jazzCashMerchant.id,
         name: PROVIDERS.JAZZ_CASH,
         msisdn: phone,
-        transactionId: r.pp_RetrievalReferenceNo
+        transactionId: r.pp_RetreivalReferenceNo
       },
     },
   });
@@ -1397,7 +1398,7 @@ const initiateJazzCashCnicPayment = async (
           id: jazzCashMerchant.id,
           name: PROVIDERS.JAZZ_CASH,
           msisdn: paymentData.phone,
-          transactionId: data.pp_RetrievalReferenceNo,
+          transactionId: data.pp_RetreivalReferenceNo,
           cnic: paymentData.cnic
         }
       },
