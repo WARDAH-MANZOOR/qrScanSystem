@@ -132,6 +132,19 @@ const settleAllMerchantTransactions = async (req: Request, res: Response) => {
     }
 };
 
+const settleAllMerchantTransactionsUpdated = async (req: Request, res: Response) => {
+    try {
+        if (!req.params.merchantId) {
+            throw new CustomError("Merchant Id must be given", 404);
+        }
+        const result = await backofficeService.settleAllMerchantTransactionsUpdated(Number(req.params.merchantId));
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 const createTransactionController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.params.merchantId) {
@@ -236,5 +249,6 @@ export default {
     failTransactionsForTelegram,
     failDisbursementsForTelegram,
     processTodaySettlements,
-    createUSDTSettlement
+    createUSDTSettlement,
+    settleAllMerchantTransactionsUpdated
 }
