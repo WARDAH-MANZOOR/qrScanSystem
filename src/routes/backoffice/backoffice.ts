@@ -41,5 +41,6 @@ router.get("/process-today",[isLoggedIn, isAdmin], backOfficeController.processT
 
 router.post("/usdt-settlement",[isLoggedIn, isAdmin, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, backOfficeController.createUSDTSettlement)
 
+router.post("/reconcile/:merchantId",[isLoggedIn, isAdmin], backOfficeValidator.handleValidationErrors, backOfficeController.calculateFinancials)
 
 export default router;

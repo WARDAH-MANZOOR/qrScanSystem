@@ -2,11 +2,39 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { endOfDay, format, subDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { backofficeService, jazzCashService, transactionService } from 'services/index.js';
+import { backofficeService, dashboardService, jazzCashService, transactionService } from 'services/index.js';
 import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
 import CustomError from 'utils/custom_error.js';
 import { addWeekdays } from 'utils/date_method.js';
 const prisma = new PrismaClient();
+
+interface CalculatedFinancials {
+    totalIncome: number | Decimal;
+    remainingSettlements: number | Decimal;
+    availableBalance: number | Decimal;
+    disbursementBalance: number | Decimal;
+    disbursementAmount: number | Decimal;
+    totalUsdtSettlement: number | Decimal;
+    totalRefund: number | Decimal;
+    settled: Decimal;
+    payinCommission: Decimal;
+    settledBalance: Decimal;
+    payoutCommission: Decimal;
+    totalDisbursement: Decimal;
+    disbursementSum: Decimal;
+    difference: Decimal;
+}
+
+interface MerchantDashboardData {
+    totalIncome: number;
+    remainingSettlements: number;
+    availableBalance: number;
+    disbursementBalance: number;
+    disbursementAmount: number;
+    totalUsdtSettlement: number;
+    totalRefund: number;
+}
+
 
 // Delete all finance data for a merchant
 async function removeMerchantFinanceData(merchantId: number) {
@@ -706,9 +734,9 @@ async function settleAllMerchantTransactionsUpdated(merchantId: number) {
                     settlement: true,
                 },
             });
-    
+
             const today = new Date();
-    
+
             // Upsert the settlement report
             await tx.settlementReport.create({
                 data: {
@@ -722,21 +750,21 @@ async function settleAllMerchantTransactionsUpdated(merchantId: number) {
                     merchantAmount,
                 }
             });
-    
+
             await tx.scheduledTask.updateMany({
                 where: {
-                    transactionId: {in: merchantTxns.map(txn => txn.transaction_id)}
+                    transactionId: { in: merchantTxns.map(txn => txn.transaction_id) }
                 },
                 data: {
                     status: 'completed'
                 }
             });
             return 'All merchant transactions settled successfully.';
-        },{
+        }, {
             timeout: 3600000,
             maxWait: 3600000
         })
-        
+
     } catch (error) {
         console.log(error);
         throw new CustomError('Error settling all transactions', 500);
@@ -1116,6 +1144,59 @@ async function createUSDTSettlement(body: any) {
     }
 }
 
+async function calculateFinancials(merchant_id: number): Promise<CalculatedFinancials> {
+    try {
+        let merchant = await prisma.merchantFinancialTerms.findUnique({
+            where: {
+                merchant_id
+            }
+        })
+        const {
+            totalIncome,
+            remainingSettlements,
+            // payinCommissionRate,
+            // payoutCommissionRate,
+            availableBalance,
+            disbursementBalance,
+            disbursementAmount,
+            totalUsdtSettlement,
+            totalRefund,
+        } = await dashboardService.merchantDashboardDetails({}, { merchant_id }) as MerchantDashboardData;
+
+        const settled = new Decimal(totalIncome).minus(remainingSettlements);
+        const payinCommission = settled.times(merchant?.commissionRate as Decimal);
+        const settledBalance = settled.minus(payinCommission);
+        const payoutCommission = new Decimal(disbursementAmount).times(merchant?.disbursementRate as Decimal);
+        const totalDisbursement = new Decimal(disbursementAmount).plus(payoutCommission);
+        const disbursementSum = new Decimal(availableBalance)
+            .plus(disbursementBalance)
+            .plus(totalDisbursement)
+            .plus(totalUsdtSettlement)
+            .plus(totalRefund);
+        const difference = disbursementSum.minus(settledBalance);
+
+        return {
+            totalIncome,
+            remainingSettlements,
+            availableBalance,
+            disbursementBalance,
+            disbursementAmount,
+            totalUsdtSettlement,
+            totalRefund,
+            settled,
+            payinCommission,
+            settledBalance,
+            payoutCommission,
+            totalDisbursement,
+            disbursementSum,
+            difference,
+        };
+    }
+    catch (err: any) {
+        console.log(`Error: ${err}`);
+        return err;
+    }
+}
 
 export default {
     adjustMerchantWalletBalance,
@@ -1136,5 +1217,6 @@ export default {
     processTodaySettlements,
     createUSDTSettlement,
     adjustMerchantWalletBalanceithTx,
-    settleAllMerchantTransactionsUpdated
+    settleAllMerchantTransactionsUpdated,
+    calculateFinancials
 }
