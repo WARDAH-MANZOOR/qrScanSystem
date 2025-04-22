@@ -496,8 +496,9 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         console.log(await switchPaymentProvider(payload.merchant_id, payload.merchant_transaction_id));
       }
     }
-    catch (err) {
+    catch (err: any) {
       console.log(JSON.stringify({event: "CALLBACK_EXCEPTION", order_id: payload.merchant_transaction_id}))
+      console.log(`Error (${payload.merchant_transaction_id}): ${err?.message}`)
       return { "message": "Error calling callback" }
     }
   }, 10000)
