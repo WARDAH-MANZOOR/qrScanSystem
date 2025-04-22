@@ -232,6 +232,14 @@ const createUSDTSettlement = async (req: Request, res: Response, next: NextFunct
     }
 }
 
+const calculateFinancials = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const record = await backofficeService.calculateFinancials(+req.params.merchantId);
+        res.status(201).json({ record });
+    } catch (error) {
+        next(error)
+    }
+}
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -250,5 +258,6 @@ export default {
     failDisbursementsForTelegram,
     processTodaySettlements,
     createUSDTSettlement,
-    settleAllMerchantTransactionsUpdated
+    settleAllMerchantTransactionsUpdated,
+    calculateFinancials
 }
