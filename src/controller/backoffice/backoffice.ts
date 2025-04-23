@@ -240,6 +240,22 @@ const calculateFinancials = async (req: Request, res: Response, next: NextFuncti
         next(error)
     }
 }
+
+const adjustMerchantDisbursementBalance = async (req: Request, res: Response) => {
+    try {
+        const { target, type } = req.body;
+        console.log(req.params.merchantId)
+        if (!req.params.merchantId || target == undefined) {
+            throw new CustomError("Merchant Id and target balance must be given", 404);
+        }
+        const result = await backofficeService.adjustMerchantDisbursementBalance(Number(req.params.merchantId), target, true, type);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -259,5 +275,6 @@ export default {
     processTodaySettlements,
     createUSDTSettlement,
     settleAllMerchantTransactionsUpdated,
-    calculateFinancials
+    calculateFinancials,
+    adjustMerchantDisbursementBalance
 }

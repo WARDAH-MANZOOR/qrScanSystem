@@ -315,6 +315,9 @@ async function adjustMerchantWalletBalanceWithoutSettlement(merchantId: number, 
                 newBalance: targetBalance,
                 difference: Math.abs(balanceDifference)
             };
+        }, {
+            timeout: 10000000,
+            maxWait: 10000000
         });
 
     } catch (error) {
@@ -1198,6 +1201,61 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
     }
 }
 
+async function adjustMerchantDisbursementBalance(merchantId: number, targetBalance: number, record: boolean, type: "increment" | "decrement") {
+    try {
+        // Get current balance
+        let walletBalance;
+        // if (!wb) {
+        const balance = await prisma.merchant.findFirst({
+            where: {
+              merchant_id: +merchantId,
+            },
+            select: {
+              balanceToDisburse: true,
+              disburseBalancePercent: true
+            }
+          });
+        walletBalance = balance?.balanceToDisburse;
+        // targetBalance += walletBalance;
+        // }
+        // else {
+        let update = {};
+        if (type == "increment") {
+            update = {increment: targetBalance}
+        }
+        else {
+            update = {decrement: targetBalance}
+        }
+        // Execute in transaction
+        return await prisma.$transaction(async (tx) => {
+            // Update transaction balances
+            await tx.merchant.update({
+                where: {
+                    merchant_id: merchantId,
+                },
+                data: {
+                    balanceToDisburse: update
+                }
+            });
+            // Create appropriate record
+            return {
+                success: true,
+                previousBalance: walletBalance,
+                newBalance: targetBalance,
+            };
+        }, {
+            timeout: 10000000000000,
+            maxWait: 10000000000000
+        });
+
+    } catch (error) {
+        throw new CustomError(
+            error instanceof Error ? error.message : 'Failed to adjust wallet balance',
+            500
+        );
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -1218,5 +1276,6 @@ export default {
     createUSDTSettlement,
     adjustMerchantWalletBalanceithTx,
     settleAllMerchantTransactionsUpdated,
-    calculateFinancials
+    calculateFinancials,
+    adjustMerchantDisbursementBalance
 }
