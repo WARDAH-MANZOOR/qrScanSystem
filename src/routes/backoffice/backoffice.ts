@@ -43,4 +43,5 @@ router.post("/usdt-settlement",[isLoggedIn, isAdmin, ...backOfficeValidator.vali
 
 router.post("/reconcile/:merchantId",[isLoggedIn, isAdmin], backOfficeValidator.handleValidationErrors, backOfficeController.calculateFinancials)
 
+router.post("/adjust-disbursement/:merchantId",[isLoggedIn, isAdmin], backOfficeController.adjustMerchantDisbursementBalance)
 export default router;
