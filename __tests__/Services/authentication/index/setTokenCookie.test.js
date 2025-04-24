@@ -29,7 +29,7 @@ describe("setTokenCookie", () => {
             httpOnly: true,
             secure: true, // Secure should be true
             sameSite: "none", // Should be 'none' for cross-site cookies
-            domain: ".sahulatpay.com",
+            // domain: ".sahulatpay.com",
             path: "/",
         });
     });

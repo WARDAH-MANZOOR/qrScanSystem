@@ -287,6 +287,7 @@ const initiateJazzCashPayment = async (paymentData, merchant_uid) => {
             ppmpf_4: "",
             ppmpf_5: "",
         };
+        console.log(sendData);
         // Generate the secure hash
         sendData.pp_SecureHash = getSecureHash(sendData, jazzCashMerchantIntegritySalt);
         if (paymentType === "CARD") {

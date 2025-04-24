@@ -21,49 +21,92 @@ export const generateExcelReportService = async (params) => {
         };
         disbursementDateWhere = customWhere["date_time"];
     }
-    // Fetch merchants and their commissions
-    const merchants = await prisma.merchant.findMany({
-        include: {
-            commissions: {
-                select: {
-                    commissionMode: true,
-                    commissionRate: true,
-                    easypaisaRate: true,
-                    commissionGST: true,
-                    commissionWithHoldingTax: true,
-                    disbursementRate: true,
-                    disbursementGST: true,
-                    disbursementWithHoldingTax: true,
+    //  2. Parallel Data Fetching Using Promise.all.----Fetch merchants, transactions, and disbursements in parallel.
+    const [merchants, transactions, disbursements] = await Promise.all([
+        prisma.merchant.findMany({
+            include: {
+                commissions: {
+                    select: {
+                        commissionMode: true,
+                        commissionRate: true,
+                        easypaisaRate: true,
+                        commissionGST: true,
+                        commissionWithHoldingTax: true,
+                        disbursementRate: true,
+                        disbursementGST: true,
+                        disbursementWithHoldingTax: true,
+                    },
                 },
             },
-        },
-    });
-    // Fetch transactions in bulk
-    const transactions = await prisma.transaction.findMany({
-        where: {
-            date_time: customWhere["date_time"],
-            status: "completed",
-        },
-        select: {
-            merchant_id: true,
-            original_amount: true,
-            providerDetails: true,
-            date_time: true,
-        },
-    });
-    // Fetch disbursements in bulk
-    const disbursements = await prisma.disbursement.findMany({
-        where: {
-            disbursementDate: disbursementDateWhere,
-            status: "completed",
-        },
-        select: {
-            merchant_id: true,
-            transactionAmount: true,
-            disbursementDate: true,
-            commission: true
-        },
-    });
+        }),
+        prisma.transaction.findMany({
+            where: {
+                date_time: customWhere["date_time"],
+                status: "completed",
+            },
+            select: {
+                merchant_id: true,
+                original_amount: true,
+                providerDetails: true,
+                date_time: true,
+            },
+        }),
+        prisma.disbursement.findMany({
+            where: {
+                disbursementDate: disbursementDateWhere,
+                status: "completed",
+            },
+            select: {
+                merchant_id: true,
+                transactionAmount: true,
+                disbursementDate: true,
+                commission: true,
+            },
+        }),
+    ]);
+    // // Fetch merchants and their commissions
+    // const merchants = await prisma.merchant.findMany({
+    //     include: {
+    //         commissions: {
+    //             select: {
+    //                 commissionMode: true,
+    //                 commissionRate: true,
+    //                 easypaisaRate: true,
+    //                 commissionGST: true,
+    //                 commissionWithHoldingTax: true,
+    //                 disbursementRate: true,
+    //                 disbursementGST: true,
+    //                 disbursementWithHoldingTax: true,
+    //             },
+    //         },
+    //     },
+    // });
+    // // Fetch transactions in bulk
+    // const transactions = await prisma.transaction.findMany({
+    //     where: {
+    //         date_time: customWhere["date_time"],
+    //         status: "completed",
+    //     },
+    //     select: {
+    //         merchant_id: true,
+    //         original_amount: true,
+    //         providerDetails: true,
+    //         date_time: true,
+    //     },
+    // });
+    // // Fetch disbursements in bulk
+    // const disbursements = await prisma.disbursement.findMany({
+    //     where: {
+    //         disbursementDate: disbursementDateWhere,
+    //         status: "completed",
+    //     },
+    //     select: {
+    //         merchant_id: true,
+    //         transactionAmount: true,
+    //         disbursementDate: true,
+    //         commission: true
+    //     },
+    // });
     // Collect all unique dates across all merchants
     const allDatesSet = new Set();
     transactions.forEach((txn) => {
@@ -141,7 +184,13 @@ export const generateExcelReportService = async (params) => {
         };
     });
     // Generate Excel report
-    const workbook = new ExcelJS.Workbook();
+    // const workbook = new ExcelJS.Workbook();
+    // const sheet = workbook.addWorksheet("Merchant Report");
+    // Use Streams for Writing Large Excel Files  ---- This reduces memory footprint drastically by streaming instead of buffering 
+    // the entire workbook in memory.ExcelJS can use a stream writer to avoid loading everything into memory.
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+        filename: path.join(process.cwd(), "src/services/reports", `merchant_report_${Date.now()}.xlsx`)
+    });
     const sheet = workbook.addWorksheet("Merchant Report");
     // Styles
     const headerStyle = {
@@ -158,7 +207,7 @@ export const generateExcelReportService = async (params) => {
         fill: { type: "pattern", pattern: "solid", fgColor: { argb: "E2EFDA" } },
     };
     // Add headers
-    console.log(merchantData);
+    // console.log(merchantData)
     const headerRow = sheet.getRow(1);
     headerRow.getCell(1).value = "Merchant Name";
     allDates.forEach((date, index) => {
@@ -248,7 +297,8 @@ export const generateExcelReportService = async (params) => {
     ];
     // Save the file
     const filePath = path.join(import.meta.dirname, "merchant_report.xlsx");
-    await workbook.xlsx.writeFile(filePath);
+    // await workbook.xlsx.writeFile(filePath);
+    await workbook.commit();
     return filePath;
 };
 export const payinPerWalletService = async (params) => {
