@@ -70,6 +70,38 @@ const initiateJazzCashAsync = async (
   }
 };
 
+const initiateJazzCashAsyncClone = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string))
+      return;
+    }
+    const paymentData = req.body;
+
+    let merchantId = req.params?.merchantId;
+
+    if (!merchantId) {
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
+    }
+
+    const result: any = await jazzCashService.initiateJazzCashPaymentAsyncClone(paymentData, merchantId);
+    if (result.statusCode != "pending") {
+      res.status(result?.statusCode).send(ApiResponse.error(result));
+      return
+
+    }
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getJazzCashMerchant = async (
   req: Request,
   res: Response,
@@ -414,6 +446,7 @@ export default {
   disburseInquiryController,
   simpleDisburseInquiryController,
   initiateJazzCashAsync,
+  initiateJazzCashAsyncClone,
   jazzStatusInquiry,
   initiateJazzCashCnic,
   initiateDisbursmentClone,

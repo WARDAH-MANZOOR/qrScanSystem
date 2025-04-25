@@ -72,9 +72,9 @@ export default function (router: Router) {
   );
 
   router.post(
-    "/initiate-epac/:merchantId",
+    "/initiate-epa-mntx/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn],
-    easyPaisaController.initiateEasyPaisaAsync
+    easyPaisaController.initiateEasyPaisaAsyncClone
   );
 
   router.post(
