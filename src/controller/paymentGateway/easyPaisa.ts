@@ -242,7 +242,7 @@ const initiateEasyPaisaAsyncClone = async (
         return;
       }
     }
-    else {
+    else if (channel == "SWITCH") {
       result = await swichService.initiateSwichAsyncClone({
         channel: 1749,
         amount: req.body.amount,
@@ -253,6 +253,31 @@ const initiateEasyPaisaAsyncClone = async (
       }, merchantId)
       if (result.statusCode != "pending") {
         res.status(result.statusCode).send(ApiResponse.error(result));
+        return;
+      }
+    }
+    else {
+      const token = await payfast.getApiToken(req.params.merchantId, req.body);
+      if (!token?.token) {
+        throw new CustomError("No Token Recieved", 500);
+      }
+      const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+        token: token?.token,
+        bankCode: '13',
+        ...req.body
+      })
+      if (!validation?.transaction_id) {
+        res.status(500).send(ApiResponse.error(result, 500))
+        return;
+      }
+      result = await payfast.payAsyncClone(req.params.merchantId, {
+        token: token?.token,
+        bankCode: '13',
+        transaction_id: validation?.transaction_id,
+        ...req.body
+      })
+      if (result?.statusCode != "pending") {
+        res.status(result.statusCode).send(ApiResponse.error(result, result.statusCode))
         return;
       }
     }
