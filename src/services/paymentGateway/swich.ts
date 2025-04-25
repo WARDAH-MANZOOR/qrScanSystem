@@ -691,7 +691,7 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
             findMerchant.commissions[0].settlementDuration
           );
 
-          transactionService.sendCallback(
+          transactionService.sendCallbackClone(
             findMerchant.webhook_url as string,
             saveTxn,
             payload.phone,

@@ -717,7 +717,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             findMerchant.commissions[0].settlementDuration
           );
 
-          transactionService.sendCallback(
+          transactionService.sendCallbackClone(
             findMerchant.webhook_url as string,
             saveTxn,
             phone,
