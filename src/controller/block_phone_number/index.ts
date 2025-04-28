@@ -13,4 +13,14 @@ const addBlockedNumber = async (req: Request, res: Response, next: NextFunction)
     }
 }
 
-export default {addBlockedNumber}
+const getBlockedNumbers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const records = await block_phone_number.getBlockedNumbers(req.query);
+        res.status(200).json(ApiResponse.success(records))
+    }
+    catch(err: any) {
+        next(err)
+    }
+}
+
+export default {addBlockedNumber, getBlockedNumbers}
