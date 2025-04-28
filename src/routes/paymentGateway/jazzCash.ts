@@ -66,6 +66,11 @@ export default function (router: Router) {
     jazzCashController.initiateJazzCashAsync
   );
 
+  router.post(
+    "/initiate-jza-mntx/:merchantId",
+    [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber],
+    jazzCashController.initiateJazzCashAsyncClone
+  );
   // Merchant Config
   router.get(
     "/merchant-config",
