@@ -1201,7 +1201,7 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
     }
 }
 
-async function adjustMerchantDisbursementBalance(merchantId: number, targetBalance: number, record: boolean, type: "increment" | "decrement") {
+async function adjustMerchantDisbursementBalance(merchantId: number, targetBalance: number, record: boolean, type: "in" | "de") {
     try {
         // Get current balance
         let walletBalance;
@@ -1220,7 +1220,7 @@ async function adjustMerchantDisbursementBalance(merchantId: number, targetBalan
         // }
         // else {
         let update = {};
-        if (type == "increment") {
+        if (type == "in") {
             update = {increment: targetBalance}
         }
         else {
