@@ -8,113 +8,467 @@ import CustomError from "utils/custom_error.js";
 
 const TIMEZONE = "Asia/Karachi"; // Pakistan Time Zone
 
+// export const generateExcelReportService = async (params: any): Promise<string> => {
+//     let customWhere = {
+//         date_time: {}
+//     };
+//     let disbursementDateWhere: any = {};
+//     const startDate = params?.start?.replace(" ", "+");
+//     const endDate = params?.end?.replace(" ", "+");
+//     if (startDate && endDate) {
+//         const todayStart = parseISO(startDate as string);
+//         const todayEnd = parseISO(endDate as string);
+
+//         customWhere["date_time"] = {
+//             gte: todayStart,
+//             lt: todayEnd,
+//         };
+//         disbursementDateWhere = customWhere["date_time"]
+//     }
+//     //  2. Parallel Data Fetching Using Promise.all.----Fetch merchants, transactions, and disbursements in parallel.
+
+//     const [merchants, transactions, disbursements] = await Promise.all([
+//         prisma.merchant.findMany({
+//             include: {
+//                 commissions: {
+//                     select: {
+//                         commissionMode: true,
+//                         commissionRate: true,
+//                         easypaisaRate: true,
+//                         commissionGST: true,
+//                         commissionWithHoldingTax: true,
+//                         disbursementRate: true,
+//                         disbursementGST: true,
+//                         disbursementWithHoldingTax: true,
+//                     },
+//                 },
+//             },
+//         }),
+//         prisma.transaction.findMany({
+//             where: {
+//                 date_time: customWhere["date_time"],
+//                 status: "completed",
+//             },
+//             select: {
+//                 merchant_id: true,
+//                 original_amount: true,
+//                 providerDetails: true,
+//                 date_time: true,
+//             },
+//         }),
+//         prisma.disbursement.findMany({
+//             where: {
+//                 disbursementDate: disbursementDateWhere,
+//                 status: "completed",
+//             },
+//             select: {
+//                 merchant_id: true,
+//                 transactionAmount: true,
+//                 disbursementDate: true,
+//                 commission: true,
+//             },
+//         }),
+//     ]);
+    
+//     // // Fetch merchants and their commissions
+//     // const merchants = await prisma.merchant.findMany({
+//     //     include: {
+//     //         commissions: {
+//     //             select: {
+//     //                 commissionMode: true,
+//     //                 commissionRate: true,
+//     //                 easypaisaRate: true,
+//     //                 commissionGST: true,
+//     //                 commissionWithHoldingTax: true,
+//     //                 disbursementRate: true,
+//     //                 disbursementGST: true,
+//     //                 disbursementWithHoldingTax: true,
+//     //             },
+//     //         },
+//     //     },
+//     // });
+
+//     // // Fetch transactions in bulk
+//     // const transactions = await prisma.transaction.findMany({
+//     //     where: {
+//     //         date_time: customWhere["date_time"],
+//     //         status: "completed",
+//     //     },
+//     //     select: {
+//     //         merchant_id: true,
+//     //         original_amount: true,
+//     //         providerDetails: true,
+//     //         date_time: true,
+//     //     },
+//     // });
+
+//     // // Fetch disbursements in bulk
+//     // const disbursements = await prisma.disbursement.findMany({
+//     //     where: {
+//     //         disbursementDate: disbursementDateWhere,
+//     //         status: "completed",
+//     //     },
+//     //     select: {
+//     //         merchant_id: true,
+//     //         transactionAmount: true,
+//     //         disbursementDate: true,
+//     //         commission: true
+//     //     },
+//     // });
+
+//     // Collect all unique dates across all merchants
+//     const allDatesSet = new Set<string>();
+//     transactions.forEach((txn) => {
+//         const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
+//         allDatesSet.add(pktDate);
+//     });
+//     disbursements.forEach((d) => {
+//         const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
+//         allDatesSet.add(pktDate);
+//     });
+//     const allDates = Array.from(allDatesSet).sort(); // Sorted unique dates
+//     // Process data for each merchant
+//     const merchantData = merchants.map((merchant) => {
+//         const merchantTransactions = transactions.filter(
+//             (txn) => txn.merchant_id === merchant.merchant_id
+//         );
+
+//         const merchantDisbursements = disbursements.filter(
+//             (d) => d.merchant_id === merchant.merchant_id
+//         );
+
+//         // Group transactions and disbursements by day (in PKT)
+//         const dailyData: Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number; DisbursementCommission: number }> = {};
+
+//         merchantTransactions.forEach((txn) => {
+//             const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
+//             if (!dailyData[pktDate]) {
+//                 dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
+//             }
+
+//             if (
+//                 txn.providerDetails &&
+//                 ((txn.providerDetails as JsonObject)?.name as string)?.includes("Easypaisa")
+//             ) {
+//                 if (txn.original_amount !== null) {
+//                     dailyData[pktDate].Easypaisa += +txn.original_amount;
+//                 }
+//             } else if (
+//                 txn.providerDetails &&
+//                 ((txn.providerDetails as JsonObject)?.name as string)?.includes("JazzCash")
+//             ) {
+//                 if (txn.original_amount !== null) {
+//                     dailyData[pktDate].JazzCash += +txn.original_amount;
+//                 }
+//             }
+//         });
+
+//         merchantDisbursements.forEach((d) => {
+//             const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
+
+//             if (!dailyData[pktDate]) {
+//                 dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
+//             }
+
+//             dailyData[pktDate].Disbursement += +d.transactionAmount;
+//             dailyData[pktDate].DisbursementCommission += +d.commission
+//         });
+
+//         // Calculate commissions for each day
+//         const {
+//             commissionMode,
+//             commissionRate,
+//             easypaisaRate,
+//             commissionGST,
+//             commissionWithHoldingTax,
+//             disbursementRate,
+//             disbursementGST,
+//             disbursementWithHoldingTax,
+//         } = merchant.commissions[0] || {};
+//         const dailyCommissions = Object.keys(dailyData).reduce((result, dateKey) => {
+//             const daily = dailyData[dateKey];
+//             result[dateKey] = {
+//                 Easypaisa:
+//                     commissionMode === "SINGLE"
+//                         ? (daily.Easypaisa *
+//                             (Number(commissionRate) +
+//                                 Number(commissionGST) +
+//                                 Number(commissionWithHoldingTax)))
+//                         : (daily.Easypaisa *
+//                             (Number(easypaisaRate ?? 0) +
+//                                 Number(commissionGST) +
+//                                 Number(commissionWithHoldingTax))),
+//                 JazzCash:
+//                     commissionMode === "SINGLE"
+//                         ? (daily.JazzCash *
+//                             (Number(commissionRate) +
+//                                 Number(commissionGST) +
+//                                 Number(commissionWithHoldingTax)))
+//                         : (daily.JazzCash *
+//                             (Number(commissionRate) +
+//                                 Number(commissionGST) +
+//                                 Number(commissionWithHoldingTax))),
+//                 Disbursement:
+//                     daily.DisbursementCommission,
+//             };
+//             return result;
+//         }, {} as Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number }>);
+
+//         return {
+//             name: merchant.full_name,
+//             dailyData,
+//             dailyCommissions,
+//         };
+//     });
+
+//     // Generate Excel report
+//     // const workbook = new ExcelJS.Workbook();
+//     // const sheet = workbook.addWorksheet("Merchant Report");
+
+//     // Use Streams for Writing Large Excel Files  ---- This reduces memory footprint drastically by streaming instead of buffering 
+//     // the entire workbook in memory.ExcelJS can use a stream writer to avoid loading everything into memory.
+
+//     const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+//         filename: path.join(process.cwd(), "src/services/reports", `merchant_report_${Date.now()}.xlsx`)
+//     });
+//     const sheet = workbook.addWorksheet("Merchant Report");
+//     // Styles
+//     const headerStyle = {
+//         font: { bold: true, size: 12 },
+//         alignment: { horizontal: "center" as const },
+//         fill: { type: "pattern" as const, pattern: "solid" as ExcelJS.FillPatterns, fgColor: { argb: "DDEBF7" } },
+//     };
+
+//     const subHeaderStyle = {
+//         font: { bold: true },
+//         alignment: { horizontal: "left" as const },
+//         fill: { type: "pattern" as const, pattern: "solid" as ExcelJS.FillPatterns, fgColor: { argb: "BDD7EE" } },
+//     };
+
+//     const dataRowStyle = {
+//         fill: { type: "pattern" as const, pattern: "solid" as ExcelJS.FillPatterns, fgColor: { argb: "E2EFDA" } },
+//     };
+
+//     // Add headers
+//     // console.log(merchantData)
+//     const headerRow = sheet.getRow(1);
+//     headerRow.getCell(1).value = "Merchant Name";
+//     allDates.forEach((date, index) => {
+//         headerRow.getCell(index + 2).value = date;
+//     });
+
+//     allDates.forEach((date, index) => {
+//         headerRow.getCell(index + 2).value = date;
+//     });
+//     headerRow.getCell(allDates.length + 2).value = ""; // Empty Column
+//     headerRow.getCell(allDates.length + 3).value = "Total"; // Total Column
+//     headerRow.eachCell((cell) => (cell.style = headerStyle));
+
+//     let rowIndex = 2;
+
+//     // Fill data for each merchant
+//     // Fill data for each merchant
+//     merchantData.forEach((merchant) => {
+//         const { name, dailyData, dailyCommissions } = merchant;
+
+//         // Merchant header
+//         const merchantHeaderRow = sheet.getRow(rowIndex);
+//         merchantHeaderRow.getCell(1).value = name;
+//         merchantHeaderRow.getCell(1).style = subHeaderStyle;
+//         rowIndex++;
+
+//         // Add PayIn Collection and Commission (Easypaisa + JazzCash)
+//         let totalPayInCollectionSum = 0;
+//         let totalPayInCommissionSum = 0;
+
+//         // Process PayIn Collection and Commission
+//         const payInCollectionRow = sheet.getRow(rowIndex);
+//         payInCollectionRow.getCell(1).value = `Total PayIn Collection`;
+//         let payInCollectionOverallTotal = 0;
+
+//         const payInCommissionRow = sheet.getRow(rowIndex + 1);
+//         payInCommissionRow.getCell(1).value = `Total PayIn Commission`;
+//         let payInCommissionOverallTotal = 0;
+
+//         allDates.forEach((date, index) => {
+//             const payInCollection =
+//                 Math.abs((dailyData[date]?.Easypaisa || 0) + (dailyData[date]?.JazzCash || 0));
+//             const payInCommission =
+//                 Math.abs((dailyCommissions[date]?.Easypaisa || 0) + (dailyCommissions[date]?.JazzCash || 0));
+
+//             // Fill PayIn Collection and Commission for each date
+//             payInCollectionRow.getCell(index + 2).value = payInCollection;
+//             payInCommissionRow.getCell(index + 2).value = payInCommission;
+
+//             // Update totals for "Total" column
+//             payInCollectionOverallTotal += payInCollection;
+//             payInCommissionOverallTotal += payInCommission;
+//         });
+
+//         // Fill overall totals in the "Total" column
+//         payInCollectionRow.getCell(allDates.length + 3).value = payInCollectionOverallTotal;
+//         payInCommissionRow.getCell(allDates.length + 3).value = payInCommissionOverallTotal;
+
+//         // Apply row styles
+//         payInCollectionRow.eachCell((cell) => (cell.style = dataRowStyle));
+//         payInCommissionRow.eachCell((cell) => (cell.style = dataRowStyle));
+
+//         // Update rowIndex for the next group
+//         rowIndex += 2;
+//         rowIndex++;
+
+//         // Add individual collection and commission rows (Easypaisa, JazzCash, Disbursement)
+//         (["Easypaisa", "JazzCash", "Disbursement"] as Array<
+//             "Easypaisa" | "JazzCash" | "Disbursement"
+//         >).forEach((type) => {
+//             const amountRow = sheet.getRow(rowIndex);
+//             amountRow.getCell(1).value = `${type} Amount`;
+//             let totalAmount = 0;
+
+//             allDates.forEach((date, index) => {
+//                 const value = dailyData[date]?.[type] || 0;
+//                 amountRow.getCell(index + 2).value = value;
+//                 totalAmount += value;
+//             });
+
+//             amountRow.getCell(allDates.length + 3).value = totalAmount; // Total column
+//             amountRow.eachCell((cell) => (cell.style = dataRowStyle));
+//             rowIndex++;
+
+//             const commissionRow = sheet.getRow(rowIndex);
+//             commissionRow.getCell(1).value = `${type} Commission`;
+//             let totalCommission = 0;
+
+//             allDates.forEach((date, index) => {
+//                 const value = dailyCommissions[date]?.[type] || 0;
+//                 commissionRow.getCell(index + 2).value = value;
+//                 totalCommission += value;
+//             });
+
+//             commissionRow.getCell(allDates.length + 3).value = totalCommission; // Total column
+//             commissionRow.eachCell((cell) => (cell.style = dataRowStyle));
+//             rowIndex++;
+
+//             // Add a blank row for spacing between groups
+//             rowIndex++;
+//         });
+
+//         // Add a blank row after each merchant for spacing
+//         rowIndex++;
+//     });
+
+//     // Adjust column widths
+//     sheet.columns = [
+//         { key: "merchantName", width: 25 },
+//         ...allDates.map(() => ({ width: 15 })),
+//         { width: 5 }, // Empty column
+//         { key: "total", width: 15 }, // Total column
+//     ];
+
+//     // Save the file
+//     const filePath = path.join(import.meta.dirname, "merchant_report.xlsx");
+//     // await workbook.xlsx.writeFile(filePath);
+//     await workbook.commit();
+
+//     return filePath;
+// };
+
+
 export const generateExcelReportService = async (params: any): Promise<string> => {
-    let customWhere = {
-        date_time: {}
-    };
+    let customWhere = { date_time: {} };
     let disbursementDateWhere: any = {};
     const startDate = params?.start?.replace(" ", "+");
     const endDate = params?.end?.replace(" ", "+");
+
     if (startDate && endDate) {
         const todayStart = parseISO(startDate as string);
         const todayEnd = parseISO(endDate as string);
 
-        customWhere["date_time"] = {
-            gte: todayStart,
-            lt: todayEnd,
-        };
-        disbursementDateWhere = customWhere["date_time"]
+        customWhere["date_time"] = { gte: todayStart, lt: todayEnd };
+        disbursementDateWhere = customWhere["date_time"];
     }
-    //  2. Parallel Data Fetching Using Promise.all.----Fetch merchants, transactions, and disbursements in parallel.
 
-    const [merchants, transactions, disbursements] = await Promise.all([
-        prisma.merchant.findMany({
-            include: {
-                commissions: {
-                    select: {
-                        commissionMode: true,
-                        commissionRate: true,
-                        easypaisaRate: true,
-                        commissionGST: true,
-                        commissionWithHoldingTax: true,
-                        disbursementRate: true,
-                        disbursementGST: true,
-                        disbursementWithHoldingTax: true,
-                    },
-                },
-            },
-        }),
-        prisma.transaction.findMany({
-            where: {
-                date_time: customWhere["date_time"],
-                status: "completed",
-            },
-            select: {
-                merchant_id: true,
-                original_amount: true,
-                providerDetails: true,
-                date_time: true,
-            },
-        }),
-        prisma.disbursement.findMany({
-            where: {
-                disbursementDate: disbursementDateWhere,
-                status: "completed",
-            },
-            select: {
-                merchant_id: true,
-                transactionAmount: true,
-                disbursementDate: true,
-                commission: true,
-            },
-        }),
-    ]);
     
-    // // Fetch merchants and their commissions
-    // const merchants = await prisma.merchant.findMany({
-    //     include: {
-    //         commissions: {
-    //             select: {
-    //                 commissionMode: true,
-    //                 commissionRate: true,
-    //                 easypaisaRate: true,
-    //                 commissionGST: true,
-    //                 commissionWithHoldingTax: true,
-    //                 disbursementRate: true,
-    //                 disbursementGST: true,
-    //                 disbursementWithHoldingTax: true,
-    //             },
-    //         },
-    //     },
-    // });
+    // Fetch all merchants (assuming merchants are not in huge volume)
+    const merchants = await prisma.merchant.findMany({
+        include: {
+            commissions: {
+                select: {
+                    commissionMode: true,
+                    commissionRate: true,
+                    easypaisaRate: true,
+                    commissionGST: true,
+                    commissionWithHoldingTax: true,
+                    disbursementRate: true,
+                    disbursementGST: true,
+                    disbursementWithHoldingTax: true
+                }
+            }
+        }
+    });
 
-    // // Fetch transactions in bulk
-    // const transactions = await prisma.transaction.findMany({
-    //     where: {
-    //         date_time: customWhere["date_time"],
-    //         status: "completed",
-    //     },
-    //     select: {
-    //         merchant_id: true,
-    //         original_amount: true,
-    //         providerDetails: true,
-    //         date_time: true,
-    //     },
-    // });
+    // Fetch paginated transactions
+    const pageSize = 10000;
+    const totalPagesTransactions = Math.ceil(await prisma.transaction.count({
+        where: { date_time: customWhere["date_time"], status: "completed" }
+    }) / pageSize);
+    const pagesTransactions = [...Array(totalPagesTransactions).keys()];
 
-    // // Fetch disbursements in bulk
-    // const disbursements = await prisma.disbursement.findMany({
-    //     where: {
-    //         disbursementDate: disbursementDateWhere,
-    //         status: "completed",
-    //     },
-    //     select: {
-    //         merchant_id: true,
-    //         transactionAmount: true,
-    //         disbursementDate: true,
-    //         commission: true
-    //     },
-    // });
+    const fetchedTransactions = await Promise.all(
+        pagesTransactions.map((page) =>
+            prisma.transaction.findMany({
+                where: { date_time: customWhere["date_time"], status: "completed" },
+                skip: page * pageSize,
+                take: pageSize,
+                select: {
+                    merchant_id: true,
+                    original_amount: true,
+                    providerDetails: true,
+                    date_time: true
+                }
+            })
+        )
+    );
+    const transactions = fetchedTransactions.flat();
+
+    // Fetch paginated disbursements
+    const totalPagesDisbursements = Math.ceil(await prisma.disbursement.count({
+        where: { disbursementDate: disbursementDateWhere, status: "completed" }
+    }) / pageSize);
+    const pagesDisbursements = [...Array(totalPagesDisbursements).keys()];
+
+    const fetchedDisbursements = await Promise.all(
+        pagesDisbursements.map((page) =>
+            prisma.disbursement.findMany({
+                where: { disbursementDate: disbursementDateWhere, status: "completed" },
+                skip: page * pageSize,
+                take: pageSize,
+                select: {
+                    merchant_id: true,
+                    transactionAmount: true,
+                    disbursementDate: true,
+                    commission: true
+                }
+            })
+        )
+    );
+    const disbursements = fetchedDisbursements.flat();
+    // Group transactions and disbursements by merchant_id upfront
+    const transactionsByMerchant = new Map();
+    transactions.forEach(txn => {
+        if (!transactionsByMerchant.has(txn.merchant_id)) {
+            transactionsByMerchant.set(txn.merchant_id, []);
+        }
+        transactionsByMerchant.get(txn.merchant_id).push(txn);
+    });
+
+    const disbursementsByMerchant = new Map();
+    disbursements.forEach(d => {
+        if (!disbursementsByMerchant.has(d.merchant_id)) {
+            disbursementsByMerchant.set(d.merchant_id, []);
+        }
+        disbursementsByMerchant.get(d.merchant_id).push(d);
+    });
 
     // Collect all unique dates across all merchants
     const allDatesSet = new Set<string>();
@@ -127,136 +481,173 @@ export const generateExcelReportService = async (params: any): Promise<string> =
         allDatesSet.add(pktDate);
     });
     const allDates = Array.from(allDatesSet).sort(); // Sorted unique dates
-    // Process data for each merchant
-    const merchantData = merchants.map((merchant) => {
-        const merchantTransactions = transactions.filter(
-            (txn) => txn.merchant_id === merchant.merchant_id
-        );
 
-        const merchantDisbursements = disbursements.filter(
-            (d) => d.merchant_id === merchant.merchant_id
-        );
+    // Process merchant data asynchronously
+    const merchantData = await Promise.all(
+        merchants.map(async (merchant) => {
+            const merchantTransactions = transactionsByMerchant.get(merchant.merchant_id) || [];
+            const merchantDisbursements = disbursementsByMerchant.get(merchant.merchant_id) || [];
+            const firstCommission = merchant.commissions?.[0];
+            const commissionMode = firstCommission?.commissionMode ?? "SINGLE"; // fallback to SINGLE
+            const commissionRate = Number(firstCommission?.commissionRate ?? 0);
+            const easypaisaRate = Number(firstCommission?.easypaisaRate ?? 0);
+            const commissionGST = Number(firstCommission?.commissionGST ?? 0);
+            const commissionWithHoldingTax = Number(firstCommission?.commissionWithHoldingTax ?? 0);
 
-        // Group transactions and disbursements by day (in PKT)
-        const dailyData: Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number; DisbursementCommission: number }> = {};
-
-        merchantTransactions.forEach((txn) => {
-            const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
-            if (!dailyData[pktDate]) {
-                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
-            }
-
-            if (
-                txn.providerDetails &&
-                ((txn.providerDetails as JsonObject)?.name as string)?.includes("Easypaisa")
-            ) {
-                if (txn.original_amount !== null) {
-                    dailyData[pktDate].Easypaisa += +txn.original_amount;
+            
+            const commissionBaseRate = Number(commissionRate ?? 0);
+            const easypaisaBaseRate = Number(easypaisaRate ?? 0);
+            const gst = Number(commissionGST ?? 0);
+            const wht = Number(commissionWithHoldingTax ?? 0);
+            
+            const dailyData: Record<string, {
+                Easypaisa: number;
+                JazzCash: number;
+                Disbursement: number;
+                DisbursementCommission: number;
+                EasypaisaCommission?: number;
+                JazzCashCommission?: number;
+            }> = {};
+            
+            merchantTransactions.forEach((txn: {
+                date_time: string | number | Date;
+                providerDetails: { name: string };
+                original_amount: string | number | null;
+            }) => {
+                const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
+            
+                if (!dailyData[pktDate]) {
+                    dailyData[pktDate] = {
+                        Easypaisa: 0,
+                        JazzCash: 0,
+                        Disbursement: 0,
+                        DisbursementCommission: 0,
+                        EasypaisaCommission: 0,
+                        JazzCashCommission: 0,
+                    };
                 }
-            } else if (
-                txn.providerDetails &&
-                ((txn.providerDetails as JsonObject)?.name as string)?.includes("JazzCash")
-            ) {
-                if (txn.original_amount !== null) {
-                    dailyData[pktDate].JazzCash += +txn.original_amount;
+            
+                const providerName = txn.providerDetails?.name as string;
+                const amount = Number(txn.original_amount ?? 0);
+            
+                if (providerName.includes("Easypaisa")) {
+                    dailyData[pktDate].Easypaisa += amount;
+                    const rate = commissionMode === "SINGLE"
+                        ? commissionBaseRate + gst + wht
+                        : easypaisaBaseRate + gst + wht;
+                    dailyData[pktDate].EasypaisaCommission! += amount * rate;
+            
+                } else if (providerName.includes("JazzCash")) {
+                    dailyData[pktDate].JazzCash += amount;
+                    const rate = commissionBaseRate + gst + wht;
+                    dailyData[pktDate].JazzCashCommission! += amount * rate;
                 }
-            }
-        });
+            });
+            
+            merchantDisbursements.forEach((d: {
+                disbursementDate: string | number | Date;
+                transactionAmount: string | number;
+                commission: string | number;
+            }) => {
+                const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
+            
+                if (!dailyData[pktDate]) {
+                    dailyData[pktDate] = {
+                        Easypaisa: 0,
+                        JazzCash: 0,
+                        Disbursement: 0,
+                        DisbursementCommission: 0,
+                    };
+                }
+            
+                dailyData[pktDate].Disbursement += Number(d.transactionAmount);
+                dailyData[pktDate].DisbursementCommission += Number(d.commission);
+            });
+            
+            const dailyCommissions = Object.fromEntries(
+                Object.entries(dailyData).map(([date, d]) => [
+                    date,
+                    {
+                        Easypaisa: d.EasypaisaCommission ?? 0,
+                        JazzCash: d.JazzCashCommission ?? 0,
+                        Disbursement: d.DisbursementCommission,
+                    },
+                ])
+            );
+            
+            // const dailyData: Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number; DisbursementCommission: number }> = {};
 
-        merchantDisbursements.forEach((d) => {
-            const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
+            // merchantTransactions.forEach((txn: { date_time: string | number | Date; providerDetails: { name: string; }; original_amount: string | number | null; }) => {
+            //     const pktDate = format(toZonedTime(txn.date_time, TIMEZONE), "yyyy-MM-dd");
+            //     if (!dailyData[pktDate]) {
+            //         dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
+            //     }
 
-            if (!dailyData[pktDate]) {
-                dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
-            }
+            //     const providerName = txn.providerDetails?.name as string;
+            //     if (providerName.includes("Easypaisa") && txn.original_amount !== null) {
+            //         dailyData[pktDate].Easypaisa += +txn.original_amount;
+            //     } else if (providerName.includes("JazzCash") && txn.original_amount !== null) {
+            //         dailyData[pktDate].JazzCash += +txn.original_amount;
+            //     }
+            // });
 
-            dailyData[pktDate].Disbursement += +d.transactionAmount;
-            dailyData[pktDate].DisbursementCommission += +d.commission
-        });
+            // merchantDisbursements.forEach((d: { disbursementDate: string | number | Date; transactionAmount: string | number; commission: string | number; }) => {
+            //     const pktDate = format(toZonedTime(d.disbursementDate, TIMEZONE), "yyyy-MM-dd");
+            //     if (!dailyData[pktDate]) {
+            //         dailyData[pktDate] = { Easypaisa: 0, JazzCash: 0, Disbursement: 0, DisbursementCommission: 0 };
+            //     }
 
-        // Calculate commissions for each day
-        const {
-            commissionMode,
-            commissionRate,
-            easypaisaRate,
-            commissionGST,
-            commissionWithHoldingTax,
-            disbursementRate,
-            disbursementGST,
-            disbursementWithHoldingTax,
-        } = merchant.commissions[0] || {};
-        const dailyCommissions = Object.keys(dailyData).reduce((result, dateKey) => {
-            const daily = dailyData[dateKey];
-            result[dateKey] = {
-                Easypaisa:
-                    commissionMode === "SINGLE"
-                        ? (daily.Easypaisa *
-                            (Number(commissionRate) +
-                                Number(commissionGST) +
-                                Number(commissionWithHoldingTax)))
-                        : (daily.Easypaisa *
-                            (Number(easypaisaRate ?? 0) +
-                                Number(commissionGST) +
-                                Number(commissionWithHoldingTax))),
-                JazzCash:
-                    commissionMode === "SINGLE"
-                        ? (daily.JazzCash *
-                            (Number(commissionRate) +
-                                Number(commissionGST) +
-                                Number(commissionWithHoldingTax)))
-                        : (daily.JazzCash *
-                            (Number(commissionRate) +
-                                Number(commissionGST) +
-                                Number(commissionWithHoldingTax))),
-                Disbursement:
-                    daily.DisbursementCommission,
+            //     dailyData[pktDate].Disbursement += +d.transactionAmount;
+            //     dailyData[pktDate].DisbursementCommission += +d.commission;
+            // });
+
+            // const { commissionMode, commissionRate, easypaisaRate, commissionGST, commissionWithHoldingTax } = merchant.commissions[0] || {};
+            // const dailyCommissions = Object.keys(dailyData).reduce((result, dateKey) => {
+            //     const daily = dailyData[dateKey];
+            //     result[dateKey] = {
+            //         Easypaisa: commissionMode === "SINGLE"
+            //             ? (daily.Easypaisa * (Number(commissionRate) + Number(commissionGST) + Number(commissionWithHoldingTax)))
+            //             : (daily.Easypaisa * (Number(easypaisaRate ?? 0) + Number(commissionGST) + Number(commissionWithHoldingTax))),
+            //         JazzCash: commissionMode === "SINGLE"
+            //             ? (daily.JazzCash * (Number(commissionRate) + Number(commissionGST) + Number(commissionWithHoldingTax)))
+            //             : (daily.JazzCash * (Number(commissionRate) + Number(commissionGST) + Number(commissionWithHoldingTax))),
+            //         Disbursement: daily.DisbursementCommission,
+            //     };
+            //     return result;
+            // }, {} as Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number }>);
+
+            return {
+                name: merchant.full_name,
+                dailyData,
+                dailyCommissions,
             };
-            return result;
-        }, {} as Record<string, { Easypaisa: number; JazzCash: number; Disbursement: number }>);
-
-        return {
-            name: merchant.full_name,
-            dailyData,
-            dailyCommissions,
-        };
-    });
+        })
+    );
 
     // Generate Excel report
-    // const workbook = new ExcelJS.Workbook();
-    // const sheet = workbook.addWorksheet("Merchant Report");
-
-    // Use Streams for Writing Large Excel Files  ---- This reduces memory footprint drastically by streaming instead of buffering 
-    // the entire workbook in memory.ExcelJS can use a stream writer to avoid loading everything into memory.
-
     const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
         filename: path.join(process.cwd(), "src/services/reports", `merchant_report_${Date.now()}.xlsx`)
     });
     const sheet = workbook.addWorksheet("Merchant Report");
+
     // Styles
     const headerStyle = {
         font: { bold: true, size: 12 },
         alignment: { horizontal: "center" as const },
         fill: { type: "pattern" as const, pattern: "solid" as ExcelJS.FillPatterns, fgColor: { argb: "DDEBF7" } },
     };
-
     const subHeaderStyle = {
         font: { bold: true },
         alignment: { horizontal: "left" as const },
         fill: { type: "pattern" as const, pattern: "solid" as ExcelJS.FillPatterns, fgColor: { argb: "BDD7EE" } },
     };
-
     const dataRowStyle = {
         fill: { type: "pattern" as const, pattern: "solid" as ExcelJS.FillPatterns, fgColor: { argb: "E2EFDA" } },
     };
 
     // Add headers
-    // console.log(merchantData)
     const headerRow = sheet.getRow(1);
     headerRow.getCell(1).value = "Merchant Name";
-    allDates.forEach((date, index) => {
-        headerRow.getCell(index + 2).value = date;
-    });
-
     allDates.forEach((date, index) => {
         headerRow.getCell(index + 2).value = date;
     });
@@ -267,7 +658,6 @@ export const generateExcelReportService = async (params: any): Promise<string> =
     let rowIndex = 2;
 
     // Fill data for each merchant
-    // Fill data for each merchant
     merchantData.forEach((merchant) => {
         const { name, dailyData, dailyCommissions } = merchant;
 
@@ -277,7 +667,7 @@ export const generateExcelReportService = async (params: any): Promise<string> =
         merchantHeaderRow.getCell(1).style = subHeaderStyle;
         rowIndex++;
 
-        // Add PayIn Collection and Commission (Easypaisa + JazzCash)
+        // Process PayIn Collection and Commission (Easypaisa + JazzCash)
         let totalPayInCollectionSum = 0;
         let totalPayInCommissionSum = 0;
 
@@ -294,84 +684,36 @@ export const generateExcelReportService = async (params: any): Promise<string> =
             const payInCollection =
                 Math.abs((dailyData[date]?.Easypaisa || 0) + (dailyData[date]?.JazzCash || 0));
             const payInCommission =
-                Math.abs((dailyCommissions[date]?.Easypaisa || 0) + (dailyCommissions[date]?.JazzCash || 0));
+                Math.abs(
+                    (dailyCommissions[date]?.Easypaisa || 0) +
+                        (dailyCommissions[date]?.JazzCash || 0)
+                );
 
-            // Fill PayIn Collection and Commission for each date
             payInCollectionRow.getCell(index + 2).value = payInCollection;
             payInCommissionRow.getCell(index + 2).value = payInCommission;
 
-            // Update totals for "Total" column
-            payInCollectionOverallTotal += payInCollection;
-            payInCommissionOverallTotal += payInCommission;
+            totalPayInCollectionSum += payInCollection;
+            totalPayInCommissionSum += payInCommission;
         });
 
-        // Fill overall totals in the "Total" column
-        payInCollectionRow.getCell(allDates.length + 3).value = payInCollectionOverallTotal;
-        payInCommissionRow.getCell(allDates.length + 3).value = payInCommissionOverallTotal;
-
-        // Apply row styles
+        payInCollectionRow.getCell(allDates.length + 2).value = totalPayInCollectionSum;
+        payInCommissionRow.getCell(allDates.length + 2).value = totalPayInCommissionSum;
+        payInCollectionRow.getCell(allDates.length + 3).value = `Total`;
+        payInCommissionRow.getCell(allDates.length + 3).value = `Total`;
         payInCollectionRow.eachCell((cell) => (cell.style = dataRowStyle));
         payInCommissionRow.eachCell((cell) => (cell.style = dataRowStyle));
 
-        // Update rowIndex for the next group
         rowIndex += 2;
-        rowIndex++;
-
-        // Add individual collection and commission rows (Easypaisa, JazzCash, Disbursement)
-        (["Easypaisa", "JazzCash", "Disbursement"] as Array<
-            "Easypaisa" | "JazzCash" | "Disbursement"
-        >).forEach((type) => {
-            const amountRow = sheet.getRow(rowIndex);
-            amountRow.getCell(1).value = `${type} Amount`;
-            let totalAmount = 0;
-
-            allDates.forEach((date, index) => {
-                const value = dailyData[date]?.[type] || 0;
-                amountRow.getCell(index + 2).value = value;
-                totalAmount += value;
-            });
-
-            amountRow.getCell(allDates.length + 3).value = totalAmount; // Total column
-            amountRow.eachCell((cell) => (cell.style = dataRowStyle));
-            rowIndex++;
-
-            const commissionRow = sheet.getRow(rowIndex);
-            commissionRow.getCell(1).value = `${type} Commission`;
-            let totalCommission = 0;
-
-            allDates.forEach((date, index) => {
-                const value = dailyCommissions[date]?.[type] || 0;
-                commissionRow.getCell(index + 2).value = value;
-                totalCommission += value;
-            });
-
-            commissionRow.getCell(allDates.length + 3).value = totalCommission; // Total column
-            commissionRow.eachCell((cell) => (cell.style = dataRowStyle));
-            rowIndex++;
-
-            // Add a blank row for spacing between groups
-            rowIndex++;
-        });
-
-        // Add a blank row after each merchant for spacing
-        rowIndex++;
     });
-
-    // Adjust column widths
-    sheet.columns = [
-        { key: "merchantName", width: 25 },
-        ...allDates.map(() => ({ width: 15 })),
-        { width: 5 }, // Empty column
-        { key: "total", width: 15 }, // Total column
-    ];
 
     // Save the file
     const filePath = path.join(import.meta.dirname, "merchant_report.xlsx");
-    // await workbook.xlsx.writeFile(filePath);
     await workbook.commit();
 
     return filePath;
 };
+
+
 
 export const payinPerWalletService = async (params: any) => {
     try {
