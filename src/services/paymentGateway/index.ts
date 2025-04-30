@@ -3626,6 +3626,70 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   return jsonResponse; // Array of status responses for each transaction ID
 }
 
+async function databaseCheckTransactionStatus(body: any, merchantId: string) {
+  // validate Merchant
+  const findMerchant = await merchantService.findOne({
+    uid: merchantId,
+  });
+
+  if (!findMerchant) {
+    throw new CustomError("Merchant not found", 404);
+  }
+
+  if (!findMerchant.JazzCashDisburseAccountId) {
+    throw new CustomError("Disbursement account not assigned.", 404);
+  }
+
+  // find disbursement merchant
+  const findDisbureMerch: any = await jazzcashDisburse
+    .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+    .then((res) => res?.data);
+
+  if (!findDisbureMerch) {
+    throw new CustomError("Disbursement account not found", 404);
+  }
+
+  const results = [];
+
+  for (const id of body.transactionIds) {
+    const transaction = await prisma.disbursement.findFirst({
+      where: {
+        merchant_custom_order_id: id,
+        merchant_id: findMerchant.merchant_id
+      }
+    });
+    if (!transaction || !transaction?.transaction_id) {
+      results.push({ id, status: "Transaction not found" });
+      continue;
+    }
+    try {
+      const jsonResponse = {
+        responseCode: transaction?.status == "completed" ? "G2P-T-0" :  transaction?.status == "failed" ? "G2P-T-1" : "G2P-T-2",
+        responseDescription: transaction?.response_message,
+        transactionID: transaction?.transaction_id,
+        referenceID: transactionService.createTransactionId(),
+        transactionStatus: transaction?.status?.charAt(0).toUpperCase() + transaction?.status?.slice(1),
+        isReversed: transaction?.status == "completed" ? "0" : ""
+      };
+      results.push({ id, status: jsonResponse });
+    } catch (error: any) {
+      // Handle error (e.g., network issue) and add to results
+      results.push({ id, status: null, error: error?.message });
+    }
+  }
+
+  return results; // Array of status responses for each transaction ID
+}
+
+// {
+//   "responseCode": "G2P-T-0",
+//   "responseDescription": "Process service request successfully.",
+//   "transactionID": "079896464953",
+//   "referenceID": "ababjdbhdbhjabhda",
+//   "transactionStatus": "Cancelled",
+//   "isReversed": "0"
+// }
+
 async function simpleSandboxCheckTransactionStatus(token: string, body: any, merchantId: string) {
   // validate Merchant
   const findMerchant = await merchantService.findOne({
@@ -3706,6 +3770,14 @@ async function simpleSandboxCheckTransactionStatus(token: string, body: any, mer
 //   }
 // })();
 
+const getMerchantJazzCashDisburseInquiryMethod = async (merchant_id: string) => {
+  return (await prisma.merchant.findFirst({
+    where: {
+      uid: merchant_id
+    }
+  }))?.jazzCashDisburseInquiryMethod
+}
+
 export {
   getToken,
   simpleGetToken,
@@ -3725,5 +3797,7 @@ export {
   simpleSandboxinitiateTransactionClone,
   simpleSandboxCheckTransactionStatus,
   simpleProductionMwTransactionClone,
-  simpleProductionInitiateTransactionClone
+  simpleProductionInitiateTransactionClone,
+  getMerchantJazzCashDisburseInquiryMethod,
+  databaseCheckTransactionStatus
 }
