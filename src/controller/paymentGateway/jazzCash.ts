@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import { jazzCashService, transactionService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleProductionInitiateTransactionClone, simpleProductionMwTransactionClone, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, databaseCheckTransactionStatus, getMerchantJazzCashDisburseInquiryMethod, getToken, initiateTransaction, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleProductionInitiateTransactionClone, simpleProductionMwTransactionClone, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "utils/custom_error.js";
 
@@ -195,7 +195,7 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
       return
     }
     const result = await jazzCashService.statusInquiry(payload, merchantId);
-    res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
+    res.status(200).json(ApiResponse.success(result, "", result.statusCode == 500 ? 201 : 200));
   }
   catch (err) {
     next(err);
@@ -211,7 +211,7 @@ const simpleStatusInquiry = async (req: Request, res: Response, next: NextFuncti
       return
     }
     const result = await jazzCashService.simpleStatusInquiry(payload, merchantId);
-    res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
+    res.status(200).json(ApiResponse.success(result, "", result.statusCode == 500 ? 201 : 200));
   }
   catch (err) {
     next(err);
@@ -227,7 +227,7 @@ const jazzStatusInquiry = async (req: Request, res: Response, next: NextFunction
       return
     }
     const result = await jazzCashService.statusInquiry(payload, merchantId);
-    res.status(200).json(ApiResponse.success(result,"",result.statusCode == 500 ? 201: 200));
+    res.status(200).json(ApiResponse.success(result, "", result.statusCode == 500 ? 201 : 200));
   }
   catch (err) {
     next(err);
@@ -315,7 +315,7 @@ const initiateMWDisbursementClone = async (req: Request, res: Response, next: Ne
     }
     const token = await getToken(req.params.merchantId);
     const initTransaction = await mwTransactionClone(token?.access_token, req.body, req.params.merchantId);
-    
+
     res.status(200).json(ApiResponse.success(initTransaction));
   }
   catch (err) {
@@ -331,7 +331,7 @@ const initiateSandboxMWDisbursementClone = async (req: Request, res: Response, n
       res.status(500).json(ApiResponse.error(token));
     }
     const initTransaction = await simpleSandboxMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
-    
+
     res.status(200).json(ApiResponse.success(initTransaction));
   }
   catch (err) {
@@ -347,7 +347,7 @@ const initiateProductionMWDisbursementClone = async (req: Request, res: Response
       res.status(500).json(ApiResponse.error(token));
     }
     const initTransaction = await simpleProductionMwTransactionClone(token?.access_token, req.body, req.params.merchantId);
-    
+
     res.status(200).json(ApiResponse.success(initTransaction));
   }
   catch (err) {
@@ -368,8 +368,15 @@ const dummyCallback = async (req: Request, res: Response, next: NextFunction) =>
 const disburseInquiryController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    const token = await getToken(req.params.merchantId);
-    const inquiry = await checkTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+    const jazzcashDisburseInquiryMethod = await getMerchantJazzCashDisburseInquiryMethod(req.params.merchantId);
+    let inquiry;
+    if (jazzcashDisburseInquiryMethod == "WALLET") {
+      const token = await getToken(req.params.merchantId);
+      inquiry = await checkTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+    }
+    else if (jazzcashDisburseInquiryMethod == "DATABASE") {
+      inquiry = await databaseCheckTransactionStatus(req.body, req.params.merchantId)
+    }
     res.status(200).json(ApiResponse.success(inquiry));
   }
   catch (err) {
