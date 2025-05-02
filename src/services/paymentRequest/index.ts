@@ -232,11 +232,10 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       let commission = +merchant?.commissions[0].commissionGST +
       +merchant.commissions[0].commissionRate +
       +merchant.commissions[0].commissionWithHoldingTax 
-      let id = transactionService.createTransactionId();
-      let id2 = paymentRequest.merchant_transaction_id || id;
+      let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
       await transactionService.createTxn({
         order_id: id2,
-        transaction_id: id,
+        transaction_id: paymentRequestObj.transaction_id,
         amount: paymentRequest.amount,
         status: "pending",
         type: "card",
