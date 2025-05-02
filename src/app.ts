@@ -30,8 +30,8 @@ import { JsonObject } from '@prisma/client/runtime/library';
 import { calculateHmacSha256 } from 'services/paymentGateway/newJazzCash.js';
 
 var app = express();
-cron.schedule("0 16 * * 1-5", task);
-cron.schedule("*/5 * * * *", pendingDisburse);
+// cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
@@ -47,7 +47,8 @@ app.use(cors({
     `https://devtectsadmin.sahulatpay.com`,
     'http://localhost:3005',
     'http://localhost:*',
-    '*'
+    'https://user.digicore.net.pk',
+    '*',
   ],
   credentials: true,
 }));
