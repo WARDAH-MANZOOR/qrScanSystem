@@ -2,6 +2,7 @@ import { JsonObject } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
+import { addWeekdays } from "utils/date_method.js";
 
 // Example of the request body fields
 export interface PaymentRequestBody {
@@ -66,8 +67,21 @@ const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentRespo
                 const findMerchant = await prisma.merchant.findUnique({
                     where: {
                         merchant_id: txn?.merchant_id
+                    },
+                    include: {
+                        commissions: true
                     }
                 })
+                const scheduledAt = addWeekdays(new Date(), findMerchant?.commissions[0].settlementDuration as number);  // Call the function to get the next 2 weekdays
+                console.log(scheduledAt)
+                let scheduledTask = await prisma.scheduledTask.create({
+                    data: {
+                        transactionId: txn?.transaction_id,
+                        status: 'pending',
+                        scheduledAt: scheduledAt,  // Assign the calculated weekday date
+                        executedAt: null,  // Assume executedAt is null when scheduling
+                    }
+                });
                 setTimeout(async () => {
                     transactionService.sendCallback(
                         findMerchant?.webhook_url as string,
