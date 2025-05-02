@@ -29,15 +29,33 @@ export interface PaymentResponse {
 const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentResponse> => {
     try {
         console.log(JSON.stringify({ event: "IPN_RECIEVED", order_id: requestBody.pp_TxnRefNo, requestBody }))
+        const txn = await prisma.transaction.findFirst({
+            where: {
+                OR: [
+                    {
+                        merchant_transaction_id: requestBody.pp_TxnRefNo
+                    },
+                    {
+                        transaction_id: requestBody.pp_TxnRefNo
+                    }
+                ]
+            }
+        })
+        if (!txn) {
+            throw new CustomError("Transaction Not Found", 500);
+        }
         if (requestBody.pp_ResponseCode == "121") {
-            const txn = await prisma.transaction.findUnique({
+
+            await prisma.transaction.updateMany({
                 where: {
-                    merchant_transaction_id: requestBody.pp_TxnRefNo
-                }
-            })
-            await prisma.transaction.update({
-                where: {
-                    merchant_transaction_id: requestBody.pp_TxnRefNo
+                    OR: [
+                        {
+                            merchant_transaction_id: requestBody.pp_TxnRefNo
+                        },
+                        {
+                            transaction_id: requestBody.pp_TxnRefNo
+                        }
+                    ]
                 },
                 data: {
                     status: "completed",
@@ -63,9 +81,16 @@ const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentRespo
             }
         }
         else if (requestBody.pp_ResponseCode == "199" || requestBody.pp_ResponseCode == "999") {
-            await prisma.transaction.update({
+            await prisma.transaction.updateMany({
                 where: {
-                    merchant_transaction_id: requestBody.pp_TxnRefNo
+                    OR: [
+                        {
+                            merchant_transaction_id: requestBody.pp_TxnRefNo
+                        },
+                        {
+                            transaction_id: requestBody.pp_TxnRefNo
+                        }
+                    ]
                 },
                 data: {
                     status: "failed",
