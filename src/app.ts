@@ -47,7 +47,8 @@ app.use(cors({
     `https://devtectsadmin.sahulatpay.com`,
     'http://localhost:3005',
     'http://localhost:*',
-    '*'
+    'https://user.digicore.net.pk',
+    '*',
   ],
   credentials: true,
 }));
