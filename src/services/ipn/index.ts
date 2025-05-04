@@ -1,4 +1,4 @@
-import { JsonObject } from "@prisma/client/runtime/library";
+import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
 import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
@@ -161,6 +161,18 @@ const processCardIPN = async (requestBody: PaymentRequestBody): Promise<PaymentR
                     response_message: requestBody.pp_ResponseMessage
                 }
             })
+            const requestId = (txn?.providerDetails as JsonObject)?.requestId as string | undefined;
+            if (requestId) {
+                await prisma.paymentRequest.update({
+                    where: {
+                        id: requestId
+                    },
+                    data: {
+                        status: "paid",
+                        updatedAt: new Date()
+                    }
+                });
+            }
             if (txn?.status != "completed") {
                 const findMerchant = await prisma.merchant.findUnique({
                     where: {
