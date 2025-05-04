@@ -10,6 +10,7 @@ router.post("/learningization", ipnController.handleIPN)
 router.post("/monic-tech", ipnController.handleIPN)
 router.post("/think-tech", ipnController.handleIPN)
 router.post("/digicore", ipnController.handleIPN)
+router.post("/evolvica", ipnController.handleIPN)
 router.post("/card", ipnController.handleCardIPN)
 
 export default router
