@@ -230,8 +230,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       paymentRequestObj.provider?.toLocaleLowerCase() === "card"
     ) {
       let commission = +merchant?.commissions[0].commissionGST +
-      +merchant.commissions[0].commissionRate +
-      +merchant.commissions[0].commissionWithHoldingTax 
+        +merchant.commissions[0].commissionRate +
+        +merchant.commissions[0].commissionWithHoldingTax
       let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
       await transactionService.createTxn({
         order_id: id2,
@@ -251,17 +251,20 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       })
     }
 
-    const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
-      return tx.paymentRequest.update({
-        where: {
-          id: paymentRequestObj.payId,
-        },
-        data: {
-          status: "paid",
-          updatedAt: new Date(),
-        },
+    let updatedPaymentRequest;
+    if (paymentRequestObj?.provider.toLowerCase() == "jazzcash" && paymentRequestObj?.provider.toLowerCase() == "easypaisa") {
+      updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+        return tx.paymentRequest.update({
+          where: {
+            id: paymentRequestObj.payId,
+          },
+          data: {
+            status: "paid",
+            updatedAt: new Date(),
+          },
+        });
       });
-    });
+    }
 
     return {
       message: "Payment request paid successfully",
@@ -314,7 +317,7 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
     return {
       message: "Payment request retrieved successfully",
       data: {
-        ...paymentRequest, 
+        ...paymentRequest,
         credentials: creds
       },
     };
