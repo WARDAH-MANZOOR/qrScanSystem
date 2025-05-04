@@ -31,8 +31,8 @@ import { calculateHmacSha256 } from 'services/paymentGateway/newJazzCash.js';
 import { hashPassword } from 'services/authentication/index.js';
 
 var app = express();
-// cron.schedule("0 16 * * 1-5", task);
-// cron.schedule("*/5 * * * *", pendingDisburse);
+cron.schedule("0 16 * * 1-5", task);
+cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
@@ -116,4 +116,3 @@ app.listen(process.env.PORT || 3001, () => {
 // const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
 // console.log('Decrypted Data:', decryptedData);
 // export default app;
-console.log(await hashPassword("DeVtEcTsPaY#147369."))
