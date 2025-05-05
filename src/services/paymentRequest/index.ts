@@ -252,7 +252,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     }
 
     let updatedPaymentRequest;
-    if (paymentRequestObj?.provider.toLowerCase() == "jazzcash" && paymentRequestObj?.provider.toLowerCase() == "easypaisa") {
+    if (paymentRequestObj?.provider.toLowerCase() == "jazzcash" || paymentRequestObj?.provider.toLowerCase() == "easypaisa") {
+      console.log("Wallet")
       updatedPaymentRequest = await prisma.$transaction(async (tx) => {
         return tx.paymentRequest.update({
           where: {
