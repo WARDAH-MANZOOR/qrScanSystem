@@ -3,6 +3,7 @@ import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 import { addWeekdays } from "utils/date_method.js";
+import CryptoJS from "crypto-js"
 
 // Example of the request body fields
 export interface PaymentRequestBody {
@@ -125,17 +126,21 @@ const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentRespo
     }
 }
 
-const processCardIPN = async (requestBody: PaymentRequestBody): Promise<PaymentResponse> => {
+const processCardIPN = async (requestBody: { data: any }): Promise<PaymentResponse> => {
     try {
-        console.log(JSON.stringify({ event: "IPN_RECIEVED", order_id: requestBody.pp_TxnRefNo, requestBody }))
+        console.log(JSON.stringify({ event: "IPN_RECIEVED", requestBody }))
+        const bytes = CryptoJS.AES.decrypt(requestBody?.data, process.env.ENCRYPTION_KEY as string);
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        console.log(decrypted)
+        const { pp_TxnRefNo, pp_ResponseCode, pp_ResponseMessage } = JSON.parse(decrypted);
         const txn = await prisma.transaction.findFirst({
             where: {
                 OR: [
                     {
-                        merchant_transaction_id: requestBody.pp_TxnRefNo
+                        merchant_transaction_id: pp_TxnRefNo
                     },
                     {
-                        transaction_id: requestBody.pp_TxnRefNo
+                        transaction_id: pp_TxnRefNo
                     }
                 ]
             }
@@ -143,22 +148,22 @@ const processCardIPN = async (requestBody: PaymentRequestBody): Promise<PaymentR
         if (!txn) {
             throw new CustomError("Transaction Not Found", 500);
         }
-        if (requestBody.pp_ResponseCode == "000") {
+        if (pp_ResponseCode == "000") {
 
             await prisma.transaction.updateMany({
                 where: {
                     OR: [
                         {
-                            merchant_transaction_id: requestBody.pp_TxnRefNo
+                            merchant_transaction_id: pp_TxnRefNo
                         },
                         {
-                            transaction_id: requestBody.pp_TxnRefNo
+                            transaction_id: pp_TxnRefNo
                         }
                     ]
                 },
                 data: {
                     status: "completed",
-                    response_message: requestBody.pp_ResponseMessage
+                    response_message: pp_ResponseMessage
                 }
             })
             const requestId = (txn?.providerDetails as JsonObject)?.requestId as string | undefined;
@@ -209,16 +214,16 @@ const processCardIPN = async (requestBody: PaymentRequestBody): Promise<PaymentR
                 where: {
                     OR: [
                         {
-                            merchant_transaction_id: requestBody.pp_TxnRefNo
+                            merchant_transaction_id: pp_TxnRefNo
                         },
                         {
-                            transaction_id: requestBody.pp_TxnRefNo
+                            transaction_id: pp_TxnRefNo
                         }
                     ]
                 },
                 data: {
                     status: "failed",
-                    response_message: requestBody.pp_ResponseMessage
+                    response_message: pp_ResponseMessage
                 }
             })
         }
