@@ -22,7 +22,7 @@ const handleIPN = async (req: Request, res: Response): Promise<void> => {
 const handleCardIPN = async (req: Request, res: Response): Promise<void> => {
     try {
         // Extract the relevant fields from the request body
-        const requestBody: PaymentRequestBody = req.body;
+        const requestBody = req.body;
 
         // Call the service to process
         const responseData = await ipnService.processCardIPN(requestBody);
