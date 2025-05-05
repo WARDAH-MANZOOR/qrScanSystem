@@ -28,6 +28,7 @@ import ExcelJS from "exceljs"
 import prisma from 'prisma/client.js';
 import { JsonObject } from '@prisma/client/runtime/library';
 import { calculateHmacSha256 } from 'services/paymentGateway/newJazzCash.js';
+import { hashPassword } from 'services/authentication/index.js';
 
 var app = express();
 // cron.schedule("0 16 * * 1-5", task);
@@ -47,7 +48,8 @@ app.use(cors({
     `https://devtectsadmin.sahulatpay.com`,
     'http://localhost:3005',
     'http://localhost:*',
-    '*'
+    'https://user.digicore.net.pk',
+    '*',
   ],
   credentials: true,
 }));

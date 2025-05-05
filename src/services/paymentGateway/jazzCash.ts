@@ -179,10 +179,6 @@ const initiateJazzCashPayment = async (
       throw new CustomError("Amount and phone are required", 400);
     }
 
-    if (!paymentData.redirect_url) {
-      throw new CustomError("Redirect URL is required", 400);
-    }
-
     if (!paymentData.type) {
       throw new CustomError("Payment type is required", 400);
     }
