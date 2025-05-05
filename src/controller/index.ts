@@ -20,6 +20,8 @@ import disbursementDispute from "./disbursementDispute/index.js";
 import jazzCashCrud from "./paymentGateway/jazzCashCrud.js";
 import newStatusInquiry from "./paymentGateway/newStatusInquiry.js";
 import block_phone_number from "./block_phone_number/index.js";
+import card_controller from "./card/index.js"
+
 export {
   jazzCashController,
   transactionController,
@@ -42,5 +44,6 @@ export {
   disbursementDispute,
   jazzCashCrud,
   newStatusInquiry,
-  block_phone_number
+  block_phone_number,
+  card_controller
 };
