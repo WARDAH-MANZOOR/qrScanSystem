@@ -5,5 +5,6 @@ export const PROVIDERS = {
     BANK: "Bank",
     UPAISA: "UPAISA",
     ZINDIGI: "ZINDIGI",
-    CARD: "CARD"
+    CARD: "CARD",
+    PAYFAST: "PAYFAST"
 }
