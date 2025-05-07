@@ -8,4 +8,4 @@ router.get('/excel', [isLoggedIn, isAdmin], reportController.generateExcelReport
 router.get('/payin-per-wallet', reportController.payinPerWalletController as express.RequestHandler);
 router.get('/pending-settlements',reportController.getPendingSettlements as unknown as express.RequestHandler)
 
-export default router;
+export default router; 

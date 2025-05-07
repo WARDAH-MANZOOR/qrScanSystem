@@ -403,7 +403,7 @@ export const payinPerWalletService = async (params: any) => {
         const easypaisaIds = Object.keys(easypaisaAggMap).map(Number);
         const swichIds = Object.keys(swichAggMap).map(Number);
         const payfastIds = Object.keys(payfastAggMap).map(Number);
-        console.log(jazzCashAggregation)
+        console.log(swichAggMap)
         
         // 🧵 Fetch all merchants in parallel
         const [jazzCashMerchants, easypaisaMerchants, swichMerchants, payfastMerchants] = await Promise.all([
