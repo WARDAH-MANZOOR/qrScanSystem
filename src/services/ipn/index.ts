@@ -26,6 +26,7 @@ export interface PaymentResponse {
     pp_ResponseCode: string;
     pp_ResponseMessage: string;
     pp_SecureHash: string;
+    returnUrl?: string
 }
 
 const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentResponse> => {
@@ -233,6 +234,7 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
             pp_ResponseCode: '000',
             pp_ResponseMessage: 'IPN received successfully',
             pp_SecureHash: '',  // Fill in as needed
+            returnUrl: String((txn?.providerDetails as JsonObject)?.returnUrl || '')
         };
     }
     catch (error: any) {
