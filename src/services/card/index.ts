@@ -71,7 +71,8 @@ const payWithCard = async (merchant_id: string, body: any) => {
     providerDetails: {
       id: merchant.swichMerchantId as number,
       name: PROVIDERS.CARD,
-      msisdn: body.accountNo
+      msisdn: body.accountNo,
+      returnUrl: body?.returnUrl
     }
   })
   return {
