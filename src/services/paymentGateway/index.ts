@@ -57,7 +57,7 @@ async function getToken(merchantId: string) {
       // redirect: "follow"
     };
 
-    const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
+    const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -635,7 +635,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -724,7 +724,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -2631,7 +2631,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       await delay(1000); // Wait for 1 second
     })();
 
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -3554,7 +3554,7 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
     };
     console.log(requestData)
     try {
-      const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+      const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
