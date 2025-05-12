@@ -1587,7 +1587,7 @@ const initiateJazzCashCnicPayment = async (
     // }
     const apiUrl = `https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic`;
     console.log(apiUrl);
-    const response = await axios.post(apiUrl, payload, { headers });
+    const response = await axios.post(apiUrl, {...payload, use_sandbox: paymentData.use_sandbox}, { headers });
     const data = response.data;
 
     // Handle Response and Update Transaction
