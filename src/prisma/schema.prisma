@@ -384,6 +384,7 @@ model Disbursement {
   deletedAt DateTime?
   callback_sent Boolean?
   callback_response String?
+  providerDetails          Json? @default("{}")
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
 
