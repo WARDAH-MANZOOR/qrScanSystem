@@ -100,6 +100,7 @@ model Merchant {
   swichMerchantId     Int?
   zindigiMerchantId   Int?
   payFastMerchantId   Int?
+  wooMerchantId  Int?
   jazzCashCardMerchantId     Int?
   encrypted           String?   @default("false")
   createdAt           DateTime  @default(now())
@@ -131,6 +132,7 @@ model Merchant {
   jazzCashMerchant           JazzCashMerchant?          @relation(fields: [jazzCashMerchantId], references: [id])
   easyPaisaMerchant          EasyPaisaMerchant?         @relation(fields: [easyPaisaMerchantId], references: [id])
   SwichMerchant              SwichMerchant?             @relation(fields: [swichMerchantId], references: [id])
+  wooMerchant                WoocommerceMerchants?      @relation(fields: [wooMerchantId], references: [id])
 
   easypaisaLimit             Decimal?                   @default(0)
   swichLimit                 Decimal?                   @default(0)
@@ -492,4 +494,12 @@ model Refund {
 model BlockedPhoneNumbers {
   id                       Int      @unique @default(autoincrement())
   phoneNumber              String   @unique 
+}
+
+model WoocommerceMerchants {
+  id                       Int @unique @default(autoincrement())
+  baseUrl                  String
+  username                 String
+  password                 String
+  Merchant Merchant[]
 }
