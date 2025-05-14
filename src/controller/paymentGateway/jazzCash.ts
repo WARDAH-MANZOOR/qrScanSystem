@@ -194,8 +194,15 @@ const statusInquiry = async (req: Request, res: Response, next: NextFunction) =>
       res.status(400).json(ApiResponse.error("Merchant ID is required"));
       return
     }
-    const result = await jazzCashService.statusInquiry(payload, merchantId);
-    res.status(200).json(ApiResponse.success(result, "", result.statusCode == 500 ? 201 : 200));
+    const inquiryChannel = await jazzCashService.getJazzCashInquiryChannel(merchantId);
+    let result;
+    if (inquiryChannel?.jazzCashInquiryMethod === "WALLET") {
+      result = await jazzCashService.statusInquiry(payload, merchantId);
+    }
+    else {
+      result = await jazzCashService.databaseStatusInquiry(payload, merchantId)
+    }
+    res.status(200).json(ApiResponse.success(result, "", 200));
   }
   catch (err) {
     next(err);
