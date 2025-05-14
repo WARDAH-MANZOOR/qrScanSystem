@@ -451,6 +451,118 @@ const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
   }
 };
 
+const getTeleTransactionsLast2Mins = async (req: Request, res: Response) => {
+  try {
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
+
+    let startDate = req.query?.start as string;
+    let endDate = req.query?.end as string;
+    const status = req.query?.status as string;
+    const search = req.query?.search || "" as string;
+    const msisdn = req.query?.msisdn || "" as string;
+    const provider = req.query?.provider || "" as string;
+    const customWhere = {AND: []} as any;
+
+    if (startDate && endDate) {
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+    
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
+    }
+    
+    if (status) {
+      customWhere.AND.push({ status });
+    }
+    
+    if (search) {
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
+    }
+    
+    if (msisdn) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
+    }
+    
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+    
+    if (merchantTransactionId) {
+      customWhere.AND.push({
+        merchant_transaction_id: {
+          contains: merchantTransactionId
+        }
+      });
+    }
+    
+    if (response_message) {
+      customWhere.AND.push({
+        response_message: {
+          contains: response_message
+        }
+      });
+    }
+
+    if (merchantId) {
+      customWhere["merchant_id"] = Number(merchantId);
+    }
+    const timezone = 'Asia/Karachi';
+    const currentTime = toZonedTime(new Date(), timezone);
+    const twoMinutesAgo = subMinutes(currentTime, 2);
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        ...customWhere,
+        date_time: {
+          gte: twoMinutesAgo,
+          lte: currentTime,
+        },
+      },
+      orderBy: {
+        date_time: 'desc',
+      },
+      include: {
+        merchant: {
+          include: {
+            groups: {
+              include: {
+                merchant: {
+                  include: {
+                    jazzCashMerchant: true,
+                  },
+                },
+              },
+            },
+          },
+        }
+      }
+    });
+
+    res.status(200).json({ transactions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 const exportTransactions = async (req: Request, res: Response) => {
   try {
     const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
@@ -621,6 +733,7 @@ export default {
   exportTransactions,
   getTeleTransactions,
   getTeleTransactionsLast15Mins,
+  getTeleTransactionsLast2Mins,
   ...analytics,
 };
 
