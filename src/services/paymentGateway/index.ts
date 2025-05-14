@@ -3608,7 +3608,7 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   console.log("API Payload: ", requestData)
   let jsonResponse;
   try {
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
