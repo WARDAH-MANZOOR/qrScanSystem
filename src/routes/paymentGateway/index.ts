@@ -9,6 +9,7 @@ import newJazzCashRouter from "./newJazzCash.js"
 import payFast from "./payFast.js";
 import jazzCashCrud from "./jazzCashCrud.js";
 import newStatusInquiry from "./newStatusInquiry.js";
+import wooRouter from "./wooMerchant.js"
 const router = Router();
  
 jazzCashRouter(router);
@@ -21,4 +22,6 @@ newJazzCashRouter(router);
 payFast(router);
 jazzCashCrud(router);
 newStatusInquiry(router)
+wooRouter(router)
+
 export default router;
