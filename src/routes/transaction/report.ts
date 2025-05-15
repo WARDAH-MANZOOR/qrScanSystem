@@ -2,8 +2,6 @@ import { Request, Response, Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import xlsx from 'xlsx';
 import { Parser } from 'json2csv';
-import pkg from 'pdf-creator-node';
-const { create } = pkg;
 import path from 'path';
 import fs from "fs"
 import { authorize, isLoggedIn } from '../../utils/middleware.js';
@@ -166,17 +164,7 @@ const exportPDF = async (res: Response, transactions: any[], totalAmount: number
       type: 'buffer', // Use 'buffer' to send the PDF as a response
     };
 
-    // Create PDF
-    create(document, pdfOptions)
-      .then((pdfBuffer: any) => {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="transaction_report.pdf"');
-        res.send(pdfBuffer);
-      })
-      .catch((error: any) => {
-        error = new CustomError("An error ocurred while creating PDF", 500);
-        res.status(500).send(error);
-      });
+    
   }
   catch (err) {
     err = new CustomError("An error ocurred while creating PDF", 500);
