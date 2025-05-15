@@ -322,6 +322,66 @@ export const generateExcelReportService = async (params: any): Promise<string> =
     return filePath;
 };
 
+export const payoutPerWalletService = async (params: any) => {
+    try {
+        const { startDate, endDate } = params;
+        let start_date, end_date;
+
+        if (startDate && endDate) {
+            start_date = new Date(format(toZonedTime(startDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
+            end_date = new Date(format(toZonedTime(endDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
+        }
+
+        // 🧠 Let DB do the aggregation
+        const [jazzCashAgg] = await Promise.all([
+            prisma.disbursement.findMany({
+                where: {
+                    status: 'completed',
+                    disbursementDate: {
+                        gte: start_date,
+                        lt: end_date,
+                    },
+                },
+                select: {
+                    providerDetails: true,
+                    merchantAmount: true,
+                },
+            })
+        ]);
+
+        const jazzCashAggregation = jazzCashAgg.reduce((acc, t) => {
+            const merchantId = Number((t.providerDetails as JsonObject)?.id);
+            if (Number.isNaN(merchantId)) return acc;
+
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
+            acc[merchantId].total_amount += Number(t.merchantAmount);
+            return acc;
+        }, {} as Record<number, { total_amount: number; provider_name: string }>);
+        
+        // 🧾 Prepare merchant ID arrays
+        const jazzCashIds = Object.keys(jazzCashAggregation).map(Number);
+        
+        // 🧵 Fetch all merchants in parallel
+        const [jazzCashMerchants] = await Promise.all([
+            prisma.jazzCashDisburseAccount.findMany({ where: { id: { in: jazzCashIds } }, select: { id: true, merchant_of: true } }),
+        ]);
+
+        // 🧱 Format results
+        const jazzCashResult = jazzCashMerchants.map((m) => ({
+            returnUrl: m.merchant_of,
+            total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
+            provider_name: 'JazzCash',
+        }));
+
+        return {
+            jazzCashTransactions: jazzCashResult,
+        };
+    } catch (error) {
+        console.error(error);
+        throw new CustomError("Internal Server Error", 400);
+    }
+};
+
 export const payinPerWalletService = async (params: any) => {
     try {
         const { startDate, endDate } = params;
@@ -454,5 +514,6 @@ export const payinPerWalletService = async (params: any) => {
 
 export default {
     generateExcelReportService,
-    payinPerWalletService
+    payinPerWalletService,
+    payoutPerWalletService
 }
