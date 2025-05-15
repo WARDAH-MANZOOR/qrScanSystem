@@ -446,7 +446,7 @@ const initiateJazzCashPayment = async (
         ) {
           return;
         }
-        console.log("Response: ",r)
+        console.log("Response: ", r)
         // Update transaction status
         let transaction = await tx.transaction.update({
           where: {
@@ -1369,6 +1369,58 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   }
 };
 
+const getJazzCashInquiryChannel = async (merchantId: string) => {
+  return await prisma.merchant.findFirst({
+    where: {
+      uid: merchantId
+    },
+    select: {
+      jazzCashInquiryMethod: true
+    }
+  })
+}
+
+const databaseStatusInquiry = async (payload: any, merchantId: string) => {
+  let merchant = await prisma.merchant.findFirst({
+    where: { uid: merchantId },
+    include: {
+      jazzCashMerchant: true,
+    },
+  });
+
+  if (!merchant) {
+    throw new CustomError("Merchant Not Found", 400);
+  }
+
+  const txn = await prisma.transaction.findFirst({
+    where: {
+      merchant_transaction_id: payload.transactionId,
+      merchant_id: merchant?.merchant_id,
+      providerDetails: {
+        path: ['name'],
+        equals: PROVIDERS.JAZZ_CASH
+      }
+    }
+  })
+
+  if (!txn) {
+    console.log("Transaction");
+    throw new CustomError("Transaction Not Found", 400)
+  }
+
+  return {
+    "orderId": txn?.merchant_transaction_id,
+    "transactionStatus": txn.status.slice(0,1).toUpperCase() + txn.status.slice(1),
+    "transactionAmount": txn?.original_amount,
+    "transactionDateTime": txn?.date_time,
+    "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
+    "responseDesc": txn?.response_message,
+    "responseMode": "MA",
+  }
+  // return res.data;
+
+};
+
 const simpleStatusInquiry = async (payload: any, merchantId: string) => {
   let merchant = await prisma.merchant.findFirst({
     where: { uid: merchantId },
@@ -1585,9 +1637,9 @@ const initiateJazzCashCnicPayment = async (
     // else {
     //   part = "https://payments.jazzcash.com.pk/"
     // }
-    const apiUrl = `https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic`;
+    const apiUrl = `https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic?use_sandbox=${paymentData.use_sandbox}`;
     console.log(apiUrl);
-    const response = await axios.post(apiUrl, {...payload, use_sandbox: paymentData.use_sandbox}, { headers });
+    const response = await axios.post(apiUrl, { ...payload }, { headers });
     const data = response.data;
 
     // Handle Response and Update Transaction
@@ -1775,5 +1827,7 @@ export default {
   initiateJazzCashPaymentAsync,
   initiateJazzCashPaymentAsyncClone,
   initiateJazzCashCnicPayment,
-  simpleStatusInquiry
+  simpleStatusInquiry,
+  getJazzCashInquiryChannel,
+  databaseStatusInquiry
 };

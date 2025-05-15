@@ -976,7 +976,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
                 provider: PROVIDERS.JAZZ_CASH,
                 status: "pending",
                 response_message: "pending",
-                to_provider: body.bankCode
+                to_provider: body.bankCode,
+                providerDetails: {
+                  id: findMerchant?.JazzCashDisburseAccountId
+                }
               },
             });
             throw new CustomError("Transaction is Pending", 202);
@@ -1024,7 +1027,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     let res = await response.json();
     let data;
     if (!res.data) {
-      console.log(JSON.stringify({event: "IBFT_INQUIRY_DATA_NOT_RECIEVED", response: res, id, order_id: body.order_id}))
+      console.log(JSON.stringify({ event: "IBFT_INQUIRY_DATA_NOT_RECIEVED", response: res, id, order_id: body.order_id }))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
@@ -1042,7 +1045,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           provider: PROVIDERS.JAZZ_CASH,
           status: "pending",
           response_message: "pending",
-          to_provider: body.bankCode
+          to_provider: body.bankCode,
+          providerDetails: {
+            id: findMerchant?.JazzCashDisburseAccountId
+          }
         },
       });
       balanceDeducted = false;
@@ -1051,7 +1057,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
-      console.log(JSON.stringify({event: "IBFT_INQUIRY_ERROR", response: data, id, order_id: body.order_id}))
+      console.log(JSON.stringify({ event: "IBFT_INQUIRY_ERROR", response: data, id, order_id: body.order_id }))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = data.transactionID || db_id;
       // Get the current date
@@ -1077,7 +1083,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           account: body.iban,
           provider: PROVIDERS.BANK,
           status: "failed",
-          response_message: data.responseDescription
+          response_message: data.responseDescription,
+          providerDetails: {
+            id: findMerchant?.JazzCashDisburseAccountId
+          }
         },
       });
       balanceDeducted = false;
@@ -1113,7 +1122,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     })
     res = await response.json();
     if (!res.data) {
-      console.log(JSON.stringify({event: "IBFT_PAYMENT_DATA_NOT_RECIEVED", response: res, id, order_id: body.order_id}))
+      console.log(JSON.stringify({ event: "IBFT_PAYMENT_DATA_NOT_RECIEVED", response: res, id, order_id: body.order_id }))
       easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       await prisma.disbursement.create({
         data: {
@@ -1131,7 +1140,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           provider: PROVIDERS.JAZZ_CASH,
           status: "pending",
           response_message: "pending",
-          to_provider: body.bankCode
+          to_provider: body.bankCode,
+          providerDetails: {
+            id: findMerchant?.JazzCashDisburseAccountId
+          }
         },
       });
       balanceDeducted = false;
@@ -1141,7 +1153,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       // console.log("IBFT Response: ", data);
-      console.log(JSON.stringify({event: "IBFT_PAYMENT_ERROR", response: res, id, order_id: body.order_id}))
+      console.log(JSON.stringify({ event: "IBFT_PAYMENT_ERROR", response: res, id, order_id: body.order_id }))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || db_id;
       // Get the current date
@@ -1167,7 +1179,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           account: body.iban,
           provider: PROVIDERS.BANK,
           status: "failed",
-          response_message: res.responseDescription
+          response_message: res.responseDescription,
+          providerDetails: {
+            id: findMerchant?.JazzCashDisburseAccountId
+          }
         },
       });
       balanceDeducted = false;
@@ -1204,7 +1219,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
             account: body.iban,
             provider: PROVIDERS.BANK,
             status: "completed",
-            response_message: "success"
+            response_message: "success",
+            providerDetails: {
+              id: findMerchant?.JazzCashDisburseAccountId
+            }
           },
         });
         let webhook_url: string;
@@ -2579,7 +2597,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
         }
         const result = await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
         balanceDeducted = true;
-        console.log(JSON.stringify({event: "BALANCE_ADJUSTED", id, amount: +merchantAmount.toString(), order_id: body.order_id})) // Adjust the balance
+        console.log(JSON.stringify({ event: "BALANCE_ADJUSTED", id, amount: +merchantAmount.toString(), order_id: body.order_id })) // Adjust the balance
       }
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -2600,7 +2618,10 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
                 provider: PROVIDERS.JAZZ_CASH,
                 status: "pending",
                 response_message: "pending",
-                to_provider: PROVIDERS.JAZZ_CASH
+                to_provider: PROVIDERS.JAZZ_CASH,
+                providerDetails: {
+                  id: findMerchant?.JazzCashDisburseAccountId
+                }
               },
             });
             throw new CustomError("Transaction is Pending", 202);
@@ -2642,7 +2663,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     });
     let res = await response.json();
     if (!res.data) {
-      console.log(JSON.stringify({event: "MW_RESPONSE_DATA_NOT_RECIEVED", res, id, order_id: body.order_id}))
+      console.log(JSON.stringify({ event: "MW_RESPONSE_DATA_NOT_RECIEVED", res, id, order_id: body.order_id }))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       await prisma.disbursement.create({
         data: {
@@ -2660,7 +2681,10 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           provider: PROVIDERS.JAZZ_CASH,
           status: "pending",
           response_message: "pending",
-          to_provider: PROVIDERS.JAZZ_CASH
+          to_provider: PROVIDERS.JAZZ_CASH,
+          providerDetails: {
+            id: findMerchant?.JazzCashDisburseAccountId
+          }
         },
       });
       balanceDeducted = false;
@@ -2670,7 +2694,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
 
     if (res.responseCode != "G2P-T-0") {
-      console.log(JSON.stringify({event: "MW_PAYMENT_ERROR", res, id, order_id: body.order_id}))
+      console.log(JSON.stringify({ event: "MW_PAYMENT_ERROR", res, id, order_id: body.order_id }))
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
       data["transaction_id"] = res?.transactionID || id;
 
@@ -2696,13 +2720,16 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           account: body.phone,
           provider: PROVIDERS.JAZZ_CASH,
           status: "failed",
-          response_message: res.responseDescription
+          response_message: res.responseDescription,
+          providerDetails: {
+            id: findMerchant?.JazzCashDisburseAccountId
+          }
         },
       });
       balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500);
     }
-    console.log(JSON.stringify({event: "MW_TRANSACTION_SUCCESS", id: id, order_id: body.order_id}))
+    console.log(JSON.stringify({ event: "MW_TRANSACTION_SUCCESS", id: id, order_id: body.order_id }))
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
@@ -2732,7 +2759,10 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
             account: body.phone,
             provider: PROVIDERS.JAZZ_CASH,
             status: "completed",
-            response_message: "success"
+            response_message: "success",
+            providerDetails: {
+              id: findMerchant?.JazzCashDisburseAccountId
+            }
           },
         });
         let webhook_url: string;
@@ -2776,7 +2806,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   }
   catch (err: any) {
     // console.log("MW Transaction Error", err);
-    console.log(JSON.stringify({event: "MW_TRANSACTION_ERROR", message: err?.message, statusCode: err?.statusCode == 202 ? 202 : 500, id: id, order_id: body.order_id}))
+    console.log(JSON.stringify({ event: "MW_TRANSACTION_ERROR", message: err?.message, statusCode: err?.statusCode == 202 ? 202 : 500, id: id, order_id: body.order_id }))
 
     if (balanceDeducted) {
       await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
@@ -3608,7 +3638,7 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
   console.log("API Payload: ", requestData)
   let jsonResponse;
   try {
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -3664,7 +3694,7 @@ async function databaseCheckTransactionStatus(body: any, merchantId: string) {
     }
     try {
       const jsonResponse = {
-        responseCode: transaction?.status == "completed" ? "G2P-T-0" :  transaction?.status == "failed" ? "G2P-T-1" : "G2P-T-2",
+        responseCode: transaction?.status == "completed" ? "G2P-T-0" : transaction?.status == "failed" ? "G2P-T-1" : "G2P-T-2",
         responseDescription: transaction?.response_message,
         transactionID: transaction?.transaction_id,
         referenceID: transactionService.createTransactionId(),
@@ -3716,7 +3746,7 @@ async function simpleSandboxCheckTransactionStatus(token: string, body: any, mer
   const results = [];
 
   for (const id of body.transactionIds) {
-    
+
     console.log("Inquiry Payload: ", { originalReferenceId: id, referenceID: transactionService.createTransactionId() })
     const payload = encryptData(
       { originalReferenceId: id, referenceID: transactionService.createTransactionId() },

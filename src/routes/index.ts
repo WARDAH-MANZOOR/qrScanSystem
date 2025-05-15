@@ -19,6 +19,7 @@ import refund from "./refund/index.js"
 import disbursementDispute from "./disbursementDispute/index.js"
 import block_phone_number from "./block_phone_number/index.js"
 import card from "./card/index.js"
+import tele from "./tele/index.js"
 
 export default function (app: express.Application) {
   app.use("/payment", payment);
@@ -41,4 +42,5 @@ export default function (app: express.Application) {
   app.use("/disbursement-dispute",disbursementDispute)
   app.use("/block",block_phone_number)
   app.use("/card",card)
+  app.use("/tele",tele)
 }

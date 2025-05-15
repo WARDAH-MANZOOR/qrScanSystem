@@ -34,6 +34,9 @@ export interface Merchant {
   easypaisaRate: number;
   payfastInquiryMethod: "DATABASE" | "WALLET";
   jazzCashCardMerchantId: number;
+  jazzCashDisburseInquiryMethod: "DATABASE" | "WALLET";
+  wooMerchantId: number;
+  jazzCashInquiryMethod: "DATABASE" | "WALLET";
 }
 
 export interface IjazzCashConfigParams {

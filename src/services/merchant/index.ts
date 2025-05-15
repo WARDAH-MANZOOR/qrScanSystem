@@ -39,7 +39,10 @@ const updateMerchant = async (payload: Merchant) => {
     easypaisaRate,
     payFastMerchantId,
     payfastInquiryMethod,
-    jazzCashCardMerchantId
+    jazzCashCardMerchantId,
+    jazzCashDisburseInquiryMethod,
+    jazzCashInquiryMethod,
+    wooMerchantId
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
@@ -86,7 +89,10 @@ const updateMerchant = async (payload: Merchant) => {
           swichLimit,
           payFastMerchantId,
           payfastInquiryMethod,
-          jazzCashCardMerchantId
+          jazzCashCardMerchantId,
+          jazzCashDisburseInquiryMethod,
+          jazzCashInquiryMethod,
+          wooMerchantId
         },
         where: { merchant_id: +merchantId },
       });
@@ -156,6 +162,7 @@ const findOne = async (params: any) => {
         commissions: true,
       },
     });
+    merchants?.JazzCashDisburseAccountId
     return merchants;
   } catch (err: any) {
     throw new CustomError(err?.error, err?.statusCode);
@@ -195,7 +202,10 @@ const addMerchant = async (payload: Merchant) => {
     easypaisaRate,
     payFastMerchantId,
     payfastInquiryMethod,
-    jazzCashCardMerchantId
+    jazzCashCardMerchantId,
+    jazzCashDisburseInquiryMethod,
+    jazzCashInquiryMethod,
+    wooMerchantId
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -241,7 +251,10 @@ const addMerchant = async (payload: Merchant) => {
           easypaisaLimit,
           swichLimit,
           payfastInquiryMethod,
-          jazzCashCardMerchantId
+          jazzCashCardMerchantId,
+          jazzCashDisburseInquiryMethod,
+          jazzCashInquiryMethod,
+          wooMerchantId
         },
       });
 
@@ -292,7 +305,7 @@ const setDisbursePercent = async (merchant_id: number, percent: number) => {
     })
 
     if (!merchant) {
-      throw new CustomError("Merchant Not Found",404);
+      throw new CustomError("Merchant Not Found", 404);
     }
 
     if (!percent || percent < 0) {
@@ -310,7 +323,7 @@ const setDisbursePercent = async (merchant_id: number, percent: number) => {
 
     return result;
   }
-  catch(err: any) {
+  catch (err: any) {
     throw new CustomError(err?.message, err?.statusCode)
   }
 }
