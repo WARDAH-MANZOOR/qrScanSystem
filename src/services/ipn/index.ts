@@ -4,6 +4,7 @@ import { transactionService } from "services/index.js";
 import CustomError from "utils/custom_error.js";
 import { addWeekdays } from "utils/date_method.js";
 import CryptoJS from "crypto-js"
+import axios from "axios";
 
 // Example of the request body fields
 export interface PaymentRequestBody {
@@ -144,13 +145,20 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                         transaction_id: pp_TxnRefNo
                     }
                 ]
+            },
+            include: {
+                merchant: true
             }
         })
         if (!txn) {
             throw new CustomError("Transaction Not Found", 500);
         }
+        const merchant = await prisma.merchant.findFirst({
+            where: {
+                merchant_id: txn?.merchant?.id
+            }
+        })
         if (pp_ResponseCode == "000") {
-
             await prisma.transaction.updateMany({
                 where: {
                     OR: [
@@ -228,7 +236,9 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                 }
             })
         }
-
+        if (merchant?.wooMerchantId) {
+            await updateWooOrderStatus(merchant?.wooMerchantId, pp_TxnRefNo, pp_ResponseCode)
+        }
         // Example: If pp_TxnType === "MWALLET", return success response
         return {
             pp_ResponseCode: '000',
@@ -242,4 +252,44 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
     }
 }
 
+const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode: string) => {
+    try {
+        const wooMerchant = await prisma.woocommerceMerchants.findUnique({
+            where: {
+                id: wooId
+            }
+        });
+        if (!wooMerchant) {
+            throw new CustomError("Woo Commerce Merchant Not Assigned", 500);
+        }
+        orderId = extractOrderNumberFromTxnId(orderId) as string
+        if (!orderId) {
+            throw new CustomError("Woo Commerce Merchant Not Assigned", 500);
+        }
+        const res = await axios.put(`${wooMerchant?.baseUrl}wp-json/wc/v3/orders/${orderId}`, {
+            status: responseCode == "000" ? "completed" : "failed"
+        },
+            {
+                headers: {
+                    Authorization: `Basic ${toBase64(`${wooMerchant?.username}:${wooMerchant?.password}`)}`
+                }
+            })
+        return res;
+    }
+    catch (err: any) {
+
+    }
+}
+
+function extractOrderNumberFromTxnId(txnId: string) {
+    const wpIndex = txnId.indexOf('WP');
+    if (wpIndex === -1) return null; // WP not found
+
+    // Extract everything after 'WP'
+    return txnId.substring(wpIndex + 2);
+}
+
+function toBase64(str: string) {
+    return Buffer.from(str).toString('base64');
+}
 export default { processIPN, processCardIPN };
