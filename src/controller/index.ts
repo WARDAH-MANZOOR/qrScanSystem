@@ -22,6 +22,7 @@ import newStatusInquiry from "./paymentGateway/newStatusInquiry.js";
 import block_phone_number from "./block_phone_number/index.js";
 import card_controller from "./card/index.js"
 import teleController from "./tele/index.js"
+import wooController from "./paymentGateway/wooMerchant.js"
 
 export {
   jazzCashController,
@@ -47,5 +48,6 @@ export {
   newStatusInquiry,
   block_phone_number,
   card_controller,
-  teleController
+  teleController,
+  wooController
 };
