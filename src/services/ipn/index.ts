@@ -236,6 +236,7 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                 }
             })
         }
+        console.log(merchant)
         if (merchant?.wooMerchantId) {
             await updateWooOrderStatus(merchant?.wooMerchantId, pp_TxnRefNo, pp_ResponseCode)
         }
@@ -254,19 +255,22 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
 
 const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode: string) => {
     try {
+        console.log("Update Method")
         const wooMerchant = await prisma.woocommerceMerchants.findUnique({
             where: {
                 id: wooId
             }
         });
+        console.log(wooMerchant)
         if (!wooMerchant) {
             throw new CustomError("Woo Commerce Merchant Not Assigned", 500);
         }
         orderId = extractOrderNumberFromTxnId(orderId) as string
+        console.log(orderId)
         if (!orderId) {
             throw new CustomError("Woo Commerce Merchant Not Assigned", 500);
         }
-        const res = await axios.put(`${wooMerchant?.baseUrl}wp-json/wc/v3/orders/${orderId}`, {
+        const res = await axios.put(`${wooMerchant?.baseUrl}/wp-json/wc/v3/orders/${orderId}`, {
             status: responseCode == "000" ? "completed" : "failed"
         },
             {
