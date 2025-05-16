@@ -3646,6 +3646,7 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
       },
       body: JSON.stringify(requestData)
     });
+    console.log("Response: ",response)
     jsonResponse = decryptData(JSON.stringify((await response.json())), findDisbureMerch.key, findDisbureMerch.initialVector);
     // results.push({ id, status: jsonResponse });
   } catch (error: any) {
