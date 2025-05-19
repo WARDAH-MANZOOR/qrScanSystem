@@ -116,3 +116,4 @@ app.listen(process.env.PORT || 3001, () => {
 // const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
 // console.log('Decrypted Data:', decryptedData);
 // export default app;
+console.log(await hashPassword("Zhiquan@123."))
