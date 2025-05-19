@@ -568,6 +568,7 @@ async function failTransactions(transactionIds: string[]) {
         const txns = await prisma.transaction.findMany({
             where: {
                 merchant_transaction_id: { in: transactionIds },
+                response_message: "Transaction is Pending"
             }
         });
         if (txns.length <= 0) {

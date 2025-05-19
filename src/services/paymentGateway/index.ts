@@ -134,7 +134,7 @@ async function simpleGetToken(merchantId: string) {
       // redirect: "follow"
     };
 
-    const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
+    const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -3592,7 +3592,7 @@ async function checkTransactionStatus(token: string, body: any, merchantId: stri
         },
         body: JSON.stringify(requestData)
       });
-      const jsonResponse = decryptData(JSON.stringify((await response.json())), findDisbureMerch.key, findDisbureMerch.initialVector);
+      const jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
       results.push({ id, status: jsonResponse });
     } catch (error: any) {
       // Handle error (e.g., network issue) and add to results
@@ -3646,7 +3646,8 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
       },
       body: JSON.stringify(requestData)
     });
-    jsonResponse = decryptData(JSON.stringify((await response.json())), findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log("Response: ",response)
+    jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // results.push({ id, status: jsonResponse });
   } catch (error: any) {
     // Handle error (e.g., network issue) and add to results
