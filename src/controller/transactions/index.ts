@@ -655,11 +655,11 @@ const exportTransactions = async (req: Request, res: Response) => {
       'original_amount',
       'commission',
       'settled_amount',
-      'response_message',
       'status',
       'type',
       'provider',
-      'callback_sent'
+      'callback_sent',
+      'response_message'
     ];
     const timeZone = "Asia/Karachi"
     const data = transactions.map(transaction => ({
