@@ -1171,7 +1171,11 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
         const settled = new Decimal(totalIncome).minus(remainingSettlements);
         const payinCommission = settled.times(merchant?.commissionRate as Decimal);
         const settledBalance = settled.minus(payinCommission);
-        const payoutCommission = new Decimal(disbursementAmount).times(merchant?.disbursementRate as Decimal);
+        const payoutCommission = new Decimal((await prisma.$queryRawUnsafe<
+            { total: number }[]
+        >(`
+        SELECT SUM("commission" + "gst" + "withholdingTax") as total FROM "Disbursement" where merchant_id = ${merchant_id} and status='completed';
+      `))[0]?.total);
         const totalDisbursement = new Decimal(disbursementAmount).plus(payoutCommission);
         const disbursementSum = new Decimal(availableBalance)
             .plus(disbursementBalance)
@@ -1210,23 +1214,23 @@ async function adjustMerchantDisbursementBalance(merchantId: number, targetBalan
         // if (!wb) {
         const balance = await prisma.merchant.findFirst({
             where: {
-              merchant_id: +merchantId,
+                merchant_id: +merchantId,
             },
             select: {
-              balanceToDisburse: true,
-              disburseBalancePercent: true
+                balanceToDisburse: true,
+                disburseBalancePercent: true
             }
-          });
+        });
         walletBalance = balance?.balanceToDisburse;
         // targetBalance += walletBalance;
         // }
         // else {
         let update = {};
         if (type == "in") {
-            update = {increment: targetBalance}
+            update = { increment: targetBalance }
         }
         else {
-            update = {decrement: targetBalance}
+            update = { decrement: targetBalance }
         }
         // Execute in transaction
         return await prisma.$transaction(async (tx) => {
