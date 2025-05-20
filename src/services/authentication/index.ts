@@ -194,5 +194,6 @@ export default {
   getAPIKey,
   createAPIKey,
   createDecryptionKey,
-  getDecryptionKey
+  getDecryptionKey,
+  hashPassword
 };
