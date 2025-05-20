@@ -1169,7 +1169,12 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
         } = await dashboardService.merchantDashboardDetails({}, { merchant_id }) as MerchantDashboardData;
 
         const settled = new Decimal(totalIncome).minus(remainingSettlements);
-        const payinCommission = settled.times(merchant?.commissionRate as Decimal);
+        // const payinCommission = settled.times(merchant?.commissionRate as Decimal);
+        const payinCommission = new Decimal((await prisma.$queryRawUnsafe<
+            { total: number }[]
+        >(`
+        SELECT SUM(commission + gst + "withholdingTax") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
+      `))[0]?.total);
         const settledBalance = settled.minus(payinCommission);
         const payoutCommission = new Decimal((await prisma.$queryRawUnsafe<
             { total: number }[]
