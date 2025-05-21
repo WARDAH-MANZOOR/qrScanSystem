@@ -8,7 +8,7 @@ router.post('/', transactionController.filterTransactions);
 router.get('/',[isLoggedIn], authorize("Transactions"), transactionController.getTransactions);
 router.get('/tele', transactionController.getTeleTransactions);
 router.get('/tele/last-15-mins', transactionController.getTeleTransactionsLast15Mins);
-router.get('/tele/last-2-mins', transactionController.getTeleTransactionsLast2Mins);
+router.get('/tele/last-4-mins', transactionController.getTeleTransactionsLast4Mins);
 router.get('/summary', transactionController.getDashboardSummary);
 router.get('/balance', transactionController.getProAndBal);
 router.get("/customer", [isLoggedIn], transactionController.getCustomerTransactions);
