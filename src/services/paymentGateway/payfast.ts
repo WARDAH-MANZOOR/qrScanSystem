@@ -290,7 +290,7 @@ const pay = async (merchantId: string, params: any) => {
             return {
                 txnNo: saveTxn.merchant_transaction_id,
                 txnDateTime: saveTxn.date_time,
-                statusCode: result?.status_code
+                statusCode: "0000"
             };
         }
         else {
