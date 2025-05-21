@@ -451,7 +451,7 @@ const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
   }
 };
 
-const getTeleTransactionsLast2Mins = async (req: Request, res: Response) => {
+const getTeleTransactionsLast4Mins = async (req: Request, res: Response) => {
   try {
     const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
 
@@ -526,7 +526,7 @@ const getTeleTransactionsLast2Mins = async (req: Request, res: Response) => {
     }
     const timezone = 'Asia/Karachi';
     const currentTime = toZonedTime(new Date(), timezone);
-    const twoMinutesAgo = subMinutes(currentTime, 2);
+    const twoMinutesAgo = subMinutes(currentTime, 4);
 
     const transactions = await prisma.transaction.findMany({
       where: {
@@ -733,7 +733,7 @@ export default {
   exportTransactions,
   getTeleTransactions,
   getTeleTransactionsLast15Mins,
-  getTeleTransactionsLast2Mins,
+  getTeleTransactionsLast4Mins,
   ...analytics,
 };
 
