@@ -71,7 +71,7 @@ const initiateEasyPaisa = async (
         transaction_id: validation?.transaction_id,
         ...req.body
       })
-      if (result?.statusCode != "00") {
+      if (result?.statusCode != "0000") {
         res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
         return;
       }
