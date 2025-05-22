@@ -23,6 +23,7 @@ import block_phone_number from "./block_phone_number/index.js";
 import card_controller from "./card/index.js"
 import teleController from "./tele/index.js"
 import wooController from "./paymentGateway/wooMerchant.js"
+import password_hash from "./password_hash/index.js";
 
 export {
   jazzCashController,
@@ -49,5 +50,6 @@ export {
   block_phone_number,
   card_controller,
   teleController,
-  wooController
+  wooController,
+  password_hash
 };
