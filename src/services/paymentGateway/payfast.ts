@@ -290,7 +290,7 @@ const pay = async (merchantId: string, params: any) => {
             return {
                 txnNo: saveTxn.merchant_transaction_id,
                 txnDateTime: saveTxn.date_time,
-                statusCode: result?.status_code
+                statusCode: "0000"
             };
         }
         else {
@@ -701,7 +701,7 @@ const payCnic = async (merchantId: string, params: any) => {
         let id2 = params.order_id || id;
         saveTxn = await prisma.transaction.findUnique({
             where: {
-                transaction_id: params.transactionId
+                merchant_transaction_id: params.transactionId
             }
         });
 
