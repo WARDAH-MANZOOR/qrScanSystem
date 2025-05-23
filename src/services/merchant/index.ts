@@ -42,7 +42,8 @@ const updateMerchant = async (payload: Merchant) => {
     jazzCashCardMerchantId,
     jazzCashDisburseInquiryMethod,
     jazzCashInquiryMethod,
-    wooMerchantId
+    wooMerchantId,
+    cardRate
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
@@ -112,7 +113,8 @@ const updateMerchant = async (payload: Merchant) => {
               ? +settlementDuration
               : finance?.settlementDuration,
           commissionMode,
-          easypaisaRate: easypaisa_rate
+          easypaisaRate: easypaisa_rate,
+          cardRate
         },
         where: { merchant_id: +merchantId },
       });
@@ -205,7 +207,8 @@ const addMerchant = async (payload: Merchant) => {
     jazzCashCardMerchantId,
     jazzCashDisburseInquiryMethod,
     jazzCashInquiryMethod,
-    wooMerchantId
+    wooMerchantId,
+    cardRate
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -270,7 +273,8 @@ const addMerchant = async (payload: Merchant) => {
           settlementDuration: +settlementDuration,
           merchant_id: user.id,
           commissionMode,
-          easypaisaRate: easypaisa_rate
+          easypaisaRate: easypaisa_rate,
+          cardRate
         },
       });
 
