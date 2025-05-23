@@ -24,38 +24,38 @@ router.post("/login", validateLoginData, login);
 router.post("/signup", validateLoginData, signup);
 router.get("/get-key/:id", [isLoggedIn], authorize("Setting"), authenticationController.getAPIKey);
 router.get("/get-api-key/:id", [isLoggedIn], authorize("Setting"), authenticationController.getDecryptionKey);
-router.post(
-  "/populate_encrypted_api_keys",
-  [isLoggedIn, isAdmin],
-  async (req: Request, res: Response) => {
-    try {
-      await populateEncryptedApiKeysForExistingUsers();
-      res.status(200).json({
-        message: "Encrypted API keys populated for all existing users.",
-      });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ message: error?.message || "Internal server error" });
-    }
-  }
-);
-router.post(
-  "/populate_encrypted_decryption_keys",
-  [isLoggedIn, isAdmin],
-  async (req: Request, res: Response) => {
-    try {
-      await populateEncryptedDecryptionKeysForExistingUsers();
-      res.status(200).json({
-        message: "Encrypted Decryption keys populated for all existing users.",
-      });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ message: error?.message || "Internal server error" });
-    }
-  }
-);
+// router.post(
+//   "/populate_encrypted_api_keys",
+//   [isLoggedIn, isAdmin],
+//   async (req: Request, res: Response) => {
+//     try {
+//       await populateEncryptedApiKeysForExistingUsers();
+//       res.status(200).json({
+//         message: "Encrypted API keys populated for all existing users.",
+//       });
+//     } catch (error: any) {
+//       res
+//         .status(500)
+//         .json({ message: error?.message || "Internal server error" });
+//     }
+//   }
+// );
+// router.post(
+//   "/populate_encrypted_decryption_keys",
+//   [isLoggedIn, isAdmin],
+//   async (req: Request, res: Response) => {
+//     try {
+//       await populateEncryptedDecryptionKeysForExistingUsers();
+//       res.status(200).json({
+//         message: "Encrypted Decryption keys populated for all existing users.",
+//       });
+//     } catch (error: any) {
+//       res
+//         .status(500)
+//         .json({ message: error?.message || "Internal server error" });
+//     }
+//   }
+// );
 router.post("/update-password",[isLoggedIn],authorize("Setting"),authenticationController.updatePassword)
 
 export default router;

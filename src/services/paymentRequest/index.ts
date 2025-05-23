@@ -8,6 +8,7 @@ import {
 } from "../../services/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
 import { PROVIDERS } from "constants/providers.js";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -229,9 +230,17 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     else if (
       paymentRequestObj.provider?.toLocaleLowerCase() === "card"
     ) {
-      let commission = +merchant?.commissions[0].commissionGST +
-        +merchant.commissions[0].commissionRate +
-        +merchant.commissions[0].commissionWithHoldingTax
+      let commission;
+      if (+(merchant?.commissions[0].cardRate as Decimal) != 0) {
+        commission = +merchant?.commissions[0].commissionGST +
+          +(merchant?.commissions[0].cardRate as Decimal) +
+          +merchant.commissions[0].commissionWithHoldingTax
+      }
+      else {
+        commission = +merchant?.commissions[0].commissionGST +
+          +merchant.commissions[0].commissionRate +
+          +merchant.commissions[0].commissionWithHoldingTax
+      }
       let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
       await transactionService.createTxn({
         order_id: id2,
