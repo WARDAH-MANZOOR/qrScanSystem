@@ -172,6 +172,7 @@ model MerchantFinancialTerms {
   commissionMode             CommissionMode? @default(SINGLE) 
   commissionRate             Decimal
   easypaisaRate              Decimal?
+  cardRate                   Decimal? @default(0)
   commissionWithHoldingTax   Decimal
   commissionGST              Decimal
   disbursementRate           Decimal
