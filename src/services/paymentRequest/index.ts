@@ -5,6 +5,7 @@ import {
   easyPaisaService,
   swichService,
   transactionService,
+  payfast,
 } from "../../services/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
 import { PROVIDERS } from "constants/providers.js";
@@ -204,7 +205,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             500
           );
         }
-      } else {
+      } else if (merchant.easypaisaPaymentMethod == "SWITCH") {
         // swich payment
         const swichPayment = await swichService.initiateSwich(
           {
@@ -224,6 +225,35 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             swichPayment.message,
             500
           );
+        }
+      }
+      else {
+        const token = await payfast.getApiToken(merchant.uid, {});
+        if (!token?.token) {
+          throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformation(merchant.uid, {
+          token: token?.token,
+          bankCode: '13',
+          order_id: paymentRequest.merchant_transaction_id,
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+          amount: paymentRequest.amount,
+          email: paymentRequest.email
+        })
+        if (!validation?.transaction_id) {
+          throw new CustomError("Transaction Not Created", 500);
+        }
+        const payfastPayment = await payfast.pay(merchant.uid, {
+          token: token?.token,
+          bankCode: '13',
+          transaction_id: validation?.transaction_id,
+          order_id: paymentRequest.merchant_transaction_id,
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+          amount: paymentRequest.amount,
+          email: paymentRequest.email
+        })
+        if (payfastPayment?.statusCode != "0000") {
+          throw new CustomError(payfastPayment.message, 500)
         }
       }
     }
