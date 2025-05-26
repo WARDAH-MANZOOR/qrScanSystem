@@ -149,7 +149,6 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (!paymentRequest.userId) {
       throw new CustomError("User not found", 404);
     }
-
     // find merchant by user id because merchant and user are the same
     const merchant = await prisma.merchant.findFirst({
       where: {
@@ -163,6 +162,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (!merchant || !merchant.uid) {
       throw new CustomError("Merchant not found", 404);
     }
+    console.log(merchant?.easypaisaPaymentMethod)
 
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
