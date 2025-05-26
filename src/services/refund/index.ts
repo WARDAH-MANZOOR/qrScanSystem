@@ -637,9 +637,7 @@ const getRefund = async (merchantId: number, params: any) => {
     }
 
     if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = {
-        contains: params.merchantTransactionId
-      }
+      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
     }
 
     if (params.status) {
@@ -764,9 +762,7 @@ const exportRefund = async (merchantId: number, params: any) => {
     }
 
     if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = {
-        contains: params.merchantTransactionId
-      }
+      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
     }
 
     if (params.status) {
