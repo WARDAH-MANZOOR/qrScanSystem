@@ -48,19 +48,6 @@ const updateMerchant = async (payload: Merchant) => {
   try {
     // let enc = stringToBoolean(encrypted);
     let result = await prisma.$transaction(async (tx) => {
-      let hashedPassword;
-      if (password) {
-        hashedPassword = await hashPassword(password as string);
-        await tx.user.update({
-          where: {
-            id: +merchantId
-          },
-          data: {
-            password: hashedPassword,
-            email
-          }
-        })
-      }
       let method = easypaisaPaymentMethod?.toUpperCase();
       if (method != "DIRECT" && method != "SWITCH" && method != "PAYFAST") {
         throw new CustomError("Easy Paisa Method not valid", 400);

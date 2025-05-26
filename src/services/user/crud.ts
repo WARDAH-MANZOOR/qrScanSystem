@@ -111,7 +111,6 @@ export const updateUser = async (userId: number, fullName: string, email: string
             data: {
                 username: fullName,
                 email,
-                password: hashedPassword,
             },
         });
     
