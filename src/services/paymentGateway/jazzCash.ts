@@ -1307,7 +1307,11 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   if (!merchant) {
     throw new CustomError("Merchant Not Found", 400);
   }
-
+  
+  if (!payload.transactionId || typeof payload.transactionId !== 'string') {
+    throw new Error('Invalid or missing merchant_transaction_id');
+  }
+  
   const txn = await prisma.transaction.findFirst({
     where: {
       merchant_transaction_id: payload.transactionId,
@@ -1387,9 +1391,13 @@ const databaseStatusInquiry = async (payload: any, merchantId: string) => {
       jazzCashMerchant: true,
     },
   });
-
+  console.log(merchant)
   if (!merchant) {
     throw new CustomError("Merchant Not Found", 400);
+  }
+
+  if (!payload.transactionId || typeof payload.transactionId !== 'string') {
+    throw new CustomError('Invalid or missing merchant_transaction_id');
   }
 
   const txn = await prisma.transaction.findFirst({
@@ -1431,6 +1439,10 @@ const simpleStatusInquiry = async (payload: any, merchantId: string) => {
 
   if (!merchant) {
     throw new CustomError("Merchant Not Found", 400);
+  }
+
+  if (!payload.transactionId || typeof payload.transactionId !== 'string') {
+    throw new Error('Invalid or missing merchant_transaction_id');
   }
 
   const txn = await prisma.transaction.findFirst({
