@@ -101,7 +101,7 @@ const updateMerchant = async (payload: Merchant) => {
               : finance?.settlementDuration,
           commissionMode,
           easypaisaRate: easypaisa_rate,
-          cardRate
+          cardRate: +cardRate
         },
         where: { merchant_id: +merchantId },
       });
@@ -261,7 +261,7 @@ const addMerchant = async (payload: Merchant) => {
           merchant_id: user.id,
           commissionMode,
           easypaisaRate: easypaisa_rate,
-          cardRate
+          cardRate: +cardRate
         },
       });
 
