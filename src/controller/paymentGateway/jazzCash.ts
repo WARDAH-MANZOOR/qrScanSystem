@@ -227,12 +227,14 @@ const simpleStatusInquiry = async (req: Request, res: Response, next: NextFuncti
 
 const jazzStatusInquiry = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log(req.params.merchantId)
     const merchantId = req.params.merchantId;
     const payload = req.body;
     if (!merchantId) {
       res.status(400).json(ApiResponse.error("Merchant ID is required"));
       return
     }
+    console.log("Passed")
     const inquiryChannel = await jazzCashService.getJazzCashInquiryChannel(merchantId);
     let result;
     if (inquiryChannel?.jazzCashInquiryMethod === "WALLET") {
