@@ -1869,9 +1869,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
     }
 
     if (params.transaction_id) {
-      customWhere["transaction_id"] = {
-        contains: params.transaction_id
-      }
+      customWhere["transaction_id"] = params.transaction_id
     }
 
     if (startDate && endDate) {
@@ -1885,9 +1883,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
     }
 
     if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = {
-        contains: params.merchantTransactionId
-      }
+      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
     }
 
     if (params.status) {
@@ -1993,9 +1989,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     }
 
     if (params.transaction_id) {
-      customWhere["transaction_id"] = {
-        contains: params.transaction_id
-      }
+      customWhere["transaction_id"] = params.transaction_id
     }
 
     if (startDate && endDate) {
@@ -2009,9 +2003,7 @@ const exportDisbursement = async (merchantId: number, params: any) => {
     }
 
     if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = {
-        contains: params.merchantTransactionId
-      }
+      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
     }
 
     if (params.status) {

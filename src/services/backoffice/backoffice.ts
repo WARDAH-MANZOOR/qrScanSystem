@@ -946,7 +946,7 @@ async function payinCallback(orderIds: string[]) {
                     txn,
                     (txn.providerDetails as JsonObject)?.account as string,
                     "payin",
-                    merchant?.encrypted == "true" ? true : false,
+                    merchant?.encrypted == "True" ? true : false,
                     false
                 )
             }
@@ -986,12 +986,19 @@ async function payoutCallback(orderIds: string[]) {
         console.log(merchant?.encrypted)
         for (const txn of merchantTxns) {
             console.log(merchant?.webhook_url)
+            let webhook_url;
+            if (merchant?.callback_mode == "DOUBLE") {
+                webhook_url = merchant?.payout_callback as string
+            }
+            else {
+                webhook_url = merchant?.webhook_url as string
+            }
             await transactionService.sendCallback(
-                merchant?.webhook_url as string,
+                webhook_url as string,
                 { original_amount: txn.transactionAmount, date_time: txn.disbursementDate, merchant_transaction_id: txn.merchant_custom_order_id, merchant_id: txn.merchant_id },
                 (txn as unknown as JsonObject)?.account as string,
                 "payout",
-                merchant?.encrypted == "true" ? true : false,
+                merchant?.encrypted == "True" ? true : false,
                 false
             )
         }

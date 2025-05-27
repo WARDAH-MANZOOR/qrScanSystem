@@ -37,6 +37,7 @@ export interface Merchant {
   jazzCashDisburseInquiryMethod: "DATABASE" | "WALLET";
   wooMerchantId: number;
   jazzCashInquiryMethod: "DATABASE" | "WALLET";
+  cardRate: number;
 }
 
 export interface IjazzCashConfigParams {

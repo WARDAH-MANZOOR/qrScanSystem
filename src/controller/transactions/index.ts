@@ -91,9 +91,7 @@ const getTransactions = async (req: Request, res: Response) => {
     
     if (merchantTransactionId) {
       customWhere.AND.push({
-        merchant_transaction_id: {
-          contains: merchantTransactionId
-        }
+        merchant_transaction_id: merchantTransactionId
       });
     }
     
@@ -244,9 +242,7 @@ const getTeleTransactions = async (req: Request, res: Response) => {
     
     if (merchantTransactionId) {
       customWhere.AND.push({
-        merchant_transaction_id: {
-          contains: merchantTransactionId
-        }
+        merchant_transaction_id: merchantTransactionId
       });
     }
     
@@ -395,9 +391,7 @@ const getTeleTransactionsLast15Mins = async (req: Request, res: Response) => {
     
     if (merchantTransactionId) {
       customWhere.AND.push({
-        merchant_transaction_id: {
-          contains: merchantTransactionId
-        }
+        merchant_transaction_id: merchantTransactionId
       });
     }
     
@@ -507,9 +501,7 @@ const getTeleTransactionsLast4Mins = async (req: Request, res: Response) => {
     
     if (merchantTransactionId) {
       customWhere.AND.push({
-        merchant_transaction_id: {
-          contains: merchantTransactionId
-        }
+        merchant_transaction_id: merchantTransactionId
       });
     }
     
@@ -620,9 +612,7 @@ const exportTransactions = async (req: Request, res: Response) => {
     
     if (merchantTransactionId) {
       customWhere.AND.push({
-        merchant_transaction_id: {
-          contains: merchantTransactionId
-        }
+        merchant_transaction_id: merchantTransactionId
       });
     }
 
