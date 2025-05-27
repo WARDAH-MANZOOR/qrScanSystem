@@ -23,6 +23,7 @@ import block_phone_number from './block_phone_number/index.js';
 import cardService from "./card/index.js"
 import teleService from "./tele/index.js"
 import wooCommerceService from "./paymentGateway/wooMerchant.js"
+import statusInquiry from './paymentGateway/statusInquiry.js';
 
 export {
     jazzCashService,
@@ -49,5 +50,6 @@ export {
     block_phone_number,
     cardService,
     teleService,
-    wooCommerceService
+    wooCommerceService,
+    statusInquiry
 };

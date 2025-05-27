@@ -5,9 +5,11 @@ import {
   easyPaisaService,
   swichService,
   transactionService,
+  payfast,
 } from "../../services/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
 import { PROVIDERS } from "constants/providers.js";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -147,7 +149,6 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (!paymentRequest.userId) {
       throw new CustomError("User not found", 404);
     }
-
     // find merchant by user id because merchant and user are the same
     const merchant = await prisma.merchant.findFirst({
       where: {
@@ -161,6 +162,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (!merchant || !merchant.uid) {
       throw new CustomError("Merchant not found", 404);
     }
+    console.log(merchant?.easypaisaPaymentMethod)
 
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
@@ -203,7 +205,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             500
           );
         }
-      } else {
+      } else if (merchant.easypaisaPaymentMethod == "SWITCH") {
         // swich payment
         const swichPayment = await swichService.initiateSwich(
           {
@@ -225,13 +227,50 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           );
         }
       }
+      else {
+        const token = await payfast.getApiToken(merchant.uid, {});
+        if (!token?.token) {
+          throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformation(merchant.uid, {
+          token: token?.token,
+          bankCode: '13',
+          order_id: paymentRequest.merchant_transaction_id,
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+          amount: paymentRequest.amount,
+          email: paymentRequest.email
+        })
+        if (!validation?.transaction_id) {
+          throw new CustomError("Transaction Not Created", 500);
+        }
+        const payfastPayment = await payfast.pay(merchant.uid, {
+          token: token?.token,
+          bankCode: '13',
+          transaction_id: validation?.transaction_id,
+          order_id: paymentRequest.merchant_transaction_id,
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+          amount: paymentRequest.amount,
+          email: paymentRequest.email
+        })
+        if (payfastPayment?.statusCode != "0000") {
+          throw new CustomError(payfastPayment.message, 500)
+        }
+      }
     }
     else if (
       paymentRequestObj.provider?.toLocaleLowerCase() === "card"
     ) {
-      let commission = +merchant?.commissions[0].commissionGST +
-        +merchant.commissions[0].commissionRate +
-        +merchant.commissions[0].commissionWithHoldingTax
+      let commission;
+      if (+(merchant?.commissions[0].cardRate as Decimal) != 0) {
+        commission = +merchant?.commissions[0].commissionGST +
+          +(merchant?.commissions[0].cardRate as Decimal) +
+          +merchant.commissions[0].commissionWithHoldingTax
+      }
+      else {
+        commission = +merchant?.commissions[0].commissionGST +
+          +merchant.commissions[0].commissionRate +
+          +merchant.commissions[0].commissionWithHoldingTax
+      }
       let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
       await transactionService.createTxn({
         order_id: id2,
