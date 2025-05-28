@@ -73,3 +73,33 @@ export const apiKeyAuth: RequestHandler = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const uidAuth: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // Extract the API key from headers
+  const { merchantId } = req.params;
+  if (!merchantId) {
+    res.status(400).json({ error: "Merchant ID is required" });
+    return
+  }
+  try {
+    // Retrieve the user associated with the API key from the database
+    const merchant = await prisma.merchant.findFirst({
+      where: {
+        uid: merchantId,
+      },
+    });
+
+    if (!merchant) {
+      res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      return
+    }
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
