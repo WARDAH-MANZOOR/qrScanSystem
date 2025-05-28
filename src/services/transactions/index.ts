@@ -414,6 +414,7 @@ async function updateMerchantSwitch(provider: "DIRECT" | "SWITCH", merchantId: n
 
 
 const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean, checkLimit: boolean) => {
+  console.log(JSON.stringify({event: "CALLBACK_URL", order_id: payload.merchant_transaction_id, url: webhook_url}))
   setTimeout(async () => {
     try {
       console.log("Callback Payload: ", JSON.stringify(payload));
@@ -468,7 +469,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       }
       else {
         console.log("Error sending callback")
-        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res.data}))
+        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res?.data}))
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
@@ -505,6 +506,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
 }
 
 const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean, checkLimit: boolean) => {
+  console.log(JSON.stringify({event: "CALLBACK_URL", order_id: payload.merchant_transaction_id, url: webhook_url}))
   setTimeout(async () => {
     try {
       console.log("Callback Payload: ", JSON.stringify(payload));

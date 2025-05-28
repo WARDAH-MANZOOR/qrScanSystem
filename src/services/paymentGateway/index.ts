@@ -882,6 +882,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
   let merchantAmount: Decimal = new Decimal(0);
   let id = '';
   try {
+    console.log(JSON.stringify({ event: "IBFT_TRANSACTION_REQUEST", order_id: body.order_id, body: body }))
     // validate Merchant
     findMerchant = await merchantService.findOne({
       uid: merchantId,
@@ -1245,7 +1246,19 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           stringToBoolean(findMerchant.encrypted as string),
           false
         );
-
+        console.log(JSON.stringify({
+          event: "IBFT_TRANSACTION_RESPONSE", order_id: body.order_id, response: {
+            message: "Disbursement created successfully",
+            merchantAmount: body.amount
+              ? body.amount.toString()
+              : merchantAmount.toString(),
+            order_id: disbursement.merchant_custom_order_id,
+            externalApiResponse: {
+              TransactionReference: disbursement.merchant_custom_order_id,
+              TransactionStatus: "success",
+            },
+          }
+        }))
         return {
           message: "Disbursement created successfully",
           merchantAmount: body.amount
@@ -1950,6 +1963,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
   try {
+    console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, body }))
     // validate Merchant
     findMerchant = await merchantService.findOne({
       uid: merchantId,
@@ -1981,6 +1995,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
         },
       });
       if (checkOrder) {
+        console.log(JSON.stringify({ event: "ORDER_ID_EXISTS", order_id: body.order_id }))
         throw new CustomError("Order ID already exists", 400);
       }
     }
@@ -2007,8 +2022,10 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
               provider: PROVIDERS.BANK
             },
           });
+          console.log(JSON.stringify({ event: "INSUFFICIENT_BALANCE_TO_DISBURSE", order_id: body.order_id }))
           throw new CustomError("Insufficient balance to disburse", 400);
         }
+        console.log(JSON.stringify({ event: "IBFT_BALANCE_ADJUSTED", order_id: body.order_id }))
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err: any) {
@@ -2064,12 +2081,14 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
     let res = await response.json();
     let data;
     if (!res.data) {
+      console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
+      console.log(JSON.stringify({ event: "IBFT_PENDING_FAILED", order_id: body.order_id, response: data }))
       console.log("IBFT Response: ", data);
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = data.transactionID || body.system_order_id;
@@ -2125,12 +2144,14 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
     })
     res = await response.json();
     if (!res.data) {
+      console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
+      console.log(JSON.stringify({ event: "IBFT_PENDING_FAILED", order_id: body.order_id, response: res }))
       console.log("IBFT Response: ", data);
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || body.system_order_id;
@@ -2203,7 +2224,19 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
           stringToBoolean(findMerchant.encrypted as string),
           false
         );
-
+        console.log(JSON.stringify({
+          event: "IBFT_PENDING_RESPONSE", order_id: body.order_id, response: {
+            message: "Disbursement created successfully",
+            merchantAmount: body.merchantAmount
+              ? body.merchantAmount.toString()
+              : merchantAmount.toString(),
+            order_id: disbursement.merchant_custom_order_id,
+            externalApiResponse: {
+              TransactionReference: disbursement.merchant_custom_order_id,
+              TransactionStatus: "success",
+            },
+          }
+        }))
         return {
           message: "Disbursement created successfully",
           merchantAmount: body.merchantAmount
@@ -2523,6 +2556,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
   let id = '';
   try {
     // validate Merchant
+    console.log(JSON.stringify({ event: "MW_TRANSACTION_REQUEST", order_id: body.order_id, body: body }))
     findMerchant = await merchantService.findOne({
       uid: merchantId,
     });
@@ -2786,6 +2820,19 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
           false
         );
 
+        console.log(JSON.stringify({
+          event: "MW_TRANSACTION_RESPONSE", order_id: body.order_id, response: {
+            message: "Disbursement created successfully",
+            merchantAmount: body.amount
+              ? body.amount.toString()
+              : merchantAmount.toString(),
+            order_id: disbursement.merchant_custom_order_id,
+            externalApiResponse: {
+              TransactionReference: res.transactionID,
+              TransactionStatus: "success",
+            },
+          }
+        }))
         return {
           message: "Disbursement created successfully",
           merchantAmount: body.amount
@@ -3331,6 +3378,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
   try {
+    console.log(JSON.stringify({ event: "MW_PENDING_REQUEST", order_id: body.order_id, body: body }))
     // validate Merchant
     findMerchant = await merchantService.findOne({
       uid: merchantId,
@@ -3366,6 +3414,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         },
       });
       if (checkOrder) {
+        console.log(JSON.stringify({ event: "MW_ORDER_ALREADY_EXISTS", order_id: body.order_id }))
         throw new CustomError("Order ID already exists", 400);
       }
     }
@@ -3391,8 +3440,10 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
               response_message: "Not Enough Balance",
             },
           });
+          console.log(JSON.stringify({ event: "MW_INSUFFICIENT_BALANCE", order_id: body.order_id }))
           throw new CustomError("Insufficient balance to disburse", 400);
         }
+        console.log(JSON.stringify({ event: "MW_BALANCE_ADJUSTED", order_id: body.order_id }))
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
       }
       catch (err: any) {
@@ -3439,12 +3490,14 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     let res = await response.json();
     console.log("MW Response", res);
     if (!res.data) {
+      console.log(JSON.stringify({ event: "MW_PENDING_REQUEST_THROTTLED", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
     if (res.responseCode != "G2P-T-0") {
+      console.log(JSON.stringify({ event: "MW_PENDING_FAILED", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       const date = new Date();
@@ -3513,7 +3566,19 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
           stringToBoolean(findMerchant.encrypted as string),
           false
         );
-
+        console.log(JSON.stringify({
+          event: "MW_PENDING_RESPONSE", order_id: body.order_id, response: {
+            message: "Disbursement created successfully",
+            merchantAmount: body.merchantAmount
+              ? body.merchantAmount.toString()
+              : merchantAmount.toString(),
+            order_id: disbursement.merchant_custom_order_id,
+            externalApiResponse: {
+              TransactionReference: res.transactionID,
+              TransactionStatus: "success",
+            },
+          }
+        }))
         return {
           message: "Disbursement created successfully",
           merchantAmount: body.merchantAmount
@@ -3646,7 +3711,7 @@ async function simpleCheckTransactionStatus(token: string, body: any, merchantId
       },
       body: JSON.stringify(requestData)
     });
-    console.log("Response: ",response)
+    console.log("Response: ", response)
     jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
     // results.push({ id, status: jsonResponse });
   } catch (error: any) {
