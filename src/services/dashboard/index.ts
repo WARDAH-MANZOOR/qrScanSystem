@@ -2,7 +2,7 @@ import { parseISO, subDays, parse } from "date-fns";
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
-import { toZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { Decimal } from "@prisma/client/runtime/library";
 import { JwtPayload } from "jsonwebtoken";
 
@@ -311,9 +311,9 @@ const merchantDashboardDetails = async (params: any, user: any) => {
         disbursementBalance: disbursementBalance,
         disburseBalancePercent,
         disbursementAmount: amt,
-        totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
-        remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0,
-        totalRefund: (totalRefund as {_sum: {transactionAmount: number | null}})._sum.transactionAmount?.toFixed(2) || 0,
+        totalUsdtSettlement: (totalUsdtSettlement as { _sum: { pkr_amount: number | null } })._sum.pkr_amount || 0,
+        remainingSettlements: (remainingSettlements as { _sum: { original_amount: number | null } })._sum.original_amount || 0,
+        totalRefund: (totalRefund as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0,
         transactionSuccessRate: 0,
         lastWeek:
           (lastWeek as { _sum: { original_amount: number | null } })._sum
@@ -383,27 +383,29 @@ const merchantDashboardDetailsClone = async (params: any, user: any) => {
     let filters: { merchant_id: number } = { merchant_id: merchantId };
 
     try {
-      const startDate = params?.start?.replace(" ", "+");
-      const endDate = params?.end?.replace(" ", "+");
-
       const customWhere = {} as any;
       let disbursement_date;
       let usdt_settlement_date;
-      if (startDate && endDate) {
-        const todayStart = parse(
-          startDate,
-          "yyyy-MM-dd'T'HH:mm:ssXXX",
-          new Date()
-        );
-        const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
 
-        customWhere["date_time"] = {
-          gte: todayStart,
-          lt: todayEnd,
-        };
-        disbursement_date = customWhere["date_time"]
-        usdt_settlement_date = customWhere["date_time"]
-      }
+      const timeZone = 'Asia/Karachi';
+      const now = new Date();
+      const zonedNow = toZonedTime(now, timeZone);
+
+      const todayStartZoned = new Date(zonedNow);
+      todayStartZoned.setHours(0, 0, 0, 0);
+
+      const todayEndZoned = new Date(zonedNow);
+      todayEndZoned.setHours(23, 59, 59, 999);
+
+      // Convert back to UTC if your DB stores UTC 
+
+      customWhere["date_time"] = {
+        gte: fromZonedTime(todayStartZoned, timeZone),
+        lt: fromZonedTime(todayEndZoned, timeZone),
+      };
+
+      disbursement_date = customWhere["date_time"];
+      usdt_settlement_date = customWhere["date_time"];
 
       const fetchAggregates = [];
 
@@ -676,9 +678,9 @@ const merchantDashboardDetailsClone = async (params: any, user: any) => {
         disbursementBalance: disbursementBalance,
         disburseBalancePercent,
         disbursementAmount: amt,
-        totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
-        remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0,
-        totalRefund: (totalRefund as {_sum: {transactionAmount: number | null}})._sum.transactionAmount?.toFixed(2) || 0,
+        totalUsdtSettlement: (totalUsdtSettlement as { _sum: { pkr_amount: number | null } })._sum.pkr_amount || 0,
+        remainingSettlements: (remainingSettlements as { _sum: { original_amount: number | null } })._sum.original_amount || 0,
+        totalRefund: (totalRefund as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0,
         transactionSuccessRate: 0,
         lastWeek:
           (lastWeek as { _sum: { original_amount: number | null } })._sum
@@ -920,9 +922,9 @@ const adminDashboardDetails = async (params: any) => {
       totalDisbursmentAmount: (totalDisbursmentAmount as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0,
       totalSettlementBalance: (totalSettlementBalance as { _sum: { balance: number | null } })._sum.balance?.toFixed(2) || 0,
       totalSettlementAmount: (totalSettlementAmount as { _sum: { merchantAmount: number | null } })._sum.merchantAmount?.toFixed(2) || 0,
-      totalUsdtSettlement: (totalUsdtSettlement as {_sum: {pkr_amount: number | null}})._sum.pkr_amount || 0,
-      remainingSettlements: (remainingSettlements as {_sum: {original_amount: number | null}})._sum.original_amount || 0,
-      totalRefund: (totalRefund as {_sum: {transactionAmount: number | null}})._sum.transactionAmount?.toFixed(2) || 0
+      totalUsdtSettlement: (totalUsdtSettlement as { _sum: { pkr_amount: number | null } })._sum.pkr_amount || 0,
+      remainingSettlements: (remainingSettlements as { _sum: { original_amount: number | null } })._sum.original_amount || 0,
+      totalRefund: (totalRefund as { _sum: { transactionAmount: number | null } })._sum.transactionAmount?.toFixed(2) || 0
     };
 
     return dashboardSummary;
