@@ -146,8 +146,7 @@ const initiateJazzCashPayment = async (
 ) => {
   let refNo: string = "";
   try {
-
-    console.log(JSON.stringify({ event: "JASSCASH_PAYIN_INITIATED", orderId: paymentData.order_id }))
+    console.log(JSON.stringify({ event: "JASSCASH_PAYIN_INITIATED", orderId: paymentData.order_id, body: paymentData }))
     var JAZZ_CASH_MERCHANT_ID: any = null;
     // Get the current date
     const date2 = new Date();
@@ -538,6 +537,16 @@ const initiateJazzCashPayment = async (
 
       console.log(r.pp_ResponseCode);
       if (r.pp_ResponseCode === "000") {
+        console.log(JSON.stringify({
+          event: "JASSCASH_PAYIN_RESPONSE", orderId: paymentData.order_id, response: {
+            message: "Redirecting to JazzCash...",
+            redirect_url: paymentData.redirect_url,
+            txnNo: r.pp_TxnRefNo,
+            txnDateTime: r.pp_TxnDateTime,
+            statusCode: r.pp_ResponseCode,
+
+          }
+        }))
         return {
           message: "Redirecting to JazzCash...",
           redirect_url: paymentData.redirect_url,
@@ -567,7 +576,7 @@ const initiateJazzCashPaymentAsync = async (
   paymentData: any,
   merchant_uid?: string
 ) => {
-  console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_INITIATED", order_id: paymentData.order_id }))
+  console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_INITIATED", order_id: paymentData.order_id, body: paymentData }))
   let txnRefNo: string;
   let refNo: string = "";
   const date2 = new Date();
@@ -694,7 +703,12 @@ const initiateJazzCashPaymentAsync = async (
         }
       }
     });
-
+    console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_RESPONSE", order_id: paymentData.order_id, response: {
+      txnNo: data["merchant_transaction_id"],
+      txnDateTime: formattedDate,
+      statusCode: "pending",
+      message: "Transaction is being processed",
+    }}))
     return {
       txnNo: data["merchant_transaction_id"],
       txnDateTime: formattedDate,
@@ -715,7 +729,7 @@ const initiateJazzCashPaymentAsyncClone = async (
   paymentData: any,
   merchant_uid?: string
 ) => {
-  console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_INITIATED", order_id: paymentData.order_id }))
+  console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_INITIATED", order_id: paymentData.order_id, body: paymentData }))
   let txnRefNo: string;
   let refNo: string = "";
   const date2 = new Date();
@@ -842,6 +856,12 @@ const initiateJazzCashPaymentAsyncClone = async (
         }
       }
     });
+    console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_RESPONSE", order_id: paymentData.order_id, response: {
+      txnNo: data["merchant_transaction_id"],
+      txnDateTime: formattedDate,
+      statusCode: "pending",
+      message: "Transaction is being processed",
+    }}))
 
     return {
       txnNo: data["merchant_transaction_id"],
@@ -1307,11 +1327,11 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   if (!merchant) {
     throw new CustomError("Merchant Not Found", 400);
   }
-  
+
   if (!payload.transactionId || typeof payload.transactionId !== 'string') {
     throw new Error('Invalid or missing merchant_transaction_id');
   }
-  
+
   const txn = await prisma.transaction.findFirst({
     where: {
       merchant_transaction_id: payload.transactionId,
@@ -1418,7 +1438,7 @@ const databaseStatusInquiry = async (payload: any, merchantId: string) => {
 
   return {
     "orderId": txn?.merchant_transaction_id,
-    "transactionStatus": txn.status.slice(0,1).toUpperCase() + txn.status.slice(1),
+    "transactionStatus": txn.status.slice(0, 1).toUpperCase() + txn.status.slice(1),
     "transactionAmount": txn?.original_amount,
     "transactionDateTime": txn?.date_time,
     "msisdn": (txn?.providerDetails as JsonObject)?.msisdn,
@@ -1535,7 +1555,7 @@ const initiateJazzCashCnicPayment = async (
   let refNo: string = "";
   try {
     // Timezone and Date Formatting
-    console.log(JSON.stringify({ event: "JAZZCASH_CNIC_INITIATED", order_id: paymentData.order_id }))
+    console.log(JSON.stringify({ event: "JAZZCASH_CNIC_INITIATED", order_id: paymentData.order_id, body: paymentData }))
     const currentTime = new Date();
     const expiryTime = addDays(currentTime, 1);
 
@@ -1695,6 +1715,14 @@ const initiateJazzCashCnicPayment = async (
       );
     }
     console.log(data);
+    console.log(JSON.stringify({
+      event: "JAZZCASH_CNIC_RESPONSE", order_id: paymentData.order_id, response: {
+        message: data.pp_ResponseMessage,
+        statusCode: data.pp_ResponseCode == "000" ? 200 : 201,
+        txnRefNo,
+      }
+    }))
+
     return {
       message: data.pp_ResponseMessage,
       statusCode: data.pp_ResponseCode == "000" ? 200 : 201,
