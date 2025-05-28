@@ -91,6 +91,7 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
 }
 
 const validateCustomerInformationForCnic = async (merchantId: string, params: any) => {
+    console.log(JSON.stringify({ event: "PAYFAST_CNIC_VALIDATION_REQUEST", order_id: params.order_id, body: params }))
     let findMerchant = await prisma.merchant.findFirst({
         where: {
             uid: merchantId
@@ -170,12 +171,22 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
             },
             findMerchant.commissions[0].settlementDuration
         );
+
         return {
             response_message: result.message || "An error occurred while initiating the transaction",
             statusCode: 500,
             txnNo: saveTxn?.merchant_transaction_id
         }
     }
+    console.log(JSON.stringify({
+        event: "PAYFAST_CNIC_VALIDATION_RESPONSE", order_id: params.order_id, response: {
+            txnNo: saveTxn?.merchant_transaction_id,
+            txnDateTime: saveTxn?.date_time,
+            statusCode: result?.status_code,
+            transaction_id: result.transaction_id,
+            response_message: result?.message
+        }
+    }))
     return {
         txnNo: saveTxn?.merchant_transaction_id,
         txnDateTime: saveTxn?.date_time,
@@ -684,6 +695,7 @@ const payAsyncClone = async (merchantId: string, params: any) => {
 const payCnic = async (merchantId: string, params: any) => {
     let saveTxn;
     try {
+        console.log(JSON.stringify({ event: "PAYFAST_CNIC_PAYMENT_REQUEST", order_id: params.order_id, body: params }))
         let id = transactionService.createTransactionId();
         console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: params.order_id, system_order_id: id }))
         let findMerchant = await prisma.merchant.findFirst({
@@ -765,6 +777,13 @@ const payCnic = async (merchantId: string, params: any) => {
                 findMerchant.encrypted == "True" ? true : false,
                 true
             );
+            console.log(JSON.stringify({
+                event: "PAYFAST_CNIC_PAYMENT_RESPONSE", order_id: params.order_id, body: {
+                    txnNo: saveTxn?.merchant_transaction_id,
+                    txnDateTime: saveTxn?.date_time,
+                    statusCode: result?.status_code
+                }
+            }))
             return {
                 txnNo: saveTxn?.merchant_transaction_id,
                 txnDateTime: saveTxn?.date_time,
@@ -942,14 +961,14 @@ const databaseStatusInquiry = async (merchantId: string, transactionId: string) 
 }
 
 const getPayfastInquiryMethod = async (merchantId: string) => {
-  return await prisma.merchant.findFirst({
-    where: {
-      uid: merchantId
-    },
-    select: {
-      payfastInquiryMethod: true
-    }
-  })
+    return await prisma.merchant.findFirst({
+        where: {
+            uid: merchantId
+        },
+        select: {
+            payfastInquiryMethod: true
+        }
+    })
 }
 
 const payfastStatusInquiry = async (merchantId: string, transactionId: string, token: string) => {

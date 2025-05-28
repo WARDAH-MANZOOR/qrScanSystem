@@ -111,7 +111,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
   let saveTxn;
   let id = transactionService.createTransactionId();
   try {
-    console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -223,6 +223,14 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         findMerchant.encrypted == "True" ? true : false,
         true
       );
+      console.log(JSON.stringify({
+        event: "EASYPAISA_PAYIN_RESPONSE", order_id: params.order_id, system_id: id, response: {
+          txnNo: saveTxn.merchant_transaction_id,
+          txnDateTime: saveTxn.date_time,
+          statusCode: response?.data.responseCode
+        }
+      }))
+
       return {
         txnNo: saveTxn.merchant_transaction_id,
         txnDateTime: saveTxn.date_time,
@@ -430,7 +438,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
   let id = transactionService.createTransactionId();
 
   try {
-    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -590,7 +598,11 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         );
       }
     });
-
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
+      txnNo: saveTxn.merchant_transaction_id,
+      txnDateTime: saveTxn.date_time,
+      statusCode: "pending",
+    }}))
     return {
       txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
@@ -611,7 +623,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
   let id = transactionService.createTransactionId();
 
   try {
-    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -766,7 +778,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
         );
       }
     });
-
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
+      txnNo: saveTxn.merchant_transaction_id,
+      txnDateTime: saveTxn.date_time,
+      statusCode: "pending",
+    } }))
     return {
       txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
