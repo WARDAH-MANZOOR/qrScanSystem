@@ -17,7 +17,7 @@ router.get(
   dashboardController.merchantDashboardDetails
 );
 router.get(
-  "/merchant/:merchantId",
+  "/merchant-details/:merchantId",
   [uidAuth, ...merchantDashboardValidation],
   // authorize("Dashboard"),
   dashboardController.merchantDashboardDetailsClone
