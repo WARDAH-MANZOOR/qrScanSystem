@@ -94,7 +94,7 @@ export const uidAuth: RequestHandler = async (
     });
 
     if (!merchant) {
-      res.status(403).json({ error: "Unauthorized: Invalid API key" });
+      res.status(403).json({ error: "Invalid Merchant Id" });
       return
     }
     next();
