@@ -24,7 +24,7 @@ import {
 import { easyPaisaDisburse } from "../../services/index.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import bankDetails from "../../data/banks.json" with { type: 'json' };
-import { parse, parseISO } from "date-fns";
+import { parse, parseISO, subMinutes } from "date-fns";
 import { format, toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
 import path, { dirname } from "path";
@@ -1985,6 +1985,117 @@ const getDisbursement = async (merchantId: number, params: any) => {
   }
 };
 
+const getTeleDisbursementLast15MinsFromLast10Mins = async (query: any) => {
+  try {
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = query;
+
+    let startDate = query?.start as string;
+    let endDate = query?.end as string;
+    const status = query?.status as string;
+    const search = query?.search || "" as string;
+    const msisdn = query?.msisdn || "" as string;
+    const provider = query?.provider || "" as string;
+    const customWhere = { AND: [] } as any;
+
+    if (startDate && endDate) {
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
+    }
+
+    if (status) {
+      customWhere.AND.push({ status });
+    }
+
+    if (search) {
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
+    }
+
+    if (msisdn) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
+    }
+
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+
+    if (merchantTransactionId) {
+      customWhere.AND.push({
+        merchant_transaction_id: merchantTransactionId
+      });
+    }
+
+    if (response_message) {
+      customWhere.AND.push({
+        response_message: {
+          contains: response_message
+        }
+      });
+    }
+
+    if (merchantId) {
+      customWhere["merchant_id"] = Number(merchantId);
+    }
+    const timezone = 'Asia/Karachi';
+    const currentTime = toZonedTime(new Date(), timezone);
+    const fifteenMinutesAgo = subMinutes(currentTime, 15);
+    const threeMinutesAgo = subMinutes(currentTime, 10);
+
+    const transactions = await prisma.disbursement.findMany({
+      where: {
+        ...customWhere,
+        disbursementDate: {
+          gte: fifteenMinutesAgo,
+          lte: threeMinutesAgo,
+        },
+      },
+      orderBy: {
+        disbursementDate: 'desc',
+      },
+      include: {
+        merchant: {
+          include: {
+            groups: {
+              include: {
+                merchant: {
+                  include: {
+                    jazzCashMerchant: true,
+                  },
+                },
+              },
+            },
+          },
+        }
+      }
+    });
+
+    return { transactions };
+  } catch (err) {
+    console.error(err);
+    return { error: 'Internal Server Error' };
+  }
+};
+
 const exportDisbursement = async (merchantId: number, params: any) => {
   try {
     const startDate = params?.start?.replace(" ", "+");
@@ -3214,5 +3325,6 @@ export default {
   disburseThroughBankClone,
   initiateEasyPaisaClone,
   initiateEasyPaisaAsyncClone,
-  adjustMerchantToDisburseBalance
+  adjustMerchantToDisburseBalance,
+  getTeleDisbursementLast15MinsFromLast10Mins
 };
