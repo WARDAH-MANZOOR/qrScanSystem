@@ -472,6 +472,17 @@ const getDisbursement = async (req: Request, res: Response, next: NextFunction):
   }
 }
 
+const getDisbursementWithinRange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { query } = req;
+    const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+    const merchant = await easyPaisaService.getTeleDisbursementLast15MinsFromLast10Mins(query);
+    res.status(200).json(ApiResponse.success(merchant));
+  } catch (error) {
+    next(error);
+  }
+}
+
 const exportDisbursement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { query } = req;
@@ -559,5 +570,6 @@ export default {
   createDisbursementClone,
   disburseThroughBankClone,
   initiateEasyPaisaClone,
-  initiateEasyPaisaAsyncClone
+  initiateEasyPaisaAsyncClone,
+  getDisbursementWithinRange
 };
