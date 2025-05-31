@@ -97,6 +97,17 @@ const settleTransactionsForTelegram = async (req: Request, res: Response) => {
     }
 };
 
+const settleDisbursementsForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionIds } = req.body;
+        const result = await backofficeService.settleDisbursements(transactionIds);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 const failTransactionsForTelegram = async (req: Request, res: Response) => {
     try {
         const { transactionIds } = req.body;
@@ -112,6 +123,17 @@ const failDisbursementsForTelegram = async (req: Request, res: Response) => {
     try {
         const { transactionIds } = req.body;
         const result = await backofficeService.failDisbursements(transactionIds);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
+const failDisbursementsWithAccountInvalidForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionIds } = req.body;
+        const result = await backofficeService.failDisbursementsWithAccountInvalid(transactionIds);
         res.status(200).json(ApiResponse.success(result));
     }
     catch (err: any) {
@@ -276,5 +298,7 @@ export default {
     createUSDTSettlement,
     settleAllMerchantTransactionsUpdated,
     calculateFinancials,
-    adjustMerchantDisbursementBalance
+    adjustMerchantDisbursementBalance,
+    failDisbursementsWithAccountInvalidForTelegram,
+    settleDisbursementsForTelegram
 }
