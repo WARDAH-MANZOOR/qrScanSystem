@@ -39,14 +39,14 @@ const getSettlement = async (params: any, user: JwtPayload) => {
 
     let { page, limit } = params;
     // Query based on provided parameters
-    let skip, take;
+    let skip, take = 0;
     if (page && limit) {
       skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
       take = parseInt(limit as string);
     }
     const reports = await prisma.settlementReport.findMany({
       ...(skip && { skip: +skip }),
-      ...(take && { take: +take }),
+      ...(take && { take: +take + 1 }),
       where: {
         ...filters,
         ...customWhere,
@@ -63,25 +63,18 @@ const getSettlement = async (params: any, user: JwtPayload) => {
         settlementDate: "desc"
       }
     });
-    let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.settlementReport.count({
-        where: {
-          ...filters,
-          ...customWhere,
-        }
-      });
-
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
-      }
+    const hasMore = reports.length > take;
+    if (hasMore) {
+      reports.pop(); // Remove the extra record
     }
+
+    // Build meta with hasMore flag
+    const meta = {
+      page: page ? parseInt(page as string) : 1,
+      limit: take,
+      hasMore,
+    };
+
     const response = {
       transactions: reports.map((transaction) => ({
         ...transaction,

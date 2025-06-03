@@ -1596,7 +1596,7 @@ const createDisbursementClone = async (
   let totalWithholdingTax = new Decimal(0);
   let totalDisbursed: number | Decimal = new Decimal(0);
   let ma2ma: any;
-  let walletBalance: any;
+  let walletBalance: any; 
   try {
     // validate Merchant
     findMerchant = await merchantService.findOne({
@@ -1672,7 +1672,29 @@ const createDisbursementClone = async (
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
           if (err.code === 'P2034') {
-            throw new CustomError("Deadlock Error", 400)
+            await prisma.disbursement.create({
+              data: {
+                ...data,
+                // transaction_id: id,
+                merchant_id: Number(findMerchant.merchant_id),
+                disbursementDate: new Date(),
+                transactionAmount: amountDecimal,
+                commission: totalCommission,
+                gst: totalGST,
+                withholdingTax: totalWithholdingTax,
+                merchantAmount: obj.amount ? obj.amount : merchantAmount,
+                platform: 0,
+                account: obj.phone,
+                provider: PROVIDERS.JAZZ_CASH,
+                status: "pending",
+                response_message: "pending",
+                to_provider: PROVIDERS.JAZZ_CASH,
+                providerDetails: {
+                  id: findMerchant?.JazzCashDisburseAccountId
+                }
+              },
+            });
+            throw new CustomError("Transaction is Pending", 202);
           }
         }
         throw new CustomError("Database Error", 400)
@@ -1907,7 +1929,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
     }
     let { page, limit } = params;
     // Query based on provided parameters
-    let skip, take;
+    let skip, take = 0;
     if (page && limit) {
       skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
       take = parseInt(limit as string);
@@ -1916,7 +1938,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
     const disbursements = await prisma.disbursement
       .findMany({
         ...(skip && { skip: +skip }),
-        ...(take && { take: +take }),
+        ...(take && { take: +take + 1 }),
         where: {
           ...customWhere,
 
@@ -1950,25 +1972,18 @@ const getDisbursement = async (merchantId: number, params: any) => {
     //     disbursements[i].transaction = transaction;
     //   }
     // }
-    let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.disbursement.count({
-        where: {
-          ...customWhere,
-
-        },
-      });
-
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
-      }
+    const hasMore = disbursements.length > take;
+    if (hasMore) {
+      disbursements.pop(); // Remove the extra record
     }
+
+    // Build meta with hasMore flag
+    const meta = {
+      page: page ? parseInt(page as string) : 1,
+      limit: take,
+      hasMore,
+    };
+
     const response = {
       transactions: disbursements.map((transaction) => ({
         ...transaction,
