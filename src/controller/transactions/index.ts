@@ -105,14 +105,14 @@ const getTransactions = async (req: Request, res: Response) => {
 
     let { page, limit } = req.query;
     // Query based on provided parameters
-    let skip, take;
+    let skip, take = 0;
     if (page && limit) {
       skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
       take = parseInt(limit as string);
     }
     const transactions = await prisma.transaction.findMany({
       ...(skip && { skip: +skip }),
-      ...(take && { take: +take }),
+      ...(take && { take: +take + 1 }),
       where: {
         ...(transactionId && { transaction_id: transactionId as string }),
         ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
@@ -143,32 +143,19 @@ const getTransactions = async (req: Request, res: Response) => {
       },
     });
 
-    let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.transaction.count(
-        {
-          where: {
-            ...(transactionId && { transaction_id: transactionId as string }),
-            ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
-            ...(merchantName && {
-              merchant: {
-                username: merchantName as string,
-              },
-            }),
-            ...customWhere,
-          }
-        }
-      );
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
-      }
+    const hasMore = transactions.length > take;
+    console.log(hasMore, take, transactions.length)
+    if (hasMore) {
+      transactions.pop(); // Remove the extra record
     }
+
+    // Build meta with hasMore flag
+    const meta = {
+      page: page ? parseInt(page as string) : 1,
+      limit: take,
+      hasMore,
+    };
+
     const response = {
       transactions: transactions.map((transaction) => ({
         ...transaction,
