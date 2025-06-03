@@ -74,7 +74,7 @@ async function enableForeignKeys() {
 }
 async function main() {
     const BATCH_SIZE = 1000;
-    const TOTAL_RECORDS = 50000;
+    const TOTAL_RECORDS = 1000000;
     await disableForeignKeys();
     for (let i = 0; i < TOTAL_RECORDS / BATCH_SIZE; i++) {
         const batch = Array.from({ length: BATCH_SIZE }, (_, idx) => {
@@ -86,7 +86,7 @@ async function main() {
                 msisdn: '03' + faker.string.numeric(9),
             };
             return {
-                transaction_id: `T${faker.date.recent().getTime()}${faker.string.alphanumeric(5)}`,
+                transaction_id: `T${faker.date.recent().getTime()}${faker.string.alphanumeric(3)}`,
                 date_time: faker.date.recent(),
                 original_amount: new Decimal(amount),
                 status: faker.helpers.arrayElement([
@@ -111,7 +111,8 @@ async function main() {
                 providerDetails,
                 updatedAt: now,
                 // UNIQUE merchant_transaction_id using batch and index:
-                merchant_transaction_id: `MTX${i * BATCH_SIZE + idx}`,
+                // merchant_transaction_id: `MTX${i * BATCH_SIZE + idx}`,
+                merchant_transaction_id: `MTID-${i}-${idx}-${faker.string.alphanumeric(5)}`,
                 callback_response: null,
                 callback_sent: false,
             };
@@ -125,7 +126,7 @@ async function main() {
 }
 main()
     .then(() => {
-    console.log('Finished inserting 50,000 transactions!');
+    console.log('Finished inserting 1000000 transactions!');
 })
     .catch((err) => {
     console.error(err);

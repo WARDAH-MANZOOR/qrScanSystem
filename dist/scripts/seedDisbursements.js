@@ -9,7 +9,7 @@ async function enableForeignKeys() {
 }
 async function main() {
     const BATCH_SIZE = 1000;
-    const TOTAL_RECORDS = 50000;
+    const TOTAL_RECORDS = 1000000;
     await disableForeignKeys();
     for (let i = 0; i < TOTAL_RECORDS / BATCH_SIZE; i++) {
         const now = new Date();
@@ -17,7 +17,7 @@ async function main() {
         const batchTransactions = Array.from({ length: BATCH_SIZE }).map(() => {
             const amount = Number(faker.finance.amount({ min: 10, max: 10000, dec: 2 }));
             return {
-                merchant_transaction_id: faker.string.numeric(7) + faker.string.alphanumeric(3),
+                merchant_transaction_id: faker.string.numeric(9) + faker.string.alphanumeric(5),
                 date_time: faker.date.recent(),
                 original_amount: amount,
                 merchant_id: faker.number.int({ min: 1, max: 100 }),
@@ -62,6 +62,6 @@ async function main() {
     await enableForeignKeys();
 }
 main()
-    .then(() => console.log('Finished inserting 50,000 disbursement records!'))
+    .then(() => console.log('Finished inserting 1000000 disbursement records!'))
     .catch(console.error)
     .finally(() => prisma.$disconnect());
