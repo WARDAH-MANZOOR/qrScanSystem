@@ -21,10 +21,10 @@ const createDisbursementDispute = async (body: any, merchant_id: number) => {
             });
             return disbursementDispute;
         },
-        {
-            timeout: 10000,
-            maxWait: 10000
-        });
+            {
+                timeout: 10000,
+                maxWait: 10000
+            });
     } catch (err: any) {
         throw new CustomError(err.message, 500);
     }
@@ -81,7 +81,7 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
         }
 
         let { page, limit } = params;
-        let skip, take;
+        let skip, take = 0;
         if (page && limit) {
             skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
             take = parseInt(limit as string);
@@ -89,7 +89,7 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
 
         const disputes = await prisma.disbursementDispute.findMany({
             ...(skip && { skip: +skip }),
-            ...(take && { take: +take }),
+            ...(take && { take: +take + 1 }),
             where: {
                 ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
                 ...customWhere,
@@ -102,22 +102,17 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
             }
         });
 
-        let meta = {};
-        if (page && take) {
-            const total = await prisma.disbursementDispute.count({
-                where: {
-                    ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
-                    ...customWhere,
-                },
-            });
-            const pages = Math.ceil(total / +take);
-            meta = {
-                total,
-                pages,
-                page: parseInt(page as string),
-                limit: take
-            };
+        const hasMore = disputes.length > take;
+        if (hasMore) {
+            disputes.pop(); // Remove the extra record
         }
+
+        // Build meta with hasMore flag
+        const meta = {
+            page: page ? parseInt(page as string) : 1,
+            limit: take,
+            hasMore,
+        };
 
         const response = {
             disputes: disputes.map((dispute) => ({
