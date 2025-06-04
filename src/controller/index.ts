@@ -25,6 +25,7 @@ import teleController from "./tele/index.js"
 import wooController from "./paymentGateway/wooMerchant.js"
 import password_hash from "./password_hash/index.js";
 import statusInquiry from "./paymentGateway/statusInquiry.js";
+import otpController from "./otp/index.js"
 
 export {
   jazzCashController,
@@ -53,5 +54,6 @@ export {
   teleController,
   wooController,
   password_hash,
-  statusInquiry
+  statusInquiry,
+  otpController
 };
