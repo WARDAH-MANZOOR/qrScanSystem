@@ -5,7 +5,7 @@ import logger from 'morgan';
 import routes from './routes/index.js';
 import cors from 'cors';
 // dotenv.config();
-process.env.DATABASE_URL = "postgresql://postgres:ambreen1234@localhost:5432/erp_db";
+process.env.DATABASE_URL = "postgresql://postgres:ambreen1234@localhost:5432/erp2_db";
 // import indexRouter from './routes/index.js';
 // import usersRouter from './routes/users.js';
 import swaggerUi from 'swagger-ui-express';

@@ -73,7 +73,7 @@ async function enableForeignKeys() {
     await prisma.$executeRawUnsafe(`SET session_replication_role = 'origin';`);
 }
 async function main() {
-    const BATCH_SIZE = 1000;
+    const BATCH_SIZE = 5000;
     const TOTAL_RECORDS = 1000000;
     await disableForeignKeys();
     for (let i = 0; i < TOTAL_RECORDS / BATCH_SIZE; i++) {
@@ -126,7 +126,7 @@ async function main() {
 }
 main()
     .then(() => {
-    console.log('Finished inserting 1000000 transactions!');
+    console.log('Finished inserting 10000000 transactions!');
 })
     .catch((err) => {
     console.error(err);

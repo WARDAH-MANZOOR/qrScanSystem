@@ -714,6 +714,9 @@ const TIMEZONE = "Asia/Karachi"; // Pakistan Time Zone
 // };
 
 export const generateExcelReportService = async (params: any): Promise<string> => {
+    console.time("Overall Execution Time");
+
+    const startTime = Date.now(); // overall timer
     let customWhere = { date_time: {} };
     let disbursementDateWhere: any = {};
     const startDate = params?.start?.replace(" ", "+");
@@ -727,7 +730,9 @@ export const generateExcelReportService = async (params: any): Promise<string> =
         disbursementDateWhere = customWhere["date_time"];
     }
 
-    
+    console.log("Fetching merchants...");
+     // ⏱️ Measure merchant fetch time
+    console.time("Fetch Merchants");
     // Fetch all merchants (assuming merchants are not in huge volume)
     const merchants = await prisma.merchant.findMany({
         include: {
@@ -745,21 +750,37 @@ export const generateExcelReportService = async (params: any): Promise<string> =
             }
         }
     });
-
+    console.timeEnd("Fetch Merchants");
     // Fetch paginated transactions
-    const pageSize = 10000;
-    const totalPagesTransactions = Math.ceil(await prisma.transaction.count({
-        where: { date_time: customWhere["date_time"], status: "completed" }
-    }) / pageSize);
+    const pageSize = 25000;
+    // 
+    // ⏱️ Count and paginate transactions
+    console.time("Count & Paginate Transactions");
+    const totalTransactionCount = await prisma.transaction.count();
+    console.log("Total transactions in DB:", totalTransactionCount);
+
+    const filteredTransactionCount = await prisma.transaction.count({
+    where: { date_time: customWhere["date_time"], status: "completed" }
+    });
+    console.log("Filtered transactions count:", filteredTransactionCount);
+
+
+    const totalPagesTransactions = Math.ceil(filteredTransactionCount / pageSize);
+    console.timeEnd("Count & Paginate Transactions");
+    
     const pagesTransactions = [...Array(totalPagesTransactions).keys()];
 
   
-    // serial processing
+    
+    
+    // ⏱️ Fetch transactions in batches
+    console.time("Fetch Transactions");
     const transactions: any[] = [];
 
-    for (const page of pagesTransactions) {
-        try {
-            const pageData = await prisma.transaction.findMany({
+    for (let i = 0; i < pagesTransactions.length; i += 9) {
+        const batch = pagesTransactions.slice(i, i + 9).map((page, idx) => {
+            console.log(`Fetching transaction page ${i + idx + 1}/${totalPagesTransactions}...`);
+            return prisma.transaction.findMany({
                 where: { date_time: customWhere["date_time"], status: "completed" },
                 skip: page * pageSize,
                 take: pageSize,
@@ -770,25 +791,40 @@ export const generateExcelReportService = async (params: any): Promise<string> =
                     date_time: true
                 }
             });
-            transactions.push(...pageData);
-        } catch (err) {
-            console.error(`Error fetching transactions at page ${page}:`, err);
-            throw err; // optionally exit early
+        });
+
+    const results = await Promise.allSettled(batch);
+    results.forEach((result, idx) => {
+        if (result.status === "fulfilled") {
+            transactions.push(...result.value);
+            console.log(`Fetched ${result.value.length} transactions on page ${i + idx}`);
+        } else {
+            console.error(`Error fetching transactions at page ${i + idx}:`, result.reason);
         }
+    });
     }
 
-    // Fetch paginated disbursements
-    const totalPagesDisbursements = Math.ceil(await prisma.disbursement.count({
-        where: { disbursementDate: disbursementDateWhere, status: "completed" }
-    }) / pageSize);
-    const pagesDisbursements = [...Array(totalPagesDisbursements).keys()];
+    console.timeEnd("Fetch Transactions");
 
-  // serial processing
+    // ⏱️ Count and paginate disbursements
+    console.time("Count & Paginate Disbursements");
+    // Fetch paginated disbursements
+    const disbursementCount = await prisma.disbursement.count({
+    where: { disbursementDate: disbursementDateWhere, status: "completed" }
+    });
+    const totalPagesDisbursements = Math.ceil(disbursementCount / pageSize);
+    console.log(`Total disbursements: ${disbursementCount}, Pages: ${totalPagesDisbursements}`);
+    
+    const pagesDisbursements = [...Array(totalPagesDisbursements).keys()];
+    console.timeEnd("Count & Paginate Disbursements");
+
+    console.time("Fetch Disbursements");
     const disbursements: any[] = [];
 
-    for (const page of pagesDisbursements) {
-        try {
-            const pageData = await prisma.disbursement.findMany({
+    for (let i = 0; i < pagesDisbursements.length; i += 9) {
+        const batch = pagesDisbursements.slice(i, i + 9).map((page, idx) => {
+            console.log(`Fetching disbursement page ${i + idx + 1}/${totalPagesDisbursements}...`);
+            return prisma.disbursement.findMany({
                 where: { disbursementDate: disbursementDateWhere, status: "completed" },
                 skip: page * pageSize,
                 take: pageSize,
@@ -799,13 +835,21 @@ export const generateExcelReportService = async (params: any): Promise<string> =
                     commission: true
                 }
             });
-            disbursements.push(...pageData);
-        } catch (err) {
-            console.error(`Error fetching disbursements at page ${page}:`, err);
-            throw err;
-        }
-    }
+        });
 
+        const results = await Promise.allSettled(batch);
+        results.forEach((result, idx) => {
+            if (result.status === "fulfilled") {
+                disbursements.push(...result.value);
+                console.log(`Fetched ${result.value.length} disbursements on page ${i + idx}`);
+            } else {
+                console.error(`Error fetching disbursements at page ${i + idx}:`, result.reason);
+            }
+        });
+    }
+    console.timeEnd("Fetch Disbursements");
+
+    
     // Group transactions and disbursements by merchant_id upfront
     const transactionsByMerchant = new Map();
     transactions.forEach(txn => {
@@ -836,8 +880,13 @@ export const generateExcelReportService = async (params: any): Promise<string> =
     const allDates = Array.from(allDatesSet).sort(); // Sorted unique dates
 
     // Process merchant data asynchronously
+    console.log("Processing merchant data...");
+    // ⏱️ Process merchants
+    console.time("Process Merchants");
     const merchantData = await Promise.all(
-        merchants.map(async (merchant) => {
+        merchants.map(async (merchant,index) => {
+            console.log(`Processing merchant ${index + 1}/${merchants.length}: ${merchant.full_name}`);
+
             const merchantTransactions = transactionsByMerchant.get(merchant.merchant_id) || [];
             const merchantDisbursements = disbursementsByMerchant.get(merchant.merchant_id) || [];
             const firstCommission = merchant.commissions?.[0];
@@ -936,8 +985,11 @@ export const generateExcelReportService = async (params: any): Promise<string> =
             };
         })
     );
-
+    console.timeEnd("Process Merchants");
     // Generate Excel report
+    console.log("Generating Excel Report...");
+    console.timeEnd("Overall Execution Time");
+
     const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
         filename: path.join(process.cwd(), "src/services/reports", `merchant_report_${Date.now()}.xlsx`)
     });
@@ -1022,6 +1074,9 @@ export const generateExcelReportService = async (params: any): Promise<string> =
     // Save the file
     const filePath = path.join(import.meta.dirname, "merchant_report.xlsx");
     await workbook.commit();
+    console.log("Excel report generation completed and file saved.");
+    const totalTime = (Date.now() - startTime) / 1000;
+    console.log(`✅ generateExcelReportService completed in ${totalTime}s`);
 
     return filePath;
 };

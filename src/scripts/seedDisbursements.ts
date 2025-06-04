@@ -12,7 +12,7 @@ async function enableForeignKeys() {
 }
 
 async function main() {
-  const BATCH_SIZE = 1000;
+  const BATCH_SIZE = 5000;
   const TOTAL_RECORDS = 1000000;
 
   await disableForeignKeys();
@@ -24,7 +24,7 @@ async function main() {
   const batchTransactions = Array.from({ length: BATCH_SIZE }).map(() => {
     const amount =Number(faker.finance.amount({ min: 10, max: 10000, dec: 2 }));
     return {
-      merchant_transaction_id: faker.string.numeric(9) + faker.string.alphanumeric(5),
+      merchant_transaction_id: faker.string.numeric(7) + faker.string.alphanumeric(5),
 
       date_time: faker.date.recent(),
       original_amount: amount,
