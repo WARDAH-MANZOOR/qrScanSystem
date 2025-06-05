@@ -296,4 +296,9 @@ function extractOrderNumberFromTxnId(txnId: string) {
 function toBase64(str: string) {
     return Buffer.from(str).toString('base64');
 }
-export default { processIPN, processCardIPN };
+
+const bdtIPN = (body: any) => {
+    console.log("Body: ",body);
+    return body;
+}
+export default { processIPN, processCardIPN, bdtIPN };
