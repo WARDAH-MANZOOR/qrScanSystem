@@ -549,7 +549,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             saveTxn,
             phone,
             "payin",
-            true,
+            findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
             true
           );
         } else {
@@ -736,7 +736,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             saveTxn,
             phone,
             "payin",
-            true,
+            findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
             true
           );
         } else {
