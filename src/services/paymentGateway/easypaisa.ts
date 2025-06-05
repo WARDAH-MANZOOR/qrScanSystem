@@ -598,11 +598,13 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         );
       }
     });
-    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
-      txnNo: saveTxn.merchant_transaction_id,
-      txnDateTime: saveTxn.date_time,
-      statusCode: "pending",
-    }}))
+    console.log(JSON.stringify({
+      event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
+        txnNo: saveTxn.merchant_transaction_id,
+        txnDateTime: saveTxn.date_time,
+        statusCode: "pending",
+      }
+    }))
     return {
       txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
@@ -778,11 +780,13 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
         );
       }
     });
-    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
-      txnNo: saveTxn.merchant_transaction_id,
-      txnDateTime: saveTxn.date_time,
-      statusCode: "pending",
-    } }))
+    console.log(JSON.stringify({
+      event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
+        txnNo: saveTxn.merchant_transaction_id,
+        txnDateTime: saveTxn.date_time,
+        statusCode: "pending",
+      }
+    }))
     return {
       txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
@@ -1596,7 +1600,7 @@ const createDisbursementClone = async (
   let totalWithholdingTax = new Decimal(0);
   let totalDisbursed: number | Decimal = new Decimal(0);
   let ma2ma: any;
-  let walletBalance: any; 
+  let walletBalance: any;
   try {
     // validate Merchant
     findMerchant = await merchantService.findOne({
@@ -1972,9 +1976,13 @@ const getDisbursement = async (merchantId: number, params: any) => {
     //     disbursements[i].transaction = transaction;
     //   }
     // }
-    const hasMore = disbursements.length > take;
-    if (hasMore) {
-      disbursements.pop(); // Remove the extra record
+    let hasMore = false;
+    console.log(disbursements.length, take)
+    if (take > 0) {
+      hasMore = disbursements.length > take;
+      if (hasMore) {
+        disbursements.pop(); // Remove the extra record
+      }
     }
 
     // Build meta with hasMore flag
