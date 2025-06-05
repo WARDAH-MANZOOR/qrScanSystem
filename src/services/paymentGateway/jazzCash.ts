@@ -1036,7 +1036,7 @@ const processWalletPayment = async (
       { merchant_transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date },
       phone,
       "payin",
-      true,
+      merchant?.encrypted.toLowerCase() == "true" ? true : false,
       false
     );
   }
@@ -1097,7 +1097,7 @@ const processWalletPaymentClone = async (
       { merchant_transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date },
       phone,
       "payin",
-      true,
+      merchant?.encrypted.toLowerCase() == "true" ? true : false,
       false
     );
   }

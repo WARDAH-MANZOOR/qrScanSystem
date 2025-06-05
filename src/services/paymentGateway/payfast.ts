@@ -447,7 +447,7 @@ const payAsync = async (merchantId: string, params: any) => {
                         saveTxn,
                         phone,
                         "payin",
-                        true,
+                        findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
                         true
                     );
                 } else {
@@ -621,7 +621,7 @@ const payAsyncClone = async (merchantId: string, params: any) => {
                         saveTxn,
                         phone,
                         "payin",
-                        true,
+                        findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
                         true
                     );
                 } else {
