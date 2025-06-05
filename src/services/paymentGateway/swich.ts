@@ -508,7 +508,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             saveTxn,
             payload.phone,
             "payin",
-            true,
+            findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
             true
           );
         } else {
@@ -723,7 +723,7 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
             saveTxn,
             payload.phone,
             "payin",
-            true,
+            findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
             true
           );
         } else {
