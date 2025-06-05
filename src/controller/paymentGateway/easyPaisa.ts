@@ -52,8 +52,10 @@ const initiateEasyPaisa = async (
       }
     }
     else {
+      console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: req.body.order_id, body: req.body }))
       const token = await payfast.getApiToken(req.params.merchantId, req.body);
       if (!token?.token) {
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: req.body.order_id }))
         throw new CustomError("No Token Recieved", 500);
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
@@ -62,6 +64,7 @@ const initiateEasyPaisa = async (
         ...req.body
       })
       if (!validation?.transaction_id) {
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: req.body.order_id }))
         res.status(500).send(ApiResponse.error(result, 500))
         return;
       }
@@ -72,6 +75,7 @@ const initiateEasyPaisa = async (
         ...req.body
       })
       if (result?.statusCode != "0000") {
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: req.body.order_id, response: result }))
         res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
         return;
       }
@@ -128,8 +132,12 @@ const initiateEasyPaisaAsync = async (
       }
     }
     else {
+      console.log(JSON.stringify({ event: "PAYFAST_ASYNC_INITIATED", order_id: req.body.order_id, body: req.body }))
+
       const token = await payfast.getApiToken(req.params.merchantId, req.body);
       if (!token?.token) {
+        console.log(JSON.stringify({ event: "PAYFAST_ASYNC_NO_TOKEN_RECIEVED", order_id: req.body.order_id }))
+
         throw new CustomError("No Token Recieved", 500);
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
@@ -138,6 +146,8 @@ const initiateEasyPaisaAsync = async (
         ...req.body
       })
       if (!validation?.transaction_id) {
+        console.log(JSON.stringify({ event: "PAYFAST_ASYNC_VALIDATION_FAILED", order_id: req.body.order_id }))
+
         res.status(500).send(ApiResponse.error(result, 500))
         return;
       }
@@ -147,6 +157,7 @@ const initiateEasyPaisaAsync = async (
         transaction_id: validation?.transaction_id,
         ...req.body
       })
+      console.log(JSON.stringify({ event: "PAYFAST_ASYNC_RESPONSE", order_id: req.body.order_id, response: result }))
       if (result?.statusCode != "pending") {
         res.status(result.statusCode).send(ApiResponse.error(result, result.statusCode))
         return;
@@ -257,8 +268,10 @@ const initiateEasyPaisaAsyncClone = async (
       }
     }
     else {
+      console.log(JSON.stringify({ event: "PAYFAST_ASYNC_INITIATED", order_id: req.body.order_id, body: req.body }))
       const token = await payfast.getApiToken(req.params.merchantId, req.body);
       if (!token?.token) {
+        console.log(JSON.stringify({ event: "PAYFAST_ASYNC_NO_TOKEN_RECIEVED", order_id: req.body.order_id }))
         throw new CustomError("No Token Recieved", 500);
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
@@ -267,6 +280,7 @@ const initiateEasyPaisaAsyncClone = async (
         ...req.body
       })
       if (!validation?.transaction_id) {
+        console.log(JSON.stringify({ event: "PAYFAST_ASYNC_VALIDATION_FAILED", order_id: req.body.order_id }))
         res.status(500).send(ApiResponse.error(result, 500))
         return;
       }
@@ -276,6 +290,7 @@ const initiateEasyPaisaAsyncClone = async (
         transaction_id: validation?.transaction_id,
         ...req.body
       })
+      console.log(JSON.stringify({ event: "PAYFAST_ASYNC_RESPONSE", order_id: req.body.order_id, response: result }))
       if (result?.statusCode != "pending") {
         res.status(result.statusCode).send(ApiResponse.error(result, result.statusCode))
         return;
@@ -457,6 +472,17 @@ const getDisbursement = async (req: Request, res: Response, next: NextFunction):
   }
 }
 
+const getDisbursementWithinRange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { query } = req;
+    const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+    const merchant = await easyPaisaService.getTeleDisbursementLast15MinsFromLast10Mins(query);
+    res.status(200).json(ApiResponse.success(merchant));
+  } catch (error) {
+    next(error);
+  }
+}
+
 const exportDisbursement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { query } = req;
@@ -544,5 +570,6 @@ export default {
   createDisbursementClone,
   disburseThroughBankClone,
   initiateEasyPaisaClone,
-  initiateEasyPaisaAsyncClone
+  initiateEasyPaisaAsyncClone,
+  getDisbursementWithinRange
 };

@@ -27,6 +27,42 @@ const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: Nex
   }
 };
 
+const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {accountNo, provider, payId, otp} = req.body;
+
+    // Verify the otp
+    const record = await prisma.paymentRequest.findFirst({
+      where: {
+        AND: [
+          {
+            metadata: {
+              path: ["otp"],
+              equals: otp
+            }
+          },
+          {
+            metadata: {
+              path: ["phone"],
+              equals: accountNo
+            }
+          }
+        ]
+      }
+    })
+
+    if (!record) {
+      res.status(401).send("Invalid OTP");
+      return;
+    }
+
+    // Proceed to the next middleware
+    return next();
+  } catch (error) {
+    res.status(401).json(ApiResponse.error("Invalid otp or phone mapping", 401));
+  }
+}
+
 const restrict = (role: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     let user: JwtPayload = req.user as JwtPayload;
@@ -131,5 +167,6 @@ export {
   errorHandler,
   restrictMultiple,
   authorize,
-  isAdmin
+  isAdmin,
+  checkOtp
 };

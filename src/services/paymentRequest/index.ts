@@ -61,7 +61,7 @@ const createPaymentRequest = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}` },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}` },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -123,7 +123,7 @@ const createPaymentRequestClone = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -534,6 +534,8 @@ const deletePaymentRequest = async (paymentRequestId: string) => {
     );
   }
 };
+
+
 
 export default {
   createPaymentRequest,

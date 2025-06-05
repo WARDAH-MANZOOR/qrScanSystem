@@ -24,7 +24,7 @@ import {
 import { easyPaisaDisburse } from "../../services/index.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import bankDetails from "../../data/banks.json" with { type: 'json' };
-import { parse, parseISO } from "date-fns";
+import { parse, parseISO, subMinutes } from "date-fns";
 import { format, toZonedTime } from "date-fns-tz";
 import { Parser } from "json2csv";
 import path, { dirname } from "path";
@@ -111,7 +111,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
   let saveTxn;
   let id = transactionService.createTransactionId();
   try {
-    console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -223,6 +223,14 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         findMerchant.encrypted == "True" ? true : false,
         true
       );
+      console.log(JSON.stringify({
+        event: "EASYPAISA_PAYIN_RESPONSE", order_id: params.order_id, system_id: id, response: {
+          txnNo: saveTxn.merchant_transaction_id,
+          txnDateTime: saveTxn.date_time,
+          statusCode: response?.data.responseCode
+        }
+      }))
+
       return {
         txnNo: saveTxn.merchant_transaction_id,
         txnDateTime: saveTxn.date_time,
@@ -430,7 +438,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
   let id = transactionService.createTransactionId();
 
   try {
-    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -590,7 +598,13 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         );
       }
     });
-
+    console.log(JSON.stringify({
+      event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
+        txnNo: saveTxn.merchant_transaction_id,
+        txnDateTime: saveTxn.date_time,
+        statusCode: "pending",
+      }
+    }))
     return {
       txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
@@ -611,7 +625,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
   let id = transactionService.createTransactionId();
 
   try {
-    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -766,7 +780,13 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
         );
       }
     });
-
+    console.log(JSON.stringify({
+      event: "EASYPAISA_ASYNC_RESPONSE", order_id: params.order_id, system_id: id, response: {
+        txnNo: saveTxn.merchant_transaction_id,
+        txnDateTime: saveTxn.date_time,
+        statusCode: "pending",
+      }
+    }))
     return {
       txnNo: saveTxn.merchant_transaction_id,
       txnDateTime: saveTxn.date_time,
@@ -1656,7 +1676,29 @@ const createDisbursementClone = async (
       catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
           if (err.code === 'P2034') {
-            throw new CustomError("Deadlock Error", 400)
+            await prisma.disbursement.create({
+              data: {
+                ...data,
+                // transaction_id: id,
+                merchant_id: Number(findMerchant.merchant_id),
+                disbursementDate: new Date(),
+                transactionAmount: amountDecimal,
+                commission: totalCommission,
+                gst: totalGST,
+                withholdingTax: totalWithholdingTax,
+                merchantAmount: obj.amount ? obj.amount : merchantAmount,
+                platform: 0,
+                account: obj.phone,
+                provider: PROVIDERS.JAZZ_CASH,
+                status: "pending",
+                response_message: "pending",
+                to_provider: PROVIDERS.JAZZ_CASH,
+                providerDetails: {
+                  id: findMerchant?.JazzCashDisburseAccountId
+                }
+              },
+            });
+            throw new CustomError("Transaction is Pending", 202);
           }
         }
         throw new CustomError("Database Error", 400)
@@ -1891,7 +1933,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
     }
     let { page, limit } = params;
     // Query based on provided parameters
-    let skip, take;
+    let skip, take = 0;
     if (page && limit) {
       skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
       take = parseInt(limit as string);
@@ -1900,7 +1942,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
     const disbursements = await prisma.disbursement
       .findMany({
         ...(skip && { skip: +skip }),
-        ...(take && { take: +take }),
+        ...(take && { take: +take + 1 }),
         where: {
           ...customWhere,
 
@@ -1934,25 +1976,22 @@ const getDisbursement = async (merchantId: number, params: any) => {
     //     disbursements[i].transaction = transaction;
     //   }
     // }
-    let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.disbursement.count({
-        where: {
-          ...customWhere,
-
-        },
-      });
-
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
+    let hasMore = false;
+    console.log(disbursements.length, take)
+    if (take > 0) {
+      hasMore = disbursements.length > take;
+      if (hasMore) {
+        disbursements.pop(); // Remove the extra record
       }
     }
+
+    // Build meta with hasMore flag
+    const meta = {
+      page: page ? parseInt(page as string) : 1,
+      limit: take,
+      hasMore,
+    };
+
     const response = {
       transactions: disbursements.map((transaction) => ({
         ...transaction,
@@ -1966,6 +2005,117 @@ const getDisbursement = async (merchantId: number, params: any) => {
       error?.error || "Unable to get disbursement",
       error?.statusCode || 500
     );
+  }
+};
+
+const getTeleDisbursementLast15MinsFromLast10Mins = async (query: any) => {
+  try {
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = query;
+
+    let startDate = query?.start as string;
+    let endDate = query?.end as string;
+    const status = query?.status as string;
+    const search = query?.search || "" as string;
+    const msisdn = query?.msisdn || "" as string;
+    const provider = query?.provider || "" as string;
+    const customWhere = { AND: [] } as any;
+
+    if (startDate && endDate) {
+      const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+      const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+
+      customWhere.AND.push({
+        date_time: {
+          gte: todayStart,
+          lt: todayEnd,
+        }
+      });
+    }
+
+    if (status) {
+      customWhere.AND.push({ status });
+    }
+
+    if (search) {
+      customWhere.AND.push({
+        transaction_id: {
+          contains: search
+        }
+      });
+    }
+
+    if (msisdn) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['msisdn'],
+          equals: msisdn
+        }
+      });
+    }
+
+    if (provider) {
+      customWhere.AND.push({
+        providerDetails: {
+          path: ['name'],
+          equals: provider
+        }
+      });
+    }
+
+    if (merchantTransactionId) {
+      customWhere.AND.push({
+        merchant_transaction_id: merchantTransactionId
+      });
+    }
+
+    if (response_message) {
+      customWhere.AND.push({
+        response_message: {
+          contains: response_message
+        }
+      });
+    }
+
+    if (merchantId) {
+      customWhere["merchant_id"] = Number(merchantId);
+    }
+    const timezone = 'Asia/Karachi';
+    const currentTime = toZonedTime(new Date(), timezone);
+    const fifteenMinutesAgo = subMinutes(currentTime, 15);
+    const threeMinutesAgo = subMinutes(currentTime, 10);
+
+    const transactions = await prisma.disbursement.findMany({
+      where: {
+        ...customWhere,
+        disbursementDate: {
+          gte: fifteenMinutesAgo,
+          lte: threeMinutesAgo,
+        },
+      },
+      orderBy: {
+        disbursementDate: 'desc',
+      },
+      include: {
+        merchant: {
+          include: {
+            groups: {
+              include: {
+                merchant: {
+                  include: {
+                    jazzCashMerchant: true,
+                  },
+                },
+              },
+            },
+          },
+        }
+      }
+    });
+
+    return { transactions };
+  } catch (err) {
+    console.error(err);
+    return { error: 'Internal Server Error' };
   }
 };
 
@@ -3198,5 +3348,6 @@ export default {
   disburseThroughBankClone,
   initiateEasyPaisaClone,
   initiateEasyPaisaAsyncClone,
-  adjustMerchantToDisburseBalance
+  adjustMerchantToDisburseBalance,
+  getTeleDisbursementLast15MinsFromLast10Mins
 };

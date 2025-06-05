@@ -563,6 +563,48 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
     }
 }
 
+async function settleDisbursements(transactionIds: string[]) {
+    try {
+        const txns = await prisma.disbursement.findMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+
+        await prisma.disbursement.updateMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds }
+            },
+            data: {
+                status: 'completed',
+                response_message: "success"
+            }
+        })
+
+        for (const txn of txns) {
+            const findMerchant = await prisma.merchant.findFirst({
+                where: {
+                    merchant_id: txn.merchant_id
+                }
+            })
+            await transactionService.sendCallback(
+                findMerchant?.webhook_url as string,
+                txn,
+                (txn.providerDetails as JsonObject)?.account as string,
+                "payin",
+                findMerchant?.encrypted == "True" ? true : false,
+                false
+            )
+        }
+        return 'Transactions settled successfully.';
+    } catch (error: any) {
+        throw new CustomError(error.message || 'Error settling transactions', error.statusCode || 500);
+    }
+}
+
 async function failTransactions(transactionIds: string[]) {
     try {
         const txns = await prisma.transaction.findMany({
@@ -607,6 +649,32 @@ async function failDisbursements(transactionIds: string[]) {
             data: {
                 status: "failed",
                 response_message: "failed"
+            }
+        })
+
+        return 'Disbursements failed successfully.';
+    } catch (error: any) {
+        throw new CustomError(error.message || 'Error settling transactions', error.statusCode || 500);
+    }
+}
+
+async function failDisbursementsWithAccountInvalid(transactionIds: string[]) {
+    try {
+        const txns = await prisma.disbursement.findMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            }
+        });
+        if (txns.length <= 0) {
+            throw new CustomError("Transactions not found", 404);
+        }
+        await prisma.disbursement.updateMany({
+            where: {
+                merchant_custom_order_id: { in: transactionIds },
+            },
+            data: {
+                status: "failed",
+                response_message: "Account Invalid! Please try again with a valid account"
             }
         })
 
@@ -1295,5 +1363,7 @@ export default {
     adjustMerchantWalletBalanceithTx,
     settleAllMerchantTransactionsUpdated,
     calculateFinancials,
-    adjustMerchantDisbursementBalance
+    adjustMerchantDisbursementBalance,
+    failDisbursementsWithAccountInvalid,
+    settleDisbursements
 }

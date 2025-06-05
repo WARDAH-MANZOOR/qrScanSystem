@@ -5,6 +5,7 @@ import {
   adminDashboardValidation,
   merchantDashboardValidation,
 } from "../../validators/dashboard/index.js";
+import { uidAuth } from "middleware/auth.js";
 
 const router = Router();
 
@@ -14,6 +15,12 @@ router.get(
   [isLoggedIn, ...merchantDashboardValidation],
   authorize("Dashboard"),
   dashboardController.merchantDashboardDetails
+);
+router.get(
+  "/merchant-details/:merchantId",
+  [uidAuth, ...merchantDashboardValidation],
+  // authorize("Dashboard"),
+  dashboardController.merchantDashboardDetailsClone
 );
 router.get(
   "/admin",
