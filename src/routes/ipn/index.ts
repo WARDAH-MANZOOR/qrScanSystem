@@ -12,5 +12,6 @@ router.post("/think-tech", ipnController.handleIPN);
 router.post("/digicore", ipnController.handleIPN);
 router.post("/evolvica", ipnController.handleIPN);
 router.post("/card", ipnController.handleCardIPN);
+router.post("/bdt", ipnController.handlebdtIPN);
 
 export default router;
