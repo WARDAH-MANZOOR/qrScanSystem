@@ -36,7 +36,7 @@ const comparePasswords = async (password: string, hashedPassword: string) => {
 
 const generateToken = (payload: any) => {
   return jwt.sign(payload, process.env.JWT_SECRET || "default_secret", {
-    // expiresIn: "1h",
+    expiresIn: "5d",
   });
 };
 
