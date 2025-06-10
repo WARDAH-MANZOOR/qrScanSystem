@@ -1753,6 +1753,8 @@ const createDisbursementClone = async (
     // Convert the date to the Pakistan timezone
     zonedDate = toZonedTime(date, timeZone);
     console.log(walletBalance + +totalDisbursed)
+
+    // Update the code to make pending payouts when ma2ma.ResponseMessage is RESOURCE_TEMPORARY_LOCKED
     if (ma2ma.ResponseCode != 0) {
       console.log("Disbursement Failed ")
       console.log(totalDisbursed)
