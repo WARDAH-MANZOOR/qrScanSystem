@@ -1683,6 +1683,8 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
   let findMerchant: any;
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
+  let balanceDeducted = false;
+  let merchantAmount: Decimal = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
   try {
     // validate Merchant
     findMerchant = await merchantService.findOne({
@@ -1719,7 +1721,6 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
       }
     }
     let amountDecimal: Decimal = new Decimal(0);
-    let merchantAmount: Decimal = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
     totalDisbursed = new Decimal(0);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     data2["merchant_custom_order_id"] = body.merchant_custom_order_id;
@@ -1743,6 +1744,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
           throw new CustomError("Insufficient balance to disburse", 400);
         }
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
+        balanceDeducted = true;
       }
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1798,6 +1800,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     let data;
     if (!res.data) {
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -1805,6 +1808,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     if (data.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       data2["transaction_id"] = data.transactionID || body.system_order_id;
       // Get the current date
       const date = new Date();
@@ -1858,6 +1862,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     res = await response.json();
     if (!res.data) {
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -1865,6 +1870,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     if (res.responseCode != "G2P-T-0") {
       console.log("IBFT Response: ", data);
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       // Get the current date
       const date = new Date();
@@ -1954,6 +1960,9 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
   }
   catch (err: any) {
     console.log("Initiate Transaction Error", err);
+    if (balanceDeducted) {
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
+    }
     throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
@@ -1962,6 +1971,8 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
   let findMerchant: any;
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
+  let balanceDeducted = false;
+  let merchantAmount: Decimal = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
   try {
     console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, body }))
     // validate Merchant
@@ -2000,7 +2011,6 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
       }
     }
     let amountDecimal: Decimal = new Decimal(0);
-    let merchantAmount: Decimal = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
     totalDisbursed = new Decimal(0);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
     let id = transactionService.createTransactionId();
@@ -2027,6 +2037,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
         }
         console.log(JSON.stringify({ event: "IBFT_BALANCE_ADJUSTED", order_id: body.order_id }))
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
+        balanceDeducted = true;
       }
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -2083,6 +2094,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
     if (!res.data) {
       console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -2091,6 +2103,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
       console.log(JSON.stringify({ event: "IBFT_PENDING_FAILED", order_id: body.order_id, response: data }))
       console.log("IBFT Response: ", data);
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       data2["transaction_id"] = data.transactionID || body.system_order_id;
       // Get the current date
       const date = new Date();
@@ -2146,6 +2159,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
     if (!res.data) {
       console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -2154,6 +2168,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
       console.log(JSON.stringify({ event: "IBFT_PENDING_FAILED", order_id: body.order_id, response: res }))
       console.log("IBFT Response: ", data);
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       // Get the current date
       const date = new Date();
@@ -2257,6 +2272,9 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
   }
   catch (err: any) {
     console.log("Initiate Transaction Error", err);
+    if (balanceDeducted) {
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
+    }
     throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
@@ -3377,6 +3395,8 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
   let findMerchant: any;
   let walletBalance;
   let totalDisbursed: number | Decimal = new Decimal(0);
+  let balanceDeducted = false;
+  let merchantAmount = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
   try {
     console.log(JSON.stringify({ event: "MW_PENDING_REQUEST", order_id: body.order_id, body: body }))
     // validate Merchant
@@ -3418,7 +3438,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         throw new CustomError("Order ID already exists", 400);
       }
     }
-    let merchantAmount = new Decimal(+body.merchantAmount + +body.commission + +body.gst + +body.withholdingTax);
+    
     let amountDecimal = new Decimal(0);
     let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
@@ -3445,6 +3465,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         }
         console.log(JSON.stringify({ event: "MW_BALANCE_ADJUSTED", order_id: body.order_id }))
         const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
+        balanceDeducted = true;
       }
       catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -3492,6 +3513,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     if (!res.data) {
       console.log(JSON.stringify({ event: "MW_PENDING_REQUEST_THROTTLED", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
@@ -3499,6 +3521,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
     if (res.responseCode != "G2P-T-0") {
       console.log(JSON.stringify({ event: "MW_PENDING_FAILED", order_id: body.order_id, response: res }))
       const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
+      balanceDeducted = false;
       data2["transaction_id"] = res.transactionID || body.system_order_id;
       const date = new Date();
 
@@ -3599,6 +3622,9 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
   }
   catch (err: any) {
     console.log("MW Transaction Error", err);
+    if (balanceDeducted) {
+      await easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true); // Adjust the balance
+    }
     throw new CustomError(err?.message, err?.statusCode == 202 ? 202 : 500);
   }
 }
