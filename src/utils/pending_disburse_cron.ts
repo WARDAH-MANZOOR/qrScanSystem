@@ -86,20 +86,20 @@ async function processPendingRecordsCron() {
         try {
           console.log(`Processing transaction: ${txn.system_order_id}`);
           if (txn.provider?.toUpperCase() === "EASYPAISA") {
-            // if (txn.to_provider?.toUpperCase() === "EASYPAISA") {
-            //   console.log(`${txn.provider} -> ${txn.to_provider}`);
-            //   await easyPaisaService.updateDisbursement(
-            //     txn,
-            //     merchant?.uid as string
-            //   );
-            // } else {
-            //   console.log(`${txn.provider} -> ${txn.to_provider}`);
-            //   await easyPaisaService.updateDisburseThroughBank(
-            //     txn,
-            //     merchant?.uid as string
-            //   );
-            // }
-            continue;
+            if (txn.to_provider?.toUpperCase() === "EASYPAISA") {
+              console.log(`${txn.provider} -> ${txn.to_provider}`);
+              await easyPaisaService.updateDisbursement(
+                txn,
+                merchant?.uid as string
+              );
+            } else {
+              console.log(`${txn.provider} -> ${txn.to_provider}`);
+              await easyPaisaService.updateDisburseThroughBank(
+                txn,
+                merchant?.uid as string
+              );
+            }
+            // continue;
           } else {
             if (txn.to_provider.toUpperCase() === "JAZZCASH") {
               console.log(`${txn.provider} -> ${txn.to_provider}`);
