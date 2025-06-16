@@ -67,9 +67,9 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
   try {
     const scheduledTasks = await prisma.scheduledTask.findMany({
       where: {
-        transaction: {
-          merchant_id: 451,
-        },
+        // transaction: {
+        //   merchant_id: 451,
+        // },
         status: 'pending',
         scheduledAt: {
           lte: new Date(),
