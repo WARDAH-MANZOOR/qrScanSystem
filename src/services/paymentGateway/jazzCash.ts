@@ -1496,7 +1496,7 @@ const simpleStatusInquiry = async (payload: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire",
+    url: "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry",
     //   "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire" 
     headers: {
       "Content-Type": "application/json",
