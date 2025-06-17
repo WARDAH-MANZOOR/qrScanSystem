@@ -1086,7 +1086,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           status: "failed",
           response_message: data.responseDescription,
           providerDetails: {
-            id: findMerchant?.JazzCashDisburseAccountId
+            id: findMerchant?.JazzCashDisburseAccountId,
+            sub_name: PROVIDERS.JAZZ_CASH
           }
         },
       });
@@ -1143,7 +1144,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           response_message: "pending",
           to_provider: body.bankCode,
           providerDetails: {
-            id: findMerchant?.JazzCashDisburseAccountId
+            id: findMerchant?.JazzCashDisburseAccountId,
           }
         },
       });
@@ -1182,7 +1183,10 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           status: "failed",
           response_message: res.responseDescription,
           providerDetails: {
-            id: findMerchant?.JazzCashDisburseAccountId
+            id: findMerchant?.JazzCashDisburseAccountId,
+            sub_name: PROVIDERS.JAZZ_CASH
+
+
           }
         },
       });
@@ -1222,7 +1226,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
             status: "completed",
             response_message: "success",
             providerDetails: {
-              id: findMerchant?.JazzCashDisburseAccountId
+              id: findMerchant?.JazzCashDisburseAccountId,
+              sub_name: PROVIDERS.JAZZ_CASH
             }
           },
         });
@@ -3438,7 +3443,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
         throw new CustomError("Order ID already exists", 400);
       }
     }
-    
+
     let amountDecimal = new Decimal(0);
     let totalDisbursed: number | Decimal = new Decimal(body.merchantAmount);
     let data2: { transaction_id?: string, merchant_custom_order_id?: string, system_order_id?: string } = {};
