@@ -5,6 +5,7 @@ import { JsonObject } from "@prisma/client/runtime/library";
 import { toZonedTime, format } from "date-fns-tz"; // For time zone conversion
 import { parseISO } from "date-fns";
 import CustomError from "utils/custom_error.js";
+import { PROVIDERS } from "constants/providers.js";
 
 const TIMEZONE = "Asia/Karachi"; // Pakistan Time Zone
 
@@ -387,7 +388,7 @@ export const payoutPerWalletService = async (params: any) => {
         }
 
         // 🧠 Let DB do the aggregation
-        const [jazzCashAgg] = await Promise.all([
+        const [jazzCashAgg, easypaisaAgg] = await Promise.all([
             prisma.disbursement.findMany({
                 where: {
                     status: 'completed',
@@ -395,6 +396,41 @@ export const payoutPerWalletService = async (params: any) => {
                         gte: start_date,
                         lt: end_date,
                     },
+                    OR: [
+                        {
+                            provider: PROVIDERS.JAZZ_CASH
+                        },
+                        {
+                            providerDetails: {
+                                path: ["sub_name"],
+                                equals: PROVIDERS.JAZZ_CASH
+                            }
+                        }
+                    ]
+                },
+                select: {
+                    providerDetails: true,
+                    merchantAmount: true,
+                },
+            }),
+            prisma.disbursement.findMany({
+                where: {
+                    status: 'completed',
+                    disbursementDate: {
+                        gte: start_date,
+                        lt: end_date,
+                    },
+                    OR: [
+                        {
+                            provider: PROVIDERS.EASYPAISA
+                        },
+                        {
+                            providerDetails: {
+                                path: ["sub_name"],
+                                equals: PROVIDERS.EASYPAISA
+                            }
+                        }
+                    ]
                 },
                 select: {
                     providerDetails: true,
@@ -412,12 +448,25 @@ export const payoutPerWalletService = async (params: any) => {
             return acc;
         }, {} as Record<number, { total_amount: number; provider_name: string }>);
 
+        const easypaisaAggregation = jazzCashAgg.reduce((acc, t) => {
+            const merchantId = 3;
+            if (Number.isNaN(merchantId)) return acc;
+
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'Easypaisa' };
+            acc[merchantId].total_amount += Number(t.merchantAmount);
+            return acc;
+        }, {} as Record<number, { total_amount: number; provider_name: string }>);
+
         // 🧾 Prepare merchant ID arrays
         const jazzCashIds = Object.keys(jazzCashAggregation).map(Number);
 
+        const easypaisaIds = Object.keys(easypaisaAggregation).map(Number);
+
+
         // 🧵 Fetch all merchants in parallel
-        const [jazzCashMerchants] = await Promise.all([
+        const [jazzCashMerchants, easypaisaMerchants] = await Promise.all([
             prisma.jazzCashDisburseAccount.findMany({ where: { id: { in: jazzCashIds } }, select: { id: true, merchant_of: true } }),
+            prisma.easyPaisaDisburseAccount.findMany({ where: { id: { in: easypaisaIds } }, select: { id: true, merchant_of: true } }),
         ]);
 
         // 🧱 Format results
@@ -427,8 +476,15 @@ export const payoutPerWalletService = async (params: any) => {
             provider_name: 'JazzCash',
         }));
 
+        const easyPaisaResult = easypaisaMerchants.map((m) => ({
+            returnUrl: m.merchant_of,
+            total_amount: easypaisaAggregation[m.id]?.total_amount || 0,
+            provider_name: 'Easypaisa',
+        }));
+
         return {
             jazzCashTransactions: jazzCashResult,
+            easypaisaTransactions: easyPaisaResult
         };
     } catch (error) {
         console.error(error);
