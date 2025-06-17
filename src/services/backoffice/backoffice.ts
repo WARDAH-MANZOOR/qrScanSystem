@@ -762,22 +762,18 @@ async function settleAllMerchantTransactions(merchantId: number) {
         const today = toZonedTime(new Date(), timeZone);
         const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-        await prisma.settlementReport.updateMany({
-            where: {
-                merchant_id: merchantId,
-                settlementDate,
-            },
+        await prisma.settlementReport.create({
             data: {
-                merchant_id: merchantId,
-                settlementDate,
-                transactionCount: { increment: transactionCount },
-                transactionAmount: { increment: transactionAmount },
-                commission: { increment: totalCommission },
-                gst: { increment: totalGST },
-                withholdingTax: { increment: totalWithholdingTax },
-                merchantAmount: { increment: merchantAmount },
+              merchant_id: merchantId,
+              settlementDate: today,
+              transactionCount: transactionCount,
+              transactionAmount: transactionAmount,
+              commission: totalCommission,
+              gst: totalGST,
+              withholdingTax: totalWithholdingTax,
+              merchantAmount: merchantAmount,
             },
-        });
+          });
 
         return 'All merchant transactions settled successfully.';
     } catch (error) {
