@@ -448,7 +448,7 @@ export const payoutPerWalletService = async (params: any) => {
             return acc;
         }, {} as Record<number, { total_amount: number; provider_name: string }>);
 
-        const easypaisaAggregation = jazzCashAgg.reduce((acc, t) => {
+        const easypaisaAggregation = easypaisaAgg.reduce((acc, t) => {
             const merchantId = 3;
             if (Number.isNaN(merchantId)) return acc;
 
