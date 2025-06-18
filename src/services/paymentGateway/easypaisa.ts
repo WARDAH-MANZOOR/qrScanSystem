@@ -2620,7 +2620,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
             status: "completed",
             response_message: "success",
             providerDetails: {
-              id: findMerchant?.EasyPaisaDisburseAccountId,
+              id: findMerchant?.EasyPaisaDisburseAccountId, 	
               sub_name: PROVIDERS.EASYPAISA
             }
           },
