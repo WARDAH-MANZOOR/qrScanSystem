@@ -8,6 +8,8 @@ import {
   validateUpdateMerchant,
   validateInquiry,
 } from "../../validators/paymentGateway/easypaisa.js";
+import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
+import decryptionEasypaisa from "utils/decryptionEasypaisa.js";
 
 export default function (router: Router) {
   router.post(
@@ -54,12 +56,13 @@ export default function (router: Router) {
   router.post(
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
+    block_phone_number_middleware.blockPhoneNumber,
     easyPaisaController.initiateEasyPaisa
   );
 
   router.post(
     "/initiate-epa/:merchantId",
-    [apiKeyAuth, ...validateEasypaisaTxn],
+    [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber],
     easyPaisaController.initiateEasyPaisaAsync
   );
 
@@ -68,11 +71,17 @@ export default function (router: Router) {
     validateEasypaisaTxn,
     easyPaisaController.initiateEasyPaisa
   );
+  router.post(
+    "/initiate-epc-new/:merchantId",
+    decryptionEasypaisa.decryptionNewFlowEasypaisa,
+    validateEasypaisaTxn,
+    easyPaisaController.initiateEasyPaisaNewFlow
+  );
 
   router.post(
-    "/initiate-epac/:merchantId",
+    "/initiate-epa-mntx/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn],
-    easyPaisaController.initiateEasyPaisaAsync
+    easyPaisaController.initiateEasyPaisaAsyncClone
   );
 
   router.post(

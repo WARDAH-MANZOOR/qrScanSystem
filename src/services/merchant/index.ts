@@ -37,24 +37,17 @@ const updateMerchant = async (payload: Merchant) => {
     swichLimit,
     commissionMode,
     easypaisaRate,
-    payFastMerchantId
+    payFastMerchantId,
+    payfastInquiryMethod,
+    jazzCashCardMerchantId,
+    jazzCashDisburseInquiryMethod,
+    jazzCashInquiryMethod,
+    wooMerchantId,
+    cardRate
   } = payload;
   try {
     // let enc = stringToBoolean(encrypted);
     let result = await prisma.$transaction(async (tx) => {
-      let hashedPassword;
-      if (password) {
-        hashedPassword = await hashPassword(password as string);
-        await tx.user.update({
-          where: {
-            id: +merchantId
-          },
-          data: {
-            password: hashedPassword,
-            email
-          }
-        })
-      }
       let method = easypaisaPaymentMethod?.toUpperCase();
       if (method != "DIRECT" && method != "SWITCH" && method != "PAYFAST") {
         throw new CustomError("Easy Paisa Method not valid", 400);
@@ -82,7 +75,12 @@ const updateMerchant = async (payload: Merchant) => {
           payout_callback: payoutCallbackUrl,
           easypaisaLimit,
           swichLimit,
-          payFastMerchantId
+          payFastMerchantId,
+          payfastInquiryMethod,
+          jazzCashCardMerchantId,
+          jazzCashDisburseInquiryMethod,
+          jazzCashInquiryMethod,
+          wooMerchantId
         },
         where: { merchant_id: +merchantId },
       });
@@ -102,7 +100,8 @@ const updateMerchant = async (payload: Merchant) => {
               ? +settlementDuration
               : finance?.settlementDuration,
           commissionMode,
-          easypaisaRate: easypaisa_rate
+          easypaisaRate: easypaisa_rate,
+          cardRate: +cardRate
         },
         where: { merchant_id: +merchantId },
       });
@@ -152,6 +151,7 @@ const findOne = async (params: any) => {
         commissions: true,
       },
     });
+    merchants?.JazzCashDisburseAccountId
     return merchants;
   } catch (err: any) {
     throw new CustomError(err?.error, err?.statusCode);
@@ -189,7 +189,13 @@ const addMerchant = async (payload: Merchant) => {
     swichLimit,
     commissionMode,
     easypaisaRate,
-    payFastMerchantId
+    payFastMerchantId,
+    payfastInquiryMethod,
+    jazzCashCardMerchantId,
+    jazzCashDisburseInquiryMethod,
+    jazzCashInquiryMethod,
+    wooMerchantId,
+    cardRate
   } = payload;
 
   if (settlementDuration == undefined) {
@@ -234,6 +240,11 @@ const addMerchant = async (payload: Merchant) => {
           payout_callback: payoutCallbackUrl,
           easypaisaLimit,
           swichLimit,
+          payfastInquiryMethod,
+          jazzCashCardMerchantId,
+          jazzCashDisburseInquiryMethod,
+          jazzCashInquiryMethod,
+          wooMerchantId
         },
       });
 
@@ -249,7 +260,8 @@ const addMerchant = async (payload: Merchant) => {
           settlementDuration: +settlementDuration,
           merchant_id: user.id,
           commissionMode,
-          easypaisaRate: easypaisa_rate
+          easypaisaRate: easypaisa_rate,
+          cardRate: +cardRate
         },
       });
 
@@ -284,7 +296,7 @@ const setDisbursePercent = async (merchant_id: number, percent: number) => {
     })
 
     if (!merchant) {
-      throw new CustomError("Merchant Not Found",404);
+      throw new CustomError("Merchant Not Found", 404);
     }
 
     if (!percent || percent < 0) {
@@ -302,7 +314,7 @@ const setDisbursePercent = async (merchant_id: number, percent: number) => {
 
     return result;
   }
-  catch(err: any) {
+  catch (err: any) {
     throw new CustomError(err?.message, err?.statusCode)
   }
 }

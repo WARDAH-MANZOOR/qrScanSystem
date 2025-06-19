@@ -4,8 +4,8 @@ import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import routes from './routes/index.js';
 import cors from 'cors';
-// dotenv.config();
-process.env.DATABASE_URL = "postgresql://postgres:ambreen1234@localhost:5432/erp2_db";
+// // dotenv.config();
+process.env.DATABASE_URL = "postgresql://postgres:ambreen1234@localhost:5432/erp_db";
 // import indexRouter from './routes/index.js';
 // import usersRouter from './routes/users.js';
 import swaggerUi from 'swagger-ui-express';
@@ -18,6 +18,7 @@ import authRouter from "./routes/authentication/index.js";
 import createTransactionRouter from "./routes/transaction/create.js";
 import completeTransactionRouter from "./routes/transaction/complete.js";
 import { errorHandler } from "./utils/middleware.js";
+import { hashPassword } from 'services/authentication/index.js';
 var app = express();
 // cron.schedule("0 16 * * 1-5", task);
 // cron.schedule("*/5 * * * *", pendingDisburse);
@@ -31,11 +32,13 @@ app.use(cors({
     origin: [
         'https://sahulatpay.com',
         `https://merchant.sahulatpay.com`,
-        'https://assanpay.sahulatpay.com',
+        `https://merchant.assanpay.com`,
+        'https://assanpay.com',
         `https://devtectsadmin.sahulatpay.com`,
         'http://localhost:3005',
         'http://localhost:*',
-        '*'
+        'https://user.digicore.net.pk',
+        '*',
     ],
     credentials: true,
 }));
@@ -95,3 +98,4 @@ app.listen(process.env.PORT || 3001, () => {
 // const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
 // console.log('Decrypted Data:', decryptedData);
 // export default app;
+console.log(await hashPassword("Zhiquan@123."));

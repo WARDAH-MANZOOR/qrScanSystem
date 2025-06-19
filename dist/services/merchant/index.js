@@ -2,23 +2,10 @@ import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { hashPassword } from "../../services/authentication/index.js";
 const updateMerchant = async (payload) => {
-    const { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, merchantId, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, EasyPaisaDisburseAccountId, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId } = payload;
+    const { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, merchantId, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, EasyPaisaDisburseAccountId, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId, payfastInquiryMethod, jazzCashCardMerchantId, jazzCashDisburseInquiryMethod, jazzCashInquiryMethod, wooMerchantId, cardRate } = payload;
     try {
         // let enc = stringToBoolean(encrypted);
         let result = await prisma.$transaction(async (tx) => {
-            let hashedPassword;
-            if (password) {
-                hashedPassword = await hashPassword(password);
-                await tx.user.update({
-                    where: {
-                        id: +merchantId
-                    },
-                    data: {
-                        password: hashedPassword,
-                        email
-                    }
-                });
-            }
             let method = easypaisaPaymentMethod?.toUpperCase();
             if (method != "DIRECT" && method != "SWITCH" && method != "PAYFAST") {
                 throw new CustomError("Easy Paisa Method not valid", 400);
@@ -46,7 +33,12 @@ const updateMerchant = async (payload) => {
                     payout_callback: payoutCallbackUrl,
                     easypaisaLimit,
                     swichLimit,
-                    payFastMerchantId
+                    payFastMerchantId,
+                    payfastInquiryMethod,
+                    jazzCashCardMerchantId,
+                    jazzCashDisburseInquiryMethod,
+                    jazzCashInquiryMethod,
+                    wooMerchantId
                 },
                 where: { merchant_id: +merchantId },
             });
@@ -65,7 +57,8 @@ const updateMerchant = async (payload) => {
                         ? +settlementDuration
                         : finance?.settlementDuration,
                     commissionMode,
-                    easypaisaRate: easypaisa_rate
+                    easypaisaRate: easypaisa_rate,
+                    cardRate: +cardRate
                 },
                 where: { merchant_id: +merchantId },
             });
@@ -108,6 +101,7 @@ const findOne = async (params) => {
                 commissions: true,
             },
         });
+        merchants?.JazzCashDisburseAccountId;
         return merchants;
     }
     catch (err) {
@@ -115,7 +109,7 @@ const findOne = async (params) => {
     }
 };
 const addMerchant = async (payload) => {
-    let { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId } = payload;
+    let { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId, payfastInquiryMethod, jazzCashCardMerchantId, jazzCashDisburseInquiryMethod, jazzCashInquiryMethod, wooMerchantId, cardRate } = payload;
     if (settlementDuration == undefined) {
         settlementDuration = 0;
     }
@@ -156,6 +150,11 @@ const addMerchant = async (payload) => {
                     payout_callback: payoutCallbackUrl,
                     easypaisaLimit,
                     swichLimit,
+                    payfastInquiryMethod,
+                    jazzCashCardMerchantId,
+                    jazzCashDisburseInquiryMethod,
+                    jazzCashInquiryMethod,
+                    wooMerchantId
                 },
             });
             // Create Merchant Financial Terms
@@ -170,7 +169,8 @@ const addMerchant = async (payload) => {
                     settlementDuration: +settlementDuration,
                     merchant_id: user.id,
                     commissionMode,
-                    easypaisaRate: easypaisa_rate
+                    easypaisaRate: easypaisa_rate,
+                    cardRate: +cardRate
                 },
             });
             // Create UserGroup

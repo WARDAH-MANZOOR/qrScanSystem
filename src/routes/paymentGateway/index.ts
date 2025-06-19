@@ -7,6 +7,10 @@ import zindigiRouter from "./zindigi.js"
 import jazzcashDisburse from "./jazzcashDisburse.js";
 import newJazzCashRouter from "./newJazzCash.js"
 import payFast from "./payFast.js";
+import jazzCashCrud from "./jazzCashCrud.js";
+import newStatusInquiry from "./newStatusInquiry.js";
+import wooRouter from "./wooMerchant.js"
+import inquiryRouter from "./statusInquiry.js"
 const router = Router();
  
 jazzCashRouter(router);
@@ -16,6 +20,10 @@ easyPaisaDisburse(router);
 zindigiRouter(router);
 jazzcashDisburse(router);
 newJazzCashRouter(router);
-payFast(router)
+payFast(router);
+jazzCashCrud(router);
+newStatusInquiry(router);
+wooRouter(router);
+inquiryRouter(router);
 
 export default router;

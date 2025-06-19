@@ -621,9 +621,7 @@ const getRefund = async (merchantId: number, params: any) => {
     }
 
     if (params.transaction_id) {
-      customWhere["transaction_id"] = {
-        contains: params.transaction_id
-      }
+      customWhere["transaction_id"] = params.transaction_id
     }
 
     if (startDate && endDate) {
@@ -637,9 +635,7 @@ const getRefund = async (merchantId: number, params: any) => {
     }
 
     if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = {
-        contains: params.merchantTransactionId
-      }
+      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
     }
 
     if (params.status) {
@@ -651,7 +647,7 @@ const getRefund = async (merchantId: number, params: any) => {
     }
     let { page, limit } = params;
     // Query based on provided parameters
-    let skip, take;
+    let skip, take = 0;
     if (page && limit) {
       skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
       take = parseInt(limit as string);
@@ -660,7 +656,7 @@ const getRefund = async (merchantId: number, params: any) => {
     const disbursements = await prisma.refund
       .findMany({
         ...(skip && { skip: +skip }),
-        ...(take && { take: +take }),
+        ...(take && { take: +take + 1 }),
         where: {
           ...customWhere,
         },
@@ -693,25 +689,18 @@ const getRefund = async (merchantId: number, params: any) => {
     //     disbursements[i].transaction = transaction;
     //   }
     // }
-    let meta = {};
-    if (page && take) {
-      // Get the total count of transactions
-      const total = await prisma.refund.count({
-        where: {
-          ...customWhere,
-
-        },
-      });
-
-      // Calculate the total number of pages
-      const pages = Math.ceil(total / +take);
-      meta = {
-        total,
-        pages,
-        page: parseInt(page as string),
-        limit: take
-      }
+    const hasMore = disbursements.length > take;
+    if (hasMore) {
+      disbursements.pop(); // Remove the extra record
     }
+
+    // Build meta with hasMore flag
+    const meta = {
+      page: page ? parseInt(page as string) : 1,
+      limit: take,
+      hasMore,
+    };
+
     const response = {
       transactions: disbursements.map((transaction) => ({
         ...transaction,
@@ -748,9 +737,7 @@ const exportRefund = async (merchantId: number, params: any) => {
     }
 
     if (params.transaction_id) {
-      customWhere["transaction_id"] = {
-        contains: params.transaction_id
-      }
+      customWhere["transaction_id"] = params.transaction_id
     }
 
     if (startDate && endDate) {
@@ -764,9 +751,7 @@ const exportRefund = async (merchantId: number, params: any) => {
     }
 
     if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = {
-        contains: params.merchantTransactionId
-      }
+      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
     }
 
     if (params.status) {
@@ -842,7 +827,8 @@ const exportRefund = async (merchantId: number, params: any) => {
 
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(data);
-    return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+    const csvNoQuotes = csv.replace(/"/g, '');
+    return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
     // loop through disbursements and add transaction details
     // for (let i = 0; i < disbursements.length; i++) {
     //   if (!disbursements[i].transaction_id) {

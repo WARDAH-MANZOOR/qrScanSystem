@@ -45,7 +45,7 @@ async function getToken(merchantId) {
             body: urlencoded,
             // redirect: "follow"
         };
-        const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
+        const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -112,7 +112,7 @@ async function simpleGetToken(merchantId) {
             body: urlencoded,
             // redirect: "follow"
         };
-        const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
+        const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -576,7 +576,7 @@ async function initiateTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -660,7 +660,7 @@ async function initiateTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -802,6 +802,7 @@ async function initiateTransactionClone(token, body, merchantId) {
     let merchantAmount = new Decimal(0);
     let id = '';
     try {
+        console.log(JSON.stringify({ event: "IBFT_TRANSACTION_REQUEST", order_id: body.order_id, body: body }));
         // validate Merchant
         findMerchant = await merchantService.findOne({
             uid: merchantId,
@@ -886,7 +887,10 @@ async function initiateTransactionClone(token, body, merchantId) {
                                 provider: PROVIDERS.JAZZ_CASH,
                                 status: "pending",
                                 response_message: "pending",
-                                to_provider: body.bankCode
+                                to_provider: body.bankCode,
+                                providerDetails: {
+                                    id: findMerchant?.JazzCashDisburseAccountId
+                                }
                             },
                         });
                         throw new CustomError("Transaction is Pending", 202);
@@ -916,7 +920,7 @@ async function initiateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -946,7 +950,10 @@ async function initiateTransactionClone(token, body, merchantId) {
                     provider: PROVIDERS.JAZZ_CASH,
                     status: "pending",
                     response_message: "pending",
-                    to_provider: body.bankCode
+                    to_provider: body.bankCode,
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             balanceDeducted = false;
@@ -979,7 +986,10 @@ async function initiateTransactionClone(token, body, merchantId) {
                     account: body.iban,
                     provider: PROVIDERS.BANK,
                     status: "failed",
-                    response_message: data.responseDescription
+                    response_message: data.responseDescription,
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             balanceDeducted = false;
@@ -1002,7 +1012,7 @@ async function initiateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -1031,7 +1041,10 @@ async function initiateTransactionClone(token, body, merchantId) {
                     provider: PROVIDERS.JAZZ_CASH,
                     status: "pending",
                     response_message: "pending",
-                    to_provider: body.bankCode
+                    to_provider: body.bankCode,
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             balanceDeducted = false;
@@ -1065,7 +1078,10 @@ async function initiateTransactionClone(token, body, merchantId) {
                     account: body.iban,
                     provider: PROVIDERS.BANK,
                     status: "failed",
-                    response_message: res.responseDescription
+                    response_message: res.responseDescription,
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             balanceDeducted = false;
@@ -1098,7 +1114,10 @@ async function initiateTransactionClone(token, body, merchantId) {
                     account: body.iban,
                     provider: PROVIDERS.BANK,
                     status: "completed",
-                    response_message: "success"
+                    response_message: "success",
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             let webhook_url;
@@ -1114,6 +1133,19 @@ async function initiateTransactionClone(token, body, merchantId) {
                 merchant_transaction_id: disbursement.merchant_custom_order_id,
                 merchant_id: findMerchant.merchant_id
             }, body.phone, "payout", stringToBoolean(findMerchant.encrypted), false);
+            console.log(JSON.stringify({
+                event: "IBFT_TRANSACTION_RESPONSE", order_id: body.order_id, response: {
+                    message: "Disbursement created successfully",
+                    merchantAmount: body.amount
+                        ? body.amount.toString()
+                        : merchantAmount.toString(),
+                    order_id: disbursement.merchant_custom_order_id,
+                    externalApiResponse: {
+                        TransactionReference: disbursement.merchant_custom_order_id,
+                        TransactionStatus: "success",
+                    },
+                }
+            }));
             return {
                 message: "Disbursement created successfully",
                 merchantAmount: body.amount
@@ -1756,6 +1788,7 @@ async function updateTransactionClone(token, body, merchantId) {
     let walletBalance;
     let totalDisbursed = new Decimal(0);
     try {
+        console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, body }));
         // validate Merchant
         findMerchant = await merchantService.findOne({
             uid: merchantId,
@@ -1782,6 +1815,7 @@ async function updateTransactionClone(token, body, merchantId) {
                 },
             });
             if (checkOrder) {
+                console.log(JSON.stringify({ event: "ORDER_ID_EXISTS", order_id: body.order_id }));
                 throw new CustomError("Order ID already exists", 400);
             }
         }
@@ -1808,8 +1842,10 @@ async function updateTransactionClone(token, body, merchantId) {
                             provider: PROVIDERS.BANK
                         },
                     });
+                    console.log(JSON.stringify({ event: "INSUFFICIENT_BALANCE_TO_DISBURSE", order_id: body.order_id }));
                     throw new CustomError("Insufficient balance to disburse", 400);
                 }
+                console.log(JSON.stringify({ event: "IBFT_BALANCE_ADJUSTED", order_id: body.order_id }));
                 const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
             }
             catch (err) {
@@ -1849,7 +1885,7 @@ async function updateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1861,12 +1897,14 @@ async function updateTransactionClone(token, body, merchantId) {
         let res = await response.json();
         let data;
         if (!res.data) {
+            console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, response: res }));
             const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
             throw new CustomError("Transaction is Pending", 202);
         }
         data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
         console.log("Initiate Response: ", data);
         if (data.responseCode != "G2P-T-0") {
+            console.log(JSON.stringify({ event: "IBFT_PENDING_FAILED", order_id: body.order_id, response: data }));
             console.log("IBFT Response: ", data);
             const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
             data2["transaction_id"] = data.transactionID || body.system_order_id;
@@ -1907,7 +1945,7 @@ async function updateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -1918,12 +1956,14 @@ async function updateTransactionClone(token, body, merchantId) {
         });
         res = await response.json();
         if (!res.data) {
+            console.log(JSON.stringify({ event: "IBFT_PENDING_REQUEST", order_id: body.order_id, response: res }));
             const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
             throw new CustomError("Transaction is Pending", 202);
         }
         res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
         // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
         if (res.responseCode != "G2P-T-0") {
+            console.log(JSON.stringify({ event: "IBFT_PENDING_FAILED", order_id: body.order_id, response: res }));
             console.log("IBFT Response: ", data);
             const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
             data2["transaction_id"] = res.transactionID || body.system_order_id;
@@ -1983,6 +2023,19 @@ async function updateTransactionClone(token, body, merchantId) {
                 merchant_transaction_id: disbursement.merchant_custom_order_id,
                 merchant_id: findMerchant.merchant_id
             }, body.account, "payout", stringToBoolean(findMerchant.encrypted), false);
+            console.log(JSON.stringify({
+                event: "IBFT_PENDING_RESPONSE", order_id: body.order_id, response: {
+                    message: "Disbursement created successfully",
+                    merchantAmount: body.merchantAmount
+                        ? body.merchantAmount.toString()
+                        : merchantAmount.toString(),
+                    order_id: disbursement.merchant_custom_order_id,
+                    externalApiResponse: {
+                        TransactionReference: disbursement.merchant_custom_order_id,
+                        TransactionStatus: "success",
+                    },
+                }
+            }));
             return {
                 message: "Disbursement created successfully",
                 merchantAmount: body.merchantAmount
@@ -2278,6 +2331,7 @@ async function mwTransaction(token, body, merchantId) {
     let id = '';
     try {
         // validate Merchant
+        console.log(JSON.stringify({ event: "MW_TRANSACTION_REQUEST", order_id: body.order_id, body: body }));
         findMerchant = await merchantService.findOne({
             uid: merchantId,
         });
@@ -2364,7 +2418,10 @@ async function mwTransaction(token, body, merchantId) {
                                 provider: PROVIDERS.JAZZ_CASH,
                                 status: "pending",
                                 response_message: "pending",
-                                to_provider: PROVIDERS.JAZZ_CASH
+                                to_provider: PROVIDERS.JAZZ_CASH,
+                                providerDetails: {
+                                    id: findMerchant?.JazzCashDisburseAccountId
+                                }
                             },
                         });
                         throw new CustomError("Transaction is Pending", 202);
@@ -2392,7 +2449,7 @@ async function mwTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -2421,7 +2478,10 @@ async function mwTransaction(token, body, merchantId) {
                     provider: PROVIDERS.JAZZ_CASH,
                     status: "pending",
                     response_message: "pending",
-                    to_provider: PROVIDERS.JAZZ_CASH
+                    to_provider: PROVIDERS.JAZZ_CASH,
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             balanceDeducted = false;
@@ -2453,7 +2513,10 @@ async function mwTransaction(token, body, merchantId) {
                     account: body.phone,
                     provider: PROVIDERS.JAZZ_CASH,
                     status: "failed",
-                    response_message: res.responseDescription
+                    response_message: res.responseDescription,
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             balanceDeducted = false;
@@ -2486,7 +2549,10 @@ async function mwTransaction(token, body, merchantId) {
                     account: body.phone,
                     provider: PROVIDERS.JAZZ_CASH,
                     status: "completed",
-                    response_message: "success"
+                    response_message: "success",
+                    providerDetails: {
+                        id: findMerchant?.JazzCashDisburseAccountId
+                    }
                 },
             });
             let webhook_url;
@@ -2502,6 +2568,19 @@ async function mwTransaction(token, body, merchantId) {
                 merchant_transaction_id: disbursement.merchant_custom_order_id,
                 merchant_id: findMerchant.merchant_id
             }, body.phone, "payout", stringToBoolean(findMerchant.encrypted), false);
+            console.log(JSON.stringify({
+                event: "MW_TRANSACTION_RESPONSE", order_id: body.order_id, response: {
+                    message: "Disbursement created successfully",
+                    merchantAmount: body.amount
+                        ? body.amount.toString()
+                        : merchantAmount.toString(),
+                    order_id: disbursement.merchant_custom_order_id,
+                    externalApiResponse: {
+                        TransactionReference: res.transactionID,
+                        TransactionStatus: "success",
+                    },
+                }
+            }));
             return {
                 message: "Disbursement created successfully",
                 merchantAmount: body.amount
@@ -2981,6 +3060,7 @@ async function updateMwTransaction(token, body, merchantId) {
     let walletBalance;
     let totalDisbursed = new Decimal(0);
     try {
+        console.log(JSON.stringify({ event: "MW_PENDING_REQUEST", order_id: body.order_id, body: body }));
         // validate Merchant
         findMerchant = await merchantService.findOne({
             uid: merchantId,
@@ -3011,6 +3091,7 @@ async function updateMwTransaction(token, body, merchantId) {
                 },
             });
             if (checkOrder) {
+                console.log(JSON.stringify({ event: "MW_ORDER_ALREADY_EXISTS", order_id: body.order_id }));
                 throw new CustomError("Order ID already exists", 400);
             }
         }
@@ -3035,8 +3116,10 @@ async function updateMwTransaction(token, body, merchantId) {
                             response_message: "Not Enough Balance",
                         },
                     });
+                    console.log(JSON.stringify({ event: "MW_INSUFFICIENT_BALANCE", order_id: body.order_id }));
                     throw new CustomError("Insufficient balance to disburse", 400);
                 }
+                console.log(JSON.stringify({ event: "MW_BALANCE_ADJUSTED", order_id: body.order_id }));
                 const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, false);
             }
             catch (err) {
@@ -3067,7 +3150,7 @@ async function updateMwTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -3079,12 +3162,14 @@ async function updateMwTransaction(token, body, merchantId) {
         let res = await response.json();
         console.log("MW Response", res);
         if (!res.data) {
+            console.log(JSON.stringify({ event: "MW_PENDING_REQUEST_THROTTLED", order_id: body.order_id, response: res }));
             const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
             throw new CustomError("Transaction is Pending", 202);
         }
         res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
         // let res = {responseCode: "G2P-T-1",responseDescription: "Failed",transactionID: ""}
         if (res.responseCode != "G2P-T-0") {
+            console.log(JSON.stringify({ event: "MW_PENDING_FAILED", order_id: body.order_id, response: res }));
             const result = easyPaisaService.adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
             data2["transaction_id"] = res.transactionID || body.system_order_id;
             const date = new Date();
@@ -3140,6 +3225,19 @@ async function updateMwTransaction(token, body, merchantId) {
                 merchant_transaction_id: disbursement.merchant_custom_order_id,
                 merchant_id: findMerchant.merchant_id
             }, body.account, "payout", stringToBoolean(findMerchant.encrypted), false);
+            console.log(JSON.stringify({
+                event: "MW_PENDING_RESPONSE", order_id: body.order_id, response: {
+                    message: "Disbursement created successfully",
+                    merchantAmount: body.merchantAmount
+                        ? body.merchantAmount.toString()
+                        : merchantAmount.toString(),
+                    order_id: disbursement.merchant_custom_order_id,
+                    externalApiResponse: {
+                        TransactionReference: res.transactionID,
+                        TransactionStatus: "success",
+                    },
+                }
+            }));
             return {
                 message: "Disbursement created successfully",
                 merchantAmount: body.merchantAmount
@@ -3198,7 +3296,7 @@ async function checkTransactionStatus(token, body, merchantId) {
         };
         console.log(requestData);
         try {
-            const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+            const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -3245,7 +3343,7 @@ async function simpleCheckTransactionStatus(token, body, merchantId) {
     console.log("API Payload: ", requestData);
     let jsonResponse;
     try {
-        const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -3253,6 +3351,7 @@ async function simpleCheckTransactionStatus(token, body, merchantId) {
             },
             body: JSON.stringify(requestData)
         });
+        console.log("Response: ", response);
         jsonResponse = decryptData((await response.json())?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
         // results.push({ id, status: jsonResponse });
     }
@@ -3263,6 +3362,62 @@ async function simpleCheckTransactionStatus(token, body, merchantId) {
     }
     return jsonResponse; // Array of status responses for each transaction ID
 }
+async function databaseCheckTransactionStatus(body, merchantId) {
+    // validate Merchant
+    const findMerchant = await merchantService.findOne({
+        uid: merchantId,
+    });
+    if (!findMerchant) {
+        throw new CustomError("Merchant not found", 404);
+    }
+    if (!findMerchant.JazzCashDisburseAccountId) {
+        throw new CustomError("Disbursement account not assigned.", 404);
+    }
+    // find disbursement merchant
+    const findDisbureMerch = await jazzcashDisburse
+        .getDisburseAccount(findMerchant.JazzCashDisburseAccountId)
+        .then((res) => res?.data);
+    if (!findDisbureMerch) {
+        throw new CustomError("Disbursement account not found", 404);
+    }
+    const results = [];
+    for (const id of body.transactionIds) {
+        const transaction = await prisma.disbursement.findFirst({
+            where: {
+                merchant_custom_order_id: id,
+                merchant_id: findMerchant.merchant_id
+            }
+        });
+        if (!transaction || !transaction?.transaction_id) {
+            results.push({ id, status: "Transaction not found" });
+            continue;
+        }
+        try {
+            const jsonResponse = {
+                responseCode: transaction?.status == "completed" ? "G2P-T-0" : transaction?.status == "failed" ? "G2P-T-1" : "G2P-T-2",
+                responseDescription: transaction?.response_message,
+                transactionID: transaction?.transaction_id,
+                referenceID: transactionService.createTransactionId(),
+                transactionStatus: transaction?.status?.charAt(0).toUpperCase() + transaction?.status?.slice(1),
+                isReversed: transaction?.status == "completed" ? "0" : ""
+            };
+            results.push({ id, status: jsonResponse });
+        }
+        catch (error) {
+            // Handle error (e.g., network issue) and add to results
+            results.push({ id, status: null, error: error?.message });
+        }
+    }
+    return results; // Array of status responses for each transaction ID
+}
+// {
+//   "responseCode": "G2P-T-0",
+//   "responseDescription": "Process service request successfully.",
+//   "transactionID": "079896464953",
+//   "referenceID": "ababjdbhdbhjabhda",
+//   "transactionStatus": "Cancelled",
+//   "isReversed": "0"
+// }
 async function simpleSandboxCheckTransactionStatus(token, body, merchantId) {
     // validate Merchant
     const findMerchant = await merchantService.findOne({
@@ -3326,7 +3481,14 @@ async function simpleSandboxCheckTransactionStatus(token, body, merchantId) {
 //     console.error('Error:', error);
 //   }
 // })();
+const getMerchantJazzCashDisburseInquiryMethod = async (merchant_id) => {
+    return (await prisma.merchant.findFirst({
+        where: {
+            uid: merchant_id
+        }
+    }))?.jazzCashDisburseInquiryMethod;
+};
 export { getToken, simpleGetToken, initiateTransaction, mwTransaction, checkTransactionStatus, simpleCheckTransactionStatus, updateMwTransaction, updateTransaction, initiateTransactionClone, mwTransactionClone, 
 // mwTransactionClone,
 // initiateTransactionClone,
-updateTransactionClone, simpleSandboxGetToken, simpleSandboxMwTransactionClone, simpleSandboxinitiateTransactionClone, simpleSandboxCheckTransactionStatus, simpleProductionMwTransactionClone, simpleProductionInitiateTransactionClone };
+updateTransactionClone, simpleSandboxGetToken, simpleSandboxMwTransactionClone, simpleSandboxinitiateTransactionClone, simpleSandboxCheckTransactionStatus, simpleProductionMwTransactionClone, simpleProductionInitiateTransactionClone, getMerchantJazzCashDisburseInquiryMethod, databaseCheckTransactionStatus };

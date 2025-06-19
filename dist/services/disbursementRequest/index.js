@@ -22,8 +22,8 @@ const createDisbursementRequest = async (requested_amount, merchant_id) => {
                 data: { balanceToDisburse: { increment: Number(requested_amount) } }
             });
         }, {
-            timeout: 10000,
-            maxWait: 10000
+            timeout: 300000,
+            maxWait: 300000
         });
     }
     catch (err) {
@@ -77,14 +77,14 @@ const getDisbursementRequests = async (params, merchantId) => {
         }
         let { page, limit } = params;
         // Query based on provided parameters
-        let skip, take;
+        let skip, take = 0;
         if (page && limit) {
             skip = (+page > 0 ? parseInt(page) - 1 : parseInt(page)) * parseInt(limit);
             take = parseInt(limit);
         }
         const transactions = await prisma.disbursementRequest.findMany({
             ...(skip && { skip: +skip }),
-            ...(take && { take: +take }),
+            ...(take && { take: +take + 1 }),
             where: {
                 ...(merchantId && { merchantId: parseInt(merchantId) }),
                 ...customWhere,
@@ -96,24 +96,16 @@ const getDisbursementRequests = async (params, merchantId) => {
                 merchant: true
             }
         });
-        let meta = {};
-        if (page && take) {
-            // Get the total count of transactions
-            const total = await prisma.disbursementRequest.count({
-                where: {
-                    ...(merchantId && { merchantId: parseInt(merchantId) }),
-                    ...customWhere,
-                },
-            });
-            // Calculate the total number of pages
-            const pages = Math.ceil(total / +take);
-            meta = {
-                total,
-                pages,
-                page: parseInt(page),
-                limit: take
-            };
+        const hasMore = transactions.length > take;
+        if (hasMore) {
+            transactions.pop(); // Remove the extra record
         }
+        // Build meta with hasMore flag
+        const meta = {
+            page: page ? parseInt(page) : 1,
+            limit: take,
+            hasMore,
+        };
         const response = {
             transactions: transactions.map((transaction) => ({
                 ...transaction,
@@ -183,7 +175,8 @@ const exportDisbursementRequest = async (merchantId, params) => {
         }));
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
-        return `${csv}`;
+        const csvNoQuotes = csv.replace(/"/g, '');
+        return `${csvNoQuotes}`;
     }
     catch (error) {
         throw new CustomError(error?.error || "Unable to get disbursement", error?.statusCode || 500);

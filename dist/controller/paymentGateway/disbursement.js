@@ -1,7 +1,7 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import { validationResult } from "express-validator";
 import prisma from "../../prisma/client.js";
-import { calculateDisbursement, getEligibleTransactions, getMerchantRate, getWalletBalance, getWalletBalanceWithKey, updateTransactions, } from "../../services/paymentGateway/disbursement.js";
+import { calculateDisbursement, getDisbursementBalanceWithKey, getEligibleTransactions, getMerchantRate, getWalletBalance, getWalletBalanceWithKey, updateTransactions, } from "../../services/paymentGateway/disbursement.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
 const getWalletBalanceController = async (req, res, next) => {
@@ -26,6 +26,20 @@ const getWalletBalanceControllerWithKey = async (req, res, next) => {
     }
     try {
         const balance = await getWalletBalanceWithKey(merchantId);
+        res.status(200).json(ApiResponse.success({ ...balance }));
+    }
+    catch (error) {
+        next(error); // Pass the error to the error handling middleware
+    }
+};
+const getDisbursementBalanceControllerWithKey = async (req, res, next) => {
+    const merchantId = req.params.merchantId;
+    if (!merchantId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+    try {
+        const balance = await getDisbursementBalanceWithKey(merchantId);
         res.status(200).json(ApiResponse.success({ ...balance }));
     }
     catch (error) {
@@ -95,4 +109,4 @@ const disburseTransactions = async (req, res, next) => {
         }
     }
 };
-export { getWalletBalanceController, disburseTransactions, getWalletBalanceControllerWithKey };
+export { getWalletBalanceController, disburseTransactions, getWalletBalanceControllerWithKey, getDisbursementBalanceControllerWithKey };

@@ -242,24 +242,32 @@ const createTxn = async (obj) => {
                     settled_amount: settledAmount,
                     balance: settledAmount,
                     providerDetails: obj.providerDetails,
+                    response_message: obj.response_message
                 },
             });
         }
         catch (err) {
+            console.log(err);
             throw new CustomError("Transaction not Created", 400);
         }
     });
 };
 const updateTxn = async (transaction_id, obj, duration) => {
     return await prisma.$transaction(async (tx) => {
-        let transaction = await tx.transaction.update({
-            where: {
-                transaction_id: transaction_id,
-            },
-            data: {
-                ...obj,
-            },
+        const existingTransaction = await tx.transaction.findUnique({
+            where: { transaction_id: transaction_id }
         });
+        if (existingTransaction) {
+            await tx.transaction.update({
+                where: { transaction_id: transaction_id },
+                data: {
+                    ...obj
+                },
+            });
+        }
+        else {
+            console.error("Transaction not found for updating:", transaction_id);
+        }
         const provider = await tx.provider.upsert({
             where: {
                 name_txn_type_version: {
@@ -360,6 +368,7 @@ async function updateMerchantSwitch(provider, merchantId) {
     console.log(`Switched to ${provider} for merchant ID: ${merchantId}`);
 }
 const sendCallback = async (webhook_url, payload, msisdn, type, doEncryption, checkLimit) => {
+    console.log(JSON.stringify({ event: "CALLBACK_URL", order_id: payload.merchant_transaction_id, url: webhook_url }));
     setTimeout(async () => {
         try {
             console.log("Callback Payload: ", JSON.stringify(payload));
@@ -374,6 +383,7 @@ const sendCallback = async (webhook_url, payload, msisdn, type, doEncryption, ch
             if (doEncryption) {
                 data = JSON.stringify(await callbackEncrypt(data, payload?.merchant_id));
             }
+            console.log(`Data (${payload.merchant_transaction_id}): ${data}`);
             let config = {
                 method: 'post',
                 maxBodyLength: Infinity,
@@ -385,7 +395,7 @@ const sendCallback = async (webhook_url, payload, msisdn, type, doEncryption, ch
             };
             let res = await axios.request(config);
             if (res.data == "success") {
-                console.log("Callback sent successfully");
+                console.log(`${payload.merchant_transaction_id} Callback sent successfully`);
                 if (type == "payin") {
                     await prisma.transaction.update({
                         where: {
@@ -411,6 +421,7 @@ const sendCallback = async (webhook_url, payload, msisdn, type, doEncryption, ch
             }
             else {
                 console.log("Error sending callback");
+                console.log(JSON.stringify({ event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res?.data }));
                 if (type == "payin") {
                     await prisma.transaction.update({
                         where: {
@@ -439,6 +450,98 @@ const sendCallback = async (webhook_url, payload, msisdn, type, doEncryption, ch
             }
         }
         catch (err) {
+            console.log(JSON.stringify({ event: "CALLBACK_EXCEPTION", order_id: payload.merchant_transaction_id }));
+            console.log(err);
+            return { "message": "Error calling callback" };
+        }
+    }, 10000);
+};
+const sendCallbackClone = async (webhook_url, payload, msisdn, type, doEncryption, checkLimit) => {
+    console.log(JSON.stringify({ event: "CALLBACK_URL", order_id: payload.merchant_transaction_id, url: webhook_url }));
+    setTimeout(async () => {
+        try {
+            console.log("Callback Payload: ", JSON.stringify(payload));
+            let data = JSON.stringify({
+                "amount": payload.original_amount,
+                "msisdn": msisdn,
+                "time": payload.date_time,
+                "order_id": payload.merchant_transaction_id,
+                "status": "success",
+                "type": type
+            });
+            if (doEncryption) {
+                let data2 = await callbackEncrypt(data, payload?.merchant_id);
+                data = JSON.stringify({ ...data2, order_id: payload.merchant_transaction_id });
+            }
+            console.log(`Data (${payload.merchant_transaction_id}): ${data}`);
+            let config = {
+                method: 'post',
+                maxBodyLength: Infinity,
+                url: webhook_url,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                data: data
+            };
+            let res = await axios.request(config);
+            if (res.data == "success") {
+                console.log(`${payload.merchant_transaction_id} Callback sent successfully`);
+                if (type == "payin") {
+                    await prisma.transaction.update({
+                        where: {
+                            merchant_transaction_id: payload.merchant_transaction_id
+                        },
+                        data: {
+                            callback_sent: true,
+                            callback_response: res.data
+                        }
+                    });
+                }
+                else {
+                    await prisma.disbursement.update({
+                        where: {
+                            merchant_custom_order_id: payload.merchant_transaction_id
+                        },
+                        data: {
+                            callback_sent: true,
+                            callback_response: res.data
+                        }
+                    });
+                }
+            }
+            else {
+                console.log("Error sending callback");
+                console.log(JSON.stringify({ event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res.data }));
+                if (type == "payin") {
+                    await prisma.transaction.update({
+                        where: {
+                            merchant_transaction_id: payload.merchant_transaction_id
+                        },
+                        data: {
+                            callback_sent: false,
+                            callback_response: res?.data
+                        }
+                    });
+                }
+                else {
+                    await prisma.disbursement.update({
+                        where: {
+                            merchant_custom_order_id: payload.merchant_transaction_id
+                        },
+                        data: {
+                            callback_sent: false,
+                            callback_response: res?.data
+                        }
+                    });
+                }
+            }
+            if (checkLimit) {
+                console.log(await switchPaymentProvider(payload.merchant_id, payload.merchant_transaction_id));
+            }
+        }
+        catch (err) {
+            console.log(JSON.stringify({ event: "CALLBACK_EXCEPTION", order_id: payload.merchant_transaction_id }));
+            console.log(`Error (${payload.merchant_transaction_id}): ${err?.message}`);
             return { "message": "Error calling callback" };
         }
     }, 10000);
@@ -474,6 +577,20 @@ const getMerchantInquiryMethod = async (merchantId) => {
         }
     });
 };
+function convertDateLocal(dateString) {
+    console.log(dateString);
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const amPm = hours >= 12 ? 'PM' : 'AM';
+    console.log(hours, minutes, amPm);
+    hours = hours % 12 || 12;
+    hours = String(hours).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes} ${amPm}`;
+}
 const getTransaction = async (merchantId, transactionId) => {
     try {
         const id = await prisma.merchant.findFirst({
@@ -506,13 +623,13 @@ const getTransaction = async (merchantId, transactionId) => {
         // orderId, transactionStatus, transactionAmount / amount, transactionDateTime / createdDateTime, msisdn, responseDesc/ transactionStatus, responseMode: "MA"
         let data = {
             "orderId": txn?.merchant_transaction_id,
-            "transactionStatus": txn?.status,
-            "transactionAmount": txn?.original_amount,
-            "transactionDateTime": txn?.date_time,
+            "transactionStatus": txn?.status.toUpperCase(),
+            "transactionAmount": Number(txn?.original_amount),
+            "transactionDateTime": convertDateLocal(txn?.date_time.toISOString()),
             "msisdn": txn?.providerDetails?.msisdn,
-            "responseDesc": txn?.response_message,
+            "responseDesc": txn?.response_message || "",
             "responseMode": "MA",
-            "statusCode": 201
+            // "statusCode": 201
         };
         return data;
     }
@@ -532,6 +649,7 @@ export default {
     getMerchantChannel,
     getMerchantInquiryMethod,
     getTransaction,
+    sendCallbackClone,
     switchPaymentProvider,
     updateMerchantSwitch,
 };

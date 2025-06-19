@@ -25,14 +25,14 @@ const getSettlement = async (params, user) => {
         }
         let { page, limit } = params;
         // Query based on provided parameters
-        let skip, take;
+        let skip, take = 0;
         if (page && limit) {
             skip = (+page > 0 ? parseInt(page) - 1 : parseInt(page)) * parseInt(limit);
             take = parseInt(limit);
         }
         const reports = await prisma.settlementReport.findMany({
             ...(skip && { skip: +skip }),
-            ...(take && { take: +take }),
+            ...(take && { take: +take + 1 }),
             where: {
                 ...filters,
                 ...customWhere,
@@ -49,24 +49,16 @@ const getSettlement = async (params, user) => {
                 settlementDate: "desc"
             }
         });
-        let meta = {};
-        if (page && take) {
-            // Get the total count of transactions
-            const total = await prisma.settlementReport.count({
-                where: {
-                    ...filters,
-                    ...customWhere,
-                }
-            });
-            // Calculate the total number of pages
-            const pages = Math.ceil(total / +take);
-            meta = {
-                total,
-                pages,
-                page: parseInt(page),
-                limit: take
-            };
+        const hasMore = reports.length > take;
+        if (hasMore) {
+            reports.pop(); // Remove the extra record
         }
+        // Build meta with hasMore flag
+        const meta = {
+            page: page ? parseInt(page) : 1,
+            limit: take,
+            hasMore,
+        };
         const response = {
             transactions: reports.map((transaction) => ({
                 ...transaction,
@@ -142,7 +134,8 @@ const exportSettlement = async (params, user) => {
         }));
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
-        return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+        const csvNoQuotes = csv.replace(/"/g, '');
+        return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
         // res.header('Content-Type', 'text/csv');
         // res.attachment('transaction_report.csv');
         // res.send(`${csv}\nTotal Settled Amount,,${totalAmount}`);

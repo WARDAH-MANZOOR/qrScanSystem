@@ -103,7 +103,6 @@ export const updateUser = async (userId, fullName, email, merchantId, groups, pa
             data: {
                 username: fullName,
                 email,
-                password: hashedPassword,
             },
         });
         if (!updatedUser) {

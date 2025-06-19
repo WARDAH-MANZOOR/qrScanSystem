@@ -32,6 +32,18 @@ const payinPerWalletController = async (req, res, next) => {
         next(error); // Pass the error to the global error handler
     }
 };
+const payoutPerWalletController = async (req, res, next) => {
+    try {
+        // Call the service method
+        const params = req.query;
+        const result = await reportService.payoutPerWalletService(params);
+        return res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        console.error(error);
+        next(error); // Pass the error to the global error handler
+    }
+};
 const getPendingSettlements = async (req, res, next) => {
     // Call the service method
     const params = req.query;
@@ -53,4 +65,4 @@ const getPendingSettlements = async (req, res, next) => {
     }));
     return res.status(200).json(ApiResponse.success(formattedResults));
 };
-export default { generateExcelReportController, payinPerWalletController, getPendingSettlements };
+export default { generateExcelReportController, payinPerWalletController, getPendingSettlements, payoutPerWalletController };

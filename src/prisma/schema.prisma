@@ -101,6 +101,8 @@ model Merchant {
   swichMerchantId     Int?
   zindigiMerchantId   Int?
   payFastMerchantId   Int?
+  wooMerchantId  Int?
+  jazzCashCardMerchantId     Int?
   encrypted           String?   @default("false")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
@@ -124,11 +126,15 @@ model Merchant {
   // Easypaisa-specific
   easypaisaPaymentMethod     EasypaisaPaymentMethodEnum @default(SWITCH)
   easypaisaInquiryMethod     EasypaisaInquiryMethod     @default(DATABASE)
+  payfastInquiryMethod       EasypaisaInquiryMethod     @default(DATABASE)
+  jazzCashDisburseInquiryMethod EasypaisaInquiryMethod     @default(DATABASE)
+  jazzCashInquiryMethod      EasypaisaInquiryMethod     @default(DATABASE)
   EasyPaisaDisburseAccountId Int?
   JazzCashDisburseAccountId  Int?
   jazzCashMerchant           JazzCashMerchant?          @relation(fields: [jazzCashMerchantId], references: [id])
   easyPaisaMerchant          EasyPaisaMerchant?         @relation(fields: [easyPaisaMerchantId], references: [id])
   SwichMerchant              SwichMerchant?             @relation(fields: [swichMerchantId], references: [id])
+  wooMerchant                WoocommerceMerchants?      @relation(fields: [wooMerchantId], references: [id])
 
   easypaisaLimit             Decimal?                   @default(0)
   swichLimit                 Decimal?                   @default(0)
@@ -137,6 +143,8 @@ model Merchant {
 
   Refund Refund[]
   payFastMerchant PayFastMerchant? @relation(fields: [payFastMerchantId], references: [id])
+  DisbursementDispute DisbursementDispute[]
+  JazzCashCardMerchant JazzCashCardMerchant? @relation(fields: [jazzCashCardMerchantId], references: [id])
 }
 
 model MerchantProviderCredential {
@@ -165,6 +173,7 @@ model MerchantFinancialTerms {
   commissionMode             CommissionMode? @default(SINGLE) 
   commissionRate             Decimal
   easypaisaRate              Decimal?
+  cardRate                   Decimal? @default(0)
   commissionWithHoldingTax   Decimal
   commissionGST              Decimal
   disbursementRate           Decimal
@@ -311,6 +320,18 @@ model JazzCashMerchant {
   merchant       Merchant[] // One-to-many relationship with Merchant
 }
 
+model JazzCashCardMerchant {
+  id             Int        @id @default(autoincrement())
+  jazzMerchantId String
+  password       String
+  returnUrl      String
+  integritySalt  String
+  metadata       Json       @default("{}")
+  merchant_of    String?
+  merchantId     Int
+  merchant       Merchant[] // One-to-many relationship with Merchant
+}
+
 model EasyPaisaMerchant {
   id            Int        @id @default(autoincrement())
   storeId       String
@@ -368,8 +389,10 @@ model Disbursement {
   deletedAt DateTime?
   callback_sent Boolean?
   callback_response String?
+  providerDetails          Json? @default("{}")
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
+
 }
 
 model EasyPaisaDisburseAccount {
@@ -430,6 +453,20 @@ model DisbursementRequest {
 
 }
 
+model DisbursementDispute {
+  id                Int     @id @default(autoincrement())
+  transactionId     String
+  orderId           String
+  account           String
+  amount            Float
+  disbursementDate  DateTime
+  sender            String
+  status            String?
+  message           String?    
+  merchant_id       Int 
+  merchant          Merchant @relation(fields: [merchant_id], references: [merchant_id])
+}
+
 model Refund {
   id                       Int      @id @default(autoincrement())
   transaction_id           String   @default(uuid())
@@ -455,4 +492,17 @@ model Refund {
   reason                   String?
   // Relations
   merchant Merchant @relation(fields: [merchant_id], references: [merchant_id])
+}
+
+model BlockedPhoneNumbers {
+  id                       Int      @unique @default(autoincrement())
+  phoneNumber              String   @unique 
+}
+
+model WoocommerceMerchants {
+  id                       Int @unique @default(autoincrement())
+  baseUrl                  String
+  username                 String
+  password                 String
+  Merchant Merchant[]
 }

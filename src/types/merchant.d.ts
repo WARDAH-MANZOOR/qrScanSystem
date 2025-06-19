@@ -32,6 +32,12 @@ export interface Merchant {
   swichLimit: number;
   commissionMode: "SINGLE" | "DOUBLE";
   easypaisaRate: number;
+  payfastInquiryMethod: "DATABASE" | "WALLET";
+  jazzCashCardMerchantId: number;
+  jazzCashDisburseInquiryMethod: "DATABASE" | "WALLET";
+  wooMerchantId: number;
+  jazzCashInquiryMethod: "DATABASE" | "WALLET";
+  cardRate: number;
 }
 
 export interface IjazzCashConfigParams {

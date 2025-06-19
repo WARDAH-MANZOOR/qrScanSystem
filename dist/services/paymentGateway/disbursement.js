@@ -93,6 +93,7 @@ const calculateWalletBalanceWithKey = async (merchantId) => {
             settlement: true,
             balance: { gt: new Decimal(0) },
             merchant_id: merchant?.merchant_id,
+            status: 'completed'
         },
     });
     // Find the todays transaction sum
@@ -157,6 +158,37 @@ const getWalletBalanceWithKey = async (merchantId) => {
         throw new CustomError('Unable to fetch wallet balance', 500);
     }
 };
+const getDisbursementBalanceWithKey = async (merchantId) => {
+    try {
+        // Check if the merchant exists
+        const merchantExists = await checkMerchantExistsWithKey(merchantId);
+        if (!merchantExists) {
+            throw new CustomError('Merchant not found', 404);
+        }
+        console.log(merchantId);
+        // Calculate and return the wallet balance
+        const walletBalance = await prisma.merchant.findFirst({
+            where: {
+                uid: merchantId,
+            },
+            select: {
+                balanceToDisburse: true,
+            }
+        });
+        if (walletBalance === null) {
+            throw new CustomError('Wallet balance not found', 404);
+        }
+        console.log(walletBalance);
+        return walletBalance;
+    }
+    catch (error) {
+        if (error instanceof CustomError) {
+            throw error; // Re-throw custom errors with proper status codes
+        }
+        console.error('Error fetching wallet balance:', error);
+        throw new CustomError('Unable to fetch wallet balance', 500);
+    }
+};
 const calculateDisbursement = (transactions, amount) => {
     const updates = [];
     let totalDisbursed = new Decimal(0);
@@ -205,4 +237,4 @@ const updateTransactions = async (updates, prsma) => {
     }));
     await Promise.all(updatePromises);
 };
-export { checkMerchantExists, checkMerchantExistsWithKey, calculateWalletBalance, calculateWalletBalanceWithKey, getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey };
+export { checkMerchantExists, checkMerchantExistsWithKey, calculateWalletBalance, calculateWalletBalanceWithKey, getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey, getDisbursementBalanceWithKey };

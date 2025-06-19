@@ -28,6 +28,122 @@ const pay = async (req, res, next) => {
         next(err);
     }
 };
+const upaisaValidation = async (req, res, next) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformationForCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '14',
+            ...req.body
+        });
+        console.log(validation);
+        if (!validation?.transaction_id) {
+            // throw new CustomError(validation?.response_message, 500);
+            res.status(500).json(validation);
+            return;
+        }
+        // const payment = await payfast.payCnic(req.params.merchantId, {
+        //     token: token?.token,
+        //     bankCode: '14',
+        //     transaction_id: validation?.transaction_id,
+        //     ...req.body
+        // })
+        res.status(200).json(ApiResponse.success(validation));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const zindigiValidation = async (req, res, next) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformationForCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            ...req.body
+        });
+        if (!validation?.transaction_id) {
+            res.status(500).json(validation);
+            return;
+        }
+        // const payment = await payfast.payCnic(req.params.merchantId, {
+        //     token: token?.token,
+        //     bankCode: '14',
+        //     transaction_id: validation?.transaction_id,
+        //     ...req.body
+        // })
+        res.status(200).json(ApiResponse.success(validation));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const upaisaPay = async (req, res, next) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const payment = await payfast.payCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '14',
+            ...req.body
+        });
+        res.status(200).json(ApiResponse.success(payment));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const zindigiPay = async (req, res, next) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const payment = await payfast.payCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            ...req.body
+        });
+        res.status(200).json(ApiResponse.success(payment));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+const zindigi = async (req, res, next) => {
+    try {
+        const token = await payfast.getApiToken(req.params.merchantId, req.body);
+        if (!token?.token) {
+            throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            ...req.body
+        });
+        if (!validation?.transaction_id) {
+            throw new CustomError("No Transaction ID Recieved", 500);
+        }
+        const payment = await payfast.payCnic(req.params.merchantId, {
+            token: token?.token,
+            bankCode: '29',
+            transaction_id: validation?.transaction_id,
+            ...req.body
+        });
+        res.status(200).json(ApiResponse.success(payment));
+    }
+    catch (err) {
+        next(err);
+    }
+};
 const getPayFastMerchant = async (req, res, next) => {
     try {
         // const errors = validationResult(req);
@@ -90,4 +206,26 @@ const deletePayFastMerchant = async (req, res, next) => {
         next(error);
     }
 };
-export default { pay, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant };
+const statusInquiry = async (req, res, next) => {
+    try {
+        const merchantId = req.params.merchantId;
+        const transactionId = req.query.transactionId;
+        const method = (await payfast.getPayfastInquiryMethod(merchantId))?.payfastInquiryMethod;
+        let result;
+        if (method == "DATABASE") {
+            result = await payfast.databaseStatusInquiry(merchantId, transactionId);
+        }
+        else {
+            const token = await payfast.getApiToken(req.params.merchantId, req.body);
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            result = await payfast.payfastStatusInquiry(merchantId, transactionId, token?.token);
+        }
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+export default { pay, upaisaValidation, zindigi, getPayFastMerchant, createPayFastMerchant, updatePayFastMerchant, deletePayFastMerchant, upaisaPay, zindigiValidation, zindigiPay, statusInquiry };

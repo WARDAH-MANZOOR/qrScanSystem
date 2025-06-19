@@ -1,8 +1,34 @@
 import { validationResult } from "express-validator";
 import { jazzCashService } from "services/index.js";
-import { checkTransactionStatus, getToken, initiateTransaction, simpleProductionMwTransactionClone, simpleProductionInitiateTransactionClone, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
+import { checkTransactionStatus, databaseCheckTransactionStatus, getMerchantJazzCashDisburseInquiryMethod, getToken, initiateTransaction, simpleProductionMwTransactionClone, simpleProductionInitiateTransactionClone, initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
+export const initiateJazzCashNewFlow = async (req, res, next) => {
+    try {
+        const decryptedPayload = req.body.decryptedPayload;
+        const merchantId = req.params?.merchantId;
+        if (!decryptedPayload) {
+            res.status(400).json(ApiResponse.error("Decrypted payload not found"));
+            return;
+        }
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return;
+        }
+        // Delegate to service
+        const result = await jazzCashService.initiateJazzCashPayment(decryptedPayload, merchantId);
+        if (result.statusCode !== "000") {
+            res
+                .status(result.statusCode !== 500 ? result.statusCode : 201)
+                .send(ApiResponse.error(result));
+            return;
+        }
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
 const initiateJazzCash = async (req, res, next) => {
     try {
         const paymentData = req.body;
@@ -42,6 +68,30 @@ const initiateJazzCashAsync = async (req, res, next) => {
             return;
         }
         const result = await jazzCashService.initiateJazzCashPaymentAsync(paymentData, merchantId);
+        if (result.statusCode != "pending") {
+            res.status(result?.statusCode).send(ApiResponse.error(result));
+            return;
+        }
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+const initiateJazzCashAsyncClone = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(errors.array()[0]));
+            return;
+        }
+        const paymentData = req.body;
+        let merchantId = req.params?.merchantId;
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return;
+        }
+        const result = await jazzCashService.initiateJazzCashPaymentAsyncClone(paymentData, merchantId);
         if (result.statusCode != "pending") {
             res.status(result?.statusCode).send(ApiResponse.error(result));
             return;
@@ -118,8 +168,15 @@ const statusInquiry = async (req, res, next) => {
             res.status(400).json(ApiResponse.error("Merchant ID is required"));
             return;
         }
-        const result = await jazzCashService.statusInquiry(payload, merchantId);
-        res.status(200).json(ApiResponse.success(result, "", result.statusCode == 500 ? 201 : 200));
+        const inquiryChannel = await jazzCashService.getJazzCashInquiryChannel(merchantId);
+        let result;
+        if (inquiryChannel?.jazzCashInquiryMethod === "WALLET") {
+            result = await jazzCashService.statusInquiry(payload, merchantId);
+        }
+        else {
+            result = await jazzCashService.databaseStatusInquiry(payload, merchantId);
+        }
+        res.status(200).json(ApiResponse.success(result, "", 200));
     }
     catch (err) {
         next(err);
@@ -128,7 +185,7 @@ const statusInquiry = async (req, res, next) => {
 const simpleStatusInquiry = async (req, res, next) => {
     try {
         const merchantId = req.params.merchantId;
-        const payload = req.body;
+        const payload = req.query;
         if (!merchantId) {
             res.status(400).json(ApiResponse.error("Merchant ID is required"));
             return;
@@ -142,14 +199,23 @@ const simpleStatusInquiry = async (req, res, next) => {
 };
 const jazzStatusInquiry = async (req, res, next) => {
     try {
+        console.log(req.params.merchantId);
         const merchantId = req.params.merchantId;
         const payload = req.body;
         if (!merchantId) {
             res.status(400).json(ApiResponse.error("Merchant ID is required"));
             return;
         }
-        const result = await jazzCashService.statusInquiry(payload, merchantId);
-        res.status(200).json(ApiResponse.success(result, "", result.statusCode == 500 ? 201 : 200));
+        console.log("Passed");
+        const inquiryChannel = await jazzCashService.getJazzCashInquiryChannel(merchantId);
+        let result;
+        if (inquiryChannel?.jazzCashInquiryMethod === "WALLET") {
+            result = await jazzCashService.statusInquiry(payload, merchantId);
+        }
+        else {
+            result = await jazzCashService.databaseStatusInquiry(payload, merchantId);
+        }
+        res.status(200).json(ApiResponse.success(result, "", 200));
     }
     catch (err) {
         next(err);
@@ -277,8 +343,15 @@ const dummyCallback = async (req, res, next) => {
 const disburseInquiryController = async (req, res, next) => {
     try {
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-        const token = await getToken(req.params.merchantId);
-        const inquiry = await checkTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+        const jazzcashDisburseInquiryMethod = await getMerchantJazzCashDisburseInquiryMethod(req.params.merchantId);
+        let inquiry;
+        if (jazzcashDisburseInquiryMethod == "WALLET") {
+            const token = await getToken(req.params.merchantId);
+            inquiry = await checkTransactionStatus(token?.access_token, req.body, req.params.merchantId);
+        }
+        else if (jazzcashDisburseInquiryMethod == "DATABASE") {
+            inquiry = await databaseCheckTransactionStatus(req.body, req.params.merchantId);
+        }
         res.status(200).json(ApiResponse.success(inquiry));
     }
     catch (err) {
@@ -334,6 +407,7 @@ const initiateJazzCashCnic = async (req, res, next) => {
 };
 export default {
     initiateJazzCash,
+    initiateJazzCashNewFlow,
     getJazzCashMerchant,
     createJazzCashMerchant,
     updateJazzCashMerchant,
@@ -345,6 +419,7 @@ export default {
     disburseInquiryController,
     simpleDisburseInquiryController,
     initiateJazzCashAsync,
+    initiateJazzCashAsyncClone,
     jazzStatusInquiry,
     initiateJazzCashCnic,
     initiateDisbursmentClone,

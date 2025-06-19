@@ -2,5 +2,9 @@ export const PROVIDERS = {
     JAZZ_CASH: "JazzCash",
     EASYPAISA: "Easypaisa",
     SWICH: "Swich",
-    BANK: "Bank"
+    BANK: "Bank",
+    UPAISA: "UPAISA",
+    ZINDIGI: "ZINDIGI",
+    CARD: "CARD",
+    PAYFAST: "PAYFAST"
 }

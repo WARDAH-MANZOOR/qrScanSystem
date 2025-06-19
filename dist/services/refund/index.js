@@ -547,9 +547,7 @@ const getRefund = async (merchantId, params) => {
             };
         }
         if (params.transaction_id) {
-            customWhere["transaction_id"] = {
-                contains: params.transaction_id
-            };
+            customWhere["transaction_id"] = params.transaction_id;
         }
         if (startDate && endDate) {
             const todayStart = parseISO(startDate);
@@ -560,9 +558,7 @@ const getRefund = async (merchantId, params) => {
             };
         }
         if (params.merchantTransactionId) {
-            customWhere["merchant_custom_order_id"] = {
-                contains: params.merchantTransactionId
-            };
+            customWhere["merchant_custom_order_id"] = params.merchantTransactionId;
         }
         if (params.status) {
             customWhere["status"] = params.status;
@@ -572,7 +568,7 @@ const getRefund = async (merchantId, params) => {
         }
         let { page, limit } = params;
         // Query based on provided parameters
-        let skip, take;
+        let skip, take = 0;
         if (page && limit) {
             skip = (+page > 0 ? parseInt(page) - 1 : parseInt(page)) * parseInt(limit);
             take = parseInt(limit);
@@ -580,7 +576,7 @@ const getRefund = async (merchantId, params) => {
         const disbursements = await prisma.refund
             .findMany({
             ...(skip && { skip: +skip }),
-            ...(take && { take: +take }),
+            ...(take && { take: +take + 1 }),
             where: {
                 ...customWhere,
             },
@@ -612,23 +608,16 @@ const getRefund = async (merchantId, params) => {
         //     disbursements[i].transaction = transaction;
         //   }
         // }
-        let meta = {};
-        if (page && take) {
-            // Get the total count of transactions
-            const total = await prisma.refund.count({
-                where: {
-                    ...customWhere,
-                },
-            });
-            // Calculate the total number of pages
-            const pages = Math.ceil(total / +take);
-            meta = {
-                total,
-                pages,
-                page: parseInt(page),
-                limit: take
-            };
+        const hasMore = disbursements.length > take;
+        if (hasMore) {
+            disbursements.pop(); // Remove the extra record
         }
+        // Build meta with hasMore flag
+        const meta = {
+            page: page ? parseInt(page) : 1,
+            limit: take,
+            hasMore,
+        };
         const response = {
             transactions: disbursements.map((transaction) => ({
                 ...transaction,
@@ -658,9 +647,7 @@ const exportRefund = async (merchantId, params) => {
             };
         }
         if (params.transaction_id) {
-            customWhere["transaction_id"] = {
-                contains: params.transaction_id
-            };
+            customWhere["transaction_id"] = params.transaction_id;
         }
         if (startDate && endDate) {
             const todayStart = parseISO(startDate);
@@ -671,9 +658,7 @@ const exportRefund = async (merchantId, params) => {
             };
         }
         if (params.merchantTransactionId) {
-            customWhere["merchant_custom_order_id"] = {
-                contains: params.merchantTransactionId
-            };
+            customWhere["merchant_custom_order_id"] = params.merchantTransactionId;
         }
         if (params.status) {
             customWhere["status"] = params.status;
@@ -739,7 +724,8 @@ const exportRefund = async (merchantId, params) => {
         }));
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
-        return `${csv}\nTotal Settled Amount,,${totalAmount}`;
+        const csvNoQuotes = csv.replace(/"/g, '');
+        return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
         // loop through disbursements and add transaction details
         // for (let i = 0; i < disbursements.length; i++) {
         //   if (!disbursements[i].transaction_id) {

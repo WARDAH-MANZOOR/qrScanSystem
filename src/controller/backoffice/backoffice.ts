@@ -97,6 +97,17 @@ const settleTransactionsForTelegram = async (req: Request, res: Response) => {
     }
 };
 
+const settleDisbursementsForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionIds } = req.body;
+        const result = await backofficeService.settleDisbursements(transactionIds);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 const failTransactionsForTelegram = async (req: Request, res: Response) => {
     try {
         const { transactionIds } = req.body;
@@ -119,12 +130,36 @@ const failDisbursementsForTelegram = async (req: Request, res: Response) => {
     }
 };
 
+const failDisbursementsWithAccountInvalidForTelegram = async (req: Request, res: Response) => {
+    try {
+        const { transactionIds } = req.body;
+        const result = await backofficeService.failDisbursementsWithAccountInvalid(transactionIds);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 const settleAllMerchantTransactions = async (req: Request, res: Response) => {
     try {
         if (!req.params.merchantId) {
             throw new CustomError("Merchant Id must be given", 404);
         }
         const result = await backofficeService.settleAllMerchantTransactions(Number(req.params.merchantId));
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
+const settleAllMerchantTransactionsUpdated = async (req: Request, res: Response) => {
+    try {
+        if (!req.params.merchantId) {
+            throw new CustomError("Merchant Id must be given", 404);
+        }
+        const result = await backofficeService.settleAllMerchantTransactionsUpdated(Number(req.params.merchantId));
         res.status(200).json(ApiResponse.success(result));
     }
     catch (err: any) {
@@ -219,6 +254,30 @@ const createUSDTSettlement = async (req: Request, res: Response, next: NextFunct
     }
 }
 
+const calculateFinancials = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const record = await backofficeService.calculateFinancials(+req.params.merchantId);
+        res.status(201).json({ record });
+    } catch (error) {
+        next(error)
+    }
+}
+
+const adjustMerchantDisbursementBalance = async (req: Request, res: Response) => {
+    try {
+        const { target, type } = req.body;
+        console.log(req.params.merchantId)
+        if (!req.params.merchantId || target == undefined) {
+            throw new CustomError("Merchant Id and target balance must be given", 404);
+        }
+        const result = await backofficeService.adjustMerchantDisbursementBalance(Number(req.params.merchantId), target, true, type);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -236,5 +295,10 @@ export default {
     failTransactionsForTelegram,
     failDisbursementsForTelegram,
     processTodaySettlements,
-    createUSDTSettlement
+    createUSDTSettlement,
+    settleAllMerchantTransactionsUpdated,
+    calculateFinancials,
+    adjustMerchantDisbursementBalance,
+    failDisbursementsWithAccountInvalidForTelegram,
+    settleDisbursementsForTelegram
 }

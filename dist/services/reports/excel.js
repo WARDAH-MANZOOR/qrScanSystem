@@ -910,93 +910,166 @@ export const generateExcelReportService = async (params) => {
 export const payinPerWalletService = async (params) => {
     try {
         const { startDate, endDate } = params;
-        let customWhere = {};
         let start_date, end_date;
         if (startDate && endDate) {
-            // Convert query parameters to Date objects
             start_date = new Date(format(toZonedTime(startDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
             end_date = new Date(format(toZonedTime(endDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
         }
-        console.log(start_date, end_date);
-        // Fetch transactions (JazzCash)
-        const jazzCashTransactions = await prisma.transaction.findMany({
-            where: {
-                status: 'completed',
-                date_time: {
-                    gte: start_date,
-                    lt: end_date,
+        // 🧠 Let DB do the aggregation
+        const [jazzCashAgg, easypaisaAgg] = await Promise.all([
+            prisma.transaction.findMany({
+                where: {
+                    status: 'completed',
+                    date_time: {
+                        gte: start_date,
+                        lt: end_date,
+                    },
+                    providerDetails: {
+                        path: ['name'],
+                        equals: 'JazzCash',
+                    },
                 },
-                providerDetails: {
-                    path: ['name'],
-                    equals: 'JazzCash',
+                select: {
+                    providerDetails: true,
+                    original_amount: true,
                 },
-            },
-            select: {
-                providerDetails: true,
-                original_amount: true,
-            },
-        });
-        // Fetch transactions (Easypaisa)
-        const easyPaisaTransactions = await prisma.transaction.findMany({
-            where: {
-                status: 'completed',
-                date_time: {
-                    gte: start_date,
-                    lt: end_date,
+            }),
+            prisma.transaction.findMany({
+                where: {
+                    status: 'completed',
+                    date_time: { gte: start_date, lt: end_date },
+                    providerDetails: { path: ['name'], equals: 'Easypaisa' },
                 },
-                providerDetails: {
-                    path: ['name'],
-                    equals: 'Easypaisa',
+                select: {
+                    providerDetails: true,
+                    original_amount: true,
+                    merchant_id: true,
                 },
-            },
-            select: {
-                providerDetails: true,
-                original_amount: true,
-            },
-        });
-        // Aggregate JazzCash Transactions
-        const jazzCashAggregation = jazzCashTransactions.reduce((acc, t) => {
+            }),
+        ]);
+        const jazzCashAggregation = jazzCashAgg.reduce((acc, t) => {
             const merchantId = Number(t.providerDetails?.id);
+            if (Number.isNaN(merchantId))
+                return acc;
             acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
             acc[merchantId].total_amount += Number(t.original_amount);
             return acc;
         }, {});
-        // Aggregate Easypaisa Transactions
-        const easyPaisaAggregation = easyPaisaTransactions.reduce((acc, t) => {
-            const merchantId = Number(t.providerDetails?.id);
-            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'Easypaisa' };
-            acc[merchantId].total_amount += Number(t.original_amount);
-            return acc;
-        }, {});
-        // Get merchant IDs
-        let jazzCashMerchantIds = Object.keys(jazzCashAggregation).map(Number);
-        let easyPaisaMerchantIds = Object.keys(easyPaisaAggregation).map(Number);
-        jazzCashMerchantIds = jazzCashMerchantIds.filter((num) => !Number.isNaN(num));
-        easyPaisaMerchantIds = easyPaisaMerchantIds.filter((num) => !Number.isNaN(num));
-        console.log(jazzCashMerchantIds, easyPaisaMerchantIds);
-        // Fetch merchants
-        const jazzCashMerchants = await prisma.jazzCashMerchant.findMany({
-            where: { id: { in: jazzCashMerchantIds } },
-            select: { id: true, returnUrl: true },
-        });
-        const easyPaisaMerchants = await prisma.easyPaisaMerchant.findMany({
-            where: { id: { in: easyPaisaMerchantIds } },
-            select: { id: true, username: true },
-        });
-        // Merge results
+        // 🎯 Aggregate Easypaisa + Swich + PayFast
+        const easypaisaAggMap = {};
+        const swichAggMap = {};
+        const payfastAggMap = {};
+        for (const t of easypaisaAgg) {
+            const provider = t.providerDetails;
+            const providerId = Number(provider?.id);
+            const subName = String(provider?.sub_name || '').toLowerCase();
+            if (Number.isNaN(providerId))
+                continue;
+            if ([2, 3].includes(providerId) || subName.includes("swich")) {
+                swichAggMap[providerId] = swichAggMap[providerId] || { total_amount: 0, provider_name: 'Swich' };
+                swichAggMap[providerId].total_amount += Number(t.original_amount);
+            }
+            else if (providerId === 5 || subName.includes("payfast")) {
+                payfastAggMap[providerId] = payfastAggMap[providerId] || { total_amount: 0, provider_name: 'PayFast' };
+                payfastAggMap[providerId].total_amount += Number(t.original_amount);
+            }
+            else {
+                easypaisaAggMap[providerId] = easypaisaAggMap[providerId] || { total_amount: 0, provider_name: 'Easypaisa' };
+                easypaisaAggMap[providerId].total_amount += Number(t.original_amount);
+            }
+        }
+        // 🧾 Prepare merchant ID arrays
+        const jazzCashIds = Object.keys(jazzCashAggregation).map(Number);
+        const easypaisaIds = Object.keys(easypaisaAggMap).map(Number);
+        const swichIds = Object.keys(swichAggMap).map(Number);
+        const payfastIds = Object.keys(payfastAggMap).map(Number);
+        console.log(swichAggMap);
+        // 🧵 Fetch all merchants in parallel
+        const [jazzCashMerchants, easypaisaMerchants, swichMerchants, payfastMerchants] = await Promise.all([
+            prisma.jazzCashMerchant.findMany({ where: { id: { in: jazzCashIds } }, select: { id: true, returnUrl: true } }),
+            prisma.easyPaisaMerchant.findMany({ where: { id: { in: easypaisaIds } }, select: { id: true, username: true } }),
+            prisma.swichMerchant.findMany({ where: { id: { in: swichIds } }, select: { id: true } }),
+            prisma.payFastMerchant.findMany({ where: { id: { in: payfastIds } }, select: { id: true, name: true } }),
+        ]);
+        // 🧱 Format results
         const jazzCashResult = jazzCashMerchants.map((m) => ({
             returnUrl: m.returnUrl,
             total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
             provider_name: 'JazzCash',
         }));
-        const easyPaisaResult = easyPaisaMerchants.map((m) => ({
+        const easyPaisaResult = easypaisaMerchants.map((m) => ({
             username: m.username,
-            total_amount: easyPaisaAggregation[m.id]?.total_amount || 0,
+            total_amount: easypaisaAggMap[m.id]?.total_amount || 0,
             provider_name: 'Easypaisa',
+        }));
+        const swichResult = swichMerchants.map((m) => ({
+            id: m.id,
+            total_amount: swichAggMap[m.id]?.total_amount || 0,
+            provider_name: 'Swich',
+        }));
+        const payfastResult = payfastMerchants.map((m) => ({
+            name: m.name,
+            total_amount: payfastAggMap[m.id]?.total_amount || 0,
+            provider_name: 'PayFast',
         }));
         return {
             jazzCashTransactions: jazzCashResult,
             easyPaisaTransactions: easyPaisaResult,
+            swichTransactions: swichResult,
+            payfastTransactions: payfastResult,
+        };
+    }
+    catch (error) {
+        console.error(error);
+        throw new CustomError("Internal Server Error", 400);
+    }
+};
+export const payoutPerWalletService = async (params) => {
+    try {
+        const { startDate, endDate } = params;
+        let start_date, end_date;
+        if (startDate && endDate) {
+            start_date = new Date(format(toZonedTime(startDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
+            end_date = new Date(format(toZonedTime(endDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
+        }
+        // 🧠 Let DB do the aggregation
+        const [jazzCashAgg] = await Promise.all([
+            prisma.disbursement.findMany({
+                where: {
+                    status: 'completed',
+                    disbursementDate: {
+                        gte: start_date,
+                        lt: end_date,
+                    },
+                },
+                select: {
+                    providerDetails: true,
+                    merchantAmount: true,
+                },
+            })
+        ]);
+        const jazzCashAggregation = jazzCashAgg.reduce((acc, t) => {
+            const merchantId = Number(t.providerDetails?.id);
+            if (Number.isNaN(merchantId))
+                return acc;
+            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
+            acc[merchantId].total_amount += Number(t.merchantAmount);
+            return acc;
+        }, {});
+        // 🧾 Prepare merchant ID arrays
+        const jazzCashIds = Object.keys(jazzCashAggregation).map(Number);
+        // 🧵 Fetch all merchants in parallel
+        const [jazzCashMerchants] = await Promise.all([
+            prisma.jazzCashDisburseAccount.findMany({ where: { id: { in: jazzCashIds } }, select: { id: true, merchant_of: true } }),
+        ]);
+        // 🧱 Format results
+        const jazzCashResult = jazzCashMerchants.map((m) => ({
+            returnUrl: m.merchant_of,
+            total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
+            provider_name: 'JazzCash',
+        }));
+        return {
+            jazzCashTransactions: jazzCashResult,
         };
     }
     catch (error) {
@@ -1006,5 +1079,6 @@ export const payinPerWalletService = async (params) => {
 };
 export default {
     generateExcelReportService,
-    payinPerWalletService
+    payinPerWalletService,
+    payoutPerWalletService
 };

@@ -20,6 +20,39 @@ const isLoggedIn = async (req, res, next) => {
         res.status(401).json(ApiResponse.error("You must be logged in", 401));
     }
 };
+const checkOtp = async (req, res, next) => {
+    try {
+        const { accountNo, provider, payId, otp } = req.body;
+        // Verify the otp
+        const record = await prisma.paymentRequest.findFirst({
+            where: {
+                AND: [
+                    {
+                        metadata: {
+                            path: ["otp"],
+                            equals: otp
+                        }
+                    },
+                    {
+                        metadata: {
+                            path: ["phone"],
+                            equals: accountNo
+                        }
+                    }
+                ]
+            }
+        });
+        if (!record) {
+            res.status(401).send("Invalid OTP");
+            return;
+        }
+        // Proceed to the next middleware
+        return next();
+    }
+    catch (error) {
+        res.status(401).json(ApiResponse.error("Invalid otp or phone mapping", 401));
+    }
+};
 const restrict = (role) => {
     return (req, res, next) => {
         let user = req.user;
@@ -87,4 +120,4 @@ const isAdmin = async (req, res, next) => {
     }
     res.status(403).json(ApiResponse.error("You are not authorized to perform this action", 403));
 };
-export { isLoggedIn, restrict, errorHandler, restrictMultiple, authorize, isAdmin };
+export { isLoggedIn, restrict, errorHandler, restrictMultiple, authorize, isAdmin, checkOtp };
