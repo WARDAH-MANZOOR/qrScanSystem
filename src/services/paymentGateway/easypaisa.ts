@@ -2484,7 +2484,11 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
             account: obj.accountNo,
             provider: PROVIDERS.BANK,
             status: "failed",
-            response_message: res.data.ResponseMessage
+            response_message: res.data.ResponseMessage,
+            providerDetails: {
+              id: findMerchant?.EasyPaisaDisburseAccountId,
+              sub_name: PROVIDERS.EASYPAISA
+            }
           },
         })
         throw new CustomError(res?.data?.ResponseMessage, 500);
@@ -2573,7 +2577,11 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
             account: obj.accountNo,
             provider: PROVIDERS.BANK,
             status: "failed",
-            response_message: res.data.ResponseMessage
+            response_message: res.data.ResponseMessage,
+            providerDetails: {
+              id: findMerchant?.EasyPaisaDisburseAccountId,
+              sub_name: PROVIDERS.EASYPAISA
+            }
           },
         })
         throw new CustomError(res.data.ResponseMessage, 500);
@@ -2610,7 +2618,11 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
             account: obj.accountNo,
             provider: PROVIDERS.BANK,
             status: "completed",
-            response_message: "success"
+            response_message: "success",
+            providerDetails: {
+              id: findMerchant?.EasyPaisaDisburseAccountId, 	
+              sub_name: PROVIDERS.EASYPAISA
+            }
           },
         });
         let webhook_url;
@@ -3418,6 +3430,7 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
     }
     console.log(response?.data)
     let data3 = response?.data;
+    
     return {
       ...data3,
       transactionID: obj.transactionId
