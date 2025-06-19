@@ -2786,7 +2786,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500);
     }
-    console.log(JSON.stringify({ event: "MW_TRANSACTION_SUCCESS", id: id, order_id: body.order_id }))
+    console.log(JSON.stringify({ event: "MW_TRANSACTION_SUCCESS", id: id, order_id: body.order_id, response: res }))
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
