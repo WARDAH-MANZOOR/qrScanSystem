@@ -1056,6 +1056,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log(JSON.stringify({event: "IBFT_INQUIRY_SUCCESS", response: data, order_id: body.order_id}))
     // console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
       console.log(JSON.stringify({ event: "IBFT_INQUIRY_ERROR", response: data, id, order_id: body.order_id }))
@@ -1152,6 +1153,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log(JSON.stringify({event: "IBFT_PAYMENT_SUCCESS", response: data, order_id: body.order_id}))
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       // console.log("IBFT Response: ", data);
