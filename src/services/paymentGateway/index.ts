@@ -1056,6 +1056,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError("Transaction is Pending", 202);
     }
     data = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log(JSON.stringify({event: "IBFT_INQUIRY_SUCCESS", response: data, order_id: body.order_id}))
     // console.log("Initiate Response: ", data)
     if (data.responseCode != "G2P-T-0") {
       console.log(JSON.stringify({ event: "IBFT_INQUIRY_ERROR", response: data, id, order_id: body.order_id }))
@@ -1152,6 +1153,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
       throw new CustomError("Transaction is Pending", 202);
     }
     res = decryptData(res?.data, findDisbureMerch.key, findDisbureMerch.initialVector);
+    console.log(JSON.stringify({event: "IBFT_PAYMENT_SUCCESS", response: data, order_id: body.order_id}))
     // let res = {responseCode: "G2P-T-1",transactionID: "", responseDescription: "Failed"}
     if (res.responseCode != "G2P-T-0") {
       // console.log("IBFT Response: ", data);
@@ -2786,7 +2788,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       balanceDeducted = false;
       throw new CustomError(res.responseDescription, 500);
     }
-    console.log(JSON.stringify({ event: "MW_TRANSACTION_SUCCESS", id: id, order_id: body.order_id }))
+    console.log(JSON.stringify({ event: "MW_TRANSACTION_SUCCESS", id: id, order_id: body.order_id, response: res }))
     return await prisma.$transaction(
       async (tx) => {
         // Update transactions to adjust balances
