@@ -5,6 +5,7 @@ import { JwtPayload } from "jsonwebtoken";
 import prisma from "../../prisma/client.js";
 import {
   calculateDisbursement,
+  calculateMerchantBalanceWithDateRange,
   getDisbursementBalanceWithKey,
   getEligibleTransactions,
   getMerchantRate,
@@ -30,6 +31,52 @@ const getWalletBalanceController = async (
     res.status(200).json(ApiResponse.success({ ...balance }));
   } catch (error) {
     next(error); // Pass the error to the error handling middleware
+  }
+};
+const getAllMerchantsWalletBalancesController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Parse date filters (optional)
+    const start = startDate ? new Date(startDate as string) : null;
+    const end = endDate ? new Date(endDate as string) : null;
+
+    // Get all merchants
+    const merchants = await prisma.merchant.findMany({
+    select: {
+      merchant_id: true,
+      uid:true,
+      user_id:true,
+      full_name: true,
+      company_name:true
+
+    },
+  });
+
+    const balances = [];
+
+    for (const merchant of merchants) {
+      const balance = await calculateMerchantBalanceWithDateRange(merchant.merchant_id, start, end);
+      balances.push({
+        merchantId: merchant.merchant_id,
+        uid: merchant.uid,
+        userId: merchant.user_id,
+        UserName: merchant.full_name,
+        companyName: merchant.company_name,
+        ...balance,
+      });
+    }
+
+    // Sort by highest wallet balance
+    balances.sort((a, b) => b.walletBalance - a.walletBalance);
+
+    res.status(200).json(ApiResponse.success(balances));
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -145,4 +192,4 @@ const disburseTransactions = async (
     }
   }
 };
-export { getWalletBalanceController, disburseTransactions, getWalletBalanceControllerWithKey, getDisbursementBalanceControllerWithKey };
+export { getWalletBalanceController, getAllMerchantsWalletBalancesController,disburseTransactions, getWalletBalanceControllerWithKey, getDisbursementBalanceControllerWithKey };
