@@ -46,8 +46,7 @@ const setTokenCookie = (res: Response, token: string) => {
     httpOnly: true,
     secure: true,            // required if sameSite is 'none'
     sameSite: 'none',        // needed for cross-site
-    // domain: '.sahulatpay.com',
-    path: '/',
+    domain: '.sahulatpay.com',
   });
 };
 
