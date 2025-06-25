@@ -99,6 +99,7 @@ async function processPendingRecordsCron() {
                 merchant?.uid as string
               );
             }
+            // continue;
           } else {
             if (txn.to_provider.toUpperCase() === "JAZZCASH") {
               console.log(`${txn.provider} -> ${txn.to_provider}`);

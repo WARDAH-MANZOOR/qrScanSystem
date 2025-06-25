@@ -26,14 +26,14 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
 
         let { page, limit } = params;
         // Query based on provided parameters
-        let skip, take;
+        let skip, take = 0;
         if (page && limit) {
             skip = (+page > 0 ? parseInt(page as string) - 1 : parseInt(page as string)) * parseInt(limit as string);
             take = parseInt(limit as string);
         }
         let records = await prisma.uSDTSettlement.findMany({
             ...(skip && { skip: +skip }),
-            ...(take && { take: +take }),
+            ...(take && { take: +take + 1 }),
             where: {
                 ...customWhere,
             },
@@ -49,25 +49,18 @@ const getUsdtSettlements = async (params: any, merchantId: string) => {
             merchant_name: record.merchant.username,
         }));
         console.log("Records: ", records2);
-        let meta = {};
-        if (page && take) {
-            // Get the total count of transactions
-            const total = await prisma.uSDTSettlement.count({
-                where: {
-                    ...customWhere,
-
-                },
-            });
-
-            // Calculate the total number of pages
-            const pages = Math.ceil(total / +take);
-            meta = {
-                total,
-                pages,
-                page: parseInt(page as string),
-                limit: take
-            }
+        const hasMore = records.length > take;
+        if (hasMore) {
+            records.pop(); // Remove the extra record
         }
+
+        // Build meta with hasMore flag
+        const meta = {
+            page: page ? parseInt(page as string) : 1,
+            limit: take,
+            hasMore,
+        };
+
         return { records: records2, meta };
     }
     catch (error: any) {

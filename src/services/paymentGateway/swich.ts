@@ -47,7 +47,7 @@ const initiateSwich = async (payload: any, merchantId: string) => {
   let saveTxn, findMerchant;
   let id = transactionService.createTransactionId();
   try {
-    console.log(JSON.stringify({ event: "SWICH_PAYIN_INITIATED", order_id: payload.order_id, system_id: id }))
+    console.log(JSON.stringify({ event: "SWICH_PAYIN_INITIATED", order_id: payload.order_id, system_id: id, body: payload }))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -148,6 +148,14 @@ const initiateSwich = async (payload: any, merchantId: string) => {
         false,
         true
       );
+      console.log(JSON.stringify({
+        event: "SWICH_PAYIN_RESPONSE", order_id: payload.order_id, system_id: id, response: {
+          txnNo: saveTxn.merchant_transaction_id,
+          txnDateTime: saveTxn.date_time,
+          statusCode: res.data.code
+        }
+      }))
+
       return {
         txnNo: saveTxn.merchant_transaction_id,
         txnDateTime: saveTxn.date_time,
@@ -387,6 +395,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
   const id = transactionService.createTransactionId();
 
   try {
+    console.log(JSON.stringify({event: "SWITCH_ASYNC_REQUEST", order_id: payload.order_id, body: payload}))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -477,7 +486,7 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
 
         // Process API response
         if (res.data.code === "0000") {
-          console.log(JSON.stringify({event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, response: res.data}))
+          console.log(JSON.stringify({ event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, response: res.data }))
           await transactionService.updateTxn(
             saveTxn?.transaction_id as string,
             {
@@ -499,11 +508,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
             saveTxn,
             payload.phone,
             "payin",
-            true,
+            findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
             true
           );
         } else {
-          console.log(JSON.stringify({event: "SWICH_ASYNC_FAILED", order_id: payload.order_id, system_id: id, response: res.data}))
+          console.log(JSON.stringify({ event: "SWICH_ASYNC_FAILED", order_id: payload.order_id, system_id: id, response: res.data }))
           await transactionService.updateTxn(
             saveTxn?.transaction_id as string,
             {
@@ -521,11 +530,13 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
           );
         }
       } catch (error: any) {
-        console.log(JSON.stringify({event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
-          message: error?.message,
-          response: error?.response?.data || null,
-          statusCode: error?.statusCode || error?.response?.status || null,
-        }}))
+        console.log(JSON.stringify({
+          event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
+            message: error?.message,
+            response: error?.response?.data || null,
+            statusCode: error?.statusCode || error?.response?.status || null,
+          }
+        }))
 
         if (saveTxn) {
           await transactionService.updateTxn(
@@ -546,6 +557,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
         }
       }
     });
+    console.log(JSON.stringify({event: "SWITCH_ASYNC_RESPONSE", order_id: payload.order_id, response: {
+      txnNo: saveTxn.merchant_transaction_id,
+      txnDateTime: saveTxn.date_time,
+      statusCode: "pending",
+    }}))
 
     return {
       txnNo: saveTxn.merchant_transaction_id,
@@ -553,11 +569,13 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
       statusCode: "pending",
     };
   } catch (err: any) {
-    console.log(JSON.stringify({event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
-      message: err?.message,
-      response: err?.response?.data || null,
-      statusCode: err?.statusCode || err?.response?.status || null,
-    }}))
+    console.log(JSON.stringify({
+      event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
+        message: err?.message,
+        response: err?.response?.data || null,
+        statusCode: err?.statusCode || err?.response?.status || null,
+      }
+    }))
 
     if (saveTxn) {
       await transactionService.updateTxn(
@@ -592,6 +610,7 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
   const id = transactionService.createTransactionId();
 
   try {
+    console.log(JSON.stringify({event: "SWITCH_ASYNC_REQUEST", order_id: payload.order_id, body: payload}))
     if (!merchantId) {
       throw new CustomError("Merchant ID is required", 400);
     }
@@ -682,7 +701,7 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
 
         // Process API response
         if (res.data.code === "0000") {
-          console.log(JSON.stringify({event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, response: res.data}))
+          console.log(JSON.stringify({ event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, response: res.data }))
           await transactionService.updateTxn(
             saveTxn?.transaction_id as string,
             {
@@ -704,11 +723,11 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
             saveTxn,
             payload.phone,
             "payin",
-            true,
+            findMerchant?.encrypted?.toLowerCase() == "true" ? true : false,
             true
           );
         } else {
-          console.log(JSON.stringify({event: "SWICH_ASYNC_FAILED", order_id: payload.order_id, system_id: id, response: res.data}))
+          console.log(JSON.stringify({ event: "SWICH_ASYNC_FAILED", order_id: payload.order_id, system_id: id, response: res.data }))
           await transactionService.updateTxn(
             saveTxn?.transaction_id as string,
             {
@@ -726,11 +745,13 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
           );
         }
       } catch (error: any) {
-        console.log(JSON.stringify({event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
-          message: error?.message,
-          response: error?.response?.data || null,
-          statusCode: error?.statusCode || error?.response?.status || null,
-        }}))
+        console.log(JSON.stringify({
+          event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
+            message: error?.message,
+            response: error?.response?.data || null,
+            statusCode: error?.statusCode || error?.response?.status || null,
+          }
+        }))
 
         if (saveTxn) {
           await transactionService.updateTxn(
@@ -750,6 +771,11 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
         }
       }
     });
+    console.log(JSON.stringify({event: "SWITCH_ASYNC_RESPONSE", order_id: payload.order_id, response: {
+      txnNo: saveTxn.merchant_transaction_id,
+      txnDateTime: saveTxn.date_time,
+      statusCode: "pending",
+    }}))
 
     return {
       txnNo: saveTxn.merchant_transaction_id,
@@ -757,11 +783,13 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
       statusCode: "pending",
     };
   } catch (err: any) {
-    console.log(JSON.stringify({event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
-      message: err?.message,
-      response: err?.response?.data || null,
-      statusCode: err?.statusCode || err?.response?.status || null,
-    }}))
+    console.log(JSON.stringify({
+      event: "SWICH_ASYNC_SUCCESS", order_id: payload.order_id, system_id: id, error: {
+        message: err?.message,
+        response: err?.response?.data || null,
+        statusCode: err?.statusCode || err?.response?.status || null,
+      }
+    }))
 
     if (saveTxn) {
       await transactionService.updateTxn(
