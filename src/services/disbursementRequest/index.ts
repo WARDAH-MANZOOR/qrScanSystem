@@ -101,6 +101,11 @@ const getDisbursementRequests = async (params: any, merchantId: any) => {
             ...(take && { take: +take + 1 }),
             where: {
                 ...(merchantId && { merchantId: parseInt(merchantId as string) }),
+                
+                ...(typeof merchantId !== 'undefined' && merchantId !== null
+                ? { merchantId: Number(merchantId) }
+                : {}),
+
                 ...customWhere,
             },
             orderBy: {
