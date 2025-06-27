@@ -158,7 +158,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -325,7 +325,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -486,7 +486,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -673,7 +673,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -957,7 +957,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://sea-turtle-app-bom3q.ondigitalocean.app/inquiry",
+    url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction",
     headers: {
       Credentials: base64Credentials,
       "Content-Type": "application/json",
