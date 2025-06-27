@@ -18,9 +18,8 @@ import authRouter from "./routes/authentication/index.js";
 import createTransactionRouter from "./routes/transaction/create.js";
 import completeTransactionRouter from "./routes/transaction/complete.js";
 import { errorHandler } from "./utils/middleware.js";
-import { hashPassword } from 'services/authentication/index.js';
 var app = express();
-// cron.schedule("0 16 * * 1-5", task);
+// cron.schedule("*/5 * * * *", task);
 // cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
@@ -98,4 +97,4 @@ app.listen(process.env.PORT || 3001, () => {
 // const decryptedData = await callbackDecrypt(encryptedData.encrypted_data, encryptedData.iv, encryptedData.tag);
 // console.log('Decrypted Data:', decryptedData);
 // export default app;
-console.log(await hashPassword("Zhiquan@123."));
+// console.log(await hashPassword("BdtPay@123789."))

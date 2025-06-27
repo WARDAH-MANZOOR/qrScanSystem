@@ -2,8 +2,8 @@ import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
 import { easyPaisaController } from "../../controller/index.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import { validateEasypaisaTxn, validateCreateMerchant, validateUpdateMerchant, validateInquiry, } from "../../validators/paymentGateway/easypaisa.js";
-import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 import decryptionEasypaisa from "utils/decryptionEasypaisa.js";
+import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 export default function (router) {
     router.post("/ep-disburse/:merchantId", [apiKeyAuth], easyPaisaController.createDisbursementClone);
     router.post("/epc-disburse/:merchantId", [apiKeyAuth], easyPaisaController.createDisbursementClone);

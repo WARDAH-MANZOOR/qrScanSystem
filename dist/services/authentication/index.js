@@ -22,7 +22,7 @@ const comparePasswords = async (password, hashedPassword) => {
 };
 const generateToken = (payload) => {
     return jwt.sign(payload, process.env.JWT_SECRET || "default_secret", {
-        expiresIn: "1h",
+        expiresIn: "5d",
     });
 };
 const setTokenCookie = (res, token) => {
@@ -31,8 +31,7 @@ const setTokenCookie = (res, token) => {
         httpOnly: true,
         secure: true, // required if sameSite is 'none'
         sameSite: 'none', // needed for cross-site
-        // domain: '.sahulatpay.com',
-        path: '/',
+        domain: '.sahulatpay.com',
     });
 };
 const validateLoginData = [

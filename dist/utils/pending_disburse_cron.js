@@ -85,6 +85,7 @@ async function processPendingRecordsCron() {
                             console.log(`${txn.provider} -> ${txn.to_provider}`);
                             await easyPaisaService.updateDisburseThroughBank(txn, merchant?.uid);
                         }
+                        // continue;
                     }
                     else {
                         if (txn.to_provider.toUpperCase() === "JAZZCASH") {

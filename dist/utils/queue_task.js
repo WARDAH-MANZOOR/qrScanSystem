@@ -49,7 +49,7 @@ async function fetchPendingScheduledTasks(prisma) {
         const scheduledTasks = await prisma.scheduledTask.findMany({
             where: {
                 // transaction: {
-                //   merchant_id: 5,
+                //   merchant_id: 451,
                 // },
                 status: 'pending',
                 scheduledAt: {
@@ -244,7 +244,7 @@ function calculateSettlementData(transactions, merchantFinancialTerms) {
         const providerName = transaction.providerDetails?.name;
         let commissionRate = merchantFinancialTerms.commissionRate;
         // Determine commission rate based on provider and commission mode
-        if (merchantFinancialTerms.commissionMode === "DOUBLE") {
+        if (merchantFinancialTerms.commissionMode == "DOUBLE") {
             if (providerName === "JazzCash") {
                 commissionRate = merchantFinancialTerms.commissionRate;
             }

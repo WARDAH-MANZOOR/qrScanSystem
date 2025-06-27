@@ -1186,18 +1186,6 @@ export const payoutPerWalletService = async (params: any) => {
             provider_name: 'Easypaisa',
         }));
 
-        const swichResult = swichMerchants.map((m) => ({
-            id: m.id,
-            total_amount: swichAggMap[m.id]?.total_amount || 0,
-            provider_name: 'Swich',
-        }));
-
-        const payfastResult = payfastMerchants.map((m) => ({
-            name: m.name,
-            total_amount: payfastAggMap[m.id]?.total_amount || 0,
-            provider_name: 'PayFast',
-        }));
-
         return {
             jazzCashTransactions: jazzCashResult,
             easypaisaTransactions: easyPaisaResult

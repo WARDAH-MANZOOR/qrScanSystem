@@ -590,11 +590,14 @@ async function failDisbursementsWithAccountInvalid(transactionIds) {
 }
 async function settleAllMerchantTransactions(merchantId) {
     try {
-        const merchant = await prisma.merchantFinancialTerms.findFirst({
+        const merchantTerms = await prisma.merchantFinancialTerms.findFirst({
             where: {
-                merchant_id: Number(merchantId)
-            }
+                merchant_id: Number(merchantId),
+            },
         });
+        if (!merchantTerms) {
+            throw new CustomError('Merchant financial terms not found', 404);
+        }
         // Step 1: Fetch transactions to be settled
         const merchantTxns = await prisma.transaction.findMany({
             where: {
@@ -604,18 +607,36 @@ async function settleAllMerchantTransactions(merchantId) {
                 status: 'completed',
             },
         });
-        // Step 2: Perform calculations
-        const transactionCount = merchantTxns.length;
-        const transactionAmount = merchantTxns.reduce((sum, txn) => sum.plus(txn?.original_amount ?? new Decimal(0)), new Decimal(0));
-        const totalCommission = transactionAmount.times(merchant?.commissionRate ?? 0);
-        const totalGST = totalCommission.times(merchant?.commissionGST ?? 0);
-        const totalWithholdingTax = transactionAmount.times(merchant?.commissionWithHoldingTax ?? 0);
+        // Step 2: Perform per-transaction calculations
+        let transactionAmount = new Decimal(0);
+        let totalCommission = new Decimal(0);
+        let totalGST = new Decimal(0);
+        let totalWithholdingTax = new Decimal(0);
+        let transactionCount = merchantTxns.length;
+        for (const txn of merchantTxns) {
+            const amount = txn.original_amount ?? new Decimal(0);
+            const providerName = txn.providerDetails?.name || '';
+            transactionAmount = transactionAmount.plus(amount);
+            let commissionRate = merchantTerms.commissionRate;
+            // Apply easypaisaRate if provider is Easypaisa
+            if (providerName === 'Easypaisa' &&
+                merchantTerms.easypaisaRate &&
+                merchantTerms.easypaisaRate.gt(0)) {
+                commissionRate = merchantTerms.easypaisaRate;
+            }
+            const commission = amount.mul(commissionRate);
+            const gst = commission.mul(merchantTerms.commissionGST);
+            const withholdingTax = amount.mul(merchantTerms.commissionWithHoldingTax);
+            totalCommission = totalCommission.plus(commission);
+            totalGST = totalGST.plus(gst);
+            totalWithholdingTax = totalWithholdingTax.plus(withholdingTax);
+        }
         const merchantAmount = transactionAmount
             .minus(totalCommission)
             .minus(totalGST)
             .minus(totalWithholdingTax);
-        // Step 3: Update transactions to mark them as settled
-        const updateResult = await prisma.transaction.updateMany({
+        // Step 3: Mark transactions as settled
+        await prisma.transaction.updateMany({
             where: {
                 merchant_id: merchantId,
                 settlement: false,
@@ -626,24 +647,26 @@ async function settleAllMerchantTransactions(merchantId) {
                 settlement: true,
             },
         });
-        const today = new Date();
-        // Upsert the settlement report
+        // Step 4: Insert into settlementReport
+        const timeZone = 'Asia/Karachi';
+        const today = toZonedTime(new Date(), timeZone);
+        const settlementDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         await prisma.settlementReport.create({
             data: {
                 merchant_id: merchantId,
                 settlementDate: today,
-                transactionCount,
-                transactionAmount,
+                transactionCount: transactionCount,
+                transactionAmount: transactionAmount,
                 commission: totalCommission,
                 gst: totalGST,
                 withholdingTax: totalWithholdingTax,
-                merchantAmount,
-            }
+                merchantAmount: merchantAmount,
+            },
         });
         return 'All merchant transactions settled successfully.';
     }
     catch (error) {
-        console.log(error);
+        console.error(error);
         throw new CustomError('Error settling all transactions', 500);
     }
 }
@@ -765,7 +788,18 @@ const createTransactionService = async (body, merchant_id) => {
                     response_message: "success",
                 },
             });
-            // Update or Create SettlementReport
+            if (!body.settlement) {
+                const scheduledAt = addWeekdays(new Date(), merchant?.settlementDuration); // Call the function to get the next 2 weekdays
+                let scheduledTask = await tx.scheduledTask.create({
+                    data: {
+                        transactionId: txnRefNo,
+                        status: "pending",
+                        scheduledAt: scheduledAt, // Assign the calculated weekday date
+                        executedAt: null, // Assume executedAt is null when scheduling
+                    },
+                });
+                return { transaction };
+            }
             const settlement = await tx.settlementReport.upsert({
                 where: {
                     merchant_id_settlementDate: {
@@ -792,17 +826,6 @@ const createTransactionService = async (body, merchant_id) => {
                     merchantAmount,
                 },
             });
-            if (!body.settlement) {
-                const scheduledAt = addWeekdays(new Date(), merchant?.settlementDuration); // Call the function to get the next 2 weekdays
-                let scheduledTask = await tx.scheduledTask.create({
-                    data: {
-                        transactionId: txnRefNo,
-                        status: "pending",
-                        scheduledAt: scheduledAt, // Assign the calculated weekday date
-                        executedAt: null, // Assume executedAt is null when scheduling
-                    },
-                });
-            }
             return { transaction, settlement };
         });
     }

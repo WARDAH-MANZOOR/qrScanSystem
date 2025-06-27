@@ -33,10 +33,32 @@ const updateDisbursementRequestStatus = async (req, res) => {
         res.status(500).json(ApiResponse.error(err.message));
     }
 };
+// const getDisbursementRequests = async (req: Request, res: Response) => {
+//     try {
+//         const params = req.query;
+//         const merchantId = (req.user as JwtPayload)?.merchant_id || params.merchantId;
+//         const result = await disbursementRequestService.getDisbursementRequests(params, merchantId);
+//         res.status(200).json(ApiResponse.success(result));
+//     }
+//     catch (err: any) {
+//         res.status(500).json(ApiResponse.error(err.message));
+//     }
+// }
 const getDisbursementRequests = async (req, res) => {
     try {
         const params = req.query;
-        const merchantId = req.user?.merchant_id || params.merchantId;
+        const user = req.user;
+        let merchantId = undefined;
+        if (user.role === 'Merchant') {
+            // Always restrict to merchant's own ID
+            merchantId = user.merchant_id;
+        }
+        else if (user.role === 'Admin') {
+            // Admin may pass optional merchantId from query
+            if (params.merchantId) {
+                merchantId = params.merchantId;
+            }
+        }
         const result = await disbursementRequestService.getDisbursementRequests(params, merchantId);
         res.status(200).json(ApiResponse.success(result));
     }

@@ -120,6 +120,46 @@ const calculateWalletBalanceWithKey = async (merchantId) => {
         todayBalance: todayBalance.toNumber(),
     };
 };
+const calculateMerchantBalanceWithDateRange = async (merchantId, startDate, endDate) => {
+    const walletResult = await prisma.transaction.aggregate({
+        _sum: {
+            balance: true,
+        },
+        where: {
+            settlement: true,
+            status: 'completed',
+            balance: { gt: new Decimal(0) },
+            merchant_id: merchantId,
+        },
+    });
+    const walletBalance = walletResult._sum.balance?.toNumber() || 0;
+    if (startDate && endDate) {
+        const dateRangeResult = await prisma.transaction.aggregate({
+            _sum: {
+                balance: true,
+            },
+            where: {
+                settlement: true,
+                status: 'completed',
+                balance: { gt: new Decimal(0) },
+                merchant_id: merchantId,
+                date_time: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+        });
+        const dateRangeBalance = dateRangeResult._sum.balance?.toNumber() || 0;
+        return {
+            walletBalance,
+            dateRangeBalance,
+        };
+    }
+    return {
+        walletBalance,
+        // don’t include dateRangeBalance at all if no filter provided
+    };
+};
 const getWalletBalance = async (merchantId) => {
     try {
         // Check if the merchant exists
@@ -237,4 +277,4 @@ const updateTransactions = async (updates, prsma) => {
     }));
     await Promise.all(updatePromises);
 };
-export { checkMerchantExists, checkMerchantExistsWithKey, calculateWalletBalance, calculateWalletBalanceWithKey, getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey, getDisbursementBalanceWithKey };
+export { checkMerchantExists, checkMerchantExistsWithKey, calculateWalletBalance, calculateWalletBalanceWithKey, getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey, getDisbursementBalanceWithKey, calculateMerchantBalanceWithDateRange };
