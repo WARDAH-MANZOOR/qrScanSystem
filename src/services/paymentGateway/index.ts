@@ -8,7 +8,7 @@ import { PROVIDERS } from "../../constants/providers.js";
 import jazzcashDisburse from "./jazzcashDisburse.js";
 import { toZonedTime } from "date-fns-tz";
 import { Prisma } from "@prisma/client";
-import { UpdateDisbursementPayload } from "types/providers.js";
+import { UpdateDisbursementPayload } from "../../types/providers.js";
 
 
 function stringToBoolean(value: string): boolean {

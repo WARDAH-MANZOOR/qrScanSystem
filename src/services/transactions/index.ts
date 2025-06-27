@@ -709,5 +709,8 @@ export default {
   getMerchantChannel,
   getMerchantInquiryMethod,
   getTransaction,
-  sendCallbackClone
+  sendCallbackClone, 
+  switchPaymentProvider,
+  updateMerchantSwitch,
 };
+export { isValidTransactionCompletion, isValidTransactionRequest}

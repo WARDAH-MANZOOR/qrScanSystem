@@ -4,8 +4,91 @@ import { JwtPayload } from "jsonwebtoken";
 import { easyPaisaService, payfast, swichService, transactionService } from "../../services/index.js";
 import type { DisbursementPayload } from "../../types/providers.js";
 import ApiResponse from "../../utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+import CustomError from "../../utils/custom_error.js";
+const initiateEasyPaisaNewFlow = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    let merchantId = req.params?.merchantId;
+    // const decryptedPayload = req.body.decryptedPayload;
 
+    // if (!decryptedPayload) {
+    //   res.status(400).json(ApiResponse.error("Decrypted payload not found"));
+    //   return;
+    // }
+    if (!merchantId) {
+      res.status(400).json(ApiResponse.error("Merchant ID is required"));
+      return;
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json(ApiResponse.error(errors.array()[0] as unknown as string));
+      return;
+    }
+
+    const channel = (await transactionService.getMerchantChannel(merchantId))?.easypaisaPaymentMethod;
+    let result: any;
+    if (channel == "DIRECT") {
+      result = await easyPaisaService.initiateEasyPaisa(
+        merchantId,
+        req.body
+      );
+      if (result.statusCode != "0000") {
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
+        return;
+      }
+    }
+    else if (channel == "SWITCH") {
+      result = await swichService.initiateSwich({
+        channel: 1749,
+        amount: req.body.amount,
+        phone: transactionService.convertPhoneNumber(req.body.phone),
+        email: req.body.email,
+        order_id: req.body.order_id,
+        type: req.body.type
+      }, merchantId)
+      if (result.statusCode != "0000") {
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
+        return;
+      }
+    }
+    else {
+      console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: req.body.order_id, body: req.body }))
+      const token = await payfast.getApiToken(req.params.merchantId, req.body);
+      if (!token?.token) {
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: req.body.order_id }))
+        throw new CustomError("No Token Recieved", 500);
+      }
+      const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
+        token: token?.token,
+        bankCode: '13',
+        ...req.body
+      })
+      if (!validation?.transaction_id) {
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: req.body.order_id }))
+        res.status(500).send(ApiResponse.error(result, 500))
+        return;
+      }
+      result = await payfast.pay(req.params.merchantId, {
+        token: token?.token,
+        bankCode: '13',
+        transaction_id: validation?.transaction_id,
+        ...req.body
+      })
+      if (result?.statusCode != "0000") {
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: req.body.order_id, response: result }))
+        res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
+        return;
+      }
+    }
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
 const initiateEasyPaisa = async (
   req: Request,
   res: Response,
@@ -555,6 +638,7 @@ const transactionInquiry = async (
 
 export default {
   initiateEasyPaisa,
+  initiateEasyPaisaNewFlow,
   getEasyPaisaMerchant,
   createEasyPaisaMerchant,
   updateEasyPaisaMerchant,

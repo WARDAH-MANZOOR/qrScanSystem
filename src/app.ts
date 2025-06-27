@@ -8,14 +8,19 @@ import routes from './routes/index.js';
 import cors from 'cors';
 import crypto from "crypto"
 
-dotenv.config();
 
+// // dotenv.config();
+process.env.DATABASE_URL = "postgresql://postgres:ambreen1234@localhost:5432/erp_db";
 
 // import indexRouter from './routes/index.js';
 // import usersRouter from './routes/users.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocs from './swagger.js';  // Import the Swagger configuration
 import transactionReportsRouter from "./routes/transaction/report.js"
+import authRoutes from "./newRoutes/authentication/authRoutes.js"
+import apiKeyRouter from "./newRoutes/authentication/apiKeyRoutes.js"
+import adminRoutes from "./newRoutes/authentication/adminRoutes.js"
+
 import authRouter from "./routes/authentication/index.js"
 import createTransactionRouter from "./routes/transaction/create.js"
 import completeTransactionRouter from "./routes/transaction/complete.js"
@@ -66,6 +71,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);
 app.use('/transaction_complete', completeTransactionRouter);
+app.use('/newAuth_api', authRoutes); // NEW ROUTES AUTHENTICATION
+app.use('/newAuth_api', apiKeyRouter); // NEW ROUTES AUTHENTICATION
+app.use('/newAuth_api', adminRoutes); // NEW ROUTES AUTHENTICATION
+
 app.use('/auth_api', authRouter);
 
 // Import all routes from routes/index
