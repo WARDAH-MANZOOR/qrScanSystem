@@ -67,23 +67,21 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             throw new CustomError(error?.message, 500);
           }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
-      // Set timezone
-      const timeZone = 'Asia/Karachi';
+     //Fetch today's transaction sum
 
-      // Get current time in PKT
-      const now = new Date();
-      const zonedNow = toZonedTime(now, timeZone);
+      // const servertodayStart = new Date().setHours(0, 0, 0, 0);
+      // const servertodayEnd = new Date().setHours(23, 59, 59, 999);
 
-      // Calculate yesterday 19:00 PKT
-      const yesterdayStartPKT = new Date(zonedNow);
-      yesterdayStartPKT.setDate(yesterdayStartPKT.getDate() - 1);
-      yesterdayStartPKT.setHours(19, 0, 0, 0);
+      const date = new Date();
 
-      // Calculate today 18:59:59.999 PKT
-      const todayEndPKT = new Date(zonedNow);
-      todayEndPKT.setHours(18, 59, 59, 999);
-      // دونوں تاریخوں کو UTC میں تبدیل کرنے کے لیے 'zonedTimeToUtc' کو امپورٹ کریں
-      // Import 'zonedTimeToUtc' from 'date-fns-tz'
+      // Define the Pakistan timezone
+      // const timeZone = 'Asia/Karachi';
+
+      // // Convert the date to the Pakistan timezone
+      // const zonedDate = toZonedTime(date, timeZone);
+      const servertodayStart = date.setHours(0, 0, 0, 0);
+      const servertodayEnd = date.setHours(23, 59, 59, 999);
+      console.log(date);
 
       // Aggregate query
       fetchAggregates.push(
@@ -91,8 +89,8 @@ const merchantDashboardDetails = async (params: any, user: any) => {
           _sum: { original_amount: true },
           where: {
             date_time: {
-              gte: yesterdayStartPKT,
-              lte: todayEndPKT,
+              gte: new Date(servertodayStart),
+              lte: new Date(servertodayEnd),
             },
             merchant_id: +merchantId,
             status: 'completed',
