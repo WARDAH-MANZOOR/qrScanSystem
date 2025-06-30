@@ -67,33 +67,37 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             throw new CustomError(error?.message, 500);
           }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
-      //Fetch today's transaction sum
+      // Set timezone
+      const timeZone = 'Asia/Karachi';
 
-      // const servertodayStart = new Date().setHours(0, 0, 0, 0);
-      // const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+      // Get current time in PKT
+      const now = new Date();
+      const zonedNow = toZonedTime(now, timeZone);
 
-      const date = new Date();
+      // Calculate yesterday 19:00 PKT
+      const yesterdayStartPKT = new Date(zonedNow);
+      yesterdayStartPKT.setDate(yesterdayStartPKT.getDate() - 1);
+      yesterdayStartPKT.setHours(19, 0, 0, 0);
 
-      // Define the Pakistan timezone
-      // const timeZone = 'Asia/Karachi';
+      // Calculate today 18:59:59.999 PKT
+      const todayEndPKT = new Date(zonedNow);
+      todayEndPKT.setHours(18, 59, 59, 999);
+      // دونوں تاریخوں کو UTC میں تبدیل کرنے کے لیے 'zonedTimeToUtc' کو امپورٹ کریں
+      // Import 'zonedTimeToUtc' from 'date-fns-tz'
 
-      // // Convert the date to the Pakistan timezone
-      // const zonedDate = toZonedTime(date, timeZone);
-      const servertodayStart = date.setHours(0, 0, 0, 0);
-      const servertodayEnd = date.setHours(23, 59, 59, 999);
-      console.log(date);
+      // Aggregate query
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
           where: {
             date_time: {
-              gte: new Date(servertodayStart),
-              lt: new Date(servertodayEnd),
+              gte: yesterdayStartPKT,
+              lte: todayEndPKT,
             },
             merchant_id: +merchantId,
-            status: "completed"
+            status: 'completed',
           },
-        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _sum: { original_amount: number | null } }>
       );
 
       // Fetch transaction status count
