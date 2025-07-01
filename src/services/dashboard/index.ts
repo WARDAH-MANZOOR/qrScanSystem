@@ -67,7 +67,7 @@ const merchantDashboardDetails = async (params: any, user: any) => {
             throw new CustomError(error?.message, 500);
           }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
       );
-      //Fetch today's transaction sum
+     //Fetch today's transaction sum
 
       // const servertodayStart = new Date().setHours(0, 0, 0, 0);
       // const servertodayEnd = new Date().setHours(23, 59, 59, 999);
@@ -82,18 +82,20 @@ const merchantDashboardDetails = async (params: any, user: any) => {
       const servertodayStart = date.setHours(0, 0, 0, 0);
       const servertodayEnd = date.setHours(23, 59, 59, 999);
       console.log(date);
+
+      // Aggregate query
       fetchAggregates.push(
         prisma.transaction.aggregate({
           _sum: { original_amount: true },
           where: {
             date_time: {
               gte: new Date(servertodayStart),
-              lt: new Date(servertodayEnd),
+              lte: new Date(servertodayEnd),
             },
             merchant_id: +merchantId,
-            status: "completed"
+            status: 'completed',
           },
-        }) as Promise<{ _sum: { original_amount: number | null } }> // Properly type the aggregate query
+        }) as Promise<{ _sum: { original_amount: number | null } }>
       );
 
       // Fetch transaction status count
