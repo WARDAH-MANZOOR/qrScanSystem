@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import { groupService } from "services/index.js";
-import ApiResponse from "utils/ApiResponse.js";
-import CustomError from "utils/custom_error.js";
+import { groupService } from "../../services/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import CustomError from "../../utils/custom_error.js";
 
 const createGroupController = async (req: Request, res: Response, next: NextFunction) => {
     try {

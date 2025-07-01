@@ -342,6 +342,7 @@ const initiateJazzCashPayment = async (
       ppmpf_4: "",
       ppmpf_5: "",
     };
+    console.log(sendData)
     // Generate the secure hash
     sendData.pp_SecureHash = getSecureHash(
       sendData,
@@ -411,7 +412,7 @@ const initiateJazzCashPayment = async (
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
-        "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+        "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
       const headers = {
         "Content-Type": "application/x-www-form-urlencoded",
       };
@@ -991,7 +992,7 @@ const processWalletPayment = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+    "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
@@ -1052,7 +1053,7 @@ const processWalletPaymentClone = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+    "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
@@ -1363,7 +1364,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry",
+    url: "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire",
     //   "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire" 
     headers: {
       "Content-Type": "application/json",
@@ -1662,14 +1663,14 @@ const initiateJazzCashCnicPayment = async (
 
     // Send Request to JazzCash Wallet API
     const headers = { "Content-Type": "application/json" };
-    // let part = "";
-    // if (paymentData.use_sandbox == 'yes') {
-    //   part = "https://sandbox.jazzcash.com.pk/";
-    // }
-    // else {
-    //   part = "https://payments.jazzcash.com.pk/"
-    // }
-    const apiUrl = `https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic?use_sandbox=${paymentData.use_sandbox}`;
+    let part = "";
+    if (paymentData.use_sandbox == 'yes') {
+      part = "https://sandbox.jazzcash.com.pk/";
+    }
+    else {
+      part = "https://payments.jazzcash.com.pk/"
+    }
+    const apiUrl = `${part}ApplicationAPI/API/2.0/Purchase/DoMWalletTransaction`;
     console.log(apiUrl);
     const response = await axios.post(apiUrl, { ...payload }, { headers });
     const data = response.data;
@@ -1871,3 +1872,4 @@ export default {
   getJazzCashInquiryChannel,
   databaseStatusInquiry
 };
+export { jazzCashCardPayment,prepareJazzCashPayload,calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber,fetchMerchantAndJazzCash,findTransaction, processCardPayment, processWalletPayment, validatePaymentData}
