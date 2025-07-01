@@ -33,52 +33,126 @@ const getWalletBalanceController = async (
     next(error); // Pass the error to the error handling middleware
   }
 };
+// const getAllMerchantsWalletBalancesController = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void> => {
+//   try {
+//     const { startDate, endDate } = req.query;
+
+//     // Parse date filters (optional)
+//     const start = startDate ? new Date(startDate as string) : null;
+//     const end = endDate ? new Date(endDate as string) : null;
+
+//     // Get all merchants
+//     const merchants = await prisma.merchant.findMany({
+//     select: {
+//       merchant_id: true,
+//       uid:true,
+//       user_id:true,
+//       full_name: true,
+//       company_name:true
+
+//     },
+//   });
+
+//     const balances = [];
+
+//     for (const merchant of merchants) {
+//       const balance = await calculateMerchantBalanceWithDateRange(merchant.merchant_id, start, end);
+//       balances.push({
+//         merchantId: merchant.merchant_id,
+//         uid: merchant.uid,
+//         userId: merchant.user_id,
+//         UserName: merchant.full_name,
+//         companyName: merchant.company_name,
+//         ...balance,
+//       });
+//     }
+
+//     // Sort by highest wallet balance
+//     balances.sort((a, b) => b.walletBalance - a.walletBalance);
+
+//     res.status(200).json(ApiResponse.success(balances));
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 const getAllMerchantsWalletBalancesController = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { startDate, endDate } = req.query;
+    console.time("getAllMerchantsWalletBalances");
 
-    // Parse date filters (optional)
+    const { startDate, endDate } = req.query;
     const start = startDate ? new Date(startDate as string) : null;
     const end = endDate ? new Date(endDate as string) : null;
 
-    // Get all merchants
-    const merchants = await prisma.merchant.findMany({
-    select: {
-      merchant_id: true,
-      uid:true,
-      user_id:true,
-      full_name: true,
-      company_name:true
+    const [merchants, allWalletBalances, allDateRangeBalances] = await Promise.all([
+      prisma.merchant.findMany({
+        select: {
+          merchant_id: true,
+          uid: true,
+          user_id: true,
+          full_name: true,
+          company_name: true,
+        },
+      }),
+      prisma.transaction.groupBy({
+        by: ["merchant_id"],
+        where: {
+          settlement: true,
+          status: "completed",
+          balance: { gt: new Decimal(0) },
+        },
+        _sum: { balance: true },
+      }),
+      start && end
+        ? prisma.transaction.groupBy({
+            by: ["merchant_id"],
+            where: {
+              settlement: true,
+              status: "completed",
+              balance: { gt: new Decimal(0) },
+              date_time: {
+                gte: start,
+                lte: end,
+              },
+            },
+            _sum: { balance: true },
+          })
+        : Promise.resolve([]),
+    ]);
 
-    },
-  });
+    const walletMap = new Map(allWalletBalances.map(b => [b.merchant_id, b._sum.balance?.toNumber() || 0]));
+    const dateRangeMap = new Map(allDateRangeBalances.map(b => [b.merchant_id, b._sum.balance?.toNumber() || 0]));
 
-    const balances = [];
+    const balances = merchants.map((merchant) => ({
+      merchantId: merchant.merchant_id,
+      uid: merchant.uid,
+      userId: merchant.user_id,
+      UserName: merchant.full_name,
+      companyName: merchant.company_name,
+      walletBalance: walletMap.get(merchant.merchant_id) || 0,
+      ...(start && end ? { dateRangeBalance: dateRangeMap.get(merchant.merchant_id) || 0 } : {}),
+    }));
 
-    for (const merchant of merchants) {
-      const balance = await calculateMerchantBalanceWithDateRange(merchant.merchant_id, start, end);
-      balances.push({
-        merchantId: merchant.merchant_id,
-        uid: merchant.uid,
-        userId: merchant.user_id,
-        UserName: merchant.full_name,
-        companyName: merchant.company_name,
-        ...balance,
-      });
-    }
-
-    // Sort by highest wallet balance
     balances.sort((a, b) => b.walletBalance - a.walletBalance);
+
+    console.timeEnd("getAllMerchantsWalletBalances");
 
     res.status(200).json(ApiResponse.success(balances));
   } catch (error) {
     next(error);
   }
 };
+
+
 
 const getWalletBalanceControllerWithKey = async (
   req: Request,

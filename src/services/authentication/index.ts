@@ -11,16 +11,6 @@ const getUserByEmail = async (email: string) => {
   return prisma.user.findUnique({
     where: { email },
     include: {
-      // Include merchant Uid only
-      // merchant: {
-      //   select: {
-      //     uid: true,
-      //     full_name: true,
-      //     phone_number: true,
-      //     payment_volume: true,
-      //     commissions: true,
-      //   },
-      // },
       groups: {
         include: {
           group: true, // Fetch group details
@@ -46,7 +36,7 @@ const setTokenCookie = (res: Response, token: string) => {
     httpOnly: true,
     secure: true,            // required if sameSite is 'none'
     sameSite: 'none',        // needed for cross-site
-    domain: '.sahulatpay.com',
+    // domain: '.sahulatpay.com',
   });
 };
 

@@ -1,4 +1,4 @@
-import prisma from "prisma/client.js"
+import prisma from "../../prisma/client.js"
 
 const getPermissions = async () => {
     let permissions = await prisma.groupPermission.findMany({

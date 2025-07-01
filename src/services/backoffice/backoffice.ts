@@ -2,10 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { endOfDay, format, subDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { backofficeService, dashboardService, jazzCashService, transactionService } from 'services/index.js';
-import { getWalletBalance } from 'services/paymentGateway/disbursement.js';
-import CustomError from 'utils/custom_error.js';
-import { addWeekdays } from 'utils/date_method.js';
+import { dashboardService, jazzCashService, transactionService } from '../../services/index.js';
+import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
+import CustomError from '../../utils/custom_error.js';
+import { addWeekdays } from '../../utils/date_method.js';
 const prisma = new PrismaClient();
 
 interface CalculatedFinancials {
@@ -870,7 +870,7 @@ async function settleAllMerchantTransactionsUpdated(merchantId: number) {
         })
 
     } catch (error) {
-        console.log(error);
+        console.log(error)
         throw new CustomError('Error settling all transactions', 500);
     }
 }
@@ -1266,6 +1266,8 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
         const {
             totalIncome,
             remainingSettlements,
+            // payinCommissionRate,
+            // payoutCommissionRate,
             availableBalance,
             disbursementBalance,
             disbursementAmount,
@@ -1273,23 +1275,14 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             totalRefund,
         } = await dashboardService.merchantDashboardDetails({}, { merchant_id }) as MerchantDashboardData;
 
-        // const settled = new Decimal(totalIncome).minus(remainingSettlements);
+        const settled = new Decimal(totalIncome).minus(remainingSettlements);
         // const payinCommission = settled.times(merchant?.commissionRate as Decimal);
         const payinCommission = new Decimal((await prisma.$queryRawUnsafe<
             { total: number }[]
         >(`
         SELECT SUM(commission + gst + "withholdingTax") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
       `))[0]?.total);
-        const settled = new Decimal((await prisma.$queryRawUnsafe<
-            { settled: number }[]
-        >(`
-            SELECT SUM("transactionAmount") as settled FROM "SettlementReport" where merchant_id = ${merchant_id};
-        `))[0]?.settled);
-        const settledBalance = new Decimal((await prisma.$queryRawUnsafe<
-            { settledBalance: number }[]
-        >(`
-            SELECT SUM("merchantAmount") as "settledBalance" FROM "SettlementReport" where merchant_id = ${merchant_id};
-        `))[0]?.settledBalance);
+        const settledBalance = settled.minus(payinCommission);
         const payoutCommission = new Decimal((await prisma.$queryRawUnsafe<
             { total: number }[]
         >(`

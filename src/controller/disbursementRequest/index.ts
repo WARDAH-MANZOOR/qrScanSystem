@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
-import ApiResponse from "utils/ApiResponse.js";
-import disbursementRequestService from "services/disbursementRequest/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import disbursementRequestService from "../../services/disbursementRequest/index.js";
 
 const createDisbursementRequest = async (req: Request, res: Response) => {
     try {

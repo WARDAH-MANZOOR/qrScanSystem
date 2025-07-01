@@ -1,5 +1,5 @@
-import prisma from "prisma/client.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import CustomError from "../../utils/custom_error.js";
 
 const createGroup = async (name: string, merchant_id: number, permissionIds: number[]) => {
     try {
