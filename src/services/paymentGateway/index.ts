@@ -57,7 +57,7 @@ async function getToken(merchantId: string) {
       // redirect: "follow"
     };
 
-    const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
+    const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -134,7 +134,7 @@ async function simpleGetToken(merchantId: string) {
       // redirect: "follow"
     };
 
-    const token = await fetch(`https://gateway.jazzcash.com.pk/token`, requestOptions)
+    const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
       .then((response) => response.json())
       .then((result) => result)
       .catch((error) => error);
@@ -274,7 +274,7 @@ async function simpleGetToken(merchantId: string) {
 //     (async () => {
 //       await delay(1000); // Wait for 1 second
 //     })();
-//     let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+//     let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
 //       method: 'POST',
 //       headers: {
 //         'Accept': 'application/json',
@@ -351,7 +351,7 @@ async function simpleGetToken(merchantId: string) {
 //     (async () => {
 //       await delay(1000); // Wait for 1 second
 //     })();
-//     response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+//     response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
 //       method: "POST",
 //       headers: {
 //         'Accept': 'application/json',
@@ -635,7 +635,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -724,7 +724,7 @@ async function initiateTransaction(token: string, body: any, merchantId: string)
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -1016,7 +1016,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -1114,7 +1114,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -1567,7 +1567,7 @@ async function simpleProductionInitiateTransactionClone(token: string, body: any
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -1634,7 +1634,7 @@ async function simpleProductionInitiateTransactionClone(token: string, body: any
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -1794,7 +1794,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -1857,7 +1857,7 @@ async function updateTransaction(token: string, body: UpdateDisbursementPayload,
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -2087,7 +2087,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -2153,7 +2153,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -2426,7 +2426,7 @@ async function updateTransactionClone(token: string, body: UpdateDisbursementPay
 //       await delay(1000); // Wait for 1 second
 //     })();
 
-//     const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+//     const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
 //       method: 'POST',
 //       headers: {
 //         'Accept': 'application/json',
@@ -2704,6 +2704,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     const requestData = {
       data: payload
     };
+    console.log(requestData)
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     // Example usage
@@ -2711,7 +2712,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
       await delay(1000); // Wait for 1 second
     })();
 
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -3019,7 +3020,7 @@ async function mwTransactionClone(token: string, body: any, merchantId: string) 
       await delay(1000); // Wait for 1 second
     })();
 
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -3220,7 +3221,7 @@ async function simpleProductionMwTransactionClone(token: string, body: any, merc
       await delay(1000); // Wait for 1 second
     })();
 
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -3506,7 +3507,7 @@ async function updateMwTransaction(token: string, body: UpdateDisbursementPayloa
       await delay(1000); // Wait for 1 second
     })();
 
-    const response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
