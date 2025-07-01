@@ -130,7 +130,7 @@ const initiateEasyPaisa = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -267,7 +267,7 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -396,7 +396,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -547,7 +547,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/initiate-ma-transaction/",
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -771,7 +771,7 @@ const easypaisainquiry = async (param, merchantId) => {
     let config = {
         method: "post",
         maxBodyLength: Infinity,
-        url: "https://sea-turtle-app-bom3q.ondigitalocean.app/inquiry",
+        url: "https://easypay.easypaisa.com.pk/easypay-service/rest/v4/inquire-transaction",
         headers: {
             Credentials: base64Credentials,
             "Content-Type": "application/json",

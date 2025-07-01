@@ -62,18 +62,18 @@ const merchantDashboardDetails = async (params, user) => {
             const servertodayStart = date.setHours(0, 0, 0, 0);
             const servertodayEnd = date.setHours(23, 59, 59, 999);
             console.log(date);
+            // Aggregate query
             fetchAggregates.push(prisma.transaction.aggregate({
                 _sum: { original_amount: true },
                 where: {
                     date_time: {
                         gte: new Date(servertodayStart),
-                        lt: new Date(servertodayEnd),
+                        lte: new Date(servertodayEnd),
                     },
                     merchant_id: +merchantId,
-                    status: "completed"
+                    status: 'completed',
                 },
-            }) // Properly type the aggregate query
-            );
+            }));
             // Fetch transaction status count
             fetchAggregates.push(prisma.transaction.groupBy({
                 where: { merchant_id: +merchantId, ...customWhere },
