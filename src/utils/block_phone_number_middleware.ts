@@ -2,6 +2,85 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
 import ApiResponse from "./ApiResponse.js";
+import { decryptAESGCM, deriveKeys, generateHMACSignature } from "./dec_with_signing.js";
+
+const blockPhoneNumberNew: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId, timestamp, encrypted_data, iv, tag, signature } = req.body;
+
+    if (!userId || !timestamp || !encrypted_data || !iv || !tag || !signature) {
+    res.status(400).json(ApiResponse.error("Missing encryption fields"));
+    return
+    }
+
+    const masterKey = Buffer.from(process.env.MASTER_SECRET_KEY!, 'utf8');
+    const { hmacKey, aesKey } = deriveKeys(masterKey);
+
+    const expectedSignature = generateHMACSignature(userId + timestamp + encrypted_data, hmacKey);
+    if (signature !== expectedSignature) {
+      res.status(403).json(ApiResponse.error("Invalid signature"));
+      return
+    }
+
+    const now = Date.now();
+    const requestTime = new Date(timestamp).getTime();
+    if (Math.abs(now - requestTime) > 5 * 60 * 1000) {
+      res.status(408).json(ApiResponse.error("Request expired"));
+      return
+    }
+
+    const decryptedStr = decryptAESGCM(encrypted_data, aesKey, iv, tag);
+    const decryptedPayload = JSON.parse(decryptedStr);
+
+    // Logging decrypted payload for debugging
+    console.log("🔍 Decrypted Payload:", decryptedPayload);
+
+    const phoneToCheck = decryptedPayload.phone || decryptedPayload.accountNo;
+    if (!phoneToCheck) {
+      res.status(400).json(ApiResponse.error("Missing phone or account number in payload"));
+      return
+    }
+
+    const isBlocked = await prisma.blockedPhoneNumbers.findUnique({
+      where: { phoneNumber: phoneToCheck }
+    });
+
+    if (isBlocked) {
+      const merchant = await prisma.merchant.findFirst({
+        where: { uid: req.params.merchantId },
+        include: { commissions: true }
+      });
+
+      const txnId = transactionService.createTransactionId();
+      const orderId = decryptedPayload.order_id || txnId;
+
+      await transactionService.createTxn({
+        order_id: orderId,
+        transaction_id: txnId,
+        amount: decryptedPayload.amount,
+        status: "failed",
+        type: decryptedPayload.type,
+        merchant_id: merchant?.merchant_id || 0,
+        commission: 0,
+        settlementDuration: merchant?.commissions[0]?.settlementDuration || 1,
+        providerDetails: { msisdn: decryptedPayload.phone },
+        response_message: "Number Blocked"
+      });
+
+      res.status(401).json(ApiResponse.error("Number is Blocked for Fraud Transaction", 401));
+      return
+    }
+
+    // Attach decryptedPayload to request object for use in controller
+    req.body.decryptedPayload = decryptedPayload;
+    next();
+  } catch (error) {
+    console.error("🛑 Middleware error:", error);
+    res.status(500).json(ApiResponse.error("Middleware error: Block check failed", 500));
+    return
+  }
+};
+
 
 const blockPhoneNumber: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -106,5 +185,4 @@ const blockPhoneNumberInRedirection: RequestHandler = async (req: Request, res: 
         res.status(401).json(ApiResponse.error("Number is Blocked for Fraud Transaction", 401));
     }
 };
-
-export default { blockPhoneNumber, blockPhoneNumberInRedirection }
+export default { blockPhoneNumber, blockPhoneNumberInRedirection, blockPhoneNumberNew }
