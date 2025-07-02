@@ -37,7 +37,7 @@ const getApiToken = async (merchantId, params) => {
         body: urlencoded,
         redirect: "follow"
     };
-    let result = await fetch("https://apipxy.apps.net.pk:8443/api/token", requestOptions)
+    let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/token", requestOptions)
         .then((response) => response.json())
         .then((result) => result)
         .catch((error) => error);
@@ -67,7 +67,7 @@ const validateCustomerInformation = async (merchantId, params) => {
         body: urlencoded,
         redirect: "follow"
     };
-    let result = await fetch("https://apipxy.apps.net.pk:8443/api/customer/validate", requestOptions)
+    let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/customer/validate", requestOptions)
         .then((response) => response.json())
         .then((result) => result)
         .catch((error) => error);
@@ -258,7 +258,7 @@ const pay = async (merchantId, params) => {
             },
         });
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }));
-        let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+        let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/transaction", requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
