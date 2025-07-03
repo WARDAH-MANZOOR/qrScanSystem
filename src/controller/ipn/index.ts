@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { ipnService } from "services/index.js";
-import { PaymentRequestBody } from "services/ipn/index.js";
-import ApiResponse from "utils/ApiResponse.js";
+import { ipnService } from "../../services/index.js";
+import { PaymentRequestBody } from "../../services/ipn/index.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 
 const handleIPN = async (req: Request, res: Response): Promise<void> => {
     try {

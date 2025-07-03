@@ -1,9 +1,9 @@
 import { parse, parseISO } from "date-fns";
 import { Parser } from "json2csv";
-import prisma from "prisma/client.js";
-import { backofficeService } from "services/index.js";
-import { getWalletBalance } from "services/paymentGateway/disbursement.js";
-import CustomError from "utils/custom_error.js";
+import prisma from "../../prisma/client.js";
+import { backofficeService } from "../../services/index.js";
+import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
+import CustomError from "../../utils/custom_error.js";
 
 const createDisbursementRequest = async (requested_amount: number, merchant_id: number) => {
     try {
@@ -193,10 +193,6 @@ const exportDisbursementRequest = async (merchantId: number, params: any) => {
                 throw new CustomError("Unable to get disbursement history", 500);
             });
 
-
-        // res.setHeader('Content-Type', 'text/csv');
-        // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-
         const fields = [
             'merchant',
             'status',
@@ -215,19 +211,7 @@ const exportDisbursementRequest = async (merchantId: number, params: any) => {
         const csv = json2csvParser.parse(data);
         const csvNoQuotes = csv.replace(/"/g, '');
         return `${csvNoQuotes}`;
-        // loop through disbursements and add transaction details
-        // for (let i = 0; i < disbursements.length; i++) {
-        //   if (!disbursements[i].transaction_id) {
-        //     disbursements[i].transaction = null;
-        //   } else {
-        //     const transaction = await prisma.transaction.findFirst({
-        //       where: {
-        //         transaction_id: disbursements[i].transaction_id,
-        //       },
-        //     });
-        //     disbursements[i].transaction = transaction;
-        //   }
-        // }
+        
     } catch (error: any) {
         throw new CustomError(
             error?.error || "Unable to get disbursement",

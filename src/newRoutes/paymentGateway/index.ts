@@ -1,0 +1,48 @@
+import { Router } from "express";
+import jazzcashDisbursementRouter from "./jazzcash/disbursementRoutes.js";
+import jazzcashStatusInquiryRouter from "./jazzcash/statusInquiryRoutes.js";
+import jazzcashTransactionRouter from "./jazzcash/transactionRoutes.js";
+import jazzcashMerchantCrudRoutes from "./jazzcash/merchantCrudRoutes.js";
+import easypaisaDisbursementRouter from "./easypaisa/disbursementRoutes.js";
+import easypaisaInquiryRouter from "./easypaisa/inquiryRoutes.js";
+import easypaisaTransactionRouter from "./easypaisa/transactionRoutes.js";
+import easypaisaMerchantCrudRoutes from "./easypaisa/merchantCrudRoutes.js";
+import swichTransactionRouter from "./swich/transactionRoutes.js"
+import swichCrudRouter from "./swich/crudRoutes.js"
+import swichInquiryRouter from "./swich/inquiryRoutes.js"
+import easyPaisaDisburse from "./easypaisaDisburse/crudRoutes.js";
+import zindigiCrudRouter from "./zindigi/crudRoutes.js"
+import zindigiTransactionRouter from "./zindigi/crudRoutes.js"
+import zindigiInquiryRouter from "./zindigi/crudRoutes.js"
+import jazzcashDisburse from "./jazzcashDisburse/crudRoutes.js";
+import newJazzCashTransactonRouter from "./newJazzcash/transactionRoutes.js"
+import newJazzCashInquiryRouter from "./newJazzcash/inquiryRoutes.js"
+import payFastCrudRoutes from "./payFast/crudRoutes.js";
+import payFastPayRoutes from "./payFast/payRoutes.js";
+
+
+const router = Router();
+
+jazzcashDisbursementRouter(router);
+jazzcashStatusInquiryRouter(router);
+jazzcashTransactionRouter(router);
+jazzcashMerchantCrudRoutes(router);
+easypaisaDisbursementRouter(router);
+easypaisaInquiryRouter(router);
+easypaisaDisbursementRouter(router);
+easypaisaTransactionRouter(router);
+easypaisaMerchantCrudRoutes(router);
+swichCrudRouter(router);
+swichTransactionRouter(router);
+swichInquiryRouter(router);
+easyPaisaDisburse(router);
+zindigiCrudRouter(router);
+zindigiTransactionRouter(router);
+zindigiInquiryRouter(router);
+jazzcashDisburse(router);
+newJazzCashTransactonRouter(router);
+newJazzCashInquiryRouter(router)
+payFastCrudRoutes(router)
+payFastPayRoutes(router)
+
+export default router;

@@ -958,5 +958,6 @@ const getTransactionsSuccessRate = async (statusCounts: any) => {
 export default {
   merchantDashboardDetails,
   adminDashboardDetails,
-  merchantDashboardDetailsClone
+  merchantDashboardDetailsClone,
+  getTransactionsSuccessRate,
 };

@@ -9,8 +9,11 @@ import authenticationService from './authentication/index.js';
 import paymentRequestService from './paymentRequest/index.js';
 import zindigiService from "./paymentGateway/zindigi.js"
 import backofficeService from "./backoffice/backoffice.js"
+import transactionCreateService from './transactions/create.js'
+
 import reportService from "./reports/excel.js"
 import ipnService from "./ipn/index.js"
+
 import groupService from "./group/index.js"
 import permissionService from "./permissions/index.js"
 import usdtSettlementService from "./usdt-settlement/index.js"
@@ -27,6 +30,7 @@ import statusInquiry from './paymentGateway/statusInquiry.js';
 
 export {
     jazzCashService,
+    transactionCreateService,
     transactionService,
     merchantService,
     dashboardService,
