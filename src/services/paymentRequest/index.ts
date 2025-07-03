@@ -9,7 +9,7 @@ import {
 } from "../../services/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
 import { PROVIDERS } from "constants/providers.js";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 
 const createPaymentRequest = async (data: any, user: any) => {
   try {
@@ -156,7 +156,7 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
           dueDate: data.dueDate,
           provider: data.provider,
           link: data.link,
-          metadata: data.metadata || {},
+          metadata: data.metadata || {phone: data.phone},
           createdAt: new Date(),
           updatedAt: new Date(),
           merchant_transaction_id: data.order_id,
@@ -232,7 +232,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           order_id: paymentRequest.merchant_transaction_id,
           amount: paymentRequest.amount,
           type: "wallet",
-          phone: paymentRequestObj.accountNo,
+          phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
           redirect_url: paymentRequest.link,
         },
         merchant.uid
@@ -255,7 +255,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             order_id: paymentRequest.merchant_transaction_id,
             amount: paymentRequest.amount,
             type: "wallet",
-            phone: paymentRequestObj.accountNo,
+            phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
             email: "example@example.com",
             // orderId: `SPAY-PR-${paymentRequest.id}`,
           }
@@ -274,7 +274,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             order_id: paymentRequest.merchant_transaction_id,
             channel: 1749,
             amount: paymentRequest.amount,
-            phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+            phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
             email: paymentRequest.email,
             // order_id: `SPAY-PR-${paymentRequest.id}`,
             type: "wallet",
@@ -298,7 +298,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           token: token?.token,
           bankCode: '13',
           order_id: paymentRequest.merchant_transaction_id,
-          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
           amount: paymentRequest.amount,
           email: paymentRequest.email
         })
@@ -310,7 +310,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           bankCode: '13',
           transaction_id: validation?.transaction_id,
           order_id: paymentRequest.merchant_transaction_id,
-          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
           amount: paymentRequest.amount,
           email: paymentRequest.email
         })
