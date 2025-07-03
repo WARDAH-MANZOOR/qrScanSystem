@@ -377,3 +377,4 @@ const deleteMerchant = async (merchantId: string) => {
 };
 
 export default { walletToWalletPayment, debitInquiry, debitPayment, transactionInquiry, fetchExistingClientSecret, generateNewClientSecret, createMerchant, getMerchant, updateMerchant, deleteMerchant }
+export{ generateUniqueSixDigitNumber}

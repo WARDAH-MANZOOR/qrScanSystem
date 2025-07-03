@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 import { JwtPayload } from "jsonwebtoken"
-import { permissionService } from "services/index.js"
-import ApiResponse from "utils/ApiResponse.js"
+import { permissionService } from "../../services/index.js"
+import ApiResponse from "../../utils/ApiResponse.js"
 
 const getPermissions = async (req: Request, res: Response) => {
     const merchant_id = (req.user as JwtPayload)?.merchant_id as string
