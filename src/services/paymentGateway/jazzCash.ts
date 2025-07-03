@@ -654,6 +654,9 @@ const initiateJazzCashPaymentAsync = async (
       });
       console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }))
       return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
+    }, {
+      maxWait: 300000,
+      timeout: 300000
     });
     txnRefNo = result.txnRefNo as string;
 
@@ -807,6 +810,9 @@ const initiateJazzCashPaymentAsyncClone = async (
       });
       console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }))
       return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
+    },{
+      maxWait: 300000,
+      timeout: 300000
     });
     txnRefNo = result.txnRefNo as string;
 
