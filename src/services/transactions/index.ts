@@ -289,6 +289,9 @@ const createTxn = async (obj: any) => {
       console.log(err)
       throw new CustomError("Transaction not Created", 400)
     }
+  },{
+    maxWait: 300000,
+    timeout: 300000
   });
 };
 
