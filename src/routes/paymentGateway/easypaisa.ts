@@ -8,6 +8,7 @@ import {
   validateUpdateMerchant,
   validateInquiry,
 } from "../../validators/paymentGateway/easypaisa.js";
+import decryptionEasypaisa from "utils/decryptionEasypaisa.js";
 import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 
 export default function (router: Router) {
@@ -69,6 +70,12 @@ export default function (router: Router) {
     "/initiate-epc/:merchantId",
     validateEasypaisaTxn,
     easyPaisaController.initiateEasyPaisa
+  );
+  router.post(
+    "/initiate-epc-new/:merchantId",
+    decryptionEasypaisa.decryptionNewFlowEasypaisa,
+    validateEasypaisaTxn,
+    easyPaisaController.initiateEasyPaisaNewFlow
   );
 
   router.post(

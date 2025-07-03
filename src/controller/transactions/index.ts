@@ -1,7 +1,7 @@
 // src/controllers/paymentController.ts
 import { Request, Response, NextFunction } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { jazzCashService } from "services/index.js";
+import { jazzCashService } from "../../services/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import {
   getAllProfitsBalancesByMerchant,

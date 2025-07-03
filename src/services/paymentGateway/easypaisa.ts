@@ -1986,19 +1986,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
         throw new CustomError("Unable to get disbursement history", 500);
       });
 
-    // loop through disbursements and add transaction details
-    // for (let i = 0; i < disbursements.length; i++) {
-    //   if (!disbursements[i].transaction_id) {
-    //     disbursements[i].transaction = null;
-    //   } else {
-    //     const transaction = await prisma.transaction.findFirst({
-    //       where: {
-    //         transaction_id: disbursements[i].transaction_id,
-    //       },
-    //     });
-    //     disbursements[i].transaction = transaction;
-    //   }
-    // }
+ 
     let hasMore = false;
     console.log(disbursements.length, take)
     if (take > 0) {
@@ -3450,25 +3438,31 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
 
 export default {
   initiateEasyPaisa,
+  initiateEasyPaisaClone,
+  getTeleDisbursementLast15MinsFromLast10Mins,
   createMerchant,
   getMerchant,
   updateMerchant,
+  createRSAEncryptedPayload,
+  initiateEasyPaisaAsyncClone,
   deleteMerchant,
   easypaisainquiry,
+  getMerchantChannel,
   createDisbursement,
+  updateDisbursement,
+  createDisbursementClone,
+  adjustMerchantToDisburseBalance,
+  disburseThroughBankClone,
+
   getDisbursement,
   disburseThroughBank,
+  getTransaction,
   // getTransaction,
   initiateEasyPaisaAsync,
   accountBalance,
   transactionInquiry,
+  getMerchantInquiryMethod,
+  saveToCsv,
   exportDisbursement,
-  updateDisbursement,
   updateDisburseThroughBank,
-  createDisbursementClone,
-  disburseThroughBankClone,
-  initiateEasyPaisaClone,
-  initiateEasyPaisaAsyncClone,
-  adjustMerchantToDisburseBalance,
-  getTeleDisbursementLast15MinsFromLast10Mins
 };

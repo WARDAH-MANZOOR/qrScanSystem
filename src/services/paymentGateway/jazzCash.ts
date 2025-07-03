@@ -342,6 +342,7 @@ const initiateJazzCashPayment = async (
       ppmpf_4: "",
       ppmpf_5: "",
     };
+    console.log(sendData)
     // Generate the secure hash
     sendData.pp_SecureHash = getSecureHash(
       sendData,
@@ -1364,7 +1365,7 @@ const statusInquiry = async (payload: any, merchantId: string) => {
     method: "post",
     maxBodyLength: Infinity,
     url: "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry",
-    //   "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire" 
+    //   "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry" 
     headers: {
       "Content-Type": "application/json",
     },
@@ -1497,7 +1498,7 @@ const simpleStatusInquiry = async (payload: any, merchantId: string) => {
     method: "post",
     maxBodyLength: Infinity,
     url: "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry",
-    //   "https://payments.jazzcash.com.pk/ApplicationAPI/API/PaymentInquiry/Inquire" 
+    //   "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry" 
     headers: {
       "Content-Type": "application/json",
     },
@@ -1871,3 +1872,4 @@ export default {
   getJazzCashInquiryChannel,
   databaseStatusInquiry
 };
+export { jazzCashCardPayment,prepareJazzCashPayload,calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber,fetchMerchantAndJazzCash,findTransaction, processCardPayment, processWalletPayment, validatePaymentData}
