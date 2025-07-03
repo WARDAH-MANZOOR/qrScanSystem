@@ -6,9 +6,10 @@ function generateOTP() {
 }
 const sendOtp = async (req, res, next) => {
     try {
-        const { accountNo, payId } = req.body;
+        const { accountNo, payId , provider } = req.body;
         const otp = generateOTP(); // Generate the OTP
-        const msg = `OTP: ${otp}`;
+        const msg = 
+        `Moaziz sarif apka ${provider} se transaction ka varification code ye hai: ${otp}. Khabardar! Fraud ka nishana na banein! Apna OTP ya PIN hargiz kisi ko na bataen.`;
         const result = await smsApi.sendSms({ to: accountNo, mask: "80223", msg, lang: "English", type: "Xml" });
         await prisma.paymentRequest.update({
             where: {
