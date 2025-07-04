@@ -48,7 +48,7 @@ const getApiToken = async (merchantId: string, params: any) => {
 
     console.log("Request: ",requestOptions)
 
-    let result = await fetch("https://apipxy.apps.net.pk:8443/api/token", requestOptions as RequestInit)
+    let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/token", requestOptions as RequestInit)
         .then((response) => response.text())
         .then((result) => result)
         .catch((error) => error);
