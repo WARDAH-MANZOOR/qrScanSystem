@@ -136,7 +136,7 @@ const validateCustomerInformationForCnic = async (merchantId, params) => {
                 cnic: params?.cnic
             },
         });
-        let result = await fetch("https://apipxy.apps.net.pk:8443/api/customer/validate", requestOptions)
+        let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/customer/validate", requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -381,7 +381,7 @@ const payAsync = async (merchantId, params) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+                let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/transaction", requestOptions)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -526,7 +526,7 @@ const payAsyncClone = async (merchantId, params) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+                let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/transaction", requestOptions)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -652,7 +652,7 @@ const payCnic = async (merchantId, params) => {
         };
         // Save transaction immediately with "pending" status
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }));
-        let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+        let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/transaction", requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -876,7 +876,7 @@ const payfastStatusInquiry = async (merchantId, transactionId, token) => {
             headers: myHeaders,
             redirect: "follow"
         };
-        const result = await fetch(`https://apipxy.apps.net.pk:8443/api/transaction/${txn?.providerDetails?.transactionId}`, requestOptions)
+        const result = await fetch(`https://apipxy-cloud.apps.net.pk:8443/api/transaction/${txn?.providerDetails?.transactionId}`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
