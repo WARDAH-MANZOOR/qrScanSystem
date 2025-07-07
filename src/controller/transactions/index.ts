@@ -780,11 +780,16 @@ const exportTransactions = async (req: Request, res: Response) => {
 
     // Finalize stream
     await new Promise(resolve => csvStream.end(resolve));
+    const csv2 = csvStream.toString()
 
     fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalSettledAmount.toFixed(2)}`);
 
     console.log(`📁 File saved permanently at: ${filePath}`);
-    res.json({ message: "Export completed", filePath, downloadUrl: `/exports/${fileName}` });
+    const csvData = fs.readFileSync(filePath, "utf-8");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.send(csvData);
+    // res.json({ message: "Export completed", filePath, downloadUrl: `/exports/${fileName}` });
   } catch (err) {
     console.error("❌ CSV Export Error:", err);
     res.status(500).json({ message: "Failed to export transactions" });

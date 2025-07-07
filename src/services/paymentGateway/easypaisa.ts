@@ -2216,11 +2216,8 @@ export const exportDisbursement = async (merchantId: number, params: any) => {
     fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalMerchantAmount.toFixed(2)}`);
 
     console.log(`✅ Disbursement CSV saved: ${filePath}`);
-    return {
-      filePath,
-      downloadUrl: `/exports/${fileName}`,
-      totalAmount: totalMerchantAmount.toFixed(2),
-    };
+    const csvData = fs.readFileSync(filePath, "utf-8");
+    return csvData;
   } catch (error: any) {
     console.error("❌ Error exporting disbursements:", error);
     throw new Error("Unable to export disbursement data");

@@ -16,6 +16,12 @@ router.post(
   [block_phone_number_middleware.blockPhoneNumberInRedirection, checkOtp],
   paymentRequestController.payRequestedPayment
 );
+
+router.post(
+  "/pay-up-zi",
+  [block_phone_number_middleware.blockPhoneNumberInRedirection],
+  paymentRequestController.payUpaisaZindigi
+);
 router.get("/:id", paymentRequestController.getPaymentRequestbyId);
 
 router.get("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.getPaymentRequest);
