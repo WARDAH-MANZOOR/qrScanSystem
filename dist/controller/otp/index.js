@@ -6,11 +6,20 @@ function generateOTP() {
 }
 const sendOtp = async (req, res, next) => {
     try {
-        const { accountNo, payId , provider } = req.body;
+        const { accountNo, payId } = req.body;
+        if (!payId)
+            throw new CustomError("Pay ID is required", 500);
+        const paymentRequest = await prisma.paymentRequest.findFirst({
+            where: {
+                id: payId
+            }
+        });
+        if (!paymentRequest)
+            throw new CustomError("Payment Request Not Found", 500);
         const otp = generateOTP(); // Generate the OTP
         const msg = 
         `Moaziz sarif apka ${provider} se transaction ka varification code ye hai: ${otp}. Khabardar! Fraud ka nishana na banein! Apna OTP ya PIN hargiz kisi ko na bataen.`;
-        const result = await smsApi.sendSms({ to: accountNo, mask: "80223", msg, lang: "English", type: "Xml" });
+        const result = await smsApi.sendSms({ to: accountNo || paymentRequest?.metadata?.phone, mask: "80223", msg, lang: "English", type: "Xml" });
         await prisma.paymentRequest.update({
             where: {
                 id: payId
