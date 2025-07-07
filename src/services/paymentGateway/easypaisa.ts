@@ -31,6 +31,8 @@ import path, { dirname } from "path";
 import { createObjectCsvWriter } from "csv-writer";
 import { fileURLToPath } from "url";
 import { $Enums, Prisma } from "@prisma/client";
+import fs from "fs"
+import csv from "fast-csv"
 
 dotenv.config();
 
@@ -2130,132 +2132,98 @@ const getTeleDisbursementLast15MinsFromLast10Mins = async (query: any) => {
   }
 };
 
-const exportDisbursement = async (merchantId: number, params: any) => {
+const EXPORT_DIR = "./files/";
+if (!fs.existsSync(EXPORT_DIR)) fs.mkdirSync(EXPORT_DIR, { recursive: true });
+
+export const exportDisbursement = async (merchantId: number, params: any) => {
   try {
     const startDate = params?.start?.replace(" ", "+");
     const endDate = params?.end?.replace(" ", "+");
+    const filters: any = { deletedAt: null };
 
-    const customWhere = {
-      deletedAt: null,
-    } as any;
-
-    if (merchantId) {
-      customWhere["merchant_id"] = +merchantId;
-    }
-
-    if (params.account) {
-      customWhere["account"] = {
-        contains: params.account
-      };
-    }
-
-    if (params.transaction_id) {
-      customWhere["transaction_id"] = params.transaction_id
-    }
-
+    if (merchantId) filters["merchant_id"] = +merchantId;
+    if (params.account) filters["account"] = { contains: params.account };
+    if (params.transaction_id) filters["transaction_id"] = params.transaction_id;
+    if (params.merchantTransactionId) filters["merchant_custom_order_id"] = params.merchantTransactionId;
+    if (params.status) filters["status"] = params.status;
     if (startDate && endDate) {
-      const todayStart = parseISO(startDate as string);
-      const todayEnd = parseISO(endDate as string);
-
-      customWhere["disbursementDate"] = {
-        gte: todayStart,
-        lt: todayEnd,
+      filters["disbursementDate"] = {
+        gte: parseISO(startDate),
+        lt: parseISO(endDate),
       };
     }
 
-    if (params.merchantTransactionId) {
-      customWhere["merchant_custom_order_id"] = params.merchantTransactionId
-    }
+    const totalRecords = await prisma.disbursement.count({ where: filters });
+    let remainingRecords = totalRecords;
+    console.log(`📊 Total matching disbursements: ${totalRecords}`);
 
-    if (params.status) {
-      customWhere["status"] = params.status;
-    }
+    const pageSize = 10000;
+    let lastCursor: string | undefined = undefined;
+    let hasMore = true;
+    let processedCount = 0;
+    let totalMerchantAmount = 0;
 
-    const disbursements = await prisma.disbursement
-      .findMany({
-        where: {
-          ...customWhere,
-        },
-        orderBy: {
-          disbursementDate: "desc",
-        },
+    const fileName = `disbursements_${Date.now()}.csv`;
+    const filePath = path.join(EXPORT_DIR, fileName);
+    const fileWriteStream = fs.createWriteStream(filePath);
+    const csvStream = csv.format({ headers: true });
+    csvStream.pipe(fileWriteStream);
+
+    while (hasMore) {
+      const batch:Array<any> = await prisma.disbursement.findMany({
+        where: filters,
+        orderBy: { id: "asc" }, // use `id` or `transaction_id` for stable pagination
+        cursor: lastCursor ? { id: Number(lastCursor) } : undefined,
+        skip: lastCursor ? 1 : 0,
+        take: pageSize,
         include: {
-          merchant: {
-            select: {
-              uid: true,
-              full_name: true,
-            },
-          },
+          merchant: { select: { full_name: true } }
         },
-      })
-      .catch((err) => {
-        throw new CustomError("Unable to get disbursement history", 500);
       });
 
-    const totalAmount = disbursements.reduce((sum, transaction) => sum + Number(transaction.merchantAmount), 0);
+      console.log(`🔄 Fetched batch: ${batch.length}`);
+      remainingRecords -= batch.length;
 
-    // res.setHeader('Content-Type', 'text/csv');
-    // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+      for (const txn of batch) {
+        totalMerchantAmount += Number(txn.merchantAmount);
+        processedCount++;
 
-    const fields = [
-      'merchant',
-      'account',
-      'transaction_id',
-      'merchant_order_id',
-      'disbursement_date',
-      'transaction_amount',
-      'commission',
-      'gst',
-      'withholding_tax',
-      'merchant_amount',
-      'status',
-      'provider',
-      'callback_sent'
-    ];
+        csvStream.write({
+          merchant: txn.merchant?.full_name || "",
+          account: txn.account,
+          transaction_id: txn.transaction_id,
+          merchant_order_id: txn.merchant_custom_order_id,
+          disbursement_date: format(toZonedTime(txn.disbursementDate, "Asia/Karachi"), "yyyy-MM-dd HH:mm:ss"),
+          transaction_amount: txn.transactionAmount,
+          commission: txn.commission,
+          gst: txn.gst,
+          withholding_tax: txn.withholdingTax,
+          merchant_amount: txn.merchantAmount,
+          status: txn.status,
+          provider: txn.provider,
+          callback_sent: txn.callback_sent,
+        });
 
-    const timeZone = 'Asia/Karachi'
-    const data = disbursements.map(transaction => ({
-      merchant: transaction.merchant.full_name,
-      account: transaction.account,
-      transaction_id: transaction.transaction_id,
-      merchant_order_id: transaction.merchant_custom_order_id,
-      disbursement_date: format(
-        toZonedTime(transaction.disbursementDate, timeZone),
-        'yyyy-MM-dd HH:mm:ss', { timeZone }
-      ),
-      transaction_amount: transaction.transactionAmount,
-      commission: transaction.commission,
-      gst: transaction.gst,
-      withholding_tax: transaction.withholdingTax,
-      merchant_amount: transaction.merchantAmount,
-      status: transaction.status,
-      provider: transaction.provider,
-      callback_sent: transaction.callback_sent
-    }));
+        lastCursor = txn.id.toString();
+      }
 
-    const json2csvParser = new Parser({ fields });
-    const csv = json2csvParser.parse(data);
-    const csvNoQuotes = csv.replace(/"/g, '');
+      console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords} | Total Amount: ${totalMerchantAmount.toFixed(2)}`);
+      hasMore = batch.length === pageSize;
+    }
 
-    return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
-    // loop through disbursements and add transaction details
-    // for (let i = 0; i < disbursements.length; i++) {
-    //   if (!disbursements[i].transaction_id) {
-    //     disbursements[i].transaction = null;
-    //   } else {
-    //     const transaction = await prisma.transaction.findFirst({
-    //       where: {
-    //         transaction_id: disbursements[i].transaction_id,
-    //       },
-    //     });
-    //     disbursements[i].transaction = transaction;
-    //   }
-    // }
+    // End stream and append footer
+    await new Promise(resolve => csvStream.end(resolve));
+    fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalMerchantAmount.toFixed(2)}`);
+
+    console.log(`✅ Disbursement CSV saved: ${filePath}`);
+    return {
+      filePath,
+      downloadUrl: `/exports/${fileName}`,
+      totalAmount: totalMerchantAmount.toFixed(2),
+    };
   } catch (error: any) {
-    throw new CustomError(
-      error?.error || "Unable to get disbursement",
-      error?.statusCode || 500
-    );
+    console.error("❌ Error exporting disbursements:", error);
+    throw new Error("Unable to export disbursement data");
   }
 };
 

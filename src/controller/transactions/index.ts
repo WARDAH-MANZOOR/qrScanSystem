@@ -16,7 +16,11 @@ import analytics from "./analytics.js";
 import { Parser } from "json2csv";
 import { JsonObject } from "@prisma/client/runtime/library";
 import { format, toZonedTime } from "date-fns-tz";
-
+import { Prisma } from "@prisma/client";
+import * as csv from "fast-csv"
+import { PassThrough, Writable } from "stream";
+import fs from "fs"
+import path from "path"
 const createTransaction = async (
   req: Request,
   res: Response,
@@ -658,129 +662,136 @@ const exportTransactions = async (req: Request, res: Response) => {
     const merchantId = (req.user as JwtPayload)?.merchant_id || req.query?.merchantId;
     const { transactionId, merchantName, merchantTransactionId } = req.query;
 
-    let startDate = req.query?.start as string;
-    let endDate = req.query?.end as string;
+    const startDate = req.query?.start as string;
+    const endDate = req.query?.end as string;
     const status = req.query?.status as string;
     const search = req.query?.search || "" as string;
     const msisdn = req.query?.msisdn || "" as string;
     const provider = req.query?.provider || "" as string;
-    const customWhere = { AND: [] } as any;
+
+    const andConditions = [];
 
     if (startDate && endDate) {
       const todayStart = parse(startDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
       const todayEnd = parse(endDate.replace(" ", "+"), "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
 
-      customWhere.AND.push({
+      andConditions.push({
         date_time: {
           gte: todayStart,
           lt: todayEnd,
-        }
+        },
       });
     }
 
-    if (status) {
-      customWhere.AND.push({ status });
-    }
+    if (status) andConditions.push({ status });
+    if (search) andConditions.push({ transaction_id: { contains: search } });
+    if (msisdn) andConditions.push({ providerDetails: { path: ['msisdn'], equals: msisdn } });
+    if (provider) andConditions.push({ providerDetails: { path: ['name'], equals: provider } });
+    if (merchantTransactionId) andConditions.push({ merchant_transaction_id: merchantTransactionId });
 
-    if (search) {
-      customWhere.AND.push({
-        transaction_id: {
-          contains: search
-        }
+    const baseWhere: Prisma.TransactionWhereInput = {
+      ...(transactionId && { transaction_id: transactionId }),
+      ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+      ...(merchantName && {
+        merchant: {
+          username: merchantName as string,
+        },
+      }),
+      ...(andConditions.length > 0 && { AND: andConditions }),
+    };
+
+    const timeZone = "Asia/Karachi";
+    const pageSize = 10000;
+    let lastCursor: string | undefined = undefined;
+    let hasMore = true;
+    let totalSettledAmount = 0;
+    let processedCount = 0;
+
+    // Get total record count
+    const totalRecords = await prisma.transaction.count({ where: baseWhere });
+    let remainingRecords = totalRecords;
+    console.log(`📊 Total matching records: ${totalRecords}`);
+
+    // Setup CSV stream into memory
+    const EXPORT_DIR = "./files/"; // Or some other persistent folder
+    if (!fs.existsSync(EXPORT_DIR)) fs.mkdirSync(EXPORT_DIR, { recursive: true });
+
+    const fileName = `transactions_${Date.now()}.csv`;
+    const filePath = path.join(EXPORT_DIR, fileName);
+    const fileWriteStream = fs.createWriteStream(filePath);
+
+    const csvStream = csv.format({ headers: true });
+    csvStream.pipe(fileWriteStream);
+
+    while (hasMore) {
+      const batch: Array<any> = await prisma.transaction.findMany({
+        where: baseWhere,
+        orderBy: { transaction_id: "asc" }, // ✅ matches cursor
+        cursor: lastCursor ? { transaction_id: lastCursor } : undefined,
+        skip: lastCursor ? 1 : 0,
+        take: pageSize,
+        select: {
+          transaction_id: true,
+          merchant_transaction_id: true,
+          original_amount: true,
+          settled_amount: true,
+          response_message: true,
+          status: true,
+          type: true,
+          date_time: true,
+          callback_sent: true,
+          providerDetails: true,
+        },
       });
+
+      console.log(`🔄 Fetched batch: ${batch.length} records`);
+      remainingRecords -= batch.length;
+
+      for (const txn of batch) {
+        const commission = Number(txn.original_amount) - Number(txn.settled_amount);
+        totalSettledAmount += Number(txn.settled_amount);
+        processedCount++;
+
+        csvStream.write({
+          transaction_id: txn.transaction_id,
+          account: (txn.providerDetails as any)?.msisdn || "",
+          merchant_transaction_id: txn.merchant_transaction_id,
+          date_time: format(toZonedTime(txn.date_time, timeZone), "yyyy-MM-dd HH:mm:ss", { timeZone }),
+          original_amount: txn.original_amount,
+          commission: commission,
+          settled_amount: txn.settled_amount,
+          status: txn.status,
+          type: txn.type,
+          provider: (txn.providerDetails as any)?.name || "",
+          callback_sent: txn.callback_sent,
+          response_message: txn.response_message,
+        });
+
+        lastCursor = txn.transaction_id;
+      }
+
+      console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords} | Settled: ${totalSettledAmount.toFixed(2)}`);
+
+      hasMore = batch.length === pageSize;
     }
 
-    if (msisdn) {
-      customWhere.AND.push({
-        providerDetails: {
-          path: ['msisdn'],
-          equals: msisdn
-        }
-      });
-    }
+    console.log(`✅ Export complete: Total Processed = ${processedCount}`);
+    console.log(`💰 Final Total Settled Amount = ${totalSettledAmount.toFixed(2)}`);
 
-    if (provider) {
-      customWhere.AND.push({
-        providerDetails: {
-          path: ['name'],
-          equals: provider
-        }
-      });
-    }
+    // Finalize stream
+    await new Promise(resolve => csvStream.end(resolve));
 
-    if (merchantTransactionId) {
-      customWhere.AND.push({
-        merchant_transaction_id: merchantTransactionId
-      });
-    }
+    fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalSettledAmount.toFixed(2)}`);
 
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        ...(transactionId && { transaction_id: transactionId as string }),
-        ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
-        ...(merchantName && {
-          merchant: {
-            username: merchantName as string,
-          },
-        }),
-        ...customWhere,
-      },
-      orderBy: {
-        date_time: "desc",
-      },
-    });
-
-    const totalAmount = transactions.reduce((sum, transaction) => sum + Number(transaction.settled_amount), 0);
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-
-    const fields = [
-      'transaction_id',
-      'account',
-      'merchant_transaction_id',
-      'date_time',
-      'original_amount',
-      'commission',
-      'settled_amount',
-      'status',
-      'type',
-      'provider',
-      'callback_sent',
-      'response_message'
-    ];
-    const timeZone = "Asia/Karachi"
-    const data = transactions.map(transaction => ({
-      transaction_id: transaction.transaction_id,
-      account: (transaction.providerDetails as JsonObject)?.msisdn,
-      merchant_transaction_id: transaction.merchant_transaction_id,
-      date_time: format(
-        toZonedTime(transaction.date_time, timeZone),
-        'yyyy-MM-dd HH:mm:ss', { timeZone }
-      ),
-      original_amount: transaction.original_amount,
-      commission: Number(transaction.original_amount) - Number(transaction.settled_amount),
-      settled_amount: transaction.settled_amount,
-      response_message: transaction.response_message,
-      status: transaction.status,
-      type: transaction.type,
-      provider: (transaction.providerDetails as JsonObject)?.name,
-      callback_sent: transaction.callback_sent
-    }));
-
-    const json2csvParser = new Parser({ fields, quote: '' });
-    const csv = json2csvParser.parse(data);
-    const csvNoQuotes = csv.replace(/"/g, '');
-
-    res.header('Content-Type', 'text/csv');
-    res.attachment('transaction_report.csv');
-    res.send(`${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`);
+    console.log(`📁 File saved permanently at: ${filePath}`);
+    res.json({ message: "Export completed", filePath, downloadUrl: `/exports/${fileName}` });
   } catch (err) {
-    console.error(err);
-    const error = new CustomError("Internal Server Error", 500);
-    res.status(500).send(error);
+    console.error("❌ CSV Export Error:", err);
+    res.status(500).json({ message: "Failed to export transactions" });
   }
 };
+
+
 
 const getProAndBal = async (req: Request, res: Response) => {
   try {

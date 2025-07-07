@@ -33,6 +33,7 @@
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
     "faker": "^6.6.6",
+    "fast-csv": "^5.0.2",
     "http-errors": "~2.0.0",
     "jade": "~1.11.0",
     "jest-mock-req-res": "^1.0.2",
