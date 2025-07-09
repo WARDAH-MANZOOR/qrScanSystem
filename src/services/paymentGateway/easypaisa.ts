@@ -2132,7 +2132,9 @@ const getTeleDisbursementLast15MinsFromLast10Mins = async (query: any) => {
   }
 };
 
-const EXPORT_DIR = "./files/";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
 if (!fs.existsSync(EXPORT_DIR)) fs.mkdirSync(EXPORT_DIR, { recursive: true });
 
 export const exportDisbursement = async (merchantId: number, params: any) => {
@@ -2213,11 +2215,15 @@ export const exportDisbursement = async (merchantId: number, params: any) => {
 
     // End stream and append footer
     await new Promise(resolve => csvStream.end(resolve));
-    fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalMerchantAmount.toFixed(2)}`);
+    await fs.promises.appendFile(filePath, `\nTotal Settled Amount,,${totalMerchantAmount.toFixed(2)}`);
+    const csvData = await fs.promises.readFile(filePath, "utf-8");
 
-    console.log(`✅ Disbursement CSV saved: ${filePath}`);
-    const csvData = fs.readFileSync(filePath, "utf-8");
-    return csvData;
+    console.log(`📁 File saved permanently at: ${filePath}`);
+    return {
+      message: "CSV generated successfully",
+      fileSize: fs.statSync(filePath).size,
+      downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`, // or S3 URL
+    }
   } catch (error: any) {
     console.error("❌ Error exporting disbursements:", error);
     throw new Error("Unable to export disbursement data");

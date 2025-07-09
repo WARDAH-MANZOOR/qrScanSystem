@@ -2,6 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import { exportSettlement, getSettlement } from "../../services/settlement/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import { fileURLToPath } from "url";
+import path from "path";
+import fs from "fs"
+import * as csv from "fast-csv"
 
 const getSettlements = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -16,6 +20,11 @@ const getSettlements = async (req: Request, res: Response, next: NextFunction) =
         res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
     }
 }
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
+if (!fs.existsSync(EXPORT_DIR)) fs.mkdirSync(EXPORT_DIR, { recursive: true });
 
 const exportSettlements = async (req: Request, res: Response, next: NextFunction) => {
     try {
