@@ -786,7 +786,7 @@ const exportTransactions = async (req: Request, res: Response) => {
     res.status(200).json({
       message: "CSV generated successfully",
       fileSize: fs.statSync(filePath).size,
-      downloadUrl: `http://localhost:3001/files/${fileName}`, // or S3 URL
+      downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`, // or S3 URL
     })
     // res.json({ message: "Export completed", filePath, downloadUrl: `/exports/${fileName}` });
   } catch (err) {

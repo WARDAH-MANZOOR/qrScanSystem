@@ -34,8 +34,6 @@ const exportSettlements = async (req: Request, res: Response, next: NextFunction
             queryParameters,
             user
         );
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
         res.send(result);
     } catch (error: any) {
         res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
