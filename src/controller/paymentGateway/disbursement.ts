@@ -118,7 +118,12 @@ const getAllMerchantsWalletBalancesController = async (
     const start = startDate ? new Date(startDate as string) : null;
     const end = endDate ? new Date(endDate as string) : null;
 
-    const [merchants, allWalletBalances] = await Promise.all([
+    // Calculate today's date range for income calculation
+    const date = new Date();
+    const todayStart = date.setHours(0, 0, 0, 0);
+    const todayEnd = date.setHours(23, 59, 59, 999);
+
+    const [merchants, allWalletBalances, allTodayIncome] = await Promise.all([
       prisma.merchant.findMany({
         select: {
           merchant_id: true,
@@ -145,10 +150,25 @@ const getAllMerchantsWalletBalancesController = async (
         },
         _sum: { balance: true },
       }),
+      prisma.transaction.groupBy({
+        by: ["merchant_id"],
+        where: {
+          status: "completed",
+          date_time: {
+            gte: new Date(todayStart),
+            lte: new Date(todayEnd),
+          },
+        },
+        _sum: { original_amount: true },
+      }),
     ]);
 
     const walletMap = new Map(
       allWalletBalances.map((b) => [b.merchant_id, b._sum.balance?.toNumber() || 0])
+    );
+
+    const todayIncomeMap = new Map(
+      allTodayIncome.map((b) => [b.merchant_id, b._sum.original_amount?.toNumber() || 0])
     );
 
     const balances = merchants.map((merchant) => ({
@@ -157,7 +177,8 @@ const getAllMerchantsWalletBalancesController = async (
       userId: merchant.user_id,
       UserName: merchant.full_name,
       companyName: merchant.company_name,
-      walletBalance: walletMap.get(merchant.merchant_id) || 0, // always assign to `walletBalance`
+      walletBalance: walletMap.get(merchant.merchant_id) || 0,
+      todayIncome: todayIncomeMap.get(merchant.merchant_id) || 0,
     }));
 
     balances.sort((a, b) => b.walletBalance - a.walletBalance);
