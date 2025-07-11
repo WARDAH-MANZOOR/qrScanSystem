@@ -1,7 +1,11 @@
 import { parse, parseISO } from "date-fns";
 import { Parser } from "json2csv";
+import path from "path";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
+import fs from "fs"
+import * as csv from "fast-csv"
+import { fileURLToPath } from "url";
 
 const createDisbursementDispute = async (body: any, merchant_id: number) => {
     try {
@@ -129,86 +133,92 @@ const getDisbursementDisputes = async (params: any, merchantId: any) => {
         throw new CustomError("Internal Server Error", 500);
     }
 };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
+if (!fs.existsSync(EXPORT_DIR)) fs.mkdirSync(EXPORT_DIR, { recursive: true });
 
-const exportDisbursementDispute = async (merchantId: number, params: any) => {
-    try {
-        const startDate = params?.start?.replace(" ", "+");
-        const endDate = params?.end?.replace(" ", "+");
-        const status = params?.status as string; // NEW: Explicitly type status
-        const merchantOrderId = params?.merchantOrderId as string; // NEW: Extract merchantOrderId from params
+export const exportDisbursementDispute = async (merchantId: number, params: any) => {
+  try {
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+    const status = params?.status as string;
+    const merchantOrderId = params?.merchantOrderId as string;
 
-        const customWhere = {} as any;
-
-        if (merchantId) {
-            customWhere["merchantId"] = +merchantId;
-        }
-
-        if (startDate && endDate) {
-            const todayStart = parseISO(startDate as string);
-            const todayEnd = parseISO(endDate as string);
-
-            customWhere["disbursementDate"] = {
-                gte: todayStart,
-                lt: todayEnd,
-            };
-        }
-
-        if (status) {
-            customWhere["status"] = status;
-        }
-
-        if (merchantOrderId) { // NEW: Add merchantOrderId filter if provided
-            customWhere["orderId"] = merchantOrderId;
-        }
-
-        const disputes = await prisma.disbursementDispute
-            .findMany({
-                where: {
-                    ...customWhere,
-                },
-                orderBy: {
-                    disbursementDate: "desc",
-                },
-                include: {
-                    merchant: {
-                        select: {
-                            uid: true,
-                            full_name: true,
-                        },
-                    },
-                },
-            })
-            .catch((err) => {
-                console.log(err);
-                throw new CustomError("Unable to get disbursement history", 500);
-            });
-
-        const fields = [
-            'merchant',
-            'status',
-            'order_id',
-            'transaction_id',
-            'message'
-        ];
-
-        const data = disputes.map(dispute => ({
-            merchant: dispute.merchant.full_name,
-            status: dispute.status,
-            order_id: dispute.orderId,
-            transaction_id: dispute.transactionId,
-            message: dispute.message
-        }));
-
-        const json2csvParser = new Parser({ fields });
-        const csv = json2csvParser.parse(data);
-        const csvNoQuotes = csv.replace(/"/g, '');
-        return `${csvNoQuotes}`;
-    } catch (error: any) {
-        throw new CustomError(
-            error?.error || "Unable to get disbursement",
-            error?.statusCode || 500
-        );
+    const filters: any = {};
+    if (merchantId) filters["merchant_id"] = +merchantId;
+    if (startDate && endDate) {
+      filters["disbursementDate"] = {
+        gte: parseISO(startDate),
+        lt: parseISO(endDate),
+      };
     }
+    if (status) filters["status"] = status;
+    if (merchantOrderId) filters["orderId"] = merchantOrderId;
+
+    const totalRecords = await prisma.disbursementDispute.count({ where: filters });
+    let remainingRecords = totalRecords;
+    console.log(`📊 Total disbursement disputes: ${totalRecords}`);
+
+    const pageSize = 10000;
+    let lastCursor: number | undefined = undefined;
+    let hasMore = true;
+    let processedCount = 0;
+
+    const fileName = `disbursement_disputes_${Date.now()}.csv`;
+    const filePath = path.join(EXPORT_DIR, fileName);
+    const fileStream = fs.createWriteStream(filePath);
+    const csvStream = csv.format({ headers: true });
+    csvStream.pipe(fileStream);
+
+    while (hasMore) {
+      const batch: Array<any> = await prisma.disbursementDispute.findMany({
+        where: filters,
+        orderBy: { id: "asc" },
+        cursor: lastCursor ? { id: lastCursor } : undefined,
+        skip: lastCursor ? 1 : 0,
+        take: pageSize,
+        include: {
+          merchant: { select: { full_name: true } }
+        }
+      });
+
+      console.log(`🔄 Fetched batch: ${batch.length}`);
+      remainingRecords -= batch.length;
+
+      for (const record of batch) {
+        csvStream.write({
+          merchant: record.merchant?.full_name || "",
+          status: record.status,
+          order_id: record.orderId,
+          transaction_id: record.transactionId,
+          message: record.message,
+        });
+
+        lastCursor = record.id;
+        processedCount++;
+      }
+
+      console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords}`);
+      hasMore = batch.length === pageSize;
+    }
+
+    await new Promise(resolve => csvStream.end(resolve));
+    console.log(`✅ CSV saved at: ${filePath}`);
+
+    return {
+      filePath,
+      downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
+      totalRecords: processedCount
+    };
+
+  } catch (error: any) {
+    console.error("❌ Export failed:", error);
+    throw new CustomError(
+      error?.error || "Unable to get disbursement dispute data",
+      error?.statusCode || 500
+    );
+  }
 };
 
 export default {

@@ -778,17 +778,16 @@ const exportTransactions = async (req: Request, res: Response) => {
     console.log(`✅ Export complete: Total Processed = ${processedCount}`);
     console.log(`💰 Final Total Settled Amount = ${totalSettledAmount.toFixed(2)}`);
 
-    // Finalize stream
     await new Promise(resolve => csvStream.end(resolve));
-    const csv2 = csvStream.toString()
-
-    fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalSettledAmount.toFixed(2)}`);
+    await fs.promises.appendFile(filePath, `\nTotal Settled Amount,,${totalSettledAmount.toFixed(2)}`);
+    const csvData = await fs.promises.readFile(filePath, "utf-8");
 
     console.log(`📁 File saved permanently at: ${filePath}`);
-    const csvData = fs.readFileSync(filePath, "utf-8");
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    res.send(csvData);
+    res.status(200).json({
+      message: "CSV generated successfully",
+      fileSize: fs.statSync(filePath).size,
+      downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`, // or S3 URL
+    })
     // res.json({ message: "Export completed", filePath, downloadUrl: `/exports/${fileName}` });
   } catch (err) {
     console.error("❌ CSV Export Error:", err);
