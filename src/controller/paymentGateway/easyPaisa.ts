@@ -571,9 +571,7 @@ const exportDisbursement = async (req: Request, res: Response, next: NextFunctio
     const { query } = req;
     const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
     const merchant = await easyPaisaService.exportDisbursement(id, query);
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-    res.send(merchant);
+    res.status(200).json(merchant)
   } catch (error) {
     next(error);
   }
