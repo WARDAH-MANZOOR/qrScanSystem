@@ -38,7 +38,7 @@ import { hashPassword } from 'services/authentication/index.js';
 
 var app = express();
 cron.schedule("0 16 * * 1-5", task);
-// cron.schedule("*/5 * * * *", pendingDisburse);
+cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup
 app.set('views', "./views");
