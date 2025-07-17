@@ -4,27 +4,34 @@ import prisma from "prisma/client.js";
 import { easyPaisaService, jazzCashService } from "services/index.js";
 import { getToken, updateMwTransaction, updateTransaction, updateTransactionClone } from "services/paymentGateway/index.js";
 import CustomError from "./custom_error.js";
+import { toZonedTime } from "date-fns-tz";
 
 const fetchPendingRecords = async (size: number) => {
   console.log("Disbursement Cron running");
 
   try {
+    // Set PKT timezone and compute cutoff time
+    const timeZone = 'Asia/Karachi';
+    const nowInPKT = new Date();
+    const fifteenMinutesAgoInPKT = new Date(nowInPKT.getTime() - 15 * 60 * 1000);
+    const cutoffUtc = toZonedTime(fifteenMinutesAgoInPKT, timeZone);
+
+
     return await prisma.$transaction(async (tx) => {
+      // Prisma query to fetch records after the cutoff UTC time
       const transactions = await tx.disbursement.findMany({
         where: {
-          status: 'pending', // Filter for pending transactions
-          // merchant_id: 5,
-          // to_provider: to_provider
+          status: 'pending',
+          disbursementDate: {
+            gte: cutoffUtc, // only fetch records within last 15 minutes in PKT
+          },
         },
-        orderBy: [{
-          disbursementDate: 'asc'
-        }],
-        // select: {
-        //     system_order_id: true,
-        //     merchant_id: true,
-        // },
-        take: size
+        orderBy: [
+          { disbursementDate: 'asc' }
+        ],
+        take: size,
       });
+      console.log(transactions)
 
       // await tx.disbursement.deleteMany({
       //     where: {
@@ -109,7 +116,7 @@ async function processPendingRecordsCron() {
               console.log(`${txn.provider} -> ${txn.to_provider}`);
               const token = await getToken(merchant?.uid as string);
               // await updateTransaction(token?.access_token, txn, merchant?.uid as string);
-              await updateTransactionClone (token?.access_token, txn, merchant?.uid as string)
+              await updateTransactionClone(token?.access_token, txn, merchant?.uid as string)
             }
           }
           console.log(`Transaction ${txn.system_order_id} processed successfully`);
