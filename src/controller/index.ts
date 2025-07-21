@@ -26,6 +26,7 @@ import wooController from "./paymentGateway/wooMerchant.js"
 import password_hash from "./password_hash/index.js";
 import statusInquiry from "./paymentGateway/statusInquiry.js";
 import otpController from "./otp/index.js"
+import chargeback from "./chargeback/index.js";
 
 export {
   jazzCashController,
@@ -55,5 +56,6 @@ export {
   wooController,
   password_hash,
   statusInquiry,
-  otpController
+  otpController,
+  chargeback
 };
