@@ -22,6 +22,7 @@ import card from "./card/index.js"
 import tele from "./tele/index.js"
 import password_hash from "./password_hash/index.js"
 import otp from "./otp/index.js"
+import chargeback from "./chargeback/index.js"
 
 export default function (app: express.Application) {
   app.use("/payment", payment);
@@ -47,4 +48,5 @@ export default function (app: express.Application) {
   app.use("/tele",tele)
   app.use("/password_hash",password_hash)
   app.use("/otp", otp)
+  app.use("/chargeback", chargeback)
 }
