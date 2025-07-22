@@ -28,6 +28,7 @@ import teleService from "./tele/index.js"
 import wooCommerceService from "./paymentGateway/wooMerchant.js"
 import statusInquiry from './paymentGateway/statusInquiry.js';
 import chargeback from './chargeback/index.js';
+import topup from "./topup/index.js"
 
 export {
     jazzCashService,
@@ -57,5 +58,6 @@ export {
     teleService,
     wooCommerceService,
     statusInquiry,
-    chargeback
+    chargeback,
+    topup
 };
