@@ -27,6 +27,7 @@ import password_hash from "./password_hash/index.js";
 import statusInquiry from "./paymentGateway/statusInquiry.js";
 import otpController from "./otp/index.js"
 import chargeback from "./chargeback/index.js";
+import topup from "./topup/index.js"
 
 export {
   jazzCashController,
@@ -57,5 +58,6 @@ export {
   password_hash,
   statusInquiry,
   otpController,
-  chargeback
+  chargeback,
+  topup
 };
