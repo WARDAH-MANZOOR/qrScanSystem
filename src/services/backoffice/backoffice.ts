@@ -675,7 +675,7 @@ async function failDisbursementsWithAccountInvalid(transactionIds: string[]) {
             },
             data: {
                 status: "failed",
-                response_message: "Account Invalid! Please try again with a valid account"
+                response_message: "System Error"
             }
         })
 
