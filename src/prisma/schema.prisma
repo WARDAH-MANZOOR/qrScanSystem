@@ -536,3 +536,11 @@ model Topup {
   fromMerchant Merchant @relation("TopupFromMerchant", fields: [fromMerchantId], references: [merchant_id])
   toMerchant   Merchant @relation("TopupToMerchant", fields: [toMerchantId], references: [merchant_id])
 }
+
+model FailedAttempt {
+  id           Int      @id @default(autoincrement())
+  phoneNumber  String
+  failedAt     DateTime @default(now())
+
+  @@index([phoneNumber, failedAt])
+}
