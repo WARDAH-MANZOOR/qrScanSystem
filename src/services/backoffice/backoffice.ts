@@ -675,7 +675,7 @@ async function failDisbursementsWithAccountInvalid(transactionIds: string[]) {
             },
             data: {
                 status: "failed",
-                response_message: "Account Invalid! Please try again with a valid account"
+                response_message: "System Error"
             }
         })
 
@@ -765,16 +765,16 @@ async function settleAllMerchantTransactions(merchantId: number) {
 
         await prisma.settlementReport.create({
             data: {
-              merchant_id: merchantId,
-              settlementDate: today,
-              transactionCount: transactionCount,
-              transactionAmount: transactionAmount,
-              commission: totalCommission,
-              gst: totalGST,
-              withholdingTax: totalWithholdingTax,
-              merchantAmount: merchantAmount,
+                merchant_id: merchantId,
+                settlementDate: today,
+                transactionCount: transactionCount,
+                transactionAmount: transactionAmount,
+                commission: totalCommission,
+                gst: totalGST,
+                withholdingTax: totalWithholdingTax,
+                merchantAmount: merchantAmount,
             },
-          });
+        });
 
         return 'All merchant transactions settled successfully.';
     } catch (error) {
@@ -956,7 +956,7 @@ const createTransactionService = async (body: any, merchant_id: string) => {
                     merchantAmount,
                 },
             });
-            return {transaction, settlement}
+            return { transaction, settlement }
         })
 
     }
@@ -1282,10 +1282,21 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
         SELECT SUM(commission + gst + "withholdingTax") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
       `))[0]?.total || 0);
         const settled = new Decimal((await prisma.$queryRawUnsafe<
-            { settled: number }[]
+            { total: number }[]
         >(`
-            SELECT SUM("transactionAmount") as settled FROM "SettlementReport" where merchant_id = ${merchant_id};
-        `))[0]?.settled || 0);
+            SELECT 
+                COALESCE((
+                    SELECT SUM("transactionAmount") 
+                    FROM "SettlementReport" 
+                    WHERE merchant_id = ${merchant_id}
+                ), 0) 
+                + 
+                COALESCE((
+                    SELECT SUM("amount") 
+                    FROM "Topup" 
+                    WHERE "toMerchantId" = ${merchant_id}
+                ), 0) AS total;
+        `))[0]?.total || 0);
         const settledBalance = new Decimal((await prisma.$queryRawUnsafe<
             { settledBalance: number }[]
         >(`
@@ -1296,7 +1307,12 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
         >(`
         SELECT SUM("commission" + "gst" + "withholdingTax") as total FROM "Disbursement" where merchant_id = ${merchant_id} and status='completed';
       `))[0]?.total || 0);
-        const totalDisbursement = new Decimal(disbursementAmount || 0).plus(payoutCommission);
+        let totalDisbursement = new Decimal(disbursementAmount || 0).plus(payoutCommission);
+        totalDisbursement = totalDisbursement.plus(new Decimal((await prisma.$queryRawUnsafe<
+            { total: number }[]
+        >(`
+        SELECT SUM(amount) as total FROM "ChargeBack" where "merchantId" = ${merchant_id};
+      `))[0]?.total || 0));
         const disbursementSum = new Decimal(availableBalance || 0)
             .plus(disbursementBalance)
             .plus(totalDisbursement)
