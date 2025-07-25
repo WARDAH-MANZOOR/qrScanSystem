@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { jazzCashController } from "../../controller/index.js";
-import { isLoggedIn, isAdmin } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, blockPhoneMiddleware } from "../../utils/middleware.js";
 import {
   validateCreateJazzcashMerchant,
   validateDeleteJazzcashMerchant,
@@ -50,6 +50,7 @@ export default function (router: Router) {
     "/initiate-jz/:merchantId",
     validateJazzcashRequest,
     block_phone_number_middleware.blockPhoneNumber,
+    blockPhoneMiddleware,
     jazzCashController.initiateJazzCash
   );
   router.post(
@@ -69,12 +70,14 @@ export default function (router: Router) {
   router.post(
     "/initiate-jza/:merchantId",
     [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber],
+    blockPhoneMiddleware,
     jazzCashController.initiateJazzCashAsync
   );
 
   router.post(
     "/initiate-jza-mntx/:merchantId",
     [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber],
+    blockPhoneMiddleware,
     jazzCashController.initiateJazzCashAsyncClone
   );
   // Merchant Config
