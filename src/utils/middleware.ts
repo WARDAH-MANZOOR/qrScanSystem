@@ -160,6 +160,28 @@ const isAdmin: RequestHandler = async (req: Request, res: Response, next: NextFu
   );
 };
 
+const blockPhoneMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  const phone = req.body.phone;
+
+  if (!phone) return res.status(400).json({ message: 'Phone number required' });
+
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+  const attempts = await prisma.failedAttempt.count({
+    where: {
+      phoneNumber: phone,
+      failedAt: {
+        gte: oneHourAgo,
+      },
+    },
+  });
+
+  if (attempts >= 5) {
+    return res.status(429).json({ message: 'Too many failed attempts. Phone number is temporarily blocked for 1 hour.' });
+  }
+
+  next();
+}
 
 export {
   isLoggedIn,
@@ -168,5 +190,6 @@ export {
   restrictMultiple,
   authorize,
   isAdmin,
-  checkOtp
+  checkOtp,
+  blockPhoneMiddleware
 };
