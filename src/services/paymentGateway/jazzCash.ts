@@ -557,6 +557,9 @@ const initiateJazzCashPayment = async (
 
         };
       } else {
+        await prisma.failedAttempt.create({
+          data: { phoneNumber: phone },
+        });
         throw new CustomError(
           `The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`,
           500
@@ -1047,6 +1050,11 @@ const processWalletPayment = async (
       false
     );
   }
+  else {
+    await prisma.failedAttempt.create({
+      data: { phoneNumber: phone },
+    })
+  }
 };
 
 const processWalletPaymentClone = async (
@@ -1107,6 +1115,11 @@ const processWalletPaymentClone = async (
       merchant?.encrypted.toLowerCase() == "true" ? true : false,
       false
     );
+  }
+  else {
+    await prisma.failedAttempt.create({
+      data: { phoneNumber: phone },
+    })
   }
 };
 

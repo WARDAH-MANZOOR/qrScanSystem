@@ -1,0 +1,15 @@
+import prisma from "prisma/client.js";
+
+const cleanupFailedAttempts = async () => {
+    const twoHoursAgo = new Date(Date.now() - 1 * 60 * 60 * 1000);
+    await prisma.failedAttempt.deleteMany({
+      where: {
+        failedAt: {
+          lt: twoHoursAgo,
+        },
+      },
+    });
+    console.log('Old failed attempts cleaned');
+  };
+
+export default {cleanupFailedAttempts}
