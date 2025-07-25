@@ -1,7 +1,7 @@
 import prisma from "prisma/client.js";
 
 const cleanupFailedAttempts = async () => {
-    const twoHoursAgo = new Date(Date.now() - 1 * 60 * 60 * 1000);
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     await prisma.failedAttempt.deleteMany({
       where: {
         failedAt: {
