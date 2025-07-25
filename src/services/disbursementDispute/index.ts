@@ -1,4 +1,4 @@
-import { parse, parseISO } from "date-fns";
+import { parse, parseISO, isValid } from "date-fns";
 import { Parser } from "json2csv";
 import path from "path";
 import prisma from "prisma/client.js";
@@ -9,11 +9,22 @@ import { fileURLToPath } from "url";
 
 const createDisbursementDispute = async (body: any, merchant_id: number) => {
     try {
+        // Debug log for incoming date
+        console.log('disbursementDate:', body.disbursementDate);
+        let parsedDate = parse(body.disbursementDate, 'dd/MM/yyyy, HH:mm:ss', new Date());
+        if (!isValid(parsedDate)) {
+            // Try 12-hour format with am/pm
+            parsedDate = parse(body.disbursementDate, 'dd/MM/yyyy, h:mm:ss a', new Date());
+        }
+        console.log('parsedDate:', parsedDate);
+        if (!isValid(parsedDate)) {
+            throw new CustomError("Invalid disbursementDate format: " + body.disbursementDate, 400);
+        }
         return await prisma.$transaction(async (tx) => {
             const disbursementDispute = await tx.disbursementDispute.create({
                 data: {
                     account: body.account,
-                    disbursementDate: new Date(body.disbursementDate),
+                    disbursementDate: parsedDate,
                     amount: Number(body.amount),
                     merchant_id,
                     sender: body.sender,
