@@ -776,6 +776,16 @@ async function settleAllMerchantTransactions(merchantId: number) {
             },
         });
 
+        await prisma.scheduledTask.updateMany({
+            where: {
+                transactionId: {in: merchantTxns.map((txn => txn.transaction_id))}
+            },
+            data: {
+                status: "completed",
+                executedAt: new Date()
+            }
+        })
+        
         return 'All merchant transactions settled successfully.';
     } catch (error) {
         console.error(error);
