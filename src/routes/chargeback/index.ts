@@ -6,8 +6,10 @@ import chargebackValidator from "../../validators/chargeback/index.js"
 const router = express.Router();
 
 router.post("/",
-    [isLoggedIn, isAdmin, 
-        ...chargebackValidator.validateChargeBack], chargebackValidator.handleValidationErrors, chargeback.createChargeback);
+    // [isLoggedIn, isAdmin, 
+        ...chargebackValidator.validateChargeBack
+    // ], 
+        ,chargebackValidator.handleValidationErrors, chargeback.createChargeback);
 router.get("/",
     [isLoggedIn], authorize("Reports"), 
     chargeback.getChargebacks);

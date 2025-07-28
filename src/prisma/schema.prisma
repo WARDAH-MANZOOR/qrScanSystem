@@ -515,7 +515,7 @@ model ChargeBack {
   id               Int      @id @default(autoincrement())
   merchantId       Int
   amount           Decimal  @db.Decimal(10, 2)
-  orderId          String    // Enum can be used for stricter validation
+  orderId          String   @unique // Enum can be used for stricter validation
   reason           String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

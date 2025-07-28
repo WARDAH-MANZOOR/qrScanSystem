@@ -163,7 +163,10 @@ const isAdmin: RequestHandler = async (req: Request, res: Response, next: NextFu
 const blockPhoneMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const phone = req.body.phone;
 
-  if (!phone) return res.status(400).json({ message: 'Phone number required' });
+  if (!phone) {
+    res.status(400).json({ message: 'Phone number required' });
+    return;
+  }
 
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -177,7 +180,8 @@ const blockPhoneMiddleware = async (req: Request, res: Response, next: NextFunct
   });
 
   if (attempts >= 5) {
-    return res.status(429).json({ message: 'Too many failed attempts. Phone number is temporarily blocked for 1 hour.' });
+    res.status(429).json({ message: 'Too many failed attempts. Phone number is temporarily blocked for 1 hour.' });
+    return;
   }
 
   next();
