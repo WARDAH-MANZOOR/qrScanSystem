@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, authorize, blockPhoneMiddleware } from "../../utils/middleware.js";
 import { easyPaisaController } from "../../controller/index.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import {
@@ -57,12 +57,14 @@ export default function (router: Router) {
     "/initiate-ep/:merchantId",
     validateEasypaisaTxn,
     block_phone_number_middleware.blockPhoneNumber,
+    blockPhoneMiddleware,
     easyPaisaController.initiateEasyPaisa
   );
 
   router.post(
     "/initiate-epa/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber],
+    blockPhoneMiddleware,
     easyPaisaController.initiateEasyPaisaAsync
   );
 
@@ -81,6 +83,7 @@ export default function (router: Router) {
   router.post(
     "/initiate-epa-mntx/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn],
+    blockPhoneMiddleware,
     easyPaisaController.initiateEasyPaisaAsyncClone
   );
 

@@ -6,15 +6,41 @@ import { fileURLToPath } from "url";
 import CustomError from "utils/custom_error.js";
 import fs from "fs"
 import * as csv from "fast-csv"
+import { backofficeService } from "../index.js";
 
 const createChargeBack = async (body: any, merchant_id: number) => {
     try {
+        const transaction = await prisma.transaction.findUnique({
+            where: {
+                merchant_transaction_id: body.order_id
+            }
+        })
+        // Get chargeback amount
+        const chargebackAmount = Number(transaction?.original_amount);
+        console.log(chargebackAmount)
+        if (!chargebackAmount || chargebackAmount <= 0) {
+            throw new CustomError("Invalid chargeback amount", 400);
+        }
+
+        // Get balances
+        const financials = await backofficeService.calculateFinancials(transaction?.merchant_id as number);
+        const disbursementBalance = Number(financials.disbursementBalance || 0);
+        const availableBalance = Number(financials.availableBalance || 0);
+
+        let deductedFrom: 'disbursement' | 'available' | null = null;
+        // Try to deduct from disbursement balance first
+        if (disbursementBalance >= chargebackAmount) {
+            await backofficeService.adjustMerchantDisbursementBalance(transaction?.merchant_id as number, chargebackAmount, true, "de");
+            deductedFrom = 'disbursement';
+        } else if (availableBalance >= chargebackAmount) {
+            await backofficeService.adjustMerchantWalletBalance(transaction?.merchant_id as number, availableBalance - chargebackAmount, true);
+            deductedFrom = 'available';
+        } else {
+            throw new CustomError("Insufficient funds in both disbursement and available balances", 400);
+        }
+
         return await prisma.$transaction(async (tx) => {
-            const transaction = await tx.transaction.findUnique({
-                where: {
-                    merchant_transaction_id: body.order_id
-                }
-            })
+            
             const chargeback = await tx.chargeBack.create({
                 data: {
                     amount: transaction?.original_amount as Decimal,
