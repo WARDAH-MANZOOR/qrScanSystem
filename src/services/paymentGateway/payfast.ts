@@ -285,7 +285,7 @@ const pay = async (merchantId: string, params: any) => {
             transaction_id: id,
             amount: params.amount,
             status: "pending",
-            type: params.type,
+            type: params.type || "wallet",
             merchant_id: findMerchant.merchant_id,
             commission,
             settlementDuration: findMerchant.commissions[0].settlementDuration,
