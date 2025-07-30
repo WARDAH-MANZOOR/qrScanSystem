@@ -19,7 +19,8 @@ const createTopup = async (body: any, merchant_id: number) => {
                     fromMerchantId: body?.fromMerchantId,
                     toMerchantId: body?.toMerchantId,
                     createdAt: new Date(),
-                    updatedAt: new Date()
+                    updatedAt: new Date(),
+                    reason: body.reason
                 }
             });
             return topup;
