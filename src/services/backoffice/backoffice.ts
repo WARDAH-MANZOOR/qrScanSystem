@@ -776,15 +776,21 @@ async function settleAllMerchantTransactions(merchantId: number) {
             },
         });
 
-        await prisma.scheduledTask.updateMany({
-            where: {
-                transactionId: {in: merchantTxns.map((txn => txn.transaction_id))}
-            },
-            data: {
-                status: "completed",
-                executedAt: new Date()
-            }
-        })
+        // Batching logic for scheduledTask updates
+        const BATCH_SIZE = 10000; // Adjust as needed
+        const transactionIds = merchantTxns.map(txn => txn.transaction_id);
+        for (let i = 0; i < transactionIds.length; i += BATCH_SIZE) {
+            const batch = transactionIds.slice(i, i + BATCH_SIZE);
+            await prisma.scheduledTask.updateMany({
+                where: {
+                    transactionId: { in: batch }
+                },
+                data: {
+                    status: "completed",
+                    executedAt: new Date()
+                }
+            });
+        }
         
         return 'All merchant transactions settled successfully.';
     } catch (error) {
