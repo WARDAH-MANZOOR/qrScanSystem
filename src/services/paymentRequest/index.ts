@@ -292,6 +292,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       else {
         const token = await payfast.getApiToken(merchant.uid, {});
         if (!token?.token) {
+          console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: paymentRequest.merchant_transaction_id }))
           throw new CustomError("No Token Recieved", 500);
         }
         const validation = await payfast.validateCustomerInformation(merchant.uid, {
@@ -303,7 +304,10 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           email: paymentRequest.email
         })
         if (!validation?.transaction_id) {
-          throw new CustomError("Transaction Not Created", 500);
+          await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
+          console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: paymentRequest.merchant_transaction_id }))
+          throw new CustomError(validation.response_message, 500)
+          // return;
         }
         const payfastPayment = await payfast.pay(merchant.uid, {
           token: token?.token,
@@ -315,6 +319,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           email: paymentRequest.email
         })
         if (payfastPayment?.statusCode != "0000") {
+          await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
+          console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: paymentRequest.merchant_transaction_id, response: payfastPayment }))
           throw new CustomError(payfastPayment.message, 500)
         }
       }

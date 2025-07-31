@@ -6,12 +6,12 @@ import chargebackValidator from "../../validators/chargeback/index.js"
 const router = express.Router();
 
 router.post("/",
-    // [isLoggedIn, isAdmin], chargebackValidator.handleValidationErrors, 
+    [isLoggedIn, isAdmin], chargebackValidator.handleValidationErrors, 
     topup.createTopup);
 router.get("/",
-    // [isLoggedIn], authorize("Reports"), 
+    [isLoggedIn], authorize("Reports"), 
     topup.getTopups);
 router.get("/export",
-    // [isLoggedIn],authorize("Reports"),
+    [isLoggedIn],authorize("Reports"),
     topup.exportTopups);
 export default router;
