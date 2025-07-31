@@ -74,7 +74,12 @@ const getTopups = async (params: any, merchantId: any) => {
             ...(skip && { skip: +skip }),
             ...(take && { take: +take + 1 }),
             where: {
-                ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+                ...(merchantId ? {
+                    OR: [
+                        { fromMerchantId: parseInt(merchantId as string) },
+                        { toMerchantId: parseInt(merchantId as string) }
+                    ]
+                } : {}),
                 ...customWhere,
             },
             orderBy: {
@@ -126,7 +131,12 @@ export const exportTopup = async (merchantId: number, params: any) => {
         const merchantOrderId = params?.merchantOrderId as string;
 
         const filters: any = {};
-        if (merchantId) filters["merchant_id"] = +merchantId;
+        if (merchantId) filters["merchantId"] = {
+            OR: [
+                { fromMerchantId: parseInt(merchantId as unknown as string) },
+                { toMerchantId: parseInt(merchantId as unknown as string) }
+            ]
+        };
         if (startDate && endDate) {
             filters["disbursementDate"] = {
                 gte: parseISO(startDate),
