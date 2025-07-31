@@ -36,12 +36,16 @@ import { JsonObject } from '@prisma/client/runtime/library';
 import { calculateHmacSha256 } from 'services/paymentGateway/newJazzCash.js';
 import { hashPassword } from 'services/authentication/index.js';
 import cleanupCron from "./utils/failed_attempts_cleanup_cron.js"
+import instantSettlementCron from 'utils/settle_instant_merchants_cron.js';
 
 var app = express();
 cron.schedule("0 16 * * 1-5", task);
 cron.schedule("*/5 * * * *", pendingDisburse);
 cron.schedule("0 * * * *", cleanupCron.cleanupFailedAttempts)
 // cron.schedule("* * * * *", pendingDisburse);
+// cron.schedule('5 0,12 * * 1-6', instantSettlementCron);
+// cron.schedule('* * * * *', instantSettlementCron);
+
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');

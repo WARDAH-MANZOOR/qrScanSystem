@@ -46,7 +46,7 @@ const getApiToken = async (merchantId: string, params: any) => {
         redirect: "follow"
     };
 
-    console.log("Request: ",requestOptions)
+    console.log("Request: ", requestOptions)
 
     let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/token", requestOptions as RequestInit)
         .then((response) => response.json())
@@ -89,7 +89,12 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
         .catch((error) => error);
 
     console.log("Result: ", { ...result, otp });
-    return { ...result, otp };
+    return {
+        response_message: result.message || "An error occurred while initiating the transaction",
+        statusCode: 500,
+        txnNo: id2,
+        transaction_id: result.transaction_id
+    };
 }
 
 const validateCustomerInformationForCnic = async (merchantId: string, params: any) => {
@@ -280,7 +285,7 @@ const pay = async (merchantId: string, params: any) => {
             transaction_id: id,
             amount: params.amount,
             status: "pending",
-            type: params.type,
+            type: params.type || "wallet",
             merchant_id: findMerchant.merchant_id,
             commission,
             settlementDuration: findMerchant.commissions[0].settlementDuration,

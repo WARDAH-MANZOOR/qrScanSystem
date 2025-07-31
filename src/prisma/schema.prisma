@@ -532,7 +532,7 @@ model Topup {
   toMerchantId     Int
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
+  reason           String?
   // Relations
   fromMerchant Merchant @relation("TopupFromMerchant", fields: [fromMerchantId], references: [merchant_id])
   toMerchant   Merchant @relation("TopupToMerchant", fields: [toMerchantId], references: [merchant_id])
