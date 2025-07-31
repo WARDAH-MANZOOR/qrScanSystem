@@ -102,7 +102,7 @@ const getChargebacks = async (params: any, merchantId: any) => {
             ...(skip && { skip: +skip }),
             ...(take && { take: +take + 1 }),
             where: {
-                ...(merchantId && { merchant_id: parseInt(merchantId as string) }),
+                ...(merchantId && { merchantId: parseInt(merchantId as string) }),
                 ...customWhere,
             },
             orderBy: {
@@ -152,7 +152,7 @@ export const exportChargebacks = async (merchantId: number, params: any) => {
     const merchantOrderId = params?.merchantOrderId as string;
 
     const filters: any = {};
-    if (merchantId) filters["merchant_id"] = +merchantId;
+    if (merchantId) filters["merchantId"] = +merchantId;
     if (startDate && endDate) {
       filters["disbursementDate"] = {
         gte: parseISO(startDate),
