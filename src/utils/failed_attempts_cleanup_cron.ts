@@ -9,9 +9,8 @@ const cleanupFailedAttempts = async () => {
         lt: twoHoursAgo,
       },
     },
-  },
-  );
+  });
   console.log('Old failed attempts cleaned');
 };
 
-export default { cleanupFailedAttempts }
+export default {cleanupFailedAttempts}
