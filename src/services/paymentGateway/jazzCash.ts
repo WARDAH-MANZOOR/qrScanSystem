@@ -320,26 +320,27 @@ const initiateJazzCashPayment = async (
       new Date(Date.now() + 60 * 60 * 1000),
       "yyyyMMddHHmmss"
     );
-    const sendData = {
-
+    const sendData: any = {
+      pp_Version: "1.1",
+      pp_TxnType: "MWALLET",
       pp_Language: "EN",
       pp_MerchantID: jazzCashCredentials.pp_MerchantID,
+      pp_SubMerchantID: "",
       pp_Password: jazzCashCredentials.pp_Password,
       pp_TxnRefNo: refNo,
-      pp_Amount: String(paymentData.amount * 100),
+      pp_Amount: amount * 100,
+      pp_DiscountedAmount: "",
       pp_TxnCurrency: "PKR",
       pp_TxnDateTime: formattedDate,
-      pp_TxnExpiryDateTime: expiryDate,
-      pp_BillReference: "billRef123",
-      pp_Description: "Payment via JazzCash Wallet",
-      pp_CNIC: paymentData.cnic.slice(-6),
-      pp_MobileNumber: paymentData.phone,
-      pp_SecureHash: '',
-      ppmpf_1: '',
-      ppmpf_2: '',
-      ppmpf_3: '',
-      ppmpf_4: '',
-      ppmpf_5: '',
+      pp_BillReference: "billRef",
+      pp_Description: "buy",
+      pp_TxnExpiryDateTime: expiryDate, // +1 hour
+      pp_ReturnURL: jazzCashCredentials.pp_ReturnURL,
+      ppmpf_1: phone,
+      ppmpf_2: "",
+      ppmpf_3: "",
+      ppmpf_4: "",
+      ppmpf_5: "",
     };
     console.log(sendData)
     // Generate the secure hash
@@ -411,7 +412,7 @@ const initiateJazzCashPayment = async (
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
-        "https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic";
+        "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
       const headers = {
         "Content-Type": "application/x-www-form-urlencoded",
       };
@@ -958,38 +959,32 @@ const prepareJazzCashPayload = (
   txnDateTime: string,
   refNo: string
 ) => {
-  const date4 = new Date();
   // Get the current date
   const date3 = new Date(Date.now() + (60 * 60 * 1000))
 
   // Define the Pakistan timezone
   const timeZone = 'Asia/Karachi';
-  const zonedDate2 = toZonedTime(date4, timeZone)
+
   // Convert the date to the Pakistan timezone
   const zonedDate = toZonedTime(date3, timeZone);
 
   const expiryDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone })
-  const expiryDate2 = format(zonedDate2, 'yyyyMMddHHmmss', { timeZone })
-  console.log(credentials)
-  const sendData = {
+
+  const sendData: any = {
+    pp_Version: "1.1",
+    pp_TxnType: "MWALLET",
     pp_Language: "EN",
     pp_MerchantID: credentials.pp_MerchantID,
     pp_Password: credentials.pp_Password,
     pp_TxnRefNo: refNo,
-    pp_Amount: String(paymentData.amount * 100),
+    pp_Amount: paymentData.amount * 100,
     pp_TxnCurrency: "PKR",
-    pp_TxnDateTime: expiryDate2,
+    pp_TxnDateTime: txnDateTime,
     pp_TxnExpiryDateTime: expiryDate,
-    pp_BillReference: "billRef123",
-    pp_Description: "Payment via JazzCash Wallet",
-    pp_CNIC: paymentData.cnic.slice(-6),
-    pp_MobileNumber: paymentData.phone,
-    pp_SecureHash: '',
-    ppmpf_1: '',
-    ppmpf_2: '',
-    ppmpf_3: '',
-    ppmpf_4: '',
-    ppmpf_5: '',
+    pp_ReturnURL: credentials.pp_ReturnURL,
+    pp_BillReference: "billRef",
+    pp_Description: "buy",
+    ppmpf_1: transactionService.convertPhoneNumber(paymentData.phone),
   };
   sendData.pp_SecureHash = getSecureHash(sendData, integritySalt);
   return sendData;
@@ -1006,7 +1001,7 @@ const processWalletPayment = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    "https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic";
+    "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
@@ -1072,7 +1067,7 @@ const processWalletPaymentClone = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    "https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic";
+    "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
