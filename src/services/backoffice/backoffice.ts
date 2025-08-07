@@ -24,6 +24,8 @@ interface CalculatedFinancials {
     disbursementSum: Decimal;
     difference: Decimal;
     differenceInSettlements: Decimal;
+    chargebackSum: Decimal;
+    topupSum: Decimal;
 }
 
 interface MerchantDashboardData {
@@ -1305,36 +1307,43 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
                     SELECT SUM("transactionAmount") 
                     FROM "SettlementReport" 
                     WHERE merchant_id = ${merchant_id}
-                ), 0) 
-                + 
+                ), 0) AS total;
+        `))[0]?.total || 0);
+
+        const topupSum = new Decimal((await prisma.$queryRawUnsafe<{total: number}[]>(`
+                SELECT 
                 COALESCE((
                     SELECT SUM("amount") 
                     FROM "Topup" 
                     WHERE "toMerchantId" = ${merchant_id}
                 ), 0) AS total;
-        `))[0]?.total || 0);
+        `))[0]?.total || 0)
+
+        const totalSettled = settled.plus(topupSum)
         const settledBalance = new Decimal((await prisma.$queryRawUnsafe<
             { settledBalance: number }[]
         >(`
             SELECT SUM("merchantAmount") as "settledBalance" FROM "SettlementReport" where merchant_id = ${merchant_id};
         `))[0]?.settledBalance || 0);
+        const collectionSum = settledBalance.plus(topupSum)
         const payoutCommission = new Decimal((await prisma.$queryRawUnsafe<
             { total: number }[]
         >(`
         SELECT SUM("commission" + "gst" + "withholdingTax") as total FROM "Disbursement" where merchant_id = ${merchant_id} and status='completed';
       `))[0]?.total || 0);
         let totalDisbursement = new Decimal(disbursementAmount || 0).plus(payoutCommission);
-        totalDisbursement = totalDisbursement.plus(new Decimal((await prisma.$queryRawUnsafe<
+        let chargebackSum = new Decimal((await prisma.$queryRawUnsafe<
             { total: number }[]
         >(`
         SELECT SUM(amount) as total FROM "ChargeBack" where "merchantId" = ${merchant_id};
-      `))[0]?.total || 0));
+      `))[0]?.total || 0);
         const disbursementSum = new Decimal(availableBalance || 0)
             .plus(disbursementBalance)
             .plus(totalDisbursement)
             .plus(totalUsdtSettlement)
-            .plus(totalRefund);
-        const difference = disbursementSum.minus(settledBalance);
+            .plus(totalRefund)
+            .plus(chargebackSum);
+        const difference = disbursementSum.minus(collectionSum);
 
         const differenceInSettlements = new Decimal(remainingSettlements || 0)
             .plus(settled)
@@ -1354,7 +1363,9 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             totalDisbursement,
             disbursementSum,
             difference,
-            differenceInSettlements
+            differenceInSettlements,
+            chargebackSum,
+            topupSum
         };
     }
     catch (err: any) {
