@@ -7,9 +7,9 @@ const router = express.Router();
 
 router.post("/",
     // [isLoggedIn, isAdmin, 
-        ...chargebackValidator.validateChargeBack
+        // ...chargebackValidator.validateChargeBack
     // ], 
-        ,chargebackValidator.handleValidationErrors, chargeback.createChargeback);
+    chargebackValidator.handleValidationErrors, chargeback.createChargeback);
 router.get("/",
     [isLoggedIn], authorize("Reports"), 
     chargeback.getChargebacks);
