@@ -12,8 +12,8 @@ const router = Router();
 // Define routes using arrow functions
 router.get(
   "/merchant",
-  [isLoggedIn, ...merchantDashboardValidation],
-  authorize("Dashboard"),
+  // [isLoggedIn, ...merchantDashboardValidation],
+  // authorize("Dashboard"),
   dashboardController.merchantDashboardDetails
 );
 router.get(
@@ -24,7 +24,7 @@ router.get(
 );
 router.get(
   "/admin",
-  [isLoggedIn, isAdmin, ...adminDashboardValidation],
+  // [isLoggedIn, isAdmin, ...adminDashboardValidation],
   dashboardController.adminDashboardDetails
 );
 

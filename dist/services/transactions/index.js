@@ -250,9 +250,6 @@ const createTxn = async (obj) => {
             console.log(err);
             throw new CustomError("Transaction not Created", 400);
         }
-    }, {
-        maxWait: 300000,
-        timeout: 300000
     });
 };
 const updateTxn = async (transaction_id, obj, duration) => {

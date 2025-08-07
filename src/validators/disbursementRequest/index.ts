@@ -47,7 +47,7 @@ const validateDisbursementRequest = [
             }
 
             return true; // Validation passed
-        })
+        }),
 ];
 
 const updateDisbursementRequestStatus = [
