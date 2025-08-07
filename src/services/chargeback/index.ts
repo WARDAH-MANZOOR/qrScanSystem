@@ -12,14 +12,7 @@ const createChargeBack = async (body: any, merchant_id: number) => {
     try {
         const transaction = await prisma.transaction.findUnique({
             where: {
-                OR: [
-                    {
-                        merchant_transaction_id: body.order_id
-                    },
-                    {
-                        transaction_id: body.order_id
-                    }
-                ]
+                merchant_transaction_id: body.order_id
             }
         })
         // Get chargeback amount
@@ -47,7 +40,7 @@ const createChargeBack = async (body: any, merchant_id: number) => {
         }
 
         return await prisma.$transaction(async (tx) => {
-
+            
             const chargeback = await tx.chargeBack.create({
                 data: {
                     amount: transaction?.original_amount as Decimal,
@@ -153,83 +146,83 @@ const EXPORT_DIR = path.join(__dirname, "../../../files");
 if (!fs.existsSync(EXPORT_DIR)) fs.mkdirSync(EXPORT_DIR, { recursive: true });
 
 export const exportChargebacks = async (merchantId: number, params: any) => {
-    try {
-        const startDate = params?.start?.replace(" ", "+");
-        const endDate = params?.end?.replace(" ", "+");
-        const merchantOrderId = params?.merchantOrderId as string;
+  try {
+    const startDate = params?.start?.replace(" ", "+");
+    const endDate = params?.end?.replace(" ", "+");
+    const merchantOrderId = params?.merchantOrderId as string;
 
-        const filters: any = {};
-        if (merchantId) filters["merchantId"] = +merchantId;
-        if (startDate && endDate) {
-            filters["disbursementDate"] = {
-                gte: parseISO(startDate),
-                lt: parseISO(endDate),
-            };
-        }
-        if (merchantOrderId) filters["orderId"] = merchantOrderId;
-
-        const totalRecords = await prisma.chargeBack.count({ where: filters });
-        let remainingRecords = totalRecords;
-        console.log(`📊 Total disbursement disputes: ${totalRecords}`);
-
-        const pageSize = 10000;
-        let lastCursor: number | undefined = undefined;
-        let hasMore = true;
-        let processedCount = 0;
-
-        const fileName = `chargebacks_${Date.now()}.csv`;
-        const filePath = path.join(EXPORT_DIR, fileName);
-        const fileStream = fs.createWriteStream(filePath);
-        const csvStream = csv.format({ headers: true });
-        csvStream.pipe(fileStream);
-
-        while (hasMore) {
-            const batch: Array<any> = await prisma.chargeBack.findMany({
-                where: filters,
-                orderBy: { id: "asc" },
-                cursor: lastCursor ? { id: lastCursor } : undefined,
-                skip: lastCursor ? 1 : 0,
-                take: pageSize,
-                include: {
-                    merchant: { select: { full_name: true } }
-                }
-            });
-
-            console.log(`🔄 Fetched batch: ${batch.length}`);
-            remainingRecords -= batch.length;
-
-            for (const record of batch) {
-                csvStream.write({
-                    merchant: record.merchant?.full_name || "",
-                    order_id: record.orderId,
-                    reason: record.reason,
-                    amount: record.amount
-                });
-
-                lastCursor = record.id;
-                processedCount++;
-            }
-
-            console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords}`);
-            hasMore = batch.length === pageSize;
-        }
-
-        await new Promise(resolve => csvStream.end(resolve));
-        console.log(`✅ CSV saved at: ${filePath}`);
-
-        return {
-            filePath,
-            downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
-            totalRecords: processedCount
-        };
-
-    } catch (error: any) {
-        console.error("❌ Export failed:", error);
-        throw new CustomError(
-            error?.error || "Unable to get disbursement dispute data",
-            error?.statusCode || 500
-        );
+    const filters: any = {};
+    if (merchantId) filters["merchantId"] = +merchantId;
+    if (startDate && endDate) {
+      filters["disbursementDate"] = {
+        gte: parseISO(startDate),
+        lt: parseISO(endDate),
+      };
     }
+    if (merchantOrderId) filters["orderId"] = merchantOrderId;
+
+    const totalRecords = await prisma.chargeBack.count({ where: filters });
+    let remainingRecords = totalRecords;
+    console.log(`📊 Total disbursement disputes: ${totalRecords}`);
+
+    const pageSize = 10000;
+    let lastCursor: number | undefined = undefined;
+    let hasMore = true;
+    let processedCount = 0;
+
+    const fileName = `chargebacks_${Date.now()}.csv`;
+    const filePath = path.join(EXPORT_DIR, fileName);
+    const fileStream = fs.createWriteStream(filePath);
+    const csvStream = csv.format({ headers: true });
+    csvStream.pipe(fileStream);
+
+    while (hasMore) {
+      const batch: Array<any> = await prisma.chargeBack.findMany({
+        where: filters,
+        orderBy: { id: "asc" },
+        cursor: lastCursor ? { id: lastCursor } : undefined,
+        skip: lastCursor ? 1 : 0,
+        take: pageSize,
+        include: {
+          merchant: { select: { full_name: true } }
+        }
+      });
+
+      console.log(`🔄 Fetched batch: ${batch.length}`);
+      remainingRecords -= batch.length;
+
+      for (const record of batch) {
+        csvStream.write({
+          merchant: record.merchant?.full_name || "",
+          order_id: record.orderId,
+          reason: record.reason,
+          amount: record.amount
+        });
+
+        lastCursor = record.id;
+        processedCount++;
+      }
+
+      console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords}`);
+      hasMore = batch.length === pageSize;
+    }
+
+    await new Promise(resolve => csvStream.end(resolve));
+    console.log(`✅ CSV saved at: ${filePath}`);
+
+    return {
+      filePath,
+      downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
+      totalRecords: processedCount
+    };
+
+  } catch (error: any) {
+    console.error("❌ Export failed:", error);
+    throw new CustomError(
+      error?.error || "Unable to get disbursement dispute data",
+      error?.statusCode || 500
+    );
+  }
 };
 
 export default {
