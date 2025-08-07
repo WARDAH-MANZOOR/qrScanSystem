@@ -535,9 +535,6 @@ const initiateJazzCashPaymentAsync = async (paymentData, merchant_uid) => {
             });
             console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }));
             return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
-        }, {
-            maxWait: 300000,
-            timeout: 300000
         });
         txnRefNo = result.txnRefNo;
         // Immediately Return Pending Status and Transaction ID
@@ -669,9 +666,6 @@ const initiateJazzCashPaymentAsyncClone = async (paymentData, merchant_uid) => {
             });
             console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }));
             return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
-        }, {
-            maxWait: 300000,
-            timeout: 300000
         });
         txnRefNo = result.txnRefNo;
         // Immediately Return Pending Status and Transaction ID

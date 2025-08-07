@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import cron from "node-cron";
 import routes from './routes/index.js';
 import cors from 'cors';
 // // dotenv.config();
@@ -18,8 +19,9 @@ import authRouter from "./routes/authentication/index.js";
 import createTransactionRouter from "./routes/transaction/create.js";
 import completeTransactionRouter from "./routes/transaction/complete.js";
 import { errorHandler } from "./utils/middleware.js";
+import task from "./utils/queue_task.js";
 var app = express();
-// cron.schedule("*/5 * * * *", task);
+cron.schedule("*/5 * * * *", task);
 // cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("* * * * *", pendingDisburse);
 // view engine setup

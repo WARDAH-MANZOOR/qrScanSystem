@@ -126,7 +126,7 @@ const createPaymentRequestWithOtp = async (data, user) => {
                     dueDate: data.dueDate,
                     provider: data.provider,
                     link: data.link,
-                    metadata: data.metadata || { phone: data.phone },
+                    metadata: data.metadata || {},
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     merchant_transaction_id: data.order_id,
@@ -188,7 +188,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                 order_id: paymentRequest.merchant_transaction_id,
                 amount: paymentRequest.amount,
                 type: "wallet",
-                phone: paymentRequestObj.accountNo || paymentRequest?.metadata?.phone,
+                phone: paymentRequestObj.accountNo,
                 redirect_url: paymentRequest.link,
             }, merchant.uid);
             if (jazzCashPayment.statusCode != "000") {
@@ -203,7 +203,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     order_id: paymentRequest.merchant_transaction_id,
                     amount: paymentRequest.amount,
                     type: "wallet",
-                    phone: paymentRequestObj.accountNo || paymentRequest?.metadata?.phone,
+                    phone: paymentRequestObj.accountNo,
                     email: "example@example.com",
                     // orderId: `SPAY-PR-${paymentRequest.id}`,
                 });
@@ -217,7 +217,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     order_id: paymentRequest.merchant_transaction_id,
                     channel: 1749,
                     amount: paymentRequest.amount,
-                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
+                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
                     email: paymentRequest.email,
                     // order_id: `SPAY-PR-${paymentRequest.id}`,
                     type: "wallet",
@@ -235,7 +235,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     token: token?.token,
                     bankCode: '13',
                     order_id: paymentRequest.merchant_transaction_id,
-                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
+                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
                     amount: paymentRequest.amount,
                     email: paymentRequest.email
                 });
@@ -247,7 +247,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     bankCode: '13',
                     transaction_id: validation?.transaction_id,
                     order_id: paymentRequest.merchant_transaction_id,
-                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
+                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
                     amount: paymentRequest.amount,
                     email: paymentRequest.email
                 });
