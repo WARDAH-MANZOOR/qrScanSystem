@@ -726,7 +726,7 @@ const merchantDashboardDetailsClone = async (params: any, user: any) => {
         count: statusCountsMap[status] || 0,
       }));
 
-      return dashboardSummary;
+      return {...dashboardSummary, full_name: merchant?.full_name};;
     } catch (error) {
       console.error(error);
       return error;
