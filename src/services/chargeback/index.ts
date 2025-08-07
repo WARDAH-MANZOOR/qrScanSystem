@@ -12,7 +12,14 @@ const createChargeBack = async (body: any, merchant_id: number) => {
     try {
         const transaction = await prisma.transaction.findUnique({
             where: {
+                OR: [
+                {
                 merchant_transaction_id: body.order_id
+                },
+                {
+                    transaction_id: body.order_id
+                }
+                ]
             }
         })
         // Get chargeback amount
