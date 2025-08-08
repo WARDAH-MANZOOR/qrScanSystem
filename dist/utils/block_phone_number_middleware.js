@@ -4,12 +4,12 @@ import ApiResponse from "./ApiResponse.js";
 import { decryptAESGCM, deriveKeys, generateHMACSignature } from "./dec_with_signing.js";
 const blockPhoneNumberNew = async (req, res, next) => {
     try {
-        const { userId, timestamp, encrypted_data, iv, tag, signature } = req.body;
-        if (!userId || !timestamp || !encrypted_data || !iv || !tag || !signature) {
-            res.status(400).json(ApiResponse.error("Missing encryption fields"));
+        const { userId, timestamp, encrypted_data, iv, tag, signature, master_secret_key } = req.body;
+        if (!userId || !timestamp || !encrypted_data || !iv || !tag || !signature || !master_secret_key) {
+            res.status(400).json(ApiResponse.error("Missing encryption fields or master_secret_key"));
             return;
         }
-        const masterKey = Buffer.from(process.env.MASTER_SECRET_KEY, 'utf8');
+        const masterKey = Buffer.from(master_secret_key, 'utf8');
         const { hmacKey, aesKey } = deriveKeys(masterKey);
         const expectedSignature = generateHMACSignature(userId + timestamp + encrypted_data, hmacKey);
         if (signature !== expectedSignature) {

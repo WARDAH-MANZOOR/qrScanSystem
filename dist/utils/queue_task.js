@@ -46,21 +46,36 @@ const task = async () => {
 // }
 async function fetchPendingScheduledTasks(prisma) {
     try {
-        const scheduledTasks = await prisma.scheduledTask.findMany({
-            where: {
-                transaction: {
-                    merchant_id: 451,
+        const CHUNK_SIZE = 10000; // Customize this chunk size based on memory
+        let hasMore = true;
+        let lastId = undefined;
+        const allTasks = [];
+        while (hasMore) {
+            const chunk = await prisma.scheduledTask.findMany({
+                where: {
+                    status: 'pending',
+                    scheduledAt: {
+                        lte: new Date(),
+                    },
+                    ...(lastId && {
+                        id: { gt: lastId }, // Cursor pagination using primary key
+                    }),
                 },
-                status: 'pending',
-                scheduledAt: {
-                    lte: new Date(),
+                orderBy: { id: 'asc' }, // Important for cursor pagination
+                include: {
+                    transaction: true,
                 },
-            },
-            include: {
-                transaction: true, // Include transaction details if needed
-            },
-        });
-        return scheduledTasks;
+                take: CHUNK_SIZE,
+            });
+            allTasks.push(...chunk);
+            if (chunk.length < CHUNK_SIZE) {
+                hasMore = false;
+            }
+            else {
+                lastId = chunk[chunk.length - 1].id;
+            }
+        }
+        return allTasks;
     }
     catch (error) {
         console.error("Error fetching scheduled tasks for merchant:", error);

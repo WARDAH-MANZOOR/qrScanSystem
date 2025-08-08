@@ -44,8 +44,6 @@ const exportRefund = async (req, res, next) => {
         const { query } = req;
         const id = req.user?.merchant_id || query.merchant_id;
         const merchant = await refundService.exportRefund(id, query);
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
         res.send(merchant);
     }
     catch (error) {

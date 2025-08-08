@@ -13,12 +13,12 @@ const initiateEasyPaisaNewFlow = async (
 ): Promise<void> => {
   try {
     let merchantId = req.params?.merchantId;
-    // const decryptedPayload = req.body.decryptedPayload;
+    const decryptedPayload = req.body.decryptedPayload;
 
-    // if (!decryptedPayload) {
-    //   res.status(400).json(ApiResponse.error("Decrypted payload not found"));
-    //   return;
-    // }
+    if (!decryptedPayload) {
+      res.status(400).json(ApiResponse.error("Decrypted payload not found"));
+      return;
+    }
     if (!merchantId) {
       res.status(400).json(ApiResponse.error("Merchant ID is required"));
       return;
@@ -35,10 +35,10 @@ const initiateEasyPaisaNewFlow = async (
     if (channel == "DIRECT") {
       result = await easyPaisaService.initiateEasyPaisa(
         merchantId,
-        req.body
+        decryptedPayload
       );
       if (result.statusCode != "0000") {
-        await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
+        await prisma.failedAttempt.create({ data: { phoneNumber: decryptedPayload.phone } });
         res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
         return;
       }
@@ -46,32 +46,32 @@ const initiateEasyPaisaNewFlow = async (
     else if (channel == "SWITCH") {
       result = await swichService.initiateSwich({
         channel: 1749,
-        amount: req.body.amount,
-        phone: transactionService.convertPhoneNumber(req.body.phone),
-        email: req.body.email,
-        order_id: req.body.order_id,
-        type: req.body.type
+        amount: decryptedPayload.amount,
+        phone: transactionService.convertPhoneNumber(decryptedPayload.phone),
+        email: decryptedPayload.email,
+        order_id: decryptedPayload.order_id,
+        type: decryptedPayload.type
       }, merchantId)
       if (result.statusCode != "0000") {
-        await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
+        await prisma.failedAttempt.create({ data: { phoneNumber: decryptedPayload.phone } });
         res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
         return;
       }
     }
     else {
-      console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: req.body.order_id, body: req.body }))
-      const token = await payfast.getApiToken(req.params.merchantId, req.body);
+      console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: decryptedPayload.order_id, body: decryptedPayload }))
+      const token = await payfast.getApiToken(req.params.merchantId, decryptedPayload);
       if (!token?.token) {
-        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: req.body.order_id }))
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: decryptedPayload.order_id }))
         throw new CustomError("No Token Recieved", 500);
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
         token: token?.token,
         bankCode: '13',
-        ...req.body
+        ...decryptedPayload
       })
       if (!validation?.transaction_id) {
-        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: req.body.order_id }))
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: decryptedPayload.order_id }))
         res.status(500).send(ApiResponse.error(result, 500))
         return;
       }
@@ -79,11 +79,11 @@ const initiateEasyPaisaNewFlow = async (
         token: token?.token,
         bankCode: '13',
         transaction_id: validation?.transaction_id,
-        ...req.body
+        ...decryptedPayload
       })
       if (result?.statusCode != "0000") {
-        await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
-        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: req.body.order_id, response: result }))
+        await prisma.failedAttempt.create({ data: { phoneNumber: decryptedPayload.phone } });
+        console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: decryptedPayload.order_id, response: result }))
         res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201))
         return;
       }

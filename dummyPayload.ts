@@ -35,13 +35,13 @@ interface FinalPayload {
 
 // // === CONFIGURABLE JAZZCASH===
 const userId: string = "test-user"; // Replace with actual
-const masterKey: Buffer = Buffer.from("fe0ec6d56ac297348f3083e208b238fc1643eaed507364626967f524e7e12300", "utf8"); // Replace with actual secret
+const masterKey: Buffer = Buffer.from("b03ec95611bb436577a6aa29c0d5e022d9def32a5bd6242596a88339669407f0", "utf8"); // Replace with actual secret
 
 const payload: JazzCashPayload = {
   amount: "1",
-  phone: "03269950905",
+  phone: "03142304891",
   type: "wallet",
-  order_id: "ORD123456687980938",
+  order_id: "adananjnalnaknklakm",
 };
 
 // === ENCRYPTION & SIGNING ===
@@ -69,13 +69,13 @@ console.log(JSON.stringify(finalPayload, null, 2));
 
 // === CONFIGURABLE EASYPAISA ===
 // const userId: string = "test-user"; // Replace with actual
-// const masterKey: Buffer = Buffer.from("fe0ec6d56ac297348f3083e208b238fc1643eaed507364626967f524e7e12300", "utf8"); // Replace with actual secret
+// const masterKey: Buffer = Buffer.from("b03ec95611bb436577a6aa29c0d5e022d9def32a5bd6242596a88339669407f0", "utf8"); // Replace with actual secret
 
 // const payload: EasyPaisaPayload = {
 //     amount: "1",
-//     phone: "03269950905",
+//     phone: "03162309607",
 //     type: "wallet",
-//     order_id: "ORD12338",
+//     order_id: "kdnalndlkanlndasla",
 //     email: "abc@gmail.com"
 // };
 
@@ -98,5 +98,5 @@ console.log(JSON.stringify(finalPayload, null, 2));
 //   signature
 // };
 
-console.log("✅ Final Payload to use in Postman:");
-console.log(JSON.stringify(finalPayload, null, 2));
+// console.log("✅ Final Payload to use in Postman:");
+// console.log(JSON.stringify(finalPayload, null, 2));
