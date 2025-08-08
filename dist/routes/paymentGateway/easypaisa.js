@@ -1,4 +1,4 @@
-import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
+import { isLoggedIn, isAdmin, authorize, blockPhoneMiddleware } from "../../utils/middleware.js";
 import { easyPaisaController } from "../../controller/index.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import { validateEasypaisaTxn, validateCreateMerchant, validateUpdateMerchant, validateInquiry, } from "../../validators/paymentGateway/easypaisa.js";
@@ -12,11 +12,11 @@ export default function (router) {
     router.get("/ep-bal/:merchantId", [isLoggedIn, isAdmin], easyPaisaController.accountBalance);
     router.post("/epd-inquiry/:merchantId", [apiKeyAuth], easyPaisaController.transactionInquiry);
     router.post("/sepd-inquiry/:merchantId", easyPaisaController.transactionInquiry);
-    router.post("/initiate-ep/:merchantId", validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber, easyPaisaController.initiateEasyPaisa);
-    router.post("/initiate-epa/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber], easyPaisaController.initiateEasyPaisaAsync);
+    router.post("/initiate-ep/:merchantId", validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, easyPaisaController.initiateEasyPaisa);
+    router.post("/initiate-epa/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber], blockPhoneMiddleware, easyPaisaController.initiateEasyPaisaAsync);
     router.post("/initiate-epc/:merchantId", validateEasypaisaTxn, easyPaisaController.initiateEasyPaisa);
     router.post("/initiate-epc-new/:merchantId", decryptionEasypaisa.decryptionNewFlowEasypaisa, validateEasypaisaTxn, easyPaisaController.initiateEasyPaisaNewFlow);
-    router.post("/initiate-epa-mntx/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn], easyPaisaController.initiateEasyPaisaAsyncClone);
+    router.post("/initiate-epa-mntx/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn], blockPhoneMiddleware, easyPaisaController.initiateEasyPaisaAsyncClone);
     router.post("/ep-merchant", [isLoggedIn, isAdmin, ...validateCreateMerchant], easyPaisaController.createEasyPaisaMerchant);
     router.get("/ep-merchant", [isLoggedIn, isAdmin], easyPaisaController.getEasyPaisaMerchant);
     router.put("/ep-merchant/:merchantId", [isLoggedIn, isAdmin, ...validateUpdateMerchant], easyPaisaController.updateEasyPaisaMerchant);

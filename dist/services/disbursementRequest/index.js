@@ -1,9 +1,12 @@
 import { parse, parseISO } from "date-fns";
-import { Parser } from "json2csv";
 import prisma from "../../prisma/client.js";
 import { backofficeService } from "../../services/index.js";
 import { getWalletBalance } from "../../services/paymentGateway/disbursement.js";
 import CustomError from "../../utils/custom_error.js";
+import path from "path";
+import fs from "fs";
+import * as csv from "fast-csv";
+import { fileURLToPath } from "url";
 const createDisbursementRequest = async (requested_amount, merchant_id) => {
     try {
         await prisma.$transaction(async (tx) => {
@@ -124,65 +127,77 @@ const getDisbursementRequests = async (params, merchantId) => {
         return error;
     }
 };
-const exportDisbursementRequest = async (merchantId, params) => {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
+if (!fs.existsSync(EXPORT_DIR))
+    fs.mkdirSync(EXPORT_DIR, { recursive: true });
+export const exportDisbursementRequest = async (merchantId, params) => {
     try {
         const startDate = params?.start?.replace(" ", "+");
         const endDate = params?.end?.replace(" ", "+");
-        const customWhere = {};
-        if (merchantId) {
-            customWhere["merchantId"] = +merchantId;
-        }
+        const filters = {};
+        if (merchantId)
+            filters["merchantId"] = +merchantId;
         if (startDate && endDate) {
-            const todayStart = parseISO(startDate);
-            const todayEnd = parseISO(endDate);
-            customWhere["createdAt"] = {
-                gte: todayStart,
-                lt: todayEnd,
+            filters["createdAt"] = {
+                gte: parseISO(startDate),
+                lt: parseISO(endDate),
             };
         }
         if (params.status) {
-            customWhere["status"] = params.status;
+            filters["status"] = params.status;
         }
-        const disbursements = await prisma.disbursementRequest
-            .findMany({
-            where: {
-                ...customWhere,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-            include: {
-                merchant: {
-                    select: {
-                        uid: true,
-                        full_name: true,
-                    },
+        const totalRecords = await prisma.disbursementRequest.count({ where: filters });
+        let remainingRecords = totalRecords;
+        let processedCount = 0;
+        console.log(`📊 Total disbursement requests: ${totalRecords}`);
+        const fileName = `disbursement_requests_${Date.now()}.csv`;
+        const filePath = path.join(EXPORT_DIR, fileName);
+        const fileStream = fs.createWriteStream(filePath);
+        const csvStream = csv.format({ headers: true });
+        csvStream.pipe(fileStream);
+        const pageSize = 10000;
+        let lastCursor = undefined;
+        let hasMore = true;
+        const timeZone = "Asia/Karachi";
+        while (hasMore) {
+            const batch = await prisma.disbursementRequest.findMany({
+                where: filters,
+                orderBy: { id: "asc" },
+                cursor: lastCursor ? { id: lastCursor } : undefined,
+                skip: lastCursor ? 1 : 0,
+                take: pageSize,
+                include: {
+                    merchant: { select: { full_name: true } }
                 },
-            },
-        })
-            .catch((err) => {
-            console.log(err);
-            throw new CustomError("Unable to get disbursement history", 500);
-        });
-        const fields = [
-            'merchant',
-            'status',
-            'requested_amount',
-            'date_time'
-        ];
-        const data = disbursements.map(transaction => ({
-            merchant: transaction.merchant.full_name,
-            status: transaction.status,
-            requested_amount: transaction.requestedAmount,
-            date_time: transaction.createdAt
-        }));
-        const json2csvParser = new Parser({ fields });
-        const csv = json2csvParser.parse(data);
-        const csvNoQuotes = csv.replace(/"/g, '');
-        return `${csvNoQuotes}`;
+            });
+            console.log(`🔄 Fetched batch: ${batch.length}`);
+            remainingRecords -= batch.length;
+            for (const txn of batch) {
+                csvStream.write({
+                    merchant: txn.merchant?.full_name || "",
+                    status: txn.status,
+                    requested_amount: txn.requestedAmount,
+                    date_time: txn.createdAt,
+                });
+                lastCursor = txn.id;
+                processedCount++;
+            }
+            console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords}`);
+            hasMore = batch.length === pageSize;
+        }
+        await new Promise(resolve => csvStream.end(resolve));
+        console.log(`✅ CSV saved at: ${filePath}`);
+        return {
+            filePath,
+            downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
+            totalRecords: processedCount
+        };
     }
     catch (error) {
-        throw new CustomError(error?.error || "Unable to get disbursement", error?.statusCode || 500);
+        console.error("❌ Export failed:", error);
+        throw new CustomError(error?.error || "Unable to export disbursement requests", error?.statusCode || 500);
     }
 };
 export default {

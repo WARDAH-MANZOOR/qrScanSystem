@@ -2,6 +2,7 @@ import { validationResult } from "express-validator";
 import { easyPaisaService, payfast, swichService, transactionService } from "../../services/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
+import prisma from "../../prisma/client.js";
 const initiateEasyPaisaNewFlow = async (req, res, next) => {
     try {
         let merchantId = req.params?.merchantId;
@@ -24,6 +25,7 @@ const initiateEasyPaisaNewFlow = async (req, res, next) => {
         if (channel == "DIRECT") {
             result = await easyPaisaService.initiateEasyPaisa(merchantId, req.body);
             if (result.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
             }
@@ -38,6 +40,7 @@ const initiateEasyPaisaNewFlow = async (req, res, next) => {
                 type: req.body.type
             }, merchantId);
             if (result.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
             }
@@ -66,6 +69,7 @@ const initiateEasyPaisaNewFlow = async (req, res, next) => {
                 ...req.body
             });
             if (result?.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: req.body.order_id, response: result }));
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
@@ -94,6 +98,7 @@ const initiateEasyPaisa = async (req, res, next) => {
         if (channel == "DIRECT") {
             result = await easyPaisaService.initiateEasyPaisa(merchantId, req.body);
             if (result.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
             }
@@ -108,6 +113,7 @@ const initiateEasyPaisa = async (req, res, next) => {
                 type: req.body.type
             }, merchantId);
             if (result.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
             }
@@ -125,8 +131,9 @@ const initiateEasyPaisa = async (req, res, next) => {
                 ...req.body
             });
             if (!validation?.transaction_id) {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: req.body.order_id }));
-                res.status(500).send(ApiResponse.error(result, 500));
+                res.status(500).send(ApiResponse.error(validation.response_message, 500));
                 return;
             }
             result = await payfast.pay(req.params.merchantId, {
@@ -136,6 +143,7 @@ const initiateEasyPaisa = async (req, res, next) => {
                 ...req.body
             });
             if (result?.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: req.body.order_id, response: result }));
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
@@ -164,6 +172,7 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
         if (channel == "DIRECT") {
             result = await easyPaisaService.initiateEasyPaisaAsync(merchantId, req.body);
             if (result.statusCode != "pending") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode).send(ApiResponse.error(result));
                 return;
             }
@@ -178,6 +187,7 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
                 type: req.body.type
             }, merchantId);
             if (result.statusCode != "pending") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode).send(ApiResponse.error(result));
                 return;
             }
@@ -195,6 +205,7 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
                 ...req.body
             });
             if (!validation?.transaction_id) {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 console.log(JSON.stringify({ event: "PAYFAST_ASYNC_VALIDATION_FAILED", order_id: req.body.order_id }));
                 res.status(500).send(ApiResponse.error(result, 500));
                 return;
@@ -207,6 +218,7 @@ const initiateEasyPaisaAsync = async (req, res, next) => {
             });
             console.log(JSON.stringify({ event: "PAYFAST_ASYNC_RESPONSE", order_id: req.body.order_id, response: result }));
             if (result?.statusCode != "pending") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode).send(ApiResponse.error(result, result.statusCode));
                 return;
             }
@@ -234,6 +246,7 @@ const initiateEasyPaisaClone = async (req, res, next) => {
         if (channel == "DIRECT") {
             result = await easyPaisaService.initiateEasyPaisaClone(merchantId, req.body);
             if (result.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode != 500 ? result.statusCode : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
                 return;
             }
@@ -249,6 +262,7 @@ const initiateEasyPaisaClone = async (req, res, next) => {
             }, merchantId);
             console.log("result: ", result);
             if (!result?.statusCode && result?.statusCode != "0000") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result?.statusCode != 500 ? result?.statusCode : 201).send(ApiResponse.error(result, result?.statusCode != 500 ? result?.statusCode : 201));
                 return;
             }
@@ -277,6 +291,7 @@ const initiateEasyPaisaAsyncClone = async (req, res, next) => {
         if (channel == "DIRECT") {
             result = await easyPaisaService.initiateEasyPaisaAsyncClone(merchantId, req.body);
             if (result.statusCode != "pending") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode).send(ApiResponse.error(result));
                 return;
             }
@@ -291,6 +306,7 @@ const initiateEasyPaisaAsyncClone = async (req, res, next) => {
                 type: req.body.type
             }, merchantId);
             if (result.statusCode != "pending") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode).send(ApiResponse.error(result));
                 return;
             }
@@ -320,6 +336,8 @@ const initiateEasyPaisaAsyncClone = async (req, res, next) => {
             });
             console.log(JSON.stringify({ event: "PAYFAST_ASYNC_RESPONSE", order_id: req.body.order_id, response: result }));
             if (result?.statusCode != "pending") {
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
+                await prisma.failedAttempt.create({ data: { phoneNumber: req.body.phone } });
                 res.status(result.statusCode).send(ApiResponse.error(result, result.statusCode));
                 return;
             }
@@ -482,9 +500,7 @@ const exportDisbursement = async (req, res, next) => {
         const { query } = req;
         const id = req.user?.merchant_id || query.merchant_id;
         const merchant = await easyPaisaService.exportDisbursement(id, query);
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-        res.send(merchant);
+        res.status(200).json(merchant);
     }
     catch (error) {
         next(error);

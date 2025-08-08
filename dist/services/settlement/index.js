@@ -1,7 +1,10 @@
 import { parse } from "date-fns";
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
-import { Parser } from "json2csv";
+import { fileURLToPath } from "url";
+import path from "path";
+import fs from "fs";
+import * as csv from "fast-csv";
 const getSettlement = async (params, user) => {
     const merchantId = user?.merchant_id || params.merchant_id;
     if (!merchantId && user?.role !== "Admin") {
@@ -72,77 +75,94 @@ const getSettlement = async (params, user) => {
         return error;
     }
 };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
+if (!fs.existsSync(EXPORT_DIR))
+    fs.mkdirSync(EXPORT_DIR, { recursive: true });
 const exportSettlement = async (params, user) => {
     const merchantId = user?.merchant_id || params.merchant_id;
     if (!merchantId && user?.role !== "Admin") {
         throw new CustomError("Merchant ID is required", 400);
     }
-    let filters = {};
-    if (merchantId) {
+    const filters = {};
+    if (merchantId)
         filters["merchant_id"] = +merchantId;
-    }
     try {
         const startDate = params?.start?.replace(" ", "+");
         const endDate = params?.end?.replace(" ", "+");
-        const customWhere = {};
         if (startDate && endDate) {
-            const todayStart = parse(startDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
-            const todayEnd = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
-            customWhere["settlementDate"] = {
-                gte: todayStart,
-                lt: todayEnd,
+            const start = parse(startDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+            const end = parse(endDate, "yyyy-MM-dd'T'HH:mm:ssXXX", new Date());
+            filters["settlementDate"] = {
+                gte: start,
+                lt: end,
             };
         }
-        const reports = await prisma.settlementReport.findMany({
-            where: {
-                ...filters,
-                ...customWhere,
-            },
-            include: {
-                merchant: {
-                    select: {
-                        uid: true,
-                        full_name: true,
+        const totalRecords = await prisma.settlementReport.count({ where: filters });
+        let remainingRecords = totalRecords;
+        let processedCount = 0;
+        let totalAmount = 0;
+        console.log(`📊 Total settlement reports: ${totalRecords}`);
+        const fileName = `settlement_report_${Date.now()}.csv`;
+        const filePath = path.join(EXPORT_DIR, fileName);
+        const fileStream = fs.createWriteStream(filePath);
+        const csvStream = csv.format({ headers: true });
+        csvStream.pipe(fileStream);
+        const timeZone = "Asia/Karachi";
+        const pageSize = 1000;
+        let lastCursor = undefined;
+        let hasMore = true;
+        while (hasMore) {
+            const batch = await prisma.settlementReport.findMany({
+                where: filters,
+                orderBy: { id: "asc" },
+                cursor: lastCursor ? { id: lastCursor } : undefined,
+                skip: lastCursor ? 1 : 0,
+                take: pageSize,
+                include: {
+                    merchant: {
+                        select: {
+                            uid: true,
+                            full_name: true,
+                        },
                     },
                 },
+            });
+            console.log(`🔄 Fetched batch: ${batch.length}`);
+            remainingRecords -= batch.length;
+            for (const txn of batch) {
+                totalAmount += Number(txn.merchantAmount || 0);
+                csvStream.write({
+                    merchant: txn.merchant?.full_name || "",
+                    merchant_id: txn.merchant?.uid || "",
+                    settlement_date: txn.settlementDate,
+                    transaction_count: txn.transactionCount,
+                    transaction_amount: txn.transactionAmount,
+                    commission: txn.commission,
+                    gst: txn.gst,
+                    withholding_tax: txn.withholdingTax,
+                    merchant_amount: txn.merchantAmount,
+                });
+                lastCursor = txn.id;
+                processedCount++;
             }
-        });
-        const totalAmount = reports.reduce((sum, transaction) => sum + Number(transaction.merchantAmount), 0);
-        // res.setHeader('Content-Type', 'text/csv');
-        // res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
-        const fields = [
-            'merchant',
-            'merchant_id',
-            'settlement_date',
-            'transaction_count',
-            'transaction_amount',
-            'commission',
-            'gst',
-            'withholding_tax',
-            'merchant_amount'
-        ];
-        const data = reports.map(transaction => ({
-            merchant: transaction.merchant.full_name,
-            merchant_id: transaction.merchant.uid,
-            settlement_date: transaction.settlementDate,
-            transaction_count: transaction.transactionCount,
-            transaction_amount: transaction.transactionAmount,
-            commission: transaction.commission,
-            gst: transaction.gst,
-            withholding_tax: transaction.withholdingTax,
-            merchant_amount: transaction.merchantAmount,
-        }));
-        const json2csvParser = new Parser({ fields });
-        const csv = json2csvParser.parse(data);
-        const csvNoQuotes = csv.replace(/"/g, '');
-        return `${csvNoQuotes}\nTotal Settled Amount,,${totalAmount}`;
-        // res.header('Content-Type', 'text/csv');
-        // res.attachment('transaction_report.csv');
-        // res.send(`${csv}\nTotal Settled Amount,,${totalAmount}`);
-        // return response;
+            console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords} | Settled: ${totalAmount.toFixed(2)}`);
+            hasMore = batch.length === pageSize;
+        }
+        await new Promise(resolve => csvStream.end(resolve));
+        fs.appendFileSync(filePath, `\nTotal Settled Amount,,${totalAmount.toFixed(2)}`);
+        console.log(`✅ Settlement CSV saved: ${filePath}`);
+        return {
+            filePath,
+            downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
+            totalRecords: processedCount,
+            totalAmount: totalAmount.toFixed(2),
+        };
     }
     catch (error) {
-        return error;
+        console.error("❌ Settlement export failed:", error);
+        throw new CustomError("Unable to export settlement report", 500);
     }
 };
 export { getSettlement, exportSettlement };
