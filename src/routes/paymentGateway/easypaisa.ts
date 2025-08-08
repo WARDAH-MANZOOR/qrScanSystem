@@ -75,8 +75,8 @@ export default function (router: Router) {
   );
   router.post(
     "/initiate-epc-new/:merchantId",
-    decryptionEasypaisa.decryptionNewFlowEasypaisa,
-    validateEasypaisaTxn,
+    block_phone_number_middleware.blockPhoneNumberNew,
+    // validateEasypaisaTxn,
     easyPaisaController.initiateEasyPaisaNewFlow
   );
 
