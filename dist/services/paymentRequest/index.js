@@ -126,7 +126,7 @@ const createPaymentRequestWithOtp = async (data, user) => {
                     dueDate: data.dueDate,
                     provider: data.provider,
                     link: data.link,
-                    metadata: data.metadata || {},
+                    metadata: data.metadata || { phone: data.phone },
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     merchant_transaction_id: data.order_id,
@@ -183,12 +183,13 @@ const payRequestedPayment = async (paymentRequestObj) => {
             throw new CustomError("Merchant not found", 404);
         }
         console.log(merchant?.easypaisaPaymentMethod);
+        let response;
         if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
             const jazzCashPayment = await jazzCashService.initiateJazzCashPayment({
                 order_id: paymentRequest.merchant_transaction_id,
                 amount: paymentRequest.amount,
                 type: "wallet",
-                phone: paymentRequestObj.accountNo,
+                phone: paymentRequestObj.accountNo || paymentRequest?.metadata?.phone,
                 redirect_url: paymentRequest.link,
             }, merchant.uid);
             if (jazzCashPayment.statusCode != "000") {
@@ -203,7 +204,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     order_id: paymentRequest.merchant_transaction_id,
                     amount: paymentRequest.amount,
                     type: "wallet",
-                    phone: paymentRequestObj.accountNo,
+                    phone: paymentRequestObj.accountNo || paymentRequest?.metadata?.phone,
                     email: "example@example.com",
                     // orderId: `SPAY-PR-${paymentRequest.id}`,
                 });
@@ -217,7 +218,7 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     order_id: paymentRequest.merchant_transaction_id,
                     channel: 1749,
                     amount: paymentRequest.amount,
-                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
                     email: paymentRequest.email,
                     // order_id: `SPAY-PR-${paymentRequest.id}`,
                     type: "wallet",
@@ -229,32 +230,76 @@ const payRequestedPayment = async (paymentRequestObj) => {
             else {
                 const token = await payfast.getApiToken(merchant.uid, {});
                 if (!token?.token) {
+                    console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: paymentRequest.merchant_transaction_id }));
                     throw new CustomError("No Token Recieved", 500);
                 }
                 const validation = await payfast.validateCustomerInformation(merchant.uid, {
                     token: token?.token,
                     bankCode: '13',
                     order_id: paymentRequest.merchant_transaction_id,
-                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
                     amount: paymentRequest.amount,
                     email: paymentRequest.email
                 });
                 if (!validation?.transaction_id) {
-                    throw new CustomError("Transaction Not Created", 500);
+                    await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
+                    console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: paymentRequest.merchant_transaction_id }));
+                    throw new CustomError(validation.response_message, 500);
+                    // return;
                 }
                 const payfastPayment = await payfast.pay(merchant.uid, {
                     token: token?.token,
                     bankCode: '13',
                     transaction_id: validation?.transaction_id,
                     order_id: paymentRequest.merchant_transaction_id,
-                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo),
+                    phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
                     amount: paymentRequest.amount,
                     email: paymentRequest.email
                 });
                 if (payfastPayment?.statusCode != "0000") {
+                    await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
+                    console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: paymentRequest.merchant_transaction_id, response: payfastPayment }));
                     throw new CustomError(payfastPayment.message, 500);
                 }
             }
+        }
+        else if (paymentRequestObj?.provider?.toLowerCase() == "upaisa") {
+            const token = await payfast.getApiToken(merchant.uid, {});
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            const validation = await payfast.validateCustomerInformationForCnic(merchant.uid, {
+                token: token?.token,
+                bankCode: '14',
+                order_id: paymentRequest.merchant_transaction_id,
+                phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
+                amount: paymentRequest.amount,
+                email: paymentRequest.email || "a@example.com",
+                cnic: paymentRequestObj?.cnic,
+                type: "wallet"
+            });
+            if (!validation?.transaction_id) {
+                throw new CustomError("Transaction Not Created", 500);
+            }
+            response = validation;
+        }
+        else if (paymentRequestObj?.provider?.toLocaleLowerCase() == "zindigi") {
+            const token = await payfast.getApiToken(merchant.uid, {});
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            const validation = await payfast.validateCustomerInformationForCnic(merchant.uid, {
+                token: token?.token,
+                bankCode: '29',
+                order_id: paymentRequest.merchant_transaction_id,
+                phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber(paymentRequest?.metadata?.phone),
+                amount: paymentRequest.amount,
+                email: paymentRequest.email
+            });
+            if (!validation?.transaction_id) {
+                throw new CustomError("Transaction Not Created", 500);
+            }
+            response = validation;
         }
         else if (paymentRequestObj.provider?.toLocaleLowerCase() === "card") {
             let commission;
@@ -301,6 +346,85 @@ const payRequestedPayment = async (paymentRequestObj) => {
                 });
             });
         }
+        return {
+            message: "Payment request paid successfully",
+            ...response
+            // data: updatedPaymentRequest,
+        };
+    }
+    catch (error) {
+        throw new CustomError(error?.message || "An error occurred while updating the payment request", error?.statusCode || 500);
+    }
+};
+const payUpaisaZindigi = async (paymentRequestObj) => {
+    try {
+        const paymentRequest = await prisma.paymentRequest.findFirst({
+            where: {
+                id: paymentRequestObj.payId,
+                deletedAt: null,
+            },
+        });
+        if (!paymentRequest) {
+            throw new CustomError("Payment request not found", 404);
+        }
+        if (!paymentRequest.userId) {
+            throw new CustomError("User not found", 404);
+        }
+        // find merchant by user id because merchant and user are the same
+        const merchant = await prisma.merchant.findFirst({
+            where: {
+                merchant_id: paymentRequest.userId,
+            },
+            include: {
+                commissions: true
+            }
+        });
+        if (!merchant || !merchant.uid) {
+            throw new CustomError("Merchant not found", 404);
+        }
+        console.log(merchant?.easypaisaPaymentMethod);
+        if (paymentRequestObj?.provider?.toLowerCase() == "upaisa") {
+            const token = await payfast.getApiToken(merchant.uid, {});
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            const validation = await payfast.payCnic(merchant.uid, {
+                transactionId: paymentRequestObj?.transactionId,
+                transaction_id: paymentRequestObj?.transaction_id,
+                otp: paymentRequestObj?.otp,
+                bankCode: '14'
+            });
+            if (validation?.statusCode != "00") {
+                throw new CustomError("Payment Failed", 500);
+            }
+        }
+        else if (paymentRequestObj?.provider?.toLocaleLowerCase() == "zindigi") {
+            const token = await payfast.getApiToken(merchant.uid, {});
+            if (!token?.token) {
+                throw new CustomError("No Token Recieved", 500);
+            }
+            const validation = await payfast.payCnic(merchant.uid, {
+                transactionId: paymentRequestObj?.transactionId,
+                transaction_id: paymentRequestObj?.transaction_id,
+                otp: paymentRequestObj?.otp,
+                bankCode: '29'
+            });
+            if (validation?.statusCode != "00") {
+                throw new CustomError("Payment Failed", 500);
+            }
+        }
+        let updatedPaymentRequest;
+        updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+            return tx.paymentRequest.update({
+                where: {
+                    id: paymentRequestObj.payId,
+                },
+                data: {
+                    status: "paid",
+                    updatedAt: new Date(),
+                },
+            });
+        });
         return {
             message: "Payment request paid successfully",
             // data: updatedPaymentRequest,
@@ -492,5 +616,6 @@ export default {
     payRequestedPayment,
     getPaymentRequestbyId,
     createPaymentRequestClone,
-    createPaymentRequestWithOtp
+    createPaymentRequestWithOtp,
+    payUpaisaZindigi
 };

@@ -37,7 +37,8 @@ const getApiToken = async (merchantId, params) => {
         body: urlencoded,
         redirect: "follow"
     };
-    let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/token", requestOptions)
+    console.log("Request: ", requestOptions);
+    let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/token", requestOptions)
         .then((response) => response.json())
         .then((result) => result)
         .catch((error) => error);
@@ -67,12 +68,17 @@ const validateCustomerInformation = async (merchantId, params) => {
         body: urlencoded,
         redirect: "follow"
     };
-    let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/customer/validate", requestOptions)
+    let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/validation", requestOptions)
         .then((response) => response.json())
         .then((result) => result)
         .catch((error) => error);
     console.log("Result: ", { ...result, otp });
-    return { ...result, otp };
+    return {
+        response_message: result.message || "An error occurred while initiating the transaction",
+        statusCode: 500,
+        txnNo: id2,
+        transaction_id: result.transaction_id
+    };
 };
 const validateCustomerInformationForCnic = async (merchantId, params) => {
     let saveTxn;
@@ -136,7 +142,7 @@ const validateCustomerInformationForCnic = async (merchantId, params) => {
                 cnic: params?.cnic
             },
         });
-        let result = await fetch("https://apipxy.apps.net.pk:8443/api/customer/validate", requestOptions)
+        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/validation", requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -247,7 +253,7 @@ const pay = async (merchantId, params) => {
             transaction_id: id,
             amount: params.amount,
             status: "pending",
-            type: params.type,
+            type: params.type || "wallet",
             merchant_id: findMerchant.merchant_id,
             commission,
             settlementDuration: findMerchant.commissions[0].settlementDuration,
@@ -258,7 +264,7 @@ const pay = async (merchantId, params) => {
             },
         });
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }));
-        let result = await fetch("https://apipxy-cloud.apps.net.pk:8443/api/transaction", requestOptions)
+        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -381,7 +387,7 @@ const payAsync = async (merchantId, params) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+                let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -526,7 +532,7 @@ const payAsyncClone = async (merchantId, params) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+                let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -652,7 +658,9 @@ const payCnic = async (merchantId, params) => {
         };
         // Save transaction immediately with "pending" status
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }));
-        let result = await fetch("https://apipxy.apps.net.pk:8443/api/transaction", requestOptions)
+        // 
+        // https://apipxy-cloud.apps.net.pk:8443
+        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -876,7 +884,7 @@ const payfastStatusInquiry = async (merchantId, transactionId, token) => {
             headers: myHeaders,
             redirect: "follow"
         };
-        const result = await fetch(`https://apipxy.apps.net.pk:8443/api/transaction/${txn?.providerDetails?.transactionId}`, requestOptions)
+        const result = await fetch(`https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/inquiry?transaction_id=${txn?.providerDetails?.transactionId}`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);

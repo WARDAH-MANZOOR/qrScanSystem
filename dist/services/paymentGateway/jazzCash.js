@@ -458,6 +458,9 @@ const initiateJazzCashPayment = async (paymentData, merchant_uid) => {
                 };
             }
             else {
+                await prisma.failedAttempt.create({
+                    data: { phoneNumber: phone },
+                });
                 throw new CustomError(`The payment failed because: 【${r.pp_ResponseCode} ${r.pp_ResponseMessage}】`, 500);
             }
         }
@@ -535,6 +538,9 @@ const initiateJazzCashPaymentAsync = async (paymentData, merchant_uid) => {
             });
             console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }));
             return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
+        }, {
+            maxWait: 300000,
+            timeout: 300000
         });
         txnRefNo = result.txnRefNo;
         // Immediately Return Pending Status and Transaction ID
@@ -666,6 +672,9 @@ const initiateJazzCashPaymentAsyncClone = async (paymentData, merchant_uid) => {
             });
             console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }));
             return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
+        }, {
+            maxWait: 300000,
+            timeout: 300000
         });
         txnRefNo = result.txnRefNo;
         // Immediately Return Pending Status and Transaction ID
@@ -843,6 +852,11 @@ const processWalletPayment = async (sendData, refNo, merchant, phone, date, txnR
         });
         transactionService.sendCallback(merchant.webhook_url, { merchant_transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date }, phone, "payin", merchant?.encrypted.toLowerCase() == "true" ? true : false, false);
     }
+    else {
+        await prisma.failedAttempt.create({
+            data: { phoneNumber: phone },
+        });
+    }
 };
 const processWalletPaymentClone = async (sendData, refNo, merchant, phone, date, txnRefNo, jazzCashMerchant) => {
     const paymentUrl = "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
@@ -877,6 +891,11 @@ const processWalletPaymentClone = async (sendData, refNo, merchant, phone, date,
             },
         });
         transactionService.sendCallbackClone(merchant.webhook_url, { merchant_transaction_id: refNo, status, merchant_id: merchant?.merchant_id, original_amount: (+r.pp_Amount) / 100, date_time: date }, phone, "payin", merchant?.encrypted.toLowerCase() == "true" ? true : false, false);
+    }
+    else {
+        await prisma.failedAttempt.create({
+            data: { phoneNumber: phone },
+        });
     }
 };
 // Process Card Payment

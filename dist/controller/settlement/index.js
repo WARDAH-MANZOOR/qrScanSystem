@@ -1,5 +1,8 @@
 import { exportSettlement, getSettlement } from "../../services/settlement/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import { fileURLToPath } from "url";
+import path from "path";
+import fs from "fs";
 const getSettlements = async (req, res, next) => {
     try {
         const queryParameters = req.query;
@@ -11,13 +14,16 @@ const getSettlements = async (req, res, next) => {
         res.status(400).json(ApiResponse.error(error?.message, error?.statusCode));
     }
 };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
+if (!fs.existsSync(EXPORT_DIR))
+    fs.mkdirSync(EXPORT_DIR, { recursive: true });
 const exportSettlements = async (req, res, next) => {
     try {
         const queryParameters = req.query;
         const user = req.user;
         const result = await exportSettlement(queryParameters, user);
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
         res.send(result);
     }
     catch (error) {

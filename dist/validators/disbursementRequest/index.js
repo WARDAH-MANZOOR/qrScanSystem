@@ -36,7 +36,7 @@ const validateDisbursementRequest = [
             throw new Error(`Requested amount exceeds available balance. Available balance is ${walletBalance}`);
         }
         return true; // Validation passed
-    })
+    }),
 ];
 const updateDisbursementRequestStatus = [
     // Validate that the requestedAmount is a positive number

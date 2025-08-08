@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
-import cron from "node-cron";
 import routes from './routes/index.js';
 import cors from 'cors';
 // // dotenv.config();
@@ -19,11 +18,14 @@ import authRouter from "./routes/authentication/index.js";
 import createTransactionRouter from "./routes/transaction/create.js";
 import completeTransactionRouter from "./routes/transaction/complete.js";
 import { errorHandler } from "./utils/middleware.js";
-import task from "./utils/queue_task.js";
+import { fileURLToPath } from 'url';
 var app = express();
-cron.schedule("*/5 * * * *", task);
+// cron.schedule("0 16 * * 1-5", task);
 // cron.schedule("*/5 * * * *", pendingDisburse);
+// cron.schedule("0 * * * *", cleanupCron.cleanupFailedAttempts)
 // cron.schedule("* * * * *", pendingDisburse);
+// cron.schedule('5 0,12 * * 1-6', instantSettlementCron);
+// cron.schedule('* * * * *', instantSettlementCron);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
@@ -50,6 +52,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static("./public"));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../files"); // adjust path if needed
+app.use("/files", express.static(EXPORT_DIR));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/transaction_reports', transactionReportsRouter);
 app.use('/transaction_create', createTransactionRouter);

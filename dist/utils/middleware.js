@@ -120,4 +120,25 @@ const isAdmin = async (req, res, next) => {
     }
     res.status(403).json(ApiResponse.error("You are not authorized to perform this action", 403));
 };
-export { isLoggedIn, restrict, errorHandler, restrictMultiple, authorize, isAdmin, checkOtp };
+const blockPhoneMiddleware = async (req, res, next) => {
+    const phone = req.body.phone;
+    if (!phone) {
+        res.status(400).json({ message: 'Phone number required' });
+        return;
+    }
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const attempts = await prisma.failedAttempt.count({
+        where: {
+            phoneNumber: phone,
+            failedAt: {
+                gte: oneHourAgo,
+            },
+        },
+    });
+    if (attempts >= 5) {
+        res.status(429).json({ message: 'Too many failed attempts. Phone number is temporarily blocked for 1 hour.' });
+        return;
+    }
+    next();
+};
+export { isLoggedIn, restrict, errorHandler, restrictMultiple, authorize, isAdmin, checkOtp, blockPhoneMiddleware };

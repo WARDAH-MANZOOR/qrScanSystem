@@ -1,14 +1,28 @@
-import { parse, parseISO } from "date-fns";
-import { Parser } from "json2csv";
+import { parse, parseISO, isValid } from "date-fns";
+import path from "path";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
+import fs from "fs";
+import * as csv from "fast-csv";
+import { fileURLToPath } from "url";
 const createDisbursementDispute = async (body, merchant_id) => {
     try {
+        // Debug log for incoming date
+        console.log('disbursementDate:', body.disbursementDate);
+        let parsedDate = parse(body.disbursementDate, 'dd/MM/yyyy, HH:mm:ss', new Date());
+        if (!isValid(parsedDate)) {
+            // Try 12-hour format with am/pm
+            parsedDate = parse(body.disbursementDate, 'dd/MM/yyyy, h:mm:ss a', new Date());
+        }
+        console.log('parsedDate:', parsedDate);
+        if (!isValid(parsedDate)) {
+            throw new CustomError("Invalid disbursementDate format: " + body.disbursementDate, 400);
+        }
         return await prisma.$transaction(async (tx) => {
             const disbursementDispute = await tx.disbursementDispute.create({
                 data: {
                     account: body.account,
-                    disbursementDate: new Date(body.disbursementDate),
+                    disbursementDate: parsedDate,
                     amount: Number(body.amount),
                     merchant_id,
                     sender: body.sender,
@@ -112,72 +126,80 @@ const getDisbursementDisputes = async (params, merchantId) => {
         throw new CustomError("Internal Server Error", 500);
     }
 };
-const exportDisbursementDispute = async (merchantId, params) => {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const EXPORT_DIR = path.join(__dirname, "../../../files");
+if (!fs.existsSync(EXPORT_DIR))
+    fs.mkdirSync(EXPORT_DIR, { recursive: true });
+export const exportDisbursementDispute = async (merchantId, params) => {
     try {
         const startDate = params?.start?.replace(" ", "+");
         const endDate = params?.end?.replace(" ", "+");
-        const status = params?.status; // NEW: Explicitly type status
-        const merchantOrderId = params?.merchantOrderId; // NEW: Extract merchantOrderId from params
-        const customWhere = {};
-        if (merchantId) {
-            customWhere["merchantId"] = +merchantId;
-        }
+        const status = params?.status;
+        const merchantOrderId = params?.merchantOrderId;
+        const filters = {};
+        if (merchantId)
+            filters["merchant_id"] = +merchantId;
         if (startDate && endDate) {
-            const todayStart = parseISO(startDate);
-            const todayEnd = parseISO(endDate);
-            customWhere["disbursementDate"] = {
-                gte: todayStart,
-                lt: todayEnd,
+            filters["disbursementDate"] = {
+                gte: parseISO(startDate),
+                lt: parseISO(endDate),
             };
         }
-        if (status) {
-            customWhere["status"] = status;
+        if (status)
+            filters["status"] = status;
+        if (merchantOrderId)
+            filters["orderId"] = merchantOrderId;
+        const totalRecords = await prisma.disbursementDispute.count({ where: filters });
+        let remainingRecords = totalRecords;
+        console.log(`📊 Total disbursement disputes: ${totalRecords}`);
+        const pageSize = 10000;
+        let lastCursor = undefined;
+        let hasMore = true;
+        let processedCount = 0;
+        const fileName = `disbursement_disputes_${Date.now()}.csv`;
+        const filePath = path.join(EXPORT_DIR, fileName);
+        const fileStream = fs.createWriteStream(filePath);
+        const csvStream = csv.format({ headers: true });
+        csvStream.pipe(fileStream);
+        while (hasMore) {
+            const batch = await prisma.disbursementDispute.findMany({
+                where: filters,
+                orderBy: { id: "asc" },
+                cursor: lastCursor ? { id: lastCursor } : undefined,
+                skip: lastCursor ? 1 : 0,
+                take: pageSize,
+                include: {
+                    merchant: { select: { full_name: true } }
+                }
+            });
+            console.log(`🔄 Fetched batch: ${batch.length}`);
+            remainingRecords -= batch.length;
+            for (const record of batch) {
+                csvStream.write({
+                    merchant: record.merchant?.full_name || "",
+                    status: record.status,
+                    order_id: record.orderId,
+                    transaction_id: record.transactionId,
+                    message: record.message,
+                });
+                lastCursor = record.id;
+                processedCount++;
+            }
+            console.log(`📦 Processed: ${processedCount} | Remaining: ${remainingRecords}`);
+            hasMore = batch.length === pageSize;
         }
-        if (merchantOrderId) { // NEW: Add merchantOrderId filter if provided
-            customWhere["orderId"] = merchantOrderId;
-        }
-        const disputes = await prisma.disbursementDispute
-            .findMany({
-            where: {
-                ...customWhere,
-            },
-            orderBy: {
-                disbursementDate: "desc",
-            },
-            include: {
-                merchant: {
-                    select: {
-                        uid: true,
-                        full_name: true,
-                    },
-                },
-            },
-        })
-            .catch((err) => {
-            console.log(err);
-            throw new CustomError("Unable to get disbursement history", 500);
-        });
-        const fields = [
-            'merchant',
-            'status',
-            'order_id',
-            'transaction_id',
-            'message'
-        ];
-        const data = disputes.map(dispute => ({
-            merchant: dispute.merchant.full_name,
-            status: dispute.status,
-            order_id: dispute.orderId,
-            transaction_id: dispute.transactionId,
-            message: dispute.message
-        }));
-        const json2csvParser = new Parser({ fields });
-        const csv = json2csvParser.parse(data);
-        const csvNoQuotes = csv.replace(/"/g, '');
-        return `${csvNoQuotes}`;
+        await new Promise(resolve => csvStream.end(resolve));
+        console.log(`✅ CSV saved at: ${filePath}`);
+        return {
+            filePath,
+            downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
+            totalRecords: processedCount
+        };
     }
     catch (error) {
-        throw new CustomError(error?.error || "Unable to get disbursement", error?.statusCode || 500);
+        console.error("❌ Export failed:", error);
+        throw new CustomError(error?.error || "Unable to get disbursement dispute data", error?.statusCode || 500);
     }
 };
 export default {

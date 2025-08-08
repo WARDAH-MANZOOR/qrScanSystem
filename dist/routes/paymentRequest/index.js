@@ -5,6 +5,7 @@ import block_phone_number_middleware from "utils/block_phone_number_middleware.j
 const router = Router();
 router.post("/pay", block_phone_number_middleware.blockPhoneNumberInRedirection, paymentRequestController.payRequestedPayment);
 router.post("/pay-otp", [block_phone_number_middleware.blockPhoneNumberInRedirection, checkOtp], paymentRequestController.payRequestedPayment);
+router.post("/pay-up-zi", [block_phone_number_middleware.blockPhoneNumberInRedirection], paymentRequestController.payUpaisaZindigi);
 router.get("/:id", paymentRequestController.getPaymentRequestbyId);
 router.get("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.getPaymentRequest);
 router.post("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.createPaymentRequest);

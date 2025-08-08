@@ -24,6 +24,8 @@ router.post("/payout-callback", backOfficeController.payoutCallback);
 router.post("/div-settlements", [isLoggedIn, isAdmin], backOfficeController.divideSettlementRecords);
 router.get("/process-today", [isLoggedIn, isAdmin], backOfficeController.processTodaySettlements);
 router.post("/usdt-settlement", [isLoggedIn, isAdmin, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, backOfficeController.createUSDTSettlement);
-router.post("/reconcile/:merchantId", [isLoggedIn, isAdmin], backOfficeValidator.handleValidationErrors, backOfficeController.calculateFinancials);
+router.post("/reconcile/:merchantId", 
+// [isLoggedIn, isAdmin], 
+backOfficeValidator.handleValidationErrors, backOfficeController.calculateFinancials);
 router.post("/adjust-disbursement/:merchantId", [isLoggedIn, isAdmin], backOfficeController.adjustMerchantDisbursementBalance);
 export default router;
