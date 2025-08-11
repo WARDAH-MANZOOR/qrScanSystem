@@ -417,7 +417,7 @@ async function updateMerchantSwitch(provider: "DIRECT" | "SWITCH", merchantId: n
 
 
 const sendCallback = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean, checkLimit: boolean) => {
-  console.log(JSON.stringify({event: "CALLBACK_URL", order_id: payload.merchant_transaction_id, url: webhook_url}))
+  console.log(JSON.stringify({event: "CALLBACK_URL", order_id: payload?.merchant_transaction_id, url: webhook_url}))
   setTimeout(async () => {
     try {
       console.log("Callback Payload: ", JSON.stringify(payload));
@@ -425,14 +425,14 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         "amount": payload.original_amount,
         "msisdn": msisdn,
         "time": payload.date_time,
-        "order_id": payload.merchant_transaction_id,
+        "order_id": payload?.merchant_transaction_id,
         "status": "success",
         "type": type
       });
       if (doEncryption) {
         data = JSON.stringify(await callbackEncrypt(data, payload?.merchant_id));
       }
-      console.log(`Data (${payload.merchant_transaction_id}): ${data}`);
+      console.log(`Data (${payload?.merchant_transaction_id}): ${data}`);
       let config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -445,11 +445,11 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
 
       let res = await axios.request(config)
       if (res.data == "success") {
-        console.log(`${payload.merchant_transaction_id} Callback sent successfully`)
+        console.log(`${payload?.merchant_transaction_id} Callback sent successfully`)
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
-              merchant_transaction_id: payload.merchant_transaction_id
+              merchant_transaction_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: true,
@@ -460,7 +460,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         else {
           await prisma.disbursement.update({
             where: {
-              merchant_custom_order_id: payload.merchant_transaction_id
+              merchant_custom_order_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: true,
@@ -472,11 +472,11 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
       }
       else {
         console.log("Error sending callback")
-        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res?.data}))
+        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload?.merchant_transaction_id, data: res?.data}))
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
-              merchant_transaction_id: payload.merchant_transaction_id
+              merchant_transaction_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: false,
@@ -487,7 +487,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         else {
           await prisma.disbursement.update({
             where: {
-              merchant_custom_order_id: payload.merchant_transaction_id
+              merchant_custom_order_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: false,
@@ -497,11 +497,11 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
         }
       }
       if (checkLimit) {
-        console.log(await switchPaymentProvider(payload.merchant_id, payload.merchant_transaction_id));
+        console.log(await switchPaymentProvider(payload.merchant_id, payload?.merchant_transaction_id));
       }
     }
     catch (err: any) {
-      console.log(JSON.stringify({event: "CALLBACK_EXCEPTION", order_id: payload.merchant_transaction_id}))
+      console.log(JSON.stringify({event: "CALLBACK_EXCEPTION", order_id: payload?.merchant_transaction_id}))
       console.log(err)
       return { "message": "Error calling callback" }
     }
@@ -509,7 +509,7 @@ const sendCallback = async (webhook_url: string, payload: any, msisdn: string, t
 }
 
 const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: string, type: string, doEncryption: boolean, checkLimit: boolean) => {
-  console.log(JSON.stringify({event: "CALLBACK_URL", order_id: payload.merchant_transaction_id, url: webhook_url}))
+  console.log(JSON.stringify({event: "CALLBACK_URL", order_id: payload?.merchant_transaction_id, url: webhook_url}))
   setTimeout(async () => {
     try {
       console.log("Callback Payload: ", JSON.stringify(payload));
@@ -517,15 +517,15 @@ const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: stri
         "amount": payload.original_amount,
         "msisdn": msisdn,
         "time": payload.date_time,
-        "order_id": payload.merchant_transaction_id,
+        "order_id": payload?.merchant_transaction_id,
         "status": "success",
         "type": type
       });
       if (doEncryption) {
         let data2 = await callbackEncrypt(data, payload?.merchant_id) as {encrypted_data: string; iv: string; tag: string};
-        data = JSON.stringify({...data2, order_id: payload.merchant_transaction_id})
+        data = JSON.stringify({...data2, order_id: payload?.merchant_transaction_id})
       }
-      console.log(`Data (${payload.merchant_transaction_id}): ${data}`);
+      console.log(`Data (${payload?.merchant_transaction_id}): ${data}`);
       let config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -538,11 +538,11 @@ const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: stri
 
       let res = await axios.request(config)
       if (res.data == "success") {
-        console.log(`${payload.merchant_transaction_id} Callback sent successfully`)
+        console.log(`${payload?.merchant_transaction_id} Callback sent successfully`)
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
-              merchant_transaction_id: payload.merchant_transaction_id
+              merchant_transaction_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: true,
@@ -553,7 +553,7 @@ const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: stri
         else {
           await prisma.disbursement.update({
             where: {
-              merchant_custom_order_id: payload.merchant_transaction_id
+              merchant_custom_order_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: true,
@@ -565,11 +565,11 @@ const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: stri
       }
       else {
         console.log("Error sending callback")
-        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload.merchant_transaction_id, data: res.data}))
+        console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload?.merchant_transaction_id, data: res.data}))
         if (type == "payin") {
           await prisma.transaction.update({
             where: {
-              merchant_transaction_id: payload.merchant_transaction_id
+              merchant_transaction_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: false,
@@ -580,7 +580,7 @@ const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: stri
         else {
           await prisma.disbursement.update({
             where: {
-              merchant_custom_order_id: payload.merchant_transaction_id
+              merchant_custom_order_id: payload?.merchant_transaction_id
             },
             data: {
               callback_sent: false,
@@ -590,12 +590,12 @@ const sendCallbackClone = async (webhook_url: string, payload: any, msisdn: stri
         }
       }
       if (checkLimit) {
-        console.log(await switchPaymentProvider(payload.merchant_id, payload.merchant_transaction_id));
+        console.log(await switchPaymentProvider(payload.merchant_id, payload?.merchant_transaction_id));
       }
     }
     catch (err: any) {
-      console.log(JSON.stringify({event: "CALLBACK_EXCEPTION", order_id: payload.merchant_transaction_id}))
-      console.log(`Error (${payload.merchant_transaction_id}): ${err?.message}`)
+      console.log(JSON.stringify({event: "CALLBACK_EXCEPTION", order_id: payload?.merchant_transaction_id}))
+      console.log(`Error (${payload?.merchant_transaction_id}): ${err?.message}`)
       return { "message": "Error calling callback" }
     }
   }, 10000)
