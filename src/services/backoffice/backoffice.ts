@@ -540,14 +540,21 @@ async function settleTransactions(transactionIds: string[], settlement: boolean 
                         new Date(),
                         findMerchant?.commissions[0].settlementDuration as number
                     ); // Call the function to get the next 2 weekdays
-                    let scheduledTask = await prisma.scheduledTask.create({
-                        data: {
-                            transactionId: txn.transaction_id,
-                            status: "pending",
-                            scheduledAt: scheduledAt, // Assign the calculated weekday date
-                            executedAt: null, // Assume executedAt is null when scheduling
-                        },
-                    });
+                    const transaction = await prisma.scheduledTask.findUnique({
+                        where: {
+                            transactionId: txn.transaction_id
+                        }
+                    })
+                    if (!transaction) {
+                        let scheduledTask = await prisma.scheduledTask.create({
+                            data: {
+                                transactionId: txn.transaction_id,
+                                status: "pending",
+                                scheduledAt: scheduledAt, // Assign the calculated weekday date
+                                executedAt: null, // Assume executedAt is null when scheduling
+                            },
+                        });
+                    }
                 }
                 await transactionService.sendCallback(
                     findMerchant?.webhook_url as string,
@@ -793,7 +800,7 @@ async function settleAllMerchantTransactions(merchantId: number) {
                 }
             });
         }
-        
+
         return 'All merchant transactions settled successfully.';
     } catch (error) {
         console.error(error);
@@ -937,14 +944,21 @@ const createTransactionService = async (body: any, merchant_id: string) => {
                     new Date(),
                     merchant?.settlementDuration as number
                 ); // Call the function to get the next 2 weekdays
-                let scheduledTask = await tx.scheduledTask.create({
-                    data: {
-                        transactionId: txnRefNo,
-                        status: "pending",
-                        scheduledAt: scheduledAt, // Assign the calculated weekday date
-                        executedAt: null, // Assume executedAt is null when scheduling
-                    },
-                });
+                const transaction = await prisma.scheduledTask.findUnique({
+                    where: {
+                        transactionId: txnRefNo
+                    }
+                })
+                if (!transaction) {
+                    let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                            transactionId: txnRefNo,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
                 return { transaction };
 
             }
@@ -1310,7 +1324,7 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
                 ), 0) AS total;
         `))[0]?.total || 0);
 
-        const topupSum = new Decimal((await prisma.$queryRawUnsafe<{total: number}[]>(`
+        const topupSum = new Decimal((await prisma.$queryRawUnsafe<{ total: number }[]>(`
                 SELECT 
                 COALESCE((
                     SELECT SUM("amount") 
