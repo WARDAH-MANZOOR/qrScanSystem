@@ -30,10 +30,10 @@ const createChargeBack = async (body: any, merchant_id: number) => {
         let deductedFrom: 'disbursement' | 'available' | null = null;
         // Try to deduct from disbursement balance first
         if (disbursementBalance >= chargebackAmount) {
-            await backofficeService.adjustMerchantDisbursementBalance(transaction?.merchant_id as number, chargebackAmount, true, "de");
+            await backofficeService.adjustMerchantDisbursementBalance(transaction?.merchant_id as number, chargebackAmount, false, "de");
             deductedFrom = 'disbursement';
         } else if (availableBalance >= chargebackAmount) {
-            await backofficeService.adjustMerchantWalletBalance(transaction?.merchant_id as number, availableBalance - chargebackAmount, true);
+            await backofficeService.adjustMerchantWalletBalance(transaction?.merchant_id as number, availableBalance - chargebackAmount, false);
             deductedFrom = 'available';
         } else {
             throw new CustomError("Insufficient funds in both disbursement and available balances", 400);

@@ -228,6 +228,7 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
 }
 
 const pay = async (merchantId: string, params: any) => {
+    console.log(params);
     let saveTxn;
     try {
         let id = transactionService.createTransactionId();
@@ -260,6 +261,7 @@ const pay = async (merchantId: string, params: any) => {
         urlencoded.append("bank_code", params.bankCode);
         urlencoded.append("order_date", formatter.format(new Date()));
         urlencoded.append("transaction_id", params.transaction_id);
+        console.log(urlencoded)
 
         const requestOptions = {
             method: "POST",

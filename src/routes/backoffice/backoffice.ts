@@ -15,7 +15,9 @@ router.post('/adjust-wallet-without/:merchantId',  [isLoggedIn, isAdmin], backOf
 
 router.get('/transaction-stats/:merchantId', [isLoggedIn, isAdmin], backOfficeController.checkMerchantTransactionStats);
 
-router.post('/settle-transactions', [isLoggedIn, isAdmin], backOfficeController.settleTransactions);
+router.post('/settle-transactions', 
+    [isLoggedIn, isAdmin],
+     backOfficeController.settleTransactions);
 
 router.post('/settle-transactions/tele', backOfficeController.settleTransactionsForTelegram);
 

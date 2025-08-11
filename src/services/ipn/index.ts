@@ -77,14 +77,21 @@ const processIPN = async (requestBody: PaymentRequestBody): Promise<PaymentRespo
                 })
                 const scheduledAt = addWeekdays(new Date(), findMerchant?.commissions[0].settlementDuration as number);  // Call the function to get the next 2 weekdays
                 console.log(scheduledAt)
-                let scheduledTask = await prisma.scheduledTask.create({
-                    data: {
-                        transactionId: txn?.transaction_id,
-                        status: 'pending',
-                        scheduledAt: scheduledAt,  // Assign the calculated weekday date
-                        executedAt: null,  // Assume executedAt is null when scheduling
+                const transaction = await prisma.scheduledTask.findUnique({
+                    where: {
+                        transactionId: txn?.transaction_id
                     }
-                });
+                })
+                if (!transaction) {
+                    let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                            transactionId: txn?.transaction_id,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
                 setTimeout(async () => {
                     transactionService.sendCallback(
                         findMerchant?.webhook_url as string,
@@ -198,14 +205,21 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                 })
                 const scheduledAt = addWeekdays(new Date(), findMerchant?.commissions[0].settlementDuration as number);  // Call the function to get the next 2 weekdays
                 console.log(scheduledAt)
-                let scheduledTask = await prisma.scheduledTask.create({
-                    data: {
-                        transactionId: txn?.transaction_id,
-                        status: 'pending',
-                        scheduledAt: scheduledAt,  // Assign the calculated weekday date
-                        executedAt: null,  // Assume executedAt is null when scheduling
+                const transaction = await prisma.scheduledTask.findUnique({
+                    where: {
+                        transactionId: txn.transaction_id
                     }
-                });
+                })
+                if (!transaction) {
+                    let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                            transactionId: txn.transaction_id,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
                 setTimeout(async () => {
                     transactionService.sendCallback(
                         findMerchant?.webhook_url as string,
