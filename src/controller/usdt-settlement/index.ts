@@ -18,7 +18,7 @@ const getUsdtSettlements = async (req: Request, res: Response) => {
 const exportUsdtSettlements = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { query } = req;
-      const id = (req.user as JwtPayload)?.merchant_id || query.merchant_id;
+      const id = (req.user as JwtPayload)?.merchant_id || query.merchantId;
       const merchant = await usdtSettlementService.exportUsdtSettlements(id, query);
       res.send(merchant);
     } catch (error) {
