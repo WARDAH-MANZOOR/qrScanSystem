@@ -513,14 +513,21 @@ const initiateJazzCashPayment = async (
             new Date(),
             merchant.commissions[0].settlementDuration as number
           ); // Call the function to get the next 2 weekdays
-          let scheduledTask = await tx.scheduledTask.create({
-            data: {
-              transactionId: txnRefNo,
-              status: "pending",
-              scheduledAt: scheduledAt, // Assign the calculated weekday date
-              executedAt: null, // Assume executedAt is null when scheduling
-            },
-          });
+          const transaction = await prisma.scheduledTask.findUnique({
+            where: {
+              transactionId: txnRefNo
+            }
+          })
+          if (!transaction) {
+            let scheduledTask = await prisma.scheduledTask.create({
+              data: {
+                transactionId: txnRefNo,
+                status: "pending",
+                scheduledAt: scheduledAt, // Assign the calculated weekday date
+                executedAt: null, // Assume executedAt is null when scheduling
+              },
+            });
+          }
           transactionService.sendCallback(
             merchant?.webhook_url as string,
             transaction,
@@ -710,12 +717,14 @@ const initiateJazzCashPaymentAsync = async (
         }
       }
     });
-    console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_RESPONSE", order_id: paymentData.order_id, response: {
-      txnNo: data["merchant_transaction_id"],
-      txnDateTime: formattedDate,
-      statusCode: "pending",
-      message: "Transaction is being processed",
-    }}))
+    console.log(JSON.stringify({
+      event: "JAZZCASH_ASYNC_RESPONSE", order_id: paymentData.order_id, response: {
+        txnNo: data["merchant_transaction_id"],
+        txnDateTime: formattedDate,
+        statusCode: "pending",
+        message: "Transaction is being processed",
+      }
+    }))
     return {
       txnNo: data["merchant_transaction_id"],
       txnDateTime: formattedDate,
@@ -813,7 +822,7 @@ const initiateJazzCashPaymentAsyncClone = async (
       });
       console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }))
       return { refNo: data.merchant_transaction_id, integritySalt: jazzCashMerchantIntegritySalt, merchant, txnRefNo: data.transaction_id };
-    },{
+    }, {
       maxWait: 300000,
       timeout: 300000
     });
@@ -866,12 +875,14 @@ const initiateJazzCashPaymentAsyncClone = async (
         }
       }
     });
-    console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_RESPONSE", order_id: paymentData.order_id, response: {
-      txnNo: data["merchant_transaction_id"],
-      txnDateTime: formattedDate,
-      statusCode: "pending",
-      message: "Transaction is being processed",
-    }}))
+    console.log(JSON.stringify({
+      event: "JAZZCASH_ASYNC_RESPONSE", order_id: paymentData.order_id, response: {
+        txnNo: data["merchant_transaction_id"],
+        txnDateTime: formattedDate,
+        statusCode: "pending",
+        message: "Transaction is being processed",
+      }
+    }))
 
     return {
       txnNo: data["merchant_transaction_id"],
@@ -1032,14 +1043,21 @@ const processWalletPayment = async (
 
   if (status === "completed") {
     const scheduledAt = addWeekdays(new Date(), merchant.commissions[0].settlementDuration);
-    await prisma.scheduledTask.create({
-      data: {
-        transactionId: txnRefNo,
-        status: "pending",
-        scheduledAt,
-        executedAt: null,
-      },
-    });
+    const transaction = await prisma.scheduledTask.findUnique({
+      where: {
+        transactionId: txnRefNo
+      }
+    })
+    if (!transaction) {
+      let scheduledTask = await prisma.scheduledTask.create({
+        data: {
+          transactionId: txnRefNo,
+          status: "pending",
+          scheduledAt: scheduledAt, // Assign the calculated weekday date
+          executedAt: null, // Assume executedAt is null when scheduling
+        },
+      });
+    }
 
     transactionService.sendCallback(
       merchant.webhook_url,
@@ -1098,14 +1116,21 @@ const processWalletPaymentClone = async (
 
   if (status === "completed") {
     const scheduledAt = addWeekdays(new Date(), merchant.commissions[0].settlementDuration);
-    await prisma.scheduledTask.create({
-      data: {
-        transactionId: txnRefNo,
-        status: "pending",
-        scheduledAt,
-        executedAt: null,
-      },
-    });
+    const transaction = await prisma.scheduledTask.findUnique({
+      where: {
+        transactionId: txnRefNo
+      }
+    })
+    if (!transaction) {
+      let scheduledTask = await prisma.scheduledTask.create({
+        data: {
+          transactionId: txnRefNo,
+          status: "pending",
+          scheduledAt: scheduledAt, // Assign the calculated weekday date
+          executedAt: null, // Assume executedAt is null when scheduling
+        },
+      });
+    }
 
     transactionService.sendCallbackClone(
       merchant.webhook_url,
@@ -1717,14 +1742,21 @@ const initiateJazzCashCnicPayment = async (
         new Date(),
         merchant.commissions[0].settlementDuration as number
       ); // Call the function to get the next 2 weekdays
-      let scheduledTask = await prisma.scheduledTask.create({
-        data: {
-          transactionId: txnRefNo,
-          status: "pending",
-          scheduledAt: scheduledAt, // Assign the calculated weekday date
-          executedAt: null, // Assume executedAt is null when scheduling
-        },
-      });
+      const transaction = await prisma.scheduledTask.findUnique({
+        where: {
+          transactionId: txnRefNo
+        }
+      })
+      if (!transaction) {
+        let scheduledTask = await prisma.scheduledTask.create({
+          data: {
+            transactionId: txnRefNo,
+            status: "pending",
+            scheduledAt: scheduledAt, // Assign the calculated weekday date
+            executedAt: null, // Assume executedAt is null when scheduling
+          },
+        });
+      }
       transactionService.sendCallback(
         merchant?.webhook_url as string,
         transaction,
@@ -1891,4 +1923,4 @@ export default {
   getJazzCashInquiryChannel,
   databaseStatusInquiry
 };
-export { jazzCashCardPayment,prepareJazzCashPayload,calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber,fetchMerchantAndJazzCash,findTransaction, processCardPayment, processWalletPayment, validatePaymentData}
+export { jazzCashCardPayment, prepareJazzCashPayload, calculateHmacSha256, calculateSettledAmount, createTransactionReferenceNumber, fetchMerchantAndJazzCash, findTransaction, processCardPayment, processWalletPayment, validatePaymentData }
