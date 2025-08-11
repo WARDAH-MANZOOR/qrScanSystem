@@ -153,7 +153,7 @@ const exportUsdtSettlements = async (merchantId: number, params: any) => {
   
       return {
         filePath,
-        downloadUrl: `/exports/${fileName}`,
+        downloadUrl: `https://server2.sahulatpay.com/exports/${fileName}`,
         totalRecords: processedCount,
         totalUsdtAmount: totalUsdtAmount.toFixed(2),
       };
