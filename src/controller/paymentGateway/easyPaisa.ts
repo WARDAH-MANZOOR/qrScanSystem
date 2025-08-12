@@ -67,7 +67,7 @@ const initiateEasyPaisaNewFlow = async (
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         ...decryptedPayload
       })
       if (!validation?.transaction_id) {
@@ -77,7 +77,7 @@ const initiateEasyPaisaNewFlow = async (
       }
       result = await payfast.pay(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         transaction_id: validation?.transaction_id,
         ...decryptedPayload
       })
@@ -149,7 +149,7 @@ const initiateEasyPaisa = async (
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         ...req.body
       })
       if (!validation?.transaction_id) {
@@ -160,7 +160,7 @@ const initiateEasyPaisa = async (
       }
       result = await payfast.pay(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         transaction_id: validation?.transaction_id,
         ...req.body
       })
@@ -235,7 +235,7 @@ const initiateEasyPaisaAsync = async (
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         ...req.body
       })
       if (!validation?.transaction_id) {
@@ -247,7 +247,7 @@ const initiateEasyPaisaAsync = async (
       }
       result = await payfast.payAsync(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         transaction_id: validation?.transaction_id,
         ...req.body
       })
@@ -375,7 +375,7 @@ const initiateEasyPaisaAsyncClone = async (
       }
       const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         ...req.body
       })
       if (!validation?.transaction_id) {
@@ -385,7 +385,7 @@ const initiateEasyPaisaAsyncClone = async (
       }
       result = await payfast.payAsyncClone(req.params.merchantId, {
         token: token?.token,
-        bankCode: '13',
+        bankCode: '32',
         transaction_id: validation?.transaction_id,
         ...req.body
       })
