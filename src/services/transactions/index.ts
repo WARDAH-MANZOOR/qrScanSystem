@@ -329,15 +329,22 @@ const updateTxn = async (transaction_id: string, obj: any, duration: number) => 
     });
     if (obj.status == "completed") {
       const scheduledAt = addWeekdays(new Date(), duration);  // Call the function to get the next 2 weekdays
-      console.log(scheduledAt)
-      let scheduledTask = await tx.scheduledTask.create({
-        data: {
-          transactionId: transaction_id,
-          status: 'pending',
-          scheduledAt: scheduledAt,  // Assign the calculated weekday date
-          executedAt: null,  // Assume executedAt is null when scheduling
+      console.log(scheduledAt);
+      const transaction2 = await prisma.scheduledTask.findUnique({
+        where: {
+          transactionId: transaction_id
         }
-      });
+      })
+      if (!transaction2) {
+        let scheduledTask = await prisma.scheduledTask.create({
+          data: {
+            transactionId: transaction_id,
+            status: "pending",
+            scheduledAt: scheduledAt, // Assign the calculated weekday date
+            executedAt: null, // Assume executedAt is null when scheduling
+          },
+        });
+      }
     }
   }, {
     timeout: 60000,

@@ -513,12 +513,12 @@ const initiateJazzCashPayment = async (
             new Date(),
             merchant.commissions[0].settlementDuration as number
           ); // Call the function to get the next 2 weekdays
-          const transaction = await prisma.scheduledTask.findUnique({
+          const transaction2 = await prisma.scheduledTask.findUnique({
             where: {
               transactionId: txnRefNo
             }
           })
-          if (!transaction) {
+          if (!transaction2) {
             let scheduledTask = await prisma.scheduledTask.create({
               data: {
                 transactionId: txnRefNo,
@@ -1742,12 +1742,12 @@ const initiateJazzCashCnicPayment = async (
         new Date(),
         merchant.commissions[0].settlementDuration as number
       ); // Call the function to get the next 2 weekdays
-      const transaction = await prisma.scheduledTask.findUnique({
+      const transaction2 = await prisma.scheduledTask.findUnique({
         where: {
           transactionId: txnRefNo
         }
       })
-      if (!transaction) {
+      if (!transaction2) {
         let scheduledTask = await prisma.scheduledTask.create({
           data: {
             transactionId: txnRefNo,
