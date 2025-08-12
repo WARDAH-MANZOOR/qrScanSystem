@@ -69,7 +69,7 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
     const otp = JSON.stringify(Math.floor(100000 + Math.random() * 900000))
     urlencoded.append("basket_id", id2);
     urlencoded.append("txnamt", params.amount);
-    urlencoded.append("customer_mobile_no", "03453076714");
+    urlencoded.append("customer_mobile_no", "03341122334");
     urlencoded.append("customer_email_address", params.email);
     urlencoded.append("account_type_id", "4");
     urlencoded.append("bank_code", params.bankCode);
@@ -82,7 +82,7 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
         body: urlencoded,
         redirect: "follow"
     };
-
+    console.log("Request: ", urlencoded)
     let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/validation", requestOptions as RequestInit)
         .then((response) => response.json())
         .then((result) => result)
