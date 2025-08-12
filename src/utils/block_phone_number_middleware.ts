@@ -147,6 +147,7 @@ const blockPhoneNumber: RequestHandler = async (req: Request, res: Response, nex
         // Proceed to the next middleware
         return next();
     } catch (error) {
+        console.log(error)
         res.status(401).json(ApiResponse.error("Number is Blocked for Fraud Transaction", 401));
     }
 };
