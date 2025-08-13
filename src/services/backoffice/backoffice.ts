@@ -937,6 +937,7 @@ const createTransactionService = async (body: any, merchant_id: string) => {
                         msisdn: body.provider_account,
                     },
                     response_message: "success",
+                    settled_amount: merchantAmount
                 },
             });
             if (!body.settlement) {
