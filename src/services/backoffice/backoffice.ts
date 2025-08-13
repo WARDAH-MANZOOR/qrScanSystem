@@ -945,13 +945,13 @@ const createTransactionService = async (body: any, merchant_id: string) => {
                     new Date(),
                     merchant?.settlementDuration as number
                 ); // Call the function to get the next 2 weekdays
-                const transaction = await prisma.scheduledTask.findUnique({
+                const transaction = await tx.scheduledTask.findUnique({
                     where: {
                         transactionId: txnRefNo
                     }
                 })
                 if (!transaction) {
-                    let scheduledTask = await prisma.scheduledTask.create({
+                    let scheduledTask = await tx.scheduledTask.create({
                         data: {
                             transactionId: txnRefNo,
                             status: "pending",
