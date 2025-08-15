@@ -26,6 +26,7 @@ interface CalculatedFinancials {
     differenceInSettlements: Decimal;
     chargebackSum: Decimal;
     topupSum: Decimal;
+    collectionSum: Decimal;
 }
 
 interface MerchantDashboardData {
@@ -1380,7 +1381,8 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             difference,
             differenceInSettlements,
             chargebackSum,
-            topupSum
+            topupSum,
+            collectionSum
         };
     }
     catch (err: any) {
