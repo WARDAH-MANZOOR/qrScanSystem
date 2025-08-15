@@ -1375,14 +1375,14 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             settled,
             payinCommission,
             settledBalance,
+            topupSum,
+            collectionSum,
             payoutCommission,
             totalDisbursement,
-            disbursementSum,
-            difference,
-            differenceInSettlements,
             chargebackSum,
-            topupSum,
-            collectionSum
+            disbursementSum,
+            differenceInSettlements,
+            difference,
         };
     }
     catch (err: any) {
