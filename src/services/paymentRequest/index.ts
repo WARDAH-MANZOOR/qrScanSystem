@@ -297,7 +297,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         }
         const validation = await payfast.validateCustomerInformation(merchant.uid, {
           token: token?.token,
-          bankCode: '13',
+          bankCode: '32',
           order_id: paymentRequest.merchant_transaction_id,
           phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
           amount: paymentRequest.amount,
@@ -311,7 +311,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         }
         const payfastPayment = await payfast.pay(merchant.uid, {
           token: token?.token,
-          bankCode: '13',
+          bankCode: '32',
           transaction_id: validation?.transaction_id,
           order_id: paymentRequest.merchant_transaction_id,
           phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
