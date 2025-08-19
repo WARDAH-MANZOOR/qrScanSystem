@@ -157,6 +157,7 @@ model Merchant {
   ToTopup Topup[] @relation("TopupToMerchant")
   MerchantLimitPolicy MerchantLimitPolicy[]
   MerchantLimitUsage MerchantLimitUsage[]
+  Deduction Deduction[] @relation("DeductionFromMerchant")
 }
 
 model MerchantProviderCredential {
@@ -606,4 +607,16 @@ model LimitReservation {
 
   @@unique([merchant_txn_id, provider], map: "uniq_merchant_txn_provider") // if you pass merchant_txn_id
   @@index([merchant_id, provider, period, windowStart])
+}
+
+model Deduction {
+  id               Int      @id @default(autoincrement())
+  merchantId     Int
+  amount           Decimal  @db.Decimal(10, 2)
+  orderId          String    // Enum can be used for stricter validation
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  reason           String?
+  // Relations
+  merchant Merchant @relation("DeductionFromMerchant", fields: [merchantId], references: [merchant_id])
 }
