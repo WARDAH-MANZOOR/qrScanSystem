@@ -49,6 +49,12 @@ enum CommissionMode {
   DOUBLE
 }
 
+enum LimitPeriod {
+  DAY
+  WEEK
+  MONTH
+}
+
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            
@@ -149,6 +155,9 @@ model Merchant {
   ChargeBack ChargeBack[]
   FromTopup Topup[] @relation("TopupFromMerchant")
   ToTopup Topup[] @relation("TopupToMerchant")
+  MerchantLimitPolicy MerchantLimitPolicy[]
+  MerchantLimitUsage MerchantLimitUsage[]
+  Deduction Deduction[] @relation("DeductionFromMerchant")
 }
 
 model MerchantProviderCredential {
@@ -544,4 +553,70 @@ model FailedAttempt {
   failedAt     DateTime @default(now())
 
   @@index([phoneNumber, failedAt])
+}
+
+model MerchantLimitPolicy {
+  id            Int           @id @default(autoincrement())
+  merchant_id   Int
+  provider      ProviderEnum
+  period        LimitPeriod
+  maxAmount     Decimal?      @db.Decimal(18, 2) // null = unlimited
+  maxTxn        Int?                          // null = unlimited
+  timezone      String        @default("Asia/Karachi") // per-merchant overrideable
+  weekStartDow  Int           @default(1) // 1 = Monday
+  active        Boolean       @default(true)
+
+  merchant      Merchant      @relation(fields: [merchant_id], references: [merchant_id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([merchant_id, provider, period])
+  @@index([merchant_id, provider, period])
+}
+
+model MerchantLimitUsage {
+  id            Int           @id @default(autoincrement())
+  merchant_id   Int
+  provider      ProviderEnum
+  period        LimitPeriod
+  windowStart   DateTime      @db.Timestamptz
+  windowEnd     DateTime      @db.Timestamptz
+  amountUsed    Decimal       @default(0) @db.Decimal(18, 2)
+  txnCount      Int           @default(0)
+
+  merchant      Merchant      @relation(fields: [merchant_id], references: [merchant_id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([merchant_id, provider, period, windowStart])
+  @@index([merchant_id, provider, period])
+}
+
+model LimitReservation {
+  id               String        @id @default(uuid())
+  merchant_id      Int
+  provider         ProviderEnum
+  period           LimitPeriod
+  windowStart      DateTime      @db.Timestamptz
+  amount           Decimal       @db.Decimal(18, 2)
+  merchant_txn_id  String?       // your unique merchant reference, if any
+  status           String        @default("PENDING") // PENDING|COMMITTED|CANCELED|EXPIRED
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([merchant_txn_id, provider], map: "uniq_merchant_txn_provider") // if you pass merchant_txn_id
+  @@index([merchant_id, provider, period, windowStart])
+}
+
+model Deduction {
+  id               Int      @id @default(autoincrement())
+  merchantId     Int
+  amount           Decimal  @db.Decimal(10, 2)
+  orderId          String    // Enum can be used for stricter validation
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  reason           String?
+  // Relations
+  merchant Merchant @relation("DeductionFromMerchant", fields: [merchantId], references: [merchant_id])
 }
