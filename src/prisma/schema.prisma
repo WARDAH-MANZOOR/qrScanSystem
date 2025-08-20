@@ -55,6 +55,25 @@ enum LimitPeriod {
   MONTH
 }
 
+enum OtpStatus {
+  pending
+  verified
+  expired
+  blocked
+}
+
+enum ChargeStatus {
+  pending
+  succeeded
+  failed
+}
+
+enum LocationSource {
+  device
+  ip
+  inferred
+}
+
 model Group {
   id          Int               @id @default(autoincrement())
   name        String            
@@ -251,6 +270,7 @@ model Transaction {
   callback_response String?
 
   @@index([merchant_transaction_id])
+  TransactionLocation TransactionLocation[]
 }
 
 model AdditionalInfo {
@@ -619,4 +639,78 @@ model Deduction {
   reason           String?
   // Relations
   merchant Merchant @relation("DeductionFromMerchant", fields: [merchantId], references: [merchant_id])
+}
+
+model ProviderFirstSeen {
+  id          Int          @id @default(autoincrement())
+  provider    ProviderEnum
+  phoneE164   String
+  userId      Int?         // optional link to your User
+  firstSeenAt DateTime     @default(now())
+
+  @@unique([provider, phoneE164])
+  @@index([phoneE164])
+}
+
+model OtpChallenge {
+  id             String      @id @default(cuid())
+  provider       ProviderEnum
+  phoneE164      String
+  purpose        String      // "first_txn_verification"
+  status         OtpStatus   @default(pending)
+
+  // OTP storage (NEVER plaintext)
+  otpHash        String
+  otpSalt        String
+  expiresAt      DateTime
+  sendCount      Int         @default(0)
+  verifyAttempts Int         @default(0)
+  lastSentAt     DateTime?
+  ip             String?
+  deviceId       String?
+  createdAt      DateTime    @default(now())
+  verifiedAt     DateTime?
+
+  microCharges   MicroCharge[]
+  location       TransactionLocation?
+
+  @@index([phoneE164, provider, status, expiresAt])
+}
+
+model MicroCharge {
+  id            Int          @id @default(autoincrement())
+  challengeId   String
+  attempt       Int
+  amountPkr     Int
+  status        ChargeStatus @default(pending)
+  providerTxnId String?
+  uniqueKey     String       // for idempotency
+  createdAt     DateTime     @default(now())
+
+  challenge     OtpChallenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([challengeId, attempt])
+  @@unique([uniqueKey])
+}
+
+model TransactionLocation {
+  id            Int         @id @default(autoincrement())
+  transactionId String?     // link after commit
+  challengeId   String?     @unique
+  lat           Decimal     @db.Decimal(9, 6)
+  lng           Decimal     @db.Decimal(9, 6)
+  accuracyM     Decimal?    @db.Decimal(6, 2)
+  geohash       String?
+  source        LocationSource
+  consentAt     DateTime
+  ip            String?
+  tz            String?
+  country       String?
+  createdAt     DateTime     @default(now())
+
+  transaction   Transaction? @relation(fields: [transactionId], references: [transaction_id])
+  challenge     OtpChallenge? @relation(fields: [challengeId], references: [id])
+
+  @@index([challengeId])
+  @@index([transactionId])
 }
