@@ -1,0 +1,82 @@
+import { addMinutes } from "date-fns";
+import prisma from "../../prisma/client.js"; // ensure prisma/client.ts default-exports PrismaClient
+import { OTP_MAX_SEND_ATTEMPTS, OTP_TTL_MIN, OTP_VERIFY_MAX_ATTEMPTS, OTP_FIRST_TIME_PURPOSE } from "../../constants/otp.js";
+import { hashOtp, constantTimeEqual } from "../../utils/otp.js";
+import CustomError from "utils/custom_error.js";
+
+
+export async function createFirstTimeChallenge(opts: {
+  phoneE164: string;
+  provider: "EASYPAISA";
+  ip?: string;
+  deviceId?: string;
+  locationId: number;
+}) {
+
+  const challenge = await prisma.otpChallenge.create({
+    data: {
+      provider: "EASYPAISA",
+      phoneE164: opts.phoneE164,
+      purpose: OTP_FIRST_TIME_PURPOSE,
+      otpHash: "",
+      otpSalt: "",
+      expiresAt: addMinutes(new Date(), OTP_TTL_MIN),
+      ip: opts.ip ?? null,
+      deviceId: opts.deviceId ?? null,
+      location: { connect: { id: opts.locationId } },
+    }
+  });
+
+  return { challenge }; // send via SMS; never log OTP in prod
+}
+
+export async function computeAttemptAndCharge(sendCount: number) {
+  const attempt = sendCount + 1;
+  if (attempt > OTP_MAX_SEND_ATTEMPTS) {
+    const err: any = new CustomError("otp_attempts_exceeded",429);
+    err.status = 429;
+    throw err;
+  }
+  const chargeRs = 2 * attempt; // 2, 4, 6
+  return { attempt, chargeRs };
+}
+
+export async function recordMicroChargeAndResend(opts: {
+  challengeId: string;
+  phoneE164: string;
+  idempotencyKey: string;
+  attempt: number;
+  chargeRs: number;
+}) {
+  return prisma.$transaction(async (tx) => {
+    let charge = await tx.microCharge.findUnique({
+      where: { challengeId_attempt: { challengeId: opts.challengeId, attempt: opts.attempt } }
+    });
+
+    if (!charge) {
+      charge = await tx.microCharge.create({
+        data: {
+          challengeId: opts.challengeId,
+          attempt: opts.attempt,
+          amountPkr: opts.chargeRs,
+          uniqueKey: opts.idempotencyKey,
+          status: "pending",
+        }
+      });
+    }
+
+    if (charge.status === "pending") {
+      charge = await tx.microCharge.update({
+        where: { id: charge.id },
+        data: { status: "succeeded", }
+      });
+    }
+
+    await tx.otpChallenge.update({
+      where: { id: opts.challengeId },
+      data: { sendCount: { increment: 1 }, lastSentAt: new Date() }
+    });
+
+    return charge;
+  });
+}

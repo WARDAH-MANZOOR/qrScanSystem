@@ -191,7 +191,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       providerDetails: {
         id: easyPaisaMerchant[0].id,
         name: PROVIDERS.EASYPAISA,
-        msisdn: phone
+        msisdn: phone,
+        deduction: params.attempts * 2
       },
     });
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))

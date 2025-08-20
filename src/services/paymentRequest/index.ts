@@ -226,6 +226,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     }
     console.log(merchant?.easypaisaPaymentMethod)
     let response;
+
+
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
         {
@@ -258,8 +260,16 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
             email: "example@example.com",
             // orderId: `SPAY-PR-${paymentRequest.id}`,
+            attempts: paymentRequestObj.attempts
           }
         );
+        
+        if (paymentRequestObj?.challengeId) {
+          await prisma.transactionLocation.updateMany({
+            where: { challengeId: paymentRequestObj?.challengeId },
+            data: { transactionId: easyPaisaPayment.txnNo }
+          });
+        }
 
         if (easyPaisaPayment.statusCode != "0000") {
           throw new CustomError(
