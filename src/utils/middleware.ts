@@ -4,6 +4,7 @@ import CustomError from "./custom_error.js";
 import prisma from "../prisma/client.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { OTP_VERIFY_MAX_ATTEMPTS } from "constants/otp.js";
+import { normalizeE164 } from "./phone.js";
 
 const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -32,8 +33,9 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
   try {
     const { accountNo, provider, payId, otp, challengeId } = req.body;
     const c = await prisma.otpChallenge.findUnique({ where: { id: challengeId } });
-    if (!c) res.status(404).json({ ok: false, status: 404, reason: "not_found" });
-    if (c?.status !== "pending") res.status(409).json({ ok: false, status: 409, reason: "not_active" });
+    if (!c) {res.status(404).json({ ok: false, status: 404, reason: "not_found" }); return}
+    if (c?.status == "verified") {return next()}
+    if (c?.status !== "pending") {res.status(409).json({ ok: false, status: 409, reason: "not_active" }); return}
 
     // Verify the otp
     const record = await prisma.paymentRequest.findFirst({
@@ -91,6 +93,14 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
 
     // Proceed to the next middleware
     req.body.attempts = c?.sendCount;
+    await prisma.$transaction([
+      prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "verified", verifiedAt: new Date() } }),
+      prisma.providerFirstSeen.upsert({
+        where: { provider_phoneE164: { provider: "EASYPAISA", phoneE164: c?.phoneE164 as string } },
+        create: { provider: "EASYPAISA", phoneE164: c?.phoneE164 as string },
+        update: {}
+      })
+    ]);
     return next();
   } catch (error) {
     console.log(error)

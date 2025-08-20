@@ -213,7 +213,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
             id: easyPaisaMerchant[0].id,
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
-            transactionId: response?.data?.transactionId
+            transactionId: response?.data?.transactionId,
+            deduction: params.attempts * 2
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -250,7 +251,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
             id: easyPaisaMerchant[0].id,
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
-            transactionId: response?.data?.transactionId
+            transactionId: response?.data?.transactionId,
+            deduction: params.attempts * 2
           },
         },
         findMerchant.commissions[0].settlementDuration
