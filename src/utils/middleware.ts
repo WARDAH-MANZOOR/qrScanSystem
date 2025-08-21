@@ -62,7 +62,7 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
         where: { id: c?.id },
         data: { verifyAttempts: { increment: 1 } }
       });
-      if (updated.verifyAttempts + 1 >= OTP_VERIFY_MAX_ATTEMPTS) {
+      if (updated.verifyAttempts >= OTP_VERIFY_MAX_ATTEMPTS) {
         await prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "blocked" } });
         await prisma.failedAttempt.createMany({
           data: [{
@@ -92,7 +92,7 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
     }
 
     // Proceed to the next middleware
-    req.body.attempts = c?.sendCount;
+    req.body.attempts = c?.sendCount + 1;
     await prisma.$transaction([
       prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "verified", verifiedAt: new Date() } }),
       prisma.providerFirstSeen.upsert({
@@ -207,7 +207,7 @@ const isAdmin: RequestHandler = async (req: Request, res: Response, next: NextFu
 
 const blockPhoneMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const phone = req.body.phone || req.body.accountNo;
-
+  let normalizedPhone = normalizeE164(phone)
   if (!phone) {
     res.status(400).json({ message: 'Phone number required' });
     return;
@@ -217,7 +217,14 @@ const blockPhoneMiddleware = async (req: Request, res: Response, next: NextFunct
 
   const attempts = await prisma.failedAttempt.count({
     where: {
-      phoneNumber: phone,
+      OR: [
+        {
+          phoneNumber: phone
+        }, 
+        {
+          phoneNumber: normalizedPhone
+        }
+      ],
       failedAt: {
         gte: oneHourAgo,
       },
