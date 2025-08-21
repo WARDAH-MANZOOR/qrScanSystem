@@ -166,6 +166,28 @@ const payRequestedPayment = async (
   }
 };
 
+const payRequestedPaymentForRedirection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+    if (!req.body.payId) {
+      throw new CustomError("Payment request ID is required", 400);
+    }
+
+    if (!req.body.accountNo) {
+      throw new CustomError("Account number is required", 400);
+    }
+
+    const result = await paymentRequestService.payRequestedPaymentForRedirection(req.body);
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const payUpaisaZindigi = async (
   req: Request,
   res: Response,
@@ -245,5 +267,6 @@ export default {
   createPaymentRequestClone,
   createPaymentRequestWithOtp,
   payUpaisaZindigi,
-  preRequest
+  preRequest,
+  payRequestedPaymentForRedirection
 };
