@@ -32,7 +32,7 @@ export async function createFirstTimeChallenge(opts: {
   return { challenge }; // send via SMS; never log OTP in prod
 }
 
-export async function computeAttemptAndCharge(sendCount: number, c: any) {
+export async function computeAttemptAndCharge(sendCount: number, c:any) {
   const attempt = sendCount + 1;
   if (attempt > OTP_MAX_SEND_ATTEMPTS) {
     await prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "blocked" } });
