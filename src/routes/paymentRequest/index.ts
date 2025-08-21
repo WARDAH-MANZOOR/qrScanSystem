@@ -15,7 +15,7 @@ router.post(
 router.post(
   "/pay-otp",
   [block_phone_number_middleware.blockPhoneNumberInRedirection,blockPhoneMiddleware, checkOtp ],
-  paymentRequestController.payRequestedPayment
+  paymentRequestController.payRequestedPaymentForRedirection
 );
 
 router.post(
