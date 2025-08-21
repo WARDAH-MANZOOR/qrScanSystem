@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { authorize, checkOtp, isAdmin, isLoggedIn } from "../../utils/middleware.js";
+import { authorize, blockPhoneMiddleware, checkOtp, isAdmin, isLoggedIn } from "../../utils/middleware.js";
 import { paymentRequestController } from "../../controller/index.js";
 import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 
 const router = Router();
 
+router.post("/pre", blockPhoneMiddleware, paymentRequestController.preRequest)
 router.post(
   "/pay",
   block_phone_number_middleware.blockPhoneNumberInRedirection,
@@ -13,7 +14,7 @@ router.post(
 
 router.post(
   "/pay-otp",
-  [block_phone_number_middleware.blockPhoneNumberInRedirection, checkOtp],
+  [block_phone_number_middleware.blockPhoneNumberInRedirection,blockPhoneMiddleware, checkOtp ],
   paymentRequestController.payRequestedPayment
 );
 
