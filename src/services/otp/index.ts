@@ -3,6 +3,7 @@ import prisma from "../../prisma/client.js"; // ensure prisma/client.ts default-
 import { OTP_MAX_SEND_ATTEMPTS, OTP_TTL_MIN, OTP_VERIFY_MAX_ATTEMPTS, OTP_FIRST_TIME_PURPOSE } from "../../constants/otp.js";
 import { hashOtp, constantTimeEqual } from "../../utils/otp.js";
 import CustomError from "utils/custom_error.js";
+import { transactionService } from "services/index.js";
 
 
 export async function createFirstTimeChallenge(opts: {
@@ -30,9 +31,58 @@ export async function createFirstTimeChallenge(opts: {
   return { challenge }; // send via SMS; never log OTP in prod
 }
 
-export async function computeAttemptAndCharge(sendCount: number) {
+export async function computeAttemptAndCharge(sendCount: number, c:any) {
   const attempt = sendCount + 1;
   if (attempt > OTP_MAX_SEND_ATTEMPTS) {
+    await prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "blocked" } });
+        await prisma.failedAttempt.createMany({
+          data: [{
+            phoneNumber: c?.phoneE164 as string,
+            failedAt: new Date()
+          },
+          {
+            phoneNumber: c?.phoneE164 as string,
+            failedAt: new Date()
+          },
+          {
+            phoneNumber: c?.phoneE164 as string,
+            failedAt: new Date()
+          },
+          {
+            phoneNumber: c?.phoneE164 as string,
+            failedAt: new Date()
+          }
+          ,{
+            phoneNumber: c?.phoneE164 as string,
+            failedAt: new Date()
+          }]
+        })
+        const transactionLocation = await prisma.transactionLocation.findUnique({
+          where: {
+            challengeId: c?.id
+          }
+        });
+        const txn = await prisma.transaction.findUnique({
+          where: {
+            transaction_id: transactionLocation?.transactionId as string
+          }
+        })
+        const merchant = await prisma.merchant.findUnique({
+          where: {
+            merchant_id: txn?.merchant_id
+          },
+          include: {
+            commissions: true
+          }
+        })
+        await transactionService.updateTxn(
+          txn?.transaction_id as string,
+          {
+            status: "failed",
+            response_message: "OTP Verification Failed"
+          },
+          merchant?.commissions[0].settlementDuration as number
+        )
     const err: any = new CustomError("otp_attempts_exceeded",429);
     err.status = 429;
     throw err;
