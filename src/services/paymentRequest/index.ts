@@ -251,7 +251,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     ) {
       if (merchant.easypaisaPaymentMethod === "DIRECT") {
         // easypaisa payment
-        const easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
+        const easyPaisaPayment = await easyPaisaService.initiateEasyPaisaForRedirection(
           merchant.uid,
           {
             order_id: paymentRequest.merchant_transaction_id,
@@ -260,7 +260,8 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
             email: "example@example.com",
             // orderId: `SPAY-PR-${paymentRequest.id}`,
-            attempts: paymentRequestObj.attempts
+            attempts: paymentRequestObj.attempts,
+            challengeId: paymentRequestObj.challengeId
           }
         );
         
