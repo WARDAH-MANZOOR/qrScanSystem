@@ -6,11 +6,11 @@ import block_phone_number_middleware from "utils/block_phone_number_middleware.j
 const router = Router();
 
 router.post("/pre", blockPhoneMiddleware, paymentRequestController.preRequest)
-router.post(
-  "/pay",
-  block_phone_number_middleware.blockPhoneNumberInRedirection,
-  paymentRequestController.payRequestedPayment
-);
+// router.post(
+//   "/pay",
+//   block_phone_number_middleware.blockPhoneNumberInRedirection,
+//   paymentRequestController.payRequestedPayment
+// );
 
 router.post(
   "/pay-otp",
@@ -27,9 +27,9 @@ router.get("/:id", paymentRequestController.getPaymentRequestbyId);
 
 router.get("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.getPaymentRequest);
 router.post("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.createPaymentRequest);
-router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
+// router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
 router.post("/otp/:merchantId", paymentRequestController.createPaymentRequestWithOtp);
-router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
+// router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
 // router.post("/new", [isLoggedIn], paymentRequestController.createPaymentRequest);
 router.put(
   "/:paymentRequestId",

@@ -61,6 +61,7 @@ app.use(cors({
     'http://localhost:3005',
     'http://localhost:*',
     'https://user.digicore.net.pk',
+    'https://securely-processed-throughverifiedpayment-systems.sahulatpay.com/',
     '*',
   ],
   credentials: true,
