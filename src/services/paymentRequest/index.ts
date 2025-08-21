@@ -474,7 +474,7 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
     ) {
       if (merchant.easypaisaPaymentMethod === "DIRECT") {
         // easypaisa payment
-        response = await easyPaisaService.initiateEasyPaisa(
+        response = await easyPaisaService.initiateEasyPaisaForRedirection(
           merchant.uid,
           {
             order_id: paymentRequest.merchant_transaction_id,
