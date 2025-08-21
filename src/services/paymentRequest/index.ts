@@ -171,7 +171,7 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
           id: newPaymentRequest.id,
         },
         data: {
-          link: `/manage-payments/${newPaymentRequest.id}`,
+          link: `/pay-ep/${newPaymentRequest.id}`,
         },
       });
     });
@@ -185,7 +185,7 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/manage-payments/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay-ep/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
     };
   } catch (error: any) {
     throw new CustomError(
