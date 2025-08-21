@@ -54,7 +54,7 @@ export default function (router: Router) {
   );
 
   router.post(
-    "/initiate-ep/:merchantId",
+    "/initiate-ep-v2/:merchantId",
     validateEasypaisaTxn,
     block_phone_number_middleware.blockPhoneNumber,
     blockPhoneMiddleware,
@@ -62,7 +62,7 @@ export default function (router: Router) {
   );
 
   router.post(
-    "/initiate-epa/:merchantId",
+    "/initiate-epa-v2/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber],
     blockPhoneMiddleware,
     easyPaisaController.initiateEasyPaisaAsync
@@ -81,7 +81,7 @@ export default function (router: Router) {
   );
 
   router.post(
-    "/initiate-epa-mntx/:merchantId",
+    "/initiate-epa-mntx-v2/:merchantId",
     [apiKeyAuth, ...validateEasypaisaTxn],
     blockPhoneMiddleware,
     easyPaisaController.initiateEasyPaisaAsyncClone
