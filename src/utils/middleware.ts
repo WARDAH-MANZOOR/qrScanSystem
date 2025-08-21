@@ -119,7 +119,7 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
     }
 
     // Proceed to the next middleware
-    req.body.attempts = c?.sendCount + 1;
+    req.body.attempts = c?.sendCount;
     await prisma.$transaction([
       prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "verified", verifiedAt: new Date() } }),
       prisma.providerFirstSeen.upsert({
