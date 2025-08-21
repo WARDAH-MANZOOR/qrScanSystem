@@ -6,11 +6,11 @@ import block_phone_number_middleware from "utils/block_phone_number_middleware.j
 const router = Router();
 
 router.post("/pre", blockPhoneMiddleware, paymentRequestController.preRequest)
-router.post(
-  "/pay",
-  block_phone_number_middleware.blockPhoneNumberInRedirection,
-  paymentRequestController.payRequestedPayment
-);
+// router.post(
+//   "/pay",
+//   block_phone_number_middleware.blockPhoneNumberInRedirection,
+//   paymentRequestController.payRequestedPayment
+// );
 
 router.post(
   "/pay-otp",
