@@ -5,6 +5,7 @@ import prisma from "../prisma/client.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { OTP_VERIFY_MAX_ATTEMPTS } from "constants/otp.js";
 import { normalizeE164 } from "./phone.js";
+import { transactionService } from "services/index.js";
 
 const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -62,7 +63,7 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
         where: { id: c?.id },
         data: { verifyAttempts: { increment: 1 } }
       });
-      if (updated.verifyAttempts >= OTP_VERIFY_MAX_ATTEMPTS) {
+      if (updated.verifyAttempts >= OTP_VERIFY_MAX_ATTEMPTS || updated.sendCount >= OTP_VERIFY_MAX_ATTEMPTS) {
         await prisma.otpChallenge.update({ where: { id: c?.id }, data: { status: "blocked" } });
         await prisma.failedAttempt.createMany({
           data: [{
@@ -81,11 +82,37 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
             phoneNumber: c?.phoneE164 as string,
             failedAt: new Date()
           }
-            , {
+          ,{
             phoneNumber: c?.phoneE164 as string,
             failedAt: new Date()
           }]
         })
+        const transactionLocation = await prisma.transactionLocation.findUnique({
+          where: {
+            challengeId: challengeId
+          }
+        });
+        const txn = await prisma.transaction.findUnique({
+          where: {
+            transaction_id: transactionLocation?.transactionId as string
+          }
+        })
+        const merchant = await prisma.merchant.findUnique({
+          where: {
+            merchant_id: txn?.merchant_id
+          },
+          include: {
+            commissions: true
+          }
+        })
+        await transactionService.updateTxn(
+          txn?.transaction_id as string,
+          {
+            status: "failed",
+            response_message: "OTP Verification Failed"
+          },
+          merchant?.commissions[0].settlementDuration as number
+        )
       }
       res.status(401).send("Invalid OTP");
       return;
