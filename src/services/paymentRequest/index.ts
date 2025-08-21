@@ -251,7 +251,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     ) {
       if (merchant.easypaisaPaymentMethod === "DIRECT") {
         // easypaisa payment
-        const easyPaisaPayment = await easyPaisaService.initiateEasyPaisaForRedirection(
+        const easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
           merchant.uid,
           {
             order_id: paymentRequest.merchant_transaction_id,
@@ -264,7 +264,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
             challengeId: paymentRequestObj.challengeId
           }
         );
-        
+
         if (paymentRequestObj?.challengeId) {
           await prisma.transactionLocation.updateMany({
             where: { challengeId: paymentRequestObj?.challengeId },
@@ -405,6 +405,104 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           requestId: paymentRequestObj.payId
         }
       })
+    }
+
+    let updatedPaymentRequest;
+    if (paymentRequestObj?.provider.toLowerCase() == "jazzcash" || paymentRequestObj?.provider.toLowerCase() == "easypaisa") {
+      console.log("Wallet")
+      updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+        return tx.paymentRequest.update({
+          where: {
+            id: paymentRequestObj.payId,
+          },
+          data: {
+            status: "paid",
+            updatedAt: new Date(),
+          },
+        });
+      });
+    }
+
+    return {
+      message: "Payment request paid successfully",
+      ...response
+      // data: updatedPaymentRequest,
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while updating the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
+const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
+  try {
+    const paymentRequest = await prisma.paymentRequest.findFirst({
+      where: {
+        id: paymentRequestObj.payId,
+        deletedAt: null,
+      },
+    });
+
+    if (!paymentRequest) {
+      throw new CustomError("Payment request not found", 404);
+    }
+
+    if (!paymentRequest.userId) {
+      throw new CustomError("User not found", 404);
+    }
+    // find merchant by user id because merchant and user are the same
+    const merchant = await prisma.merchant.findFirst({
+      where: {
+        merchant_id: paymentRequest.userId,
+      },
+      include: {
+        commissions: true
+      }
+    });
+
+    if (!merchant || !merchant.uid) {
+      throw new CustomError("Merchant not found", 404);
+    }
+    console.log(merchant?.easypaisaPaymentMethod)
+    let response;
+
+
+    if (
+      paymentRequestObj.provider?.toLocaleLowerCase() === "easypaisa"
+    ) {
+      if (merchant.easypaisaPaymentMethod === "DIRECT") {
+        // easypaisa payment
+        response = await easyPaisaService.initiateEasyPaisa(
+          merchant.uid,
+          {
+            order_id: paymentRequest.merchant_transaction_id,
+            amount: paymentRequest.amount,
+            type: "wallet",
+            phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
+            email: "example@example.com",
+            // orderId: `SPAY-PR-${paymentRequest.id}`,
+            attempts: paymentRequestObj.attempts,
+            challengeId: paymentRequestObj.challengeId
+          }
+        );
+
+        if (paymentRequestObj?.challengeId) {
+          await prisma.transactionLocation.updateMany({
+            where: { challengeId: paymentRequestObj?.challengeId },
+            data: { transactionId: response.txnNo }
+          });
+        }
+
+        if (response.statusCode != "0000") {
+          throw new CustomError(
+            response.message,
+            500
+          );
+        }
+
+      }
     }
 
     let updatedPaymentRequest;
@@ -753,5 +851,6 @@ export default {
   getPaymentRequestbyId,
   createPaymentRequestClone,
   createPaymentRequestWithOtp,
-  payUpaisaZindigi
+  payUpaisaZindigi,
+  payRequestedPaymentForRedirection
 };
