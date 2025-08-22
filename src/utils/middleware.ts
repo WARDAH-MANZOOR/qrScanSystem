@@ -6,6 +6,7 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { OTP_VERIFY_MAX_ATTEMPTS } from "constants/otp.js";
 import { normalizeE164 } from "./phone.js";
 import { transactionService } from "services/index.js";
+import { PROVIDERS } from "constants/providers.js";
 
 const isLoggedIn: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -34,9 +35,9 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
   try {
     const { accountNo, provider, payId, otp, challengeId } = req.body;
     const c = await prisma.otpChallenge.findUnique({ where: { id: challengeId } });
-    if (!c) {res.status(404).json({ ok: false, status: 404, reason: "not_found" }); return}
-    if (c?.status == "verified") {return next()}
-    if (c?.status !== "pending") {res.status(409).json({ ok: false, status: 409, reason: "not_active" }); return}
+    if (!c) { res.status(404).json({ ok: false, status: 404, reason: "not_found" }); return }
+    if (c?.status == "verified") { return next() }
+    if (c?.status !== "pending") { res.status(409).json({ ok: false, status: 409, reason: "not_active" }); return }
 
     // Verify the otp
     const record = await prisma.paymentRequest.findFirst({
@@ -82,7 +83,7 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
             phoneNumber: c?.phoneE164 as string,
             failedAt: new Date()
           }
-          ,{
+            , {
             phoneNumber: c?.phoneE164 as string,
             failedAt: new Date()
           }]
@@ -109,7 +110,13 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
           txn?.transaction_id as string,
           {
             status: "failed",
-            response_message: "OTP Verification Failed"
+            response_message: "OTP Verification Failed",
+            providerDetails: {
+              id: merchant?.easyPaisaMerchantId,
+              name: PROVIDERS.EASYPAISA,
+              msisdn: c?.phoneE164,
+              deduction: 6
+            }
           },
           merchant?.commissions[0].settlementDuration as number
         )
@@ -247,7 +254,7 @@ const blockPhoneMiddleware = async (req: Request, res: Response, next: NextFunct
       OR: [
         {
           phoneNumber: phone
-        }, 
+        },
         {
           phoneNumber: normalizedPhone
         }
