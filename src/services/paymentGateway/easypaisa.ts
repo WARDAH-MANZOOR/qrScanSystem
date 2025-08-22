@@ -192,7 +192,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         id: easyPaisaMerchant[0].id,
         name: PROVIDERS.EASYPAISA,
         msisdn: phone,
-        deduction: params.attempts * 2
+        deduction: params.attempts * 2,
+        deductionDone: false
       },
     });
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))
@@ -214,7 +215,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
             transactionId: response?.data?.transactionId,
-            deduction: params.attempts * 2
+            deduction: params.attempts * 2,
+            deductionDone: false
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -252,7 +254,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
             transactionId: response?.data?.transactionId,
-            deduction: params.attempts * 2
+            deduction: params.attempts * 2,
+            deductionDone: false
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -378,7 +381,8 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
             transactionId: response?.data?.transactionId,
-            deduction: params.attempts * 2
+            deduction: params.attempts * 2,
+            deductionDone: false
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -416,7 +420,8 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
             transactionId: response?.data?.transactionId,
-            deduction: params.attempts * 2
+            deduction: params.attempts * 2,
+            deductionDone: false
           },
         },
         findMerchant.commissions[0].settlementDuration

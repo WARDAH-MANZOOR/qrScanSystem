@@ -85,7 +85,8 @@ export async function computeAttemptAndCharge(sendCount: number, c:any) {
                 id: merchant?.easyPaisaMerchantId,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: c?.phoneE164,
-                deduction: 6
+                deduction: 6,
+                deductionDone: false
             }
           },
           merchant?.commissions[0].settlementDuration as number
