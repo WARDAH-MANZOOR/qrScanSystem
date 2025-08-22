@@ -239,34 +239,6 @@ async function processMerchantSettlement(
   // Aggregate data
   const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
 
-  // Upsert SettlementReport for the day
-  await tx.settlementReport.upsert({
-    where: {
-      merchant_id_settlementDate: {
-        merchant_id,
-        settlementDate,
-      },
-    },
-    create: {
-      merchant_id,
-      settlementDate,
-      transactionCount: settlementData.transactionCount,
-      transactionAmount: settlementData.transactionAmount,
-      commission: settlementData.totalCommission,
-      gst: settlementData.totalGST,
-      withholdingTax: settlementData.totalWithholdingTax,
-      merchantAmount: settlementData.merchantAmount,
-    },
-    update: {
-      transactionCount: { increment: settlementData.transactionCount },
-      transactionAmount: { increment: settlementData.transactionAmount },
-      commission: { increment: settlementData.totalCommission },
-      gst: { increment: settlementData.totalGST },
-      withholdingTax: { increment: settlementData.totalWithholdingTax },
-      merchantAmount: { increment: settlementData.merchantAmount },
-    },
-  });
-
   // Deduction handling similar to settleAllMerchantTransactions
   let totalProviderDeduction = new Decimal(0);
   let deductionSourceTxns = await tx.transaction.findMany({
@@ -328,6 +300,38 @@ async function processMerchantSettlement(
       });
     }
   }
+
+  // Upsert SettlementReport for the day
+  await tx.settlementReport.upsert({
+    where: {
+      merchant_id_settlementDate: {
+        merchant_id,
+        settlementDate,
+      },
+    },
+    create: {
+      merchant_id,
+      settlementDate,
+      transactionCount: settlementData.transactionCount,
+      transactionAmount: settlementData.transactionAmount,
+      commission: settlementData.totalCommission,
+      gst: settlementData.totalGST,
+      withholdingTax: settlementData.totalWithholdingTax,
+      merchantAmount: settlementData.merchantAmount.minus(totalProviderDeduction),
+      otpDeduction: totalProviderDeduction
+    },
+    update: {
+      transactionCount: { increment: settlementData.transactionCount },
+      transactionAmount: { increment: settlementData.transactionAmount },
+      commission: { increment: settlementData.totalCommission },
+      gst: { increment: settlementData.totalGST },
+      withholdingTax: { increment: settlementData.totalWithholdingTax },
+      merchantAmount: { increment: settlementData.merchantAmount.minus(totalProviderDeduction) },
+      otpDeduction: {increment: totalProviderDeduction}
+    },
+  });
+
+  
 
   // Update transactions and tasks
   await updateTransactionsAndTasks(
