@@ -316,6 +316,9 @@ const initiateDisbursmentClone = async (req: Request, res: Response, next: NextF
     if (req.body.amount <= 1) {
       throw new CustomError("Amount should be greater than 0", 400);
     }
+    if (req.body.iban.length > 10) {
+      throw new CustomError("Amount should be greater than 0", 400);
+    }
     const token = await getToken(req.params.merchantId);
     const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
     res.status(200).json(ApiResponse.success(initTransaction));

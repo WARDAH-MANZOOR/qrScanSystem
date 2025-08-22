@@ -729,7 +729,7 @@ async function settleAllMerchantTransactions(merchantId: number) {
                     path: ["deductionDone"],
                     equals: false
                 }
-            }, 
+            },
             select: { providerDetails: true, transaction_id: true },
         });
         deductionSourceTxns = deductionSourceTxns.filter(txn => (txn.providerDetails as JsonObject).deduction != null || (txn.providerDetails as JsonObject).deduction != undefined)
@@ -742,7 +742,7 @@ async function settleAllMerchantTransactions(merchantId: number) {
                 totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
             }
         }
-        console.log("OTP Deduction: ",totalProviderDeduction)
+        console.log("OTP Deduction: ", totalProviderDeduction)
 
         // Step 2: Perform per-transaction calculations
         let transactionAmount = new Decimal(0);
@@ -841,7 +841,8 @@ async function settleAllMerchantTransactions(merchantId: number) {
                 commission: totalCommission,
                 gst: totalGST,
                 withholdingTax: totalWithholdingTax,
-                merchantAmount: merchantAmount,
+                merchantAmount: merchantAmount.minus(totalProviderDeduction),
+                otpDeduction: totalProviderDeduction
             },
         });
 
@@ -864,8 +865,8 @@ async function settleAllMerchantTransactions(merchantId: number) {
         return 'All merchant transactions settled successfully.';
     } catch (error) {
         console.error(error);
-        throw new CustomError('Error settling all transactions', 500);
-    }
+        throw new CustomError('Error settling all transactions', 500);
+    }
 }
 
 async function settleAllMerchantTransactionsUpdated(merchantId: number) {
