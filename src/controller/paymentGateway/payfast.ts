@@ -12,7 +12,7 @@ const pay = async (req: Request, res: Response, next: NextFunction) => {
         }
         const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
             token: token?.token,
-            bankCode: '13',
+            bankCode: '32',
             ...req.body
         })
         if (!validation?.transaction_id) {
@@ -20,7 +20,7 @@ const pay = async (req: Request, res: Response, next: NextFunction) => {
         }
         const payment = await payfast.pay(req.params.merchantId, {
             token: token?.token,
-            bankCode: '13',
+            bankCode: '32',
             transaction_id: validation?.transaction_id,
             ...req.body
         })
