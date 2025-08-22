@@ -145,9 +145,14 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
       }
     })
 
-    if (!user2?.easyPaisaMerchantId) {
+    if (user2?.easypaisaPaymentMethod == "DIRECT" && !user2?.easyPaisaMerchantId) {
       throw new CustomError("Merchant not Found", 404)
     }
+
+    if (user2?.easypaisaPaymentMethod == "PAYFAST" && !user2?.payFastMerchantId) {
+      throw new CustomError("Merchant not Found", 404)
+    }
+
     const newPaymentRequest = await prisma.$transaction(async (tx) => {
       return tx.paymentRequest.create({
         data: {
