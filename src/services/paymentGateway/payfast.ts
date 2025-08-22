@@ -93,7 +93,8 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
         response_message: result.message || "An error occurred while initiating the transaction",
         statusCode: 500,
         txnNo: id2,
-        transaction_id: result.transaction_id
+        transaction_id: result.transaction_id,
+        txnNo2: id
     };
 }
 
