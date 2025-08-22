@@ -318,6 +318,7 @@ model SettlementReport {
   commission        Decimal
   gst               Decimal
   withholdingTax    Decimal
+  otpDeduction      Decimal @default(0)
   merchantAmount    Decimal
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
