@@ -507,6 +507,43 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
         }
 
       }
+      else {
+        const token = await payfast.getApiToken(merchant.uid, {});
+        if (!token?.token) {
+          console.log(JSON.stringify({ event: "PAYFAST_PAYIN_NO_TOKEN_RECIEVED", order_id: paymentRequest.merchant_transaction_id }))
+          throw new CustomError("No Token Recieved", 500);
+        }
+        const validation = await payfast.validateCustomerInformation(merchant.uid, {
+          token: token?.token,
+          bankCode: '32',
+          order_id: paymentRequest.merchant_transaction_id,
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
+          amount: paymentRequest.amount,
+          email: paymentRequest.email
+        })
+        if (!validation?.transaction_id) {
+          await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
+          console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: paymentRequest.merchant_transaction_id }))
+          throw new CustomError(validation.response_message, 500)
+          // return;
+        }
+        const payfastPayment = await payfast.payForRedirection(merchant.uid, {
+          token: token?.token,
+          bankCode: '32',
+          transaction_id: validation?.transaction_id,
+          order_id: paymentRequest.merchant_transaction_id,
+          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
+          amount: paymentRequest.amount,
+          email: paymentRequest.email,
+          attempts: paymentRequestObj.attempts,
+          challengeId: paymentRequestObj.challengeId
+        })
+        if (payfastPayment?.statusCode != "0000") {
+          await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
+          console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: paymentRequest.merchant_transaction_id, response: payfastPayment }))
+          throw new CustomError(payfastPayment.message, 500)
+        }
+      }
     }
 
     let updatedPaymentRequest;
