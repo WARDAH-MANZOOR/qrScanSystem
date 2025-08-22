@@ -4,6 +4,7 @@ import { OTP_MAX_SEND_ATTEMPTS, OTP_TTL_MIN, OTP_VERIFY_MAX_ATTEMPTS, OTP_FIRST_
 import { hashOtp, constantTimeEqual } from "../../utils/otp.js";
 import CustomError from "utils/custom_error.js";
 import { transactionService } from "services/index.js";
+import { PROVIDERS } from "constants/providers.js";
 
 
 export async function createFirstTimeChallenge(opts: {
@@ -79,7 +80,13 @@ export async function computeAttemptAndCharge(sendCount: number, c:any) {
           txn?.transaction_id as string,
           {
             status: "failed",
-            response_message: "OTP Verification Failed"
+            response_message: "OTP Verification Failed",
+            providerDetails: {
+                id: merchant?.easyPaisaMerchantId,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: c?.phoneE164,
+                deduction: 6
+            }
           },
           merchant?.commissions[0].settlementDuration as number
         )
