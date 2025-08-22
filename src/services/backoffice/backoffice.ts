@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { endOfDay, format, subDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { dashboardService, jazzCashService, transactionService } from '../../services/index.js';
+import { backofficeService, dashboardService, jazzCashService, transactionService } from '../../services/index.js';
 import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
 import CustomError from '../../utils/custom_error.js';
 import { addWeekdays } from '../../utils/date_method.js';
@@ -717,6 +717,33 @@ async function settleAllMerchantTransactions(merchantId: number) {
             },
         });
 
+        // Sum provider deduction from completed and failed transactions, then deduct equally from balances
+        let totalProviderDeduction = new Decimal(0);
+        let deductionSourceTxns = await prisma.transaction.findMany({
+            where: {
+                merchant_id: merchantId,
+                status: { in: ['completed', 'failed'] },
+                settlement: false,
+                balance: { gt: 0 },
+                providerDetails: {
+                    path: ["deductionDone"],
+                    equals: false
+                }
+            }, 
+            select: { providerDetails: true, transaction_id: true },
+        });
+        deductionSourceTxns = deductionSourceTxns.filter(txn => (txn.providerDetails as JsonObject).deduction != null || (txn.providerDetails as JsonObject).deduction != undefined)
+        for (const t of deductionSourceTxns) {
+            const pd = (t.providerDetails as JsonObject) || ({} as JsonObject);
+            const raw = (pd as any)?.deduction;
+            if (typeof raw === 'number') {
+                totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+            } else if (typeof raw === 'string' && raw.trim() !== '' && !Number.isNaN(Number(raw))) {
+                totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+            }
+        }
+        console.log("OTP Deduction: ",totalProviderDeduction)
+
         // Step 2: Perform per-transaction calculations
         let transactionAmount = new Decimal(0);
         let totalCommission = new Decimal(0);
@@ -754,7 +781,7 @@ async function settleAllMerchantTransactions(merchantId: number) {
             .minus(totalCommission)
             .minus(totalGST)
             .minus(totalWithholdingTax);
-
+        console.log(merchantAmount)
         // Step 3: Mark transactions as settled
         await prisma.transaction.updateMany({
             where: {
@@ -768,6 +795,38 @@ async function settleAllMerchantTransactions(merchantId: number) {
             },
         });
 
+        console.log("Amount to minus: ", merchantAmount, totalProviderDeduction);
+
+        // getWalletBalance سے واپس آنے والا object کسی خاص type کا نہیں ہے، اس لیے اسے typecast کریں
+        const walletBalanceObj = await getWalletBalance(merchantId);
+        // اگر walletBalance property موجود ہے تو اسے استعمال کریں، ورنہ 0 رکھیں
+        const walletBalance = (walletBalanceObj as { walletBalance?: Decimal | number })?.walletBalance ?? 0;
+
+        // اگر walletBalance ایک number نہیں ہے تو اسے Decimal میں convert کریں
+        const walletBalanceDecimal = walletBalance instanceof Decimal ? walletBalance : new Decimal(walletBalance);
+
+        // merchantAmount ایک Decimal object ہے، اور adjustMerchantWalletBalance کو number چاہیے۔
+        // اس لیے اسے number میں convert کریں۔
+        await backofficeService.adjustMerchantWalletBalance(
+            merchantId,
+            new Decimal(walletBalance).minus(totalProviderDeduction).toNumber(),
+            false
+        );
+
+
+        for (const txn of deductionSourceTxns) {
+            await prisma.transaction.updateMany({
+                where: {
+                    transaction_id: txn.transaction_id
+                },
+                data: {
+                    providerDetails: {
+                        ...txn.providerDetails as JsonObject,
+                        deductionDone: true
+                    }
+                }
+            })
+        }
         // Step 4: Insert into settlementReport
         const timeZone = 'Asia/Karachi';
         const today = toZonedTime(new Date(), timeZone);
@@ -805,8 +864,8 @@ async function settleAllMerchantTransactions(merchantId: number) {
         return 'All merchant transactions settled successfully.';
     } catch (error) {
         console.error(error);
-        throw new CustomError('Error settling all transactions', 500);
-    }
+        throw new CustomError('Error settling all transactions', 500);
+    }
 }
 
 async function settleAllMerchantTransactionsUpdated(merchantId: number) {

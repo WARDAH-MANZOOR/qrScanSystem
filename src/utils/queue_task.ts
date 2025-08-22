@@ -3,6 +3,8 @@ import { Decimal, DefaultArgs, JsonObject } from "@prisma/client/runtime/library
 import { toZonedTime } from "date-fns-tz";
 import prisma from "../prisma/client.js";
 import { text } from "express";
+import { backofficeService } from "../services/index.js";
+import { getWalletBalance } from "../services/paymentGateway/disbursement.js";
 
 const task = async () => {
   console.log("Cron running");
@@ -264,6 +266,68 @@ async function processMerchantSettlement(
       merchantAmount: { increment: settlementData.merchantAmount },
     },
   });
+
+  // Deduction handling similar to settleAllMerchantTransactions
+  let totalProviderDeduction = new Decimal(0);
+  let deductionSourceTxns = await tx.transaction.findMany({
+    where: {
+      merchant_id,
+      status: { in: ["completed", "failed"] },
+      settlement: false,
+      balance: { gt: 0 },
+      providerDetails: {
+        path: ["deductionDone"],
+        equals: false,
+      },
+    },
+    select: { providerDetails: true, transaction_id: true },
+  });
+  deductionSourceTxns = deductionSourceTxns.filter(
+    (txn) => (txn.providerDetails as JsonObject).deduction != null
+  );
+  for (const t of deductionSourceTxns) {
+    const pd = (t.providerDetails as JsonObject) || ({} as JsonObject);
+    const raw: unknown = (pd as any)?.deduction;
+    if (typeof raw === "number") {
+      totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+    } else if (
+      typeof raw === "string" &&
+      raw.trim() !== "" &&
+      !Number.isNaN(Number(raw))
+    ) {
+      totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+    }
+  }
+
+  if (totalProviderDeduction.gt(0)) {
+    const wallet = (await getWalletBalance(merchant_id)) as {
+      walletBalance?: Decimal | number;
+    };
+    const walletBalanceValue =
+      wallet?.walletBalance instanceof Decimal
+        ? wallet.walletBalance
+        : new Decimal(wallet?.walletBalance ?? 0);
+
+    await backofficeService.adjustMerchantWalletBalanceithTx(
+      merchant_id,
+      walletBalanceValue.minus(totalProviderDeduction).toNumber(),
+      false,
+      tx
+    );
+
+    // Mark deductions as processed
+    for (const txn of deductionSourceTxns) {
+      await tx.transaction.updateMany({
+        where: { transaction_id: txn.transaction_id },
+        data: {
+          providerDetails: {
+            ...(txn.providerDetails as JsonObject),
+            deductionDone: true,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
+  }
 
   // Update transactions and tasks
   await updateTransactionsAndTasks(
