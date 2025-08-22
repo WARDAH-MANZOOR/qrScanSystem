@@ -526,6 +526,12 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
           amount: paymentRequest.amount,
           email: paymentRequest.email
         })
+        if (paymentRequestObj?.challengeId) {
+          await prisma.transactionLocation.updateMany({
+            where: { challengeId: paymentRequestObj?.challengeId },
+            data: { transactionId: validation.txnNo }
+          });
+        }
         if (!validation?.transaction_id) {
           await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
           console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: paymentRequest.merchant_transaction_id }))
@@ -542,7 +548,7 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
           email: paymentRequest.email,
           attempts: paymentRequestObj.attempts,
           challengeId: paymentRequestObj.challengeId
-        })
+        });
         if (payfastPayment?.statusCode != "0000") {
           await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
           console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: paymentRequest.merchant_transaction_id, response: payfastPayment }))
