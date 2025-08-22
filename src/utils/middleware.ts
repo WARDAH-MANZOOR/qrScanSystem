@@ -115,7 +115,8 @@ const checkOtp: RequestHandler = async (req: Request, res: Response, next: NextF
               id: merchant?.easyPaisaMerchantId,
               name: PROVIDERS.EASYPAISA,
               msisdn: c?.phoneE164,
-              deduction: 6
+              deduction: 6,
+              deductionDone: false
             }
           },
           merchant?.commissions[0].settlementDuration as number
