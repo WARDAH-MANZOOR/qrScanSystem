@@ -500,7 +500,7 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
         if (paymentRequestObj?.challengeId) {
           await prisma.transactionLocation.updateMany({
             where: { challengeId: paymentRequestObj?.challengeId },
-            data: { transactionId: response.txnNo }
+            data: { transactionId: response.transaction_id }
           });
         }
 
@@ -529,7 +529,7 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
         if (paymentRequestObj?.challengeId) {
           await prisma.transactionLocation.updateMany({
             where: { challengeId: paymentRequestObj?.challengeId },
-            data: { transactionId: validation.txnNo }
+            data: { transactionId: validation.txnNo2 }
           });
         }
         if (!validation?.transaction_id) {

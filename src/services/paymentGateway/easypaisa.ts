@@ -406,7 +406,8 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
       return {
         txnNo: saveTxn?.merchant_transaction_id,
         txnDateTime: saveTxn?.date_time,
-        statusCode: response?.data.responseCode
+        statusCode: response?.data.responseCode,
+        transaction_id: saveTxn?.transaction_id
       };
     } else {
       console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_FAILED", order_id: params.order_id, system_id: id, response: response?.data }))
