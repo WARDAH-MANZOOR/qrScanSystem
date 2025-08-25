@@ -15,10 +15,10 @@ const task = async () => {
       const tasks = await fetchPendingScheduledTasks(tx);
 
       // 2. Group transactions by merchant_id
-      const {
-        transactionsByMerchant,
-        transactionIdToTaskIdMap,
-      } = groupTransactionsByMerchant(tasks);
+      // groupTransactionsByMerchant سے واپس آنے والی ویلیو undefined ہو سکتی ہے، اس لیے اسے handle کریں
+      const grouped = groupTransactionsByMerchant(tasks);
+      const transactionsByMerchant = grouped?.transactionsByMerchant ?? new Map();
+      const transactionIdToTaskIdMap = grouped?.transactionIdToTaskIdMap ?? new Map();
 
       // 3. Fetch financial terms for all merchants involved
       const merchantFinancialTermsMap = await fetchMerchantFinancialTerms(
@@ -32,7 +32,7 @@ const task = async () => {
           tx,
           merchant_id,
           transactions,
-          merchantFinancialTermsMap.get(merchant_id),
+          merchantFinancialTermsMap?.get(merchant_id),
           transactionIdToTaskIdMap
         );
       }
@@ -73,7 +73,7 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
     const allTasks = [];
 
     while (hasMore) {
-      const chunk:Array<any> = await prisma.scheduledTask.findMany({
+      const chunk: Array<any> = await prisma.scheduledTask.findMany({
         where: {
           status: 'pending',
           scheduledAt: {
@@ -82,6 +82,9 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
           ...(lastId && {
             id: { gt: lastId }, // Cursor pagination using primary key
           }),
+          transaction: {
+            merchant_id: 5
+          }
         },
         orderBy: { id: 'asc' }, // Important for cursor pagination
         include: {
@@ -89,7 +92,7 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
         },
         take: CHUNK_SIZE,
       });
-
+      console.log(chunk) 
       allTasks.push(...chunk);
 
       if (chunk.length < CHUNK_SIZE) {
@@ -108,29 +111,34 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
 
 // Function to group transactions by merchant_id
 function groupTransactionsByMerchant(tasks: any[]) {
-  const transactionsByMerchant = new Map<number, Transaction[]>();
-  const transactionIdToTaskIdMap = new Map<string, number>();
+  try {
+    const transactionsByMerchant = new Map<number, Transaction[]>();
+    const transactionIdToTaskIdMap = new Map<string, number>();
 
-  for (const task of tasks) {
-    const transaction = task.transaction;
+    for (const task of tasks) {
+      const transaction = task.transaction;
 
-    if (!transaction || transaction.original_amount === undefined) {
-      continue; // Skip if transaction is invalid
+      if (!transaction || transaction.original_amount === undefined) {
+        continue; // Skip if transaction is invalid
+      }
+
+      // Map transaction IDs to task IDs
+      transactionIdToTaskIdMap.set(transaction.transaction_id, task.id);
+
+      const merchant_id = transaction.merchant_id;
+
+      if (!transactionsByMerchant.has(merchant_id)) {
+        transactionsByMerchant.set(merchant_id, []);
+      }
+
+      transactionsByMerchant.get(merchant_id)?.push(transaction);
     }
 
-    // Map transaction IDs to task IDs
-    transactionIdToTaskIdMap.set(transaction.transaction_id, task.id);
-
-    const merchant_id = transaction.merchant_id;
-
-    if (!transactionsByMerchant.has(merchant_id)) {
-      transactionsByMerchant.set(merchant_id, []);
-    }
-
-    transactionsByMerchant.get(merchant_id)?.push(transaction);
+    return { transactionsByMerchant, transactionIdToTaskIdMap };
   }
-
-  return { transactionsByMerchant, transactionIdToTaskIdMap };
+  catch (err) {
+    console.log(err)
+  }
 }
 
 // Function to fetch merchant financial terms
@@ -138,22 +146,26 @@ async function fetchMerchantFinancialTerms(
   prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
   merchantIds: number[]
 ) {
-  const merchantFinancialTermsList = await prisma.merchantFinancialTerms.findMany({
-    where: {
-      merchant_id: { in: merchantIds },
-    },
-  });
+  try {
+    const merchantFinancialTermsList = await prisma.merchantFinancialTerms.findMany({
+      where: {
+        merchant_id: { in: merchantIds },
+      },
+    });
 
-  // Map merchant IDs to their financial terms
-  const merchantFinancialTermsMap = new Map<number, MerchantFinancialTerms>();
+    // Map merchant IDs to their financial terms
+    const merchantFinancialTermsMap = new Map<number, MerchantFinancialTerms>();
 
-  for (const terms of merchantFinancialTermsList) {
-    if (!merchantFinancialTermsMap.has(terms.merchant_id)) {
-      merchantFinancialTermsMap.set(terms.merchant_id, terms);
+    for (const terms of merchantFinancialTermsList) {
+      if (!merchantFinancialTermsMap.has(terms.merchant_id)) {
+        merchantFinancialTermsMap.set(terms.merchant_id, terms);
+      }
     }
-  }
 
-  return merchantFinancialTermsMap;
+    return merchantFinancialTermsMap;
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 // // Function to process settlement for a single merchant
@@ -225,120 +237,124 @@ async function processMerchantSettlement(
   merchantFinancialTerms: MerchantFinancialTerms | undefined,
   transactionIdToTaskIdMap: Map<string, number>
 ) {
-  if (!merchantFinancialTerms) {
-    console.error(`No financial terms found for merchant ${merchant_id}`);
-    return; // Skip this merchant
-  }
-
-  // Define the Pakistan timezone
-  const timeZone = 'Asia/Karachi';
-  const today = new Date();
-  const zonedDate = toZonedTime(today, timeZone);
-  const settlementDate = new Date(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
-
-  // Aggregate data
-  const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
-
-  // Deduction handling similar to settleAllMerchantTransactions
-  let totalProviderDeduction = new Decimal(0);
-  let deductionSourceTxns = await tx.transaction.findMany({
-    where: {
-      merchant_id,
-      status: { in: ["completed", "failed"] },
-      settlement: false,
-      balance: { gt: 0 },
-      providerDetails: {
-        path: ["deductionDone"],
-        equals: false,
-      },
-    },
-    select: { providerDetails: true, transaction_id: true },
-  });
-  deductionSourceTxns = deductionSourceTxns.filter(
-    (txn) => (txn.providerDetails as JsonObject).deduction != null
-  );
-  for (const t of deductionSourceTxns) {
-    const pd = (t.providerDetails as JsonObject) || ({} as JsonObject);
-    const raw: unknown = (pd as any)?.deduction;
-    if (typeof raw === "number") {
-      totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
-    } else if (
-      typeof raw === "string" &&
-      raw.trim() !== "" &&
-      !Number.isNaN(Number(raw))
-    ) {
-      totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+  try {
+    if (!merchantFinancialTerms) {
+      console.error(`No financial terms found for merchant ${merchant_id}`);
+      return; // Skip this merchant
     }
-  }
 
-  if (totalProviderDeduction.gt(0)) {
-    const wallet = (await getWalletBalance(merchant_id)) as {
-      walletBalance?: Decimal | number;
-    };
-    const walletBalanceValue =
-      wallet?.walletBalance instanceof Decimal
-        ? wallet.walletBalance
-        : new Decimal(wallet?.walletBalance ?? 0);
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
+    const today = new Date();
+    const zonedDate = toZonedTime(today, timeZone);
+    const settlementDate = new Date(zonedDate.getFullYear(), zonedDate.getMonth(), zonedDate.getDate());
 
-    await backofficeService.adjustMerchantWalletBalanceithTx(
-      merchant_id,
-      walletBalanceValue.minus(totalProviderDeduction).toNumber(),
-      false,
-      tx
-    );
+    // Aggregate data
+    const settlementData = calculateSettlementData(transactions, merchantFinancialTerms);
 
-    // Mark deductions as processed
-    for (const txn of deductionSourceTxns) {
-      await tx.transaction.updateMany({
-        where: { transaction_id: txn.transaction_id },
-        data: {
-          providerDetails: {
-            ...(txn.providerDetails as JsonObject),
-            deductionDone: true,
-          } as unknown as Prisma.InputJsonValue,
+    // Deduction handling similar to settleAllMerchantTransactions
+    let totalProviderDeduction = new Decimal(0);
+    let deductionSourceTxns = await tx.transaction.findMany({
+      where: {
+        merchant_id,
+        status: { in: ["completed", "failed"] },
+        settlement: false,
+        balance: { gt: 0 },
+        providerDetails: {
+          path: ["deductionDone"],
+          equals: false,
         },
-      });
+      },
+      select: { providerDetails: true, transaction_id: true },
+    });
+    deductionSourceTxns = deductionSourceTxns.filter(
+      (txn) => (txn.providerDetails as JsonObject).deduction != null
+    );
+    for (const t of deductionSourceTxns) {
+      const pd = (t.providerDetails as JsonObject) || ({} as JsonObject);
+      const raw: unknown = (pd as any)?.deduction;
+      if (typeof raw === "number") {
+        totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+      } else if (
+        typeof raw === "string" &&
+        raw.trim() !== "" &&
+        !Number.isNaN(Number(raw))
+      ) {
+        totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+      }
     }
-  }
 
-  // Upsert SettlementReport for the day
-  await tx.settlementReport.upsert({
-    where: {
-      merchant_id_settlementDate: {
+    if (totalProviderDeduction.gt(0)) {
+      const wallet = (await getWalletBalance(merchant_id)) as {
+        walletBalance?: Decimal | number;
+      };
+      const walletBalanceValue =
+        wallet?.walletBalance instanceof Decimal
+          ? wallet.walletBalance
+          : new Decimal(wallet?.walletBalance ?? 0);
+
+      await backofficeService.adjustMerchantWalletBalanceithTx(
+        merchant_id,
+        walletBalanceValue.minus(totalProviderDeduction).toNumber(),
+        false,
+        tx
+      );
+
+      // Mark deductions as processed
+      for (const txn of deductionSourceTxns) {
+        await tx.transaction.updateMany({
+          where: { transaction_id: txn.transaction_id },
+          data: {
+            providerDetails: {
+              ...(txn.providerDetails as JsonObject),
+              deductionDone: true,
+            } as unknown as Prisma.InputJsonValue,
+          },
+        });
+      }
+    }
+
+    // Upsert SettlementReport for the day
+    await tx.settlementReport.upsert({
+      where: {
+        merchant_id_settlementDate: {
+          merchant_id,
+          settlementDate,
+        },
+      },
+      create: {
         merchant_id,
         settlementDate,
+        transactionCount: settlementData?.transactionCount as number,
+        transactionAmount: settlementData?.transactionAmount as Decimal,
+        commission: settlementData?.totalCommission as Decimal,
+        gst: settlementData?.totalGST as Decimal,
+        withholdingTax: settlementData?.totalWithholdingTax as Decimal,
+        merchantAmount: settlementData?.merchantAmount.minus(totalProviderDeduction) as Decimal,
+        otpDeduction: totalProviderDeduction
       },
-    },
-    create: {
-      merchant_id,
-      settlementDate,
-      transactionCount: settlementData.transactionCount,
-      transactionAmount: settlementData.transactionAmount,
-      commission: settlementData.totalCommission,
-      gst: settlementData.totalGST,
-      withholdingTax: settlementData.totalWithholdingTax,
-      merchantAmount: settlementData.merchantAmount.minus(totalProviderDeduction),
-      otpDeduction: totalProviderDeduction
-    },
-    update: {
-      transactionCount: { increment: settlementData.transactionCount },
-      transactionAmount: { increment: settlementData.transactionAmount },
-      commission: { increment: settlementData.totalCommission },
-      gst: { increment: settlementData.totalGST },
-      withholdingTax: { increment: settlementData.totalWithholdingTax },
-      merchantAmount: { increment: settlementData.merchantAmount.minus(totalProviderDeduction) },
-      otpDeduction: {increment: totalProviderDeduction}
-    },
-  });
+      update: {
+        transactionCount: { increment: settlementData?.transactionCount as number },
+        transactionAmount: { increment: settlementData?.transactionAmount },
+        commission: { increment: settlementData?.totalCommission },
+        gst: { increment: settlementData?.totalGST },
+        withholdingTax: { increment: settlementData?.totalWithholdingTax },
+        merchantAmount: { increment: settlementData?.merchantAmount.minus(totalProviderDeduction) },
+        otpDeduction: { increment: totalProviderDeduction }
+      },
+    });
 
-  
 
-  // Update transactions and tasks
-  await updateTransactionsAndTasks(
-    tx,
-    transactions,
-    transactionIdToTaskIdMap
-  );
+
+    // Update transactions and tasks
+    await updateTransactionsAndTasks(
+      tx,
+      transactions,
+      transactionIdToTaskIdMap
+    );
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 // // Function to calculate settlement data
@@ -385,47 +401,51 @@ function calculateSettlementData(
   transactions: Transaction[],
   merchantFinancialTerms: MerchantFinancialTerms
 ) {
-  const transactionCount = transactions.length;
-  const transactionAmount = transactions.reduce(
-    (sum, t) => sum.plus(t.original_amount || new Prisma.Decimal(0)),
-    new Prisma.Decimal(0)
-  );
+  try {
+    const transactionCount = transactions.length;
+    const transactionAmount = transactions.reduce(
+      (sum, t) => sum.plus(t.original_amount || new Prisma.Decimal(0)),
+      new Prisma.Decimal(0)
+    );
 
-  let totalCommission = new Prisma.Decimal(0);
-  let totalGST = new Prisma.Decimal(0);
-  let totalWithholdingTax = new Prisma.Decimal(0);
+    let totalCommission = new Prisma.Decimal(0);
+    let totalGST = new Prisma.Decimal(0);
+    let totalWithholdingTax = new Prisma.Decimal(0);
 
-  transactions.forEach((transaction) => {
-    const providerName = (transaction.providerDetails as JsonObject)?.name;
-    let commissionRate = merchantFinancialTerms.commissionRate;
+    transactions.forEach((transaction) => {
+      const providerName = (transaction.providerDetails as JsonObject)?.name;
+      let commissionRate = merchantFinancialTerms.commissionRate;
 
-    // Determine commission rate based on provider and commission mode
-    if (merchantFinancialTerms.commissionMode == "DOUBLE") {
-      if (providerName === "JazzCash") {
-        commissionRate = merchantFinancialTerms.commissionRate;
-      } else if (providerName === "Easypaisa") {
-        commissionRate = merchantFinancialTerms.easypaisaRate || new Decimal(0);
+      // Determine commission rate based on provider and commission mode
+      if (merchantFinancialTerms.commissionMode == "DOUBLE") {
+        if (providerName === "JazzCash") {
+          commissionRate = merchantFinancialTerms.commissionRate;
+        } else if (providerName === "Easypaisa") {
+          commissionRate = merchantFinancialTerms.easypaisaRate || new Decimal(0);
+        }
       }
-    }
 
-    const transactionCommission = (transaction.original_amount || new Prisma.Decimal(0)).mul(commissionRate);
-    totalCommission = totalCommission.plus(transactionCommission);
+      const transactionCommission = (transaction.original_amount || new Prisma.Decimal(0)).mul(commissionRate);
+      totalCommission = totalCommission.plus(transactionCommission);
 
-    // Calculate GST and Withholding Tax
-    totalGST = totalGST.plus((transaction.original_amount || new Prisma.Decimal(0)).mul(merchantFinancialTerms.commissionGST));
-    totalWithholdingTax = totalWithholdingTax.plus((transaction.original_amount || new Prisma.Decimal(0)).mul(merchantFinancialTerms.commissionWithHoldingTax));
-  });
+      // Calculate GST and Withholding Tax
+      totalGST = totalGST.plus((transaction.original_amount || new Prisma.Decimal(0)).mul(merchantFinancialTerms.commissionGST));
+      totalWithholdingTax = totalWithholdingTax.plus((transaction.original_amount || new Prisma.Decimal(0)).mul(merchantFinancialTerms.commissionWithHoldingTax));
+    });
 
-  const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
+    const merchantAmount = transactionAmount.minus(totalCommission).minus(totalGST).minus(totalWithholdingTax);
 
-  return {
-    transactionCount,
-    transactionAmount,
-    totalCommission,
-    totalGST,
-    totalWithholdingTax,
-    merchantAmount,
-  };
+    return {
+      transactionCount,
+      transactionAmount,
+      totalCommission,
+      totalGST,
+      totalWithholdingTax,
+      merchantAmount,
+    };
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 // Function to update transactions and scheduled tasks
@@ -434,33 +454,37 @@ async function updateTransactionsAndTasks(
   transactions: Transaction[],
   transactionIdToTaskIdMap: Map<string, number>
 ) {
-  // Update transactions as settled
-  const transactionIds = transactions.map((t) => t.transaction_id);
-  const CHUNK_SIZE = 5000;
-  for (let i = 0; i < transactionIds.length; i += CHUNK_SIZE) {
-    await prisma.transaction.updateMany({
-      where: { transaction_id: { in: transactionIds.slice(i, i + CHUNK_SIZE) } },
-      data: { settlement: true },
-    });
-  }
+  try {
+    // Update transactions as settled
+    const transactionIds = transactions.map((t) => t.transaction_id);
+    const CHUNK_SIZE = 5000;
+    for (let i = 0; i < transactionIds.length; i += CHUNK_SIZE) {
+      await prisma.transaction.updateMany({
+        where: { transaction_id: { in: transactionIds.slice(i, i + CHUNK_SIZE) } },
+        data: { settlement: true },
+      });
+    }
 
-  // Update scheduled tasks as completed
-  const taskIds = transactionIds
-    .map((tid) => transactionIdToTaskIdMap.get(tid))
-    .filter((id): id is number => id !== undefined);
+    // Update scheduled tasks as completed
+    const taskIds = transactionIds
+      .map((tid) => transactionIdToTaskIdMap.get(tid))
+      .filter((id): id is number => id !== undefined);
 
-  const today = new Date();
+    const today = new Date();
 
-  // Define the Pakistan timezone
-  const timeZone = 'Asia/Karachi';
+    // Define the Pakistan timezone
+    const timeZone = 'Asia/Karachi';
 
-  // Convert the date to the Pakistan timezone
-  const zonedDate = toZonedTime(today, timeZone);
-  for (let i = 0; i < transactionIds.length; i += CHUNK_SIZE) {
-    await prisma.scheduledTask.updateMany({
-      where: { id: { in: taskIds.slice(i, i + CHUNK_SIZE) }, status: 'pending' },
-      data: { status: 'completed', executedAt: zonedDate },
-    });
+    // Convert the date to the Pakistan timezone
+    const zonedDate = toZonedTime(today, timeZone);
+    for (let i = 0; i < transactionIds.length; i += CHUNK_SIZE) {
+      await prisma.scheduledTask.updateMany({
+        where: { id: { in: taskIds.slice(i, i + CHUNK_SIZE) }, status: 'pending' },
+        data: { status: 'completed', executedAt: zonedDate },
+      });
+    }
+  } catch (err) {
+    console.log(err)
   }
 }
 
