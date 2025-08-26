@@ -313,7 +313,7 @@ const initiateDisbursmentClone = async (req: Request, res: Response, next: NextF
   try {
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-    if (req.body.amount <= 1) {
+    if (Number(req.body.amount) <= 1) {
       throw new CustomError("Amount should be greater than 0", 400);
     }
     console.log(req.body.iban.length)
