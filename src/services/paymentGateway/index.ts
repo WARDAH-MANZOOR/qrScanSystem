@@ -1117,8 +1117,8 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    // response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
-    response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+    // response = await fetch(`https://gateway.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
 
       method: "POST",
       headers: {
