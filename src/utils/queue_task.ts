@@ -258,8 +258,6 @@ async function processMerchantSettlement(
       where: {
         merchant_id,
         status: { in: ["completed", "failed"] },
-        settlement: false,
-        balance: { gt: 0 },
         providerDetails: {
           path: ["deductionDone"],
           equals: false,
