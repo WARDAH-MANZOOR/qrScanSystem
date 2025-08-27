@@ -433,16 +433,25 @@ const payForRedirection = async (merchantId: string, params: any) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax
         }
-        const transactionLocation = await prisma.transactionLocation.findUnique({
-            where: {
-                challengeId: params.challengeId
-            }
-        })
-        saveTxn = await prisma.transaction.findUnique({
-            where: {
-                transaction_id: transactionLocation?.transactionId as string
-            }
-        });
+        if (params.challengeId) {
+            const transactionLocation = await prisma.transactionLocation.findUnique({
+                where: {
+                    challengeId: params.challengeId
+                }
+            })
+            saveTxn = await prisma.transaction.findUnique({
+                where: {
+                    transaction_id: transactionLocation?.transactionId as string
+                }
+            });
+        }
+        else {
+            saveTxn = await prisma.transaction.findUnique({
+                where: {
+                    merchant_transaction_id: params.order_id as string
+                }
+            });
+        }
 
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 

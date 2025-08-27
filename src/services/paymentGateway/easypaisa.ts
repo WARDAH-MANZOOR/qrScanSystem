@@ -352,16 +352,25 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
         +findMerchant.commissions[0].commissionWithHoldingTax
     }
-    const transactionLocation = await prisma.transactionLocation.findUnique({
-      where: {
-        challengeId: params.challengeId
-      }
-    })
-    saveTxn = await prisma.transaction.findUnique({
-      where: {
-        transaction_id: transactionLocation?.transactionId as string
-      }
-    });
+    if (params.challengeId) {
+      const transactionLocation = await prisma.transactionLocation.findUnique({
+        where: {
+          challengeId: params.challengeId
+        }
+      })
+      saveTxn = await prisma.transaction.findUnique({
+        where: {
+          transaction_id: transactionLocation?.transactionId as string
+        }
+      });
+    }
+    else {
+      saveTxn = await prisma.transaction.findUnique({
+        where: {
+          merchant_transaction_id: params.order_id as string
+        }
+      });
+    }
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))
 
     // console.log("saveTxn", saveTxn);
@@ -1973,7 +1982,7 @@ const createDisbursementClone = async (
       console.log(totalDisbursed)
       await prisma.$transaction(async (tx) => {
         const result = adjustMerchantToDisburseBalance(findMerchant.uid, +merchantAmount, true);
-      balanceDeducted = false;
+        balanceDeducted = false;
         await saveToCsv({
           id: data.merchant_custom_order_id,
           order_amount: obj.amount ? obj.amount : merchantAmount,
@@ -2161,7 +2170,7 @@ const getDisbursement = async (merchantId: number, params: any) => {
         throw new CustomError("Unable to get disbursement history", 500);
       });
 
- 
+
     let hasMore = false;
     console.log(disbursements.length, take)
     if (take > 0) {
@@ -2345,7 +2354,7 @@ export const exportDisbursement = async (merchantId: number, params: any) => {
     csvStream.pipe(fileWriteStream);
 
     while (hasMore) {
-      const batch:Array<any> = await prisma.disbursement.findMany({
+      const batch: Array<any> = await prisma.disbursement.findMany({
         where: filters,
         orderBy: { id: "asc" }, // use `id` or `transaction_id` for stable pagination
         cursor: lastCursor ? { id: Number(lastCursor) } : undefined,
@@ -2752,7 +2761,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
             status: "completed",
             response_message: "success",
             providerDetails: {
-              id: findMerchant?.EasyPaisaDisburseAccountId, 	
+              id: findMerchant?.EasyPaisaDisburseAccountId,
               sub_name: PROVIDERS.EASYPAISA
             }
           },
@@ -3562,7 +3571,7 @@ const transactionInquiry = async (obj: any, merchantId: string) => {
     }
     console.log(response?.data)
     let data3 = response?.data;
-    
+
     return {
       ...data3,
       transactionID: obj.transactionId
