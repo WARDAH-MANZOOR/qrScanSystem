@@ -4,7 +4,7 @@ import { toZonedTime } from "date-fns-tz";
 import prisma from "../prisma/client.js";
 import { text } from "express";
 import { backofficeService } from "../services/index.js";
-import { getWalletBalance } from "../services/paymentGateway/disbursement.js";
+import { calculateWalletBalanceWithTx, getWalletBalance } from "../services/paymentGateway/disbursement.js";
 
 const task = async () => {
   console.log("Cron running");
@@ -82,9 +82,9 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
           ...(lastId && {
             id: { gt: lastId }, // Cursor pagination using primary key
           }),
-          transaction: {
-            merchant_id: 5
-          }
+          // transaction: {
+          //   merchant_id: 5
+          // }
         },
         orderBy: { id: 'asc' }, // Important for cursor pagination
         include: {
@@ -92,7 +92,7 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
         },
         take: CHUNK_SIZE,
       });
-      console.log(chunk) 
+      console.log(chunk)
       allTasks.push(...chunk);
 
       if (chunk.length < CHUNK_SIZE) {
@@ -281,22 +281,31 @@ async function processMerchantSettlement(
         totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
       }
     }
+    console.log("Merchant Id: ", merchant_id)
+    console.log("Total Deduction: ", totalProviderDeduction)
+    // Update transactions and tasks
+    await updateTransactionsAndTasks(
+      tx,
+      transactions,
+      transactionIdToTaskIdMap
+    );
 
     if (totalProviderDeduction.gt(0)) {
-      const wallet = (await getWalletBalance(merchant_id)) as {
+      const wallet = (await calculateWalletBalanceWithTx(merchant_id, tx)) as {
         walletBalance?: Decimal | number;
       };
       const walletBalanceValue =
         wallet?.walletBalance instanceof Decimal
           ? wallet.walletBalance
           : new Decimal(wallet?.walletBalance ?? 0);
-
-      await backofficeService.adjustMerchantWalletBalanceithTx(
-        merchant_id,
-        walletBalanceValue.minus(totalProviderDeduction).toNumber(),
-        false,
-        tx
-      );
+      // if (walletBalanceValue < totalProviderDeduction) {
+        await backofficeService.adjustMerchantWalletBalanceithTx(
+          merchant_id,
+          walletBalanceValue.minus(totalProviderDeduction).toNumber(),
+          false,
+          tx
+        );
+      // }
 
       // Mark deductions as processed
       for (const txn of deductionSourceTxns) {
@@ -344,12 +353,7 @@ async function processMerchantSettlement(
 
 
 
-    // Update transactions and tasks
-    await updateTransactionsAndTasks(
-      tx,
-      transactions,
-      transactionIdToTaskIdMap
-    );
+
   } catch (err) {
     console.log(err)
   }
