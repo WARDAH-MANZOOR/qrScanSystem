@@ -153,15 +153,49 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
       throw new CustomError("Merchant not Found", 404)
     }
 
+    const findMerchant = await prisma.merchant.findFirst({
+      where: {
+        uid: user as string
+      },
+      include: {
+        commissions: true
+      }
+    })
+    let commission;
+    if (findMerchant?.commissions[0].commissionMode == "SINGLE") {
+      commission = +findMerchant?.commissions[0].commissionGST +
+        +findMerchant?.commissions[0].commissionRate +
+        +findMerchant?.commissions[0].commissionWithHoldingTax
+    }
+    else {
+      commission = +(findMerchant?.commissions[0].commissionGST ?? 0) +
+        +(findMerchant?.commissions[0]?.easypaisaRate ?? 0) +
+        +(findMerchant?.commissions[0].commissionWithHoldingTax ?? 0)
+    }
+    let id = transactionService.createTransactionId();
+    let id2 = data?.order_id || id;
+    const transaction = await prisma.transaction.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    })  
+
+    if (transaction) {
+      return {
+        message: 'Order Id already exists',
+        data: {},
+        status: 400
+      }
+    }
     const newPaymentRequest = await prisma.$transaction(async (tx) => {
-      return tx.paymentRequest.create({
+      const paymentRequest = await tx.paymentRequest.create({
         data: {
           userId: user2?.merchant_id,
           amount: data.amount,
           status: "pending",
           email: data.store_name || data.email,
           description: data.description,
-          transactionId: data.transactionId,
+          transactionId: id,
           dueDate: data.dueDate,
           provider: data.provider,
           link: data.link,
@@ -171,6 +205,23 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
           merchant_transaction_id: data.order_id,
         },
       });
+      await transactionService.createTxn({
+        order_id: id2,
+        transaction_id: id,
+        amount: paymentRequest?.amount,
+        status: "pending",
+        type: "wallet",
+        merchant_id: paymentRequest?.userId,
+        commission,
+        settlementDuration: findMerchant?.commissions[0].settlementDuration,
+        providerDetails: {
+          id: findMerchant?.easyPaisaMerchantId,
+          name: PROVIDERS.EASYPAISA,
+          msisdn: data.phone,
+          payId: paymentRequest.id
+        },
+      })
+      return paymentRequest;
     });
 
     // update link with payment request id
