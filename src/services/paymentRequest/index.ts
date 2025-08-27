@@ -178,12 +178,12 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
       where: {
         merchant_transaction_id: id2
       }
-    })  
+    })
     const transaction2 = await prisma.paymentRequest.findUnique({
       where: {
         merchant_transaction_id: id2
       }
-    }) 
+    })
 
     if (transaction || transaction2) {
       return {
@@ -236,7 +236,7 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
           }
         }
       })
-      
+
       return paymentRequest;
     });
 
@@ -327,19 +327,37 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     ) {
       if (merchant.easypaisaPaymentMethod === "DIRECT") {
         // easypaisa payment
-        const easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
-          merchant.uid,
-          {
-            order_id: paymentRequest.merchant_transaction_id,
-            amount: paymentRequest.amount,
-            type: "wallet",
-            phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
-            email: "example@example.com",
-            // orderId: `SPAY-PR-${paymentRequest.id}`,
-            attempts: paymentRequestObj.attempts,
-            challengeId: paymentRequestObj.challengeId
-          }
-        );
+        let easyPaisaPayment;
+        if (!paymentRequest.merchant_transaction_id) {
+          easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
+            merchant.uid,
+            {
+              order_id: paymentRequest.merchant_transaction_id,
+              amount: paymentRequest.amount,
+              type: "wallet",
+              phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
+              email: "example@example.com",
+              // orderId: `SPAY-PR-${paymentRequest.id}`,
+              attempts: paymentRequestObj.attempts,
+              challengeId: paymentRequestObj.challengeId
+            }
+          );
+        }
+        else {
+          easyPaisaPayment = await easyPaisaService.initiateEasyPaisaForRedirection(
+            merchant.uid,
+            {
+              order_id: paymentRequest.merchant_transaction_id,
+              amount: paymentRequest.amount,
+              type: "wallet",
+              phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
+              email: "example@example.com",
+              // orderId: `SPAY-PR-${paymentRequest.id}`,
+              attempts: paymentRequestObj.attempts,
+              challengeId: paymentRequestObj.challengeId
+            }
+          );
+        }
 
         if (paymentRequestObj?.challengeId) {
           await prisma.transactionLocation.updateMany({
@@ -390,21 +408,45 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           amount: paymentRequest.amount,
           email: paymentRequest.email
         })
+        if (paymentRequestObj?.challengeId) {
+          await prisma.transactionLocation.updateMany({
+            where: { challengeId: paymentRequestObj?.challengeId },
+            data: { transactionId: validation.txnNo2 }
+          });
+        }
         if (!validation?.transaction_id) {
           await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
           console.log(JSON.stringify({ event: "PAYFAST_PAYIN_VALIDATION_FAILED", order_id: paymentRequest.merchant_transaction_id }))
           throw new CustomError(validation.response_message, 500)
           // return;
         }
-        const payfastPayment = await payfast.pay(merchant.uid, {
-          token: token?.token,
-          bankCode: '32',
-          transaction_id: validation?.transaction_id,
-          order_id: paymentRequest.merchant_transaction_id,
-          phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
-          amount: paymentRequest.amount,
-          email: paymentRequest.email
-        })
+        let payfastPayment;
+        if (!paymentRequest.merchant_transaction_id) {
+          payfastPayment = await payfast.pay(merchant.uid, {
+            token: token?.token,
+            bankCode: '32',
+            transaction_id: validation?.transaction_id,
+            order_id: paymentRequest.merchant_transaction_id,
+            phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
+            amount: paymentRequest.amount,
+            email: paymentRequest.email,
+            attempts: paymentRequestObj.attempts,
+            challengeId: paymentRequestObj.challengeId
+          });
+        }
+        else {
+          payfastPayment = await payfast.payForRedirection(merchant.uid, {
+            token: token?.token,
+            bankCode: '32',
+            transaction_id: validation?.transaction_id,
+            order_id: paymentRequest.merchant_transaction_id,
+            phone: transactionService.convertPhoneNumber(paymentRequestObj.accountNo) || transactionService.convertPhoneNumber((paymentRequest?.metadata as JsonObject)?.phone as string),
+            amount: paymentRequest.amount,
+            email: paymentRequest.email,
+            attempts: paymentRequestObj.attempts,
+            challengeId: paymentRequestObj.challengeId
+          });
+        }
         if (payfastPayment?.statusCode != "0000") {
           await prisma.failedAttempt.create({ data: { phoneNumber: paymentRequestObj.accountNo } });
           console.log(JSON.stringify({ event: "PAYFAST_PAYIN_RESPONSE", order_id: paymentRequest.merchant_transaction_id, response: payfastPayment }))
