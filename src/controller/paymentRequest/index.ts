@@ -50,6 +50,9 @@ const createPaymentRequestWithOtp = async (
       req.body,
       req.params.merchantId
     );
+    if (result.status == 400) {
+      throw new CustomError(result.message, result.status)
+    }
     res.status(200).json(ApiResponse.success(result));
   } catch (error) {
     next(error);
