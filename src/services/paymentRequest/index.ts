@@ -179,8 +179,13 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
         merchant_transaction_id: id2
       }
     })  
+    const transaction2 = await prisma.paymentRequest.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    }) 
 
-    if (transaction) {
+    if (transaction || transaction2) {
       return {
         message: 'Order Id already exists',
         data: {},
@@ -188,6 +193,21 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
       }
     }
     const newPaymentRequest = await prisma.$transaction(async (tx) => {
+      const txn = await transactionService.createTxn({
+        order_id: id2,
+        transaction_id: id,
+        amount: data.amount,
+        status: "pending",
+        type: "wallet",
+        merchant_id: user2?.merchant_id,
+        commission,
+        settlementDuration: findMerchant?.commissions[0].settlementDuration,
+        providerDetails: {
+          id: findMerchant?.easyPaisaMerchantId,
+          name: PROVIDERS.EASYPAISA,
+          msisdn: data.phone,
+        },
+      })
       const paymentRequest = await tx.paymentRequest.create({
         data: {
           userId: user2?.merchant_id,
@@ -205,22 +225,18 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
           merchant_transaction_id: data.order_id,
         },
       });
-      await transactionService.createTxn({
-        order_id: id2,
-        transaction_id: id,
-        amount: paymentRequest?.amount,
-        status: "pending",
-        type: "wallet",
-        merchant_id: paymentRequest?.userId,
-        commission,
-        settlementDuration: findMerchant?.commissions[0].settlementDuration,
-        providerDetails: {
-          id: findMerchant?.easyPaisaMerchantId,
-          name: PROVIDERS.EASYPAISA,
-          msisdn: data.phone,
-          payId: paymentRequest.id
+      await tx.transaction.update({
+        where: {
+          merchant_transaction_id: id2
         },
+        data: {
+          providerDetails: {
+            ...txn.providerDetails as JsonObject,
+            payId: paymentRequest?.id
+          }
+        }
       })
+      
       return paymentRequest;
     });
 
