@@ -179,8 +179,13 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
         merchant_transaction_id: id2
       }
     })  
+    const transaction2 = await prisma.paymentRequest.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    }) 
 
-    if (transaction) {
+    if (transaction || transaction2) {
       return {
         message: 'Order Id already exists',
         data: {},
