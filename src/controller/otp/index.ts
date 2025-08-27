@@ -33,7 +33,7 @@ const sendOtp = async (req: Request, res: Response, next: NextFunction) => {
         const salt = makeSalt();
         const otpHash = hashOtp(otp, salt);
         await prisma.otpChallenge.update({ where: { id: challengeId }, data: { otpHash, otpSalt: salt } })
-        await prisma.transactionLocation.update({where: {challengeId: challengeId}, data: {transactionId: paymentRequest?.merchant_transaction_id || paymentRequest?.transactionId}})
+        await prisma.transactionLocation.update({where: {challengeId: challengeId}, data: {transactionId: paymentRequest?.transactionId}})
         const { attempt, chargeRs } = await computeAttemptAndCharge(c.sendCount, c);
 
         await recordMicroChargeAndResend({
