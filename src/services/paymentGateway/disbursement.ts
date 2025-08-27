@@ -98,6 +98,45 @@ const calculateWalletBalance = async (merchantId: number): Promise<Object> => {
     };
 };
 
+const calculateWalletBalanceWithTx = async (merchantId: number,tx: any): Promise<Object> => {
+    const result = await tx.transaction.aggregate({
+        _sum: {
+            balance: true,
+        },
+        where: {
+            settlement: true,
+            balance: { gt: new Decimal(0) },
+            merchant_id: merchantId,
+            status: 'completed',
+        },
+    });
+
+    // Find the todays transaction sum
+    const servertodayStart = new Date().setHours(0, 0, 0, 0);
+    const servertodayEnd = new Date().setHours(23, 59, 59, 999);
+
+    const todayResult = await tx.transaction.aggregate({
+        _sum: {
+            balance: true,
+        },
+        where: {
+            settlement: true,
+            balance: { gt: new Decimal(0) },
+            merchant_id: merchantId,
+            date_time: {
+                gte: new Date(servertodayStart),
+                lt: new Date(servertodayEnd),
+            },
+        },
+    });
+    const walletBalance = result._sum.balance || new Decimal(0);
+    const todayBalance = todayResult._sum.balance || new Decimal(0);
+    return {
+        walletBalance: walletBalance.toNumber(),
+        todayBalance: todayBalance.toNumber(),
+    };
+};
+
 const calculateWalletBalanceWithKey = async (merchantId: string): Promise<Object> => {
     const merchant = await prisma.merchant.findFirst({
         where: { uid: merchantId },
@@ -199,6 +238,26 @@ const getWalletBalance = async (merchantId: number): Promise<Object> => {
 
         // Calculate and return the wallet balance
         const walletBalance = await calculateWalletBalance(merchantId);
+        return walletBalance;
+    } catch (error) {
+        if (error instanceof CustomError) {
+            throw error; // Re-throw custom errors with proper status codes
+        }
+        console.error('Error fetching wallet balance:', error);
+        throw new CustomError('Unable to fetch wallet balance', 500);
+    }
+};
+
+const getWalletBalanceWithTx = async (merchantId: number,tx:any): Promise<Object> => {
+    try {
+        // Check if the merchant exists
+        const merchantExists = await checkMerchantExists(merchantId);
+        if (!merchantExists) {
+            throw new CustomError('Merchant not found', 404);
+        }
+
+        // Calculate and return the wallet balance
+        const walletBalance = await calculateWalletBalanceWithTx(merchantId,tx);
         return walletBalance;
     } catch (error) {
         if (error instanceof CustomError) {
@@ -320,4 +379,4 @@ const updateTransactions = async (updates: TransactionUpdate[], prsma: Prisma.Tr
     );
     await Promise.all(updatePromises);
 };
-export { checkMerchantExists,checkMerchantExistsWithKey,calculateWalletBalance,calculateWalletBalanceWithKey,getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey, getDisbursementBalanceWithKey, calculateMerchantBalanceWithDateRange };
+export { checkMerchantExists,checkMerchantExistsWithKey,calculateWalletBalance,calculateWalletBalanceWithKey,getWalletBalance, getEligibleTransactions, calculateDisbursement, updateTransactions, getMerchantRate, getWalletBalanceWithKey, getDisbursementBalanceWithKey, calculateMerchantBalanceWithDateRange, calculateWalletBalanceWithTx };
