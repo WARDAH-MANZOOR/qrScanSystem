@@ -143,7 +143,7 @@ async function refundIBFTTransaction(token: string, body: any, merchantId: strin
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+    let response = await fetch(`https://sp2-server.assanpay.com/jzd-ibft-i`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -215,7 +215,7 @@ async function refundIBFTTransaction(token: string, body: any, merchantId: strin
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-    response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+    response = await fetch(`https://sp2-server.assanpay.com/jzd-ibft-t`, {
       method: "POST",
       headers: {
         'Accept': 'application/json',
@@ -468,7 +468,7 @@ async function refundMwTransaction(token: string, body: any, merchantId: string)
       await delay(1000); // Wait for 1 second
     })();
 
-    const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
+    const response = await fetch(`https://sp2-server.assanpay.com/jzd-ma`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
