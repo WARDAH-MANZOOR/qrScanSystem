@@ -412,7 +412,7 @@ const initiateJazzCashPayment = async (
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
-        "https://payments.jazzcash.com.pk/ApplicationAPI/API/Payment/DoTransaction";
+        "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
       const headers = {
         "Content-Type": "application/x-www-form-urlencoded",
       };
