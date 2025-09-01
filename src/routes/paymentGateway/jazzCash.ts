@@ -53,6 +53,14 @@ export default function (router: Router) {
     blockPhoneMiddleware,
     jazzCashController.initiateJazzCash
   );
+
+  router.post(
+    "/initiate-sjz/:merchantId",
+    // validateJazzcashRequest,
+    block_phone_number_middleware.blockPhoneNumber,
+    blockPhoneMiddleware,
+    jazzCashController.initiateSandboxJazzCash
+  );
   router.post(
       "/initiate-jz-new/:merchantId",
       validateJazzcashRequest,
