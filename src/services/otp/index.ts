@@ -3,6 +3,7 @@ import prisma from "../../prisma/client.js"; // ensure prisma/client.ts default-
 import { OTP_MAX_SEND_ATTEMPTS, OTP_TTL_MIN, OTP_VERIFY_MAX_ATTEMPTS, OTP_FIRST_TIME_PURPOSE } from "../../constants/otp.js";
 import { hashOtp, constantTimeEqual } from "../../utils/otp.js";
 import CustomError from "utils/custom_error.js";
+import { Prisma } from "@prisma/client";
 import { transactionService } from "services/index.js";
 import { PROVIDERS } from "constants/providers.js";
 
