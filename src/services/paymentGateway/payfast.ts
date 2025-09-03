@@ -453,6 +453,12 @@ const payForRedirection = async (merchantId: string, params: any) => {
             });
         }
 
+        if (saveTxn?.status == 'completed') {
+            throw new CustomError(
+                "Transaction already completed",
+                500
+            );
+        }
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 
 
