@@ -328,7 +328,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       if (merchant.easypaisaPaymentMethod === "DIRECT") {
         // easypaisa payment
         let easyPaisaPayment;
-        if (!paymentRequest.merchant_transaction_id) {
+        if (!paymentRequest.merchant_transaction_id || !paymentRequest.transactionId) {
           easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
             merchant.uid,
             {
@@ -421,7 +421,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           // return;
         }
         let payfastPayment;
-        if (!paymentRequest.merchant_transaction_id) {
+        if (!paymentRequest.merchant_transaction_id || !paymentRequest.transactionId) {
           payfastPayment = await payfast.pay(merchant.uid, {
             token: token?.token,
             bankCode: '32',
