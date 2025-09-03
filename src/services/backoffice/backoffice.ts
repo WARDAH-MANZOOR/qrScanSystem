@@ -3,7 +3,7 @@ import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { endOfDay, format, subDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { backofficeService, dashboardService, jazzCashService, transactionService } from '../../services/index.js';
-import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
+import { calculateWalletBalanceWithKey, calculateWalletBalanceWithTx, getWalletBalance } from '../../services/paymentGateway/disbursement.js';
 import CustomError from '../../utils/custom_error.js';
 import { addWeekdays } from '../../utils/date_method.js';
 const prisma = new PrismaClient();
@@ -189,7 +189,13 @@ async function adjustMerchantWalletBalanceithTx(merchantId: number, targetBalanc
         // Get current balance
         let walletBalance;
         // if (!wb) {
-        const balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        let balance;
+        if (tx) {
+            balance = await calculateWalletBalanceWithTx(merchantId, tx) as { walletBalance: number };
+        }
+        else {
+            balance = await getWalletBalance(merchantId) as { walletBalance: number };
+        }
         walletBalance = balance.walletBalance;
         // targetBalance += walletBalance;
         // }
