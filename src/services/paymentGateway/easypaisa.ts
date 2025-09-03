@@ -371,6 +371,13 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         }
       });
     }
+
+    if (saveTxn?.status == 'completed') {
+      throw new CustomError(
+        "Transaction already completed",
+        500
+      );
+    }
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))
 
     // console.log("saveTxn", saveTxn);
@@ -436,7 +443,6 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         },
         findMerchant.commissions[0].settlementDuration
       );
-
       throw new CustomError(
         response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
         500
