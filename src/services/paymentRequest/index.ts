@@ -303,7 +303,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     console.log(merchant?.easypaisaPaymentMethod)
     let response;
 
-
+    console.log(paymentRequest.merchant_transaction_id, !paymentRequest.transactionId)
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
         {
@@ -328,7 +328,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       if (merchant.easypaisaPaymentMethod === "DIRECT") {
         // easypaisa payment
         let easyPaisaPayment;
-        if (!paymentRequest.merchant_transaction_id || !paymentRequest.transactionId) {
+        if (paymentRequest.merchant_transaction_id == null && !paymentRequest.transactionId) {
           easyPaisaPayment = await easyPaisaService.initiateEasyPaisa(
             merchant.uid,
             {
@@ -347,7 +347,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           easyPaisaPayment = await easyPaisaService.initiateEasyPaisaForRedirection(
             merchant.uid,
             {
-              order_id: paymentRequest.merchant_transaction_id,
+              order_id: paymentRequest.merchant_transaction_id || paymentRequest.transactionId,
               amount: paymentRequest.amount,
               type: "wallet",
               phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
