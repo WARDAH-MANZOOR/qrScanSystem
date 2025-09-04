@@ -27,6 +27,7 @@ interface CalculatedFinancials {
     chargebackSum: Decimal;
     topupSum: Decimal;
     collectionSum: Decimal;
+    otpDeduction: Decimal;
 }
 
 interface MerchantDashboardData {
@@ -1381,6 +1382,11 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
         >(`
         SELECT SUM(commission + gst + "withholdingTax") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
       `))[0]?.total || 0);
+        const otpDeduction = new Decimal((await prisma.$queryRawUnsafe<
+            { total: number }[]
+        >(`
+    SELECT SUM("otpDeduction") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
+  `))[0]?.total || 0);
         const settled = new Decimal((await prisma.$queryRawUnsafe<
             { total: number }[]
         >(`
@@ -1424,7 +1430,8 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             .plus(totalDisbursement)
             .plus(totalUsdtSettlement)
             .plus(totalRefund)
-            .plus(chargebackSum);
+            .plus(chargebackSum)
+            .plus(otpDeduction);
         const difference = disbursementSum.minus(collectionSum);
 
         const differenceInSettlements = new Decimal(remainingSettlements || 0)
@@ -1449,6 +1456,7 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             disbursementSum,
             differenceInSettlements,
             difference,
+            otpDeduction
         };
     }
     catch (err: any) {
