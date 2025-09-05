@@ -271,6 +271,8 @@ model Transaction {
 
   @@index([merchant_transaction_id])
   TransactionLocation TransactionLocation[]
+  TransactionStatusHistory TransactionStatusHistory[]
+  BlockedStatusChangeLog BlockedStatusChangeLog[]
 }
 
 model AdditionalInfo {
@@ -714,4 +716,49 @@ model TransactionLocation {
 
   @@index([challengeId])
   @@index([transactionId])
+}
+
+/// Allowed status transitions (completed → failed is blocked by default)
+model StatusTransitionAllowlist {
+  fromStatus String @map("from_status")
+  toStatus   String @map("to_status")
+  allow      Boolean @default(true)
+
+  @@id([fromStatus, toStatus])
+  @@map("status_transition_allowlist")
+}
+
+/// Immutable history/audit of successful status changes
+model TransactionStatusHistory {
+  id            BigInt   @id @default(autoincrement()) @db.BigInt
+  transactionId String   @map("transaction_id")
+  fromStatus    String   @map("from_status")
+  toStatus      String   @map("to_status")
+  changedAt     DateTime @default(now()) @db.Timestamptz @map("changed_at")
+  changedBy     String?  @map("changed_by")
+  reason        String?
+
+  @@index([transactionId])
+  @@map("transaction_status_history")
+
+  // If you have a Transaction model with `id String @db.Uuid`,
+  // you can convert the scalar to a relation like this:
+  transaction Transaction @relation(fields: [transactionId], references: [transaction_id], onDelete: NoAction)
+}
+
+/// Quarantine log for blocked attempts (no exception thrown)
+model BlockedStatusChangeLog {
+  id             BigInt   @id @default(autoincrement()) @db.BigInt
+  transactionId  String    @map("transaction_id")
+  attemptedFrom  String   @map("attempted_from")
+  attemptedTo    String   @map("attempted_to")
+  source         String?
+  payload        Json?    @db.JsonB
+  loggedAt       DateTime @default(now()) @db.Timestamptz @map("logged_at")
+
+  @@index([transactionId])
+  @@map("blocked_status_change_log")
+
+  // Optional relation (see note above)
+  transaction Transaction @relation(fields: [transactionId], references: [transaction_id], onDelete: NoAction)
 }
