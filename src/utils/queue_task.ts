@@ -5,10 +5,11 @@ import prisma from "../prisma/client.js";
 import { text } from "express";
 import { backofficeService } from "../services/index.js";
 import { calculateWalletBalanceWithTx, getWalletBalance } from "../services/paymentGateway/disbursement.js";
+// zonedTimeToUtc کو import نہ کریں کیونکہ یہ date-fns-tz میں موجود نہیں ہے
 
 const task = async () => {
   console.log("Cron running");
-
+  // console.log(deductionSourceTxns.at(0))
   try {
     await prisma.$transaction(async (tx) => {
       // 1. Fetch all pending scheduled tasks that are due
@@ -102,7 +103,7 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
       }
     }
 
-    return allTasks;
+    return allTasks; 
   } catch (error) {
     console.error("Error fetching scheduled tasks for merchant:", error);
     throw error;
@@ -230,6 +231,33 @@ async function fetchMerchantFinancialTerms(
 // }
 
 // Function to process settlement for a single merchant
+const dateFilter = async () => {
+  // Define PKT timezone
+  const PKT = "Asia/Karachi";
+
+  // Get current date in PKT
+  const nowInPKT = toZonedTime(new Date(), PKT);
+
+  // Start of today in PKT
+  const startOfTodayInPKT = new Date(
+    nowInPKT.getFullYear(),
+    nowInPKT.getMonth(),
+    nowInPKT.getDate(),
+  );
+
+  // آج کے دن کے آغاز کو دوبارہ UTC میں تبدیل کریں
+  // آج کے دن کے آغاز کو دوبارہ UTC میں تبدیل کریں
+  // Convert start of today back to UTC
+  // NOTE: zonedTimeToUtc کو 'date-fns-tz' سے امپورٹ کرنا ضروری ہے
+  // NOTE: You must import zonedTimeToUtc from 'date-fns-tz' at the top of your file
+  // Example: import { zonedTimeToUtc } from 'date-fns-tz';
+  const startOfTodayUTC = toZonedTime(startOfTodayInPKT, PKT);
+
+  // اگر آپ نے اوپر امپورٹ کر لیا ہے تو یہ لائن استعمال کریں:
+  // If you have imported at the top, use this line instead:
+  // const startOfTodayUTC = zonedTimeToUtc(startOfTodayInPKT, PKT);
+  return startOfTodayUTC;
+}
 async function processMerchantSettlement(
   tx: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
   merchant_id: number,
@@ -254,7 +282,8 @@ async function processMerchantSettlement(
 
     // Deduction handling similar to settleAllMerchantTransactions
     let totalProviderDeduction = new Decimal(0);
-    let deductionSourceTxns = await tx.transaction.findMany({
+    const startOfTodayUTC = await dateFilter()
+    let originalDeductionSourceTxns = await prisma.transaction.findMany({
       where: {
         merchant_id,
         status: { in: ["completed", "failed"] },
@@ -262,10 +291,16 @@ async function processMerchantSettlement(
           path: ["deductionDone"],
           equals: false,
         },
+        date_time: {
+          lt: startOfTodayUTC, // everything strictly before today in PKT
+        },
       },
       select: { providerDetails: true, transaction_id: true },
+      orderBy: {
+        date_time: 'desc'
+      }
     });
-    deductionSourceTxns = deductionSourceTxns.filter(
+    let deductionSourceTxns = originalDeductionSourceTxns.filter(
       (txn) => (txn.providerDetails as JsonObject).deduction != null
     );
     for (const t of deductionSourceTxns) {
@@ -290,36 +325,36 @@ async function processMerchantSettlement(
       transactionIdToTaskIdMap
     );
 
-    if (totalProviderDeduction.gt(0)) {
-      const wallet = (await calculateWalletBalanceWithTx(merchant_id, tx)) as {
-        walletBalance?: Decimal | number;
-      };
-      const walletBalanceValue =
-        wallet?.walletBalance instanceof Decimal
-          ? wallet.walletBalance
-          : new Decimal(wallet?.walletBalance ?? 0);
-      // if (walletBalanceValue < totalProviderDeduction) {
-        await backofficeService.adjustMerchantWalletBalanceithTx(
-          merchant_id,
-          walletBalanceValue.minus(totalProviderDeduction).toNumber(),
-          false,
-          tx
-        );
-      // }
+    // if (totalProviderDeduction.gt(0)) {
+    //   const wallet = (await calculateWalletBalanceWithTx(merchant_id, tx)) as {
+    //     walletBalance?: Decimal | number;
+    //   };
+    //   const walletBalanceValue =
+    //     wallet?.walletBalance instanceof Decimal
+    //       ? wallet.walletBalance
+    //       : new Decimal(wallet?.walletBalance ?? 0);
+    //   if (walletBalanceValue > totalProviderDeduction) {
+    //     await backofficeService.adjustMerchantWalletBalanceithTx(
+    //       merchant_id,
+    //       walletBalanceValue.minus(totalProviderDeduction).toNumber(),
+    //       false,
+    //       tx
+    //     );
+    //   }
 
-      // Mark deductions as processed
-      for (const txn of deductionSourceTxns) {
-        await tx.transaction.updateMany({
-          where: { transaction_id: txn.transaction_id },
-          data: {
-            providerDetails: {
-              ...(txn.providerDetails as JsonObject),
-              deductionDone: true,
-            } as unknown as Prisma.InputJsonValue,
-          },
-        });
-      }
-    }
+    //   // Mark deductions as processed
+    //   for (const txn of originalDeductionSourceTxns) {
+    //     await tx.transaction.updateMany({
+    //       where: { transaction_id: txn.transaction_id },
+    //       data: {
+    //         providerDetails: {
+    //           ...(txn.providerDetails as JsonObject),
+    //           deductionDone: true,
+    //         } as unknown as Prisma.InputJsonValue,
+    //       },
+    //     });
+    //   }
+    // }
 
     // Upsert SettlementReport for the day
     await tx.settlementReport.upsert({
