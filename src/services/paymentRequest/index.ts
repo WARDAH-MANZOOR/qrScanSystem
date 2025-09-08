@@ -284,6 +284,11 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       throw new CustomError("Payment request not found", 404);
     }
 
+    // Check if payment request is failed
+    if (paymentRequest.status === "failed") {
+      throw new CustomError("Payment link has been expired", 400);
+    }
+
     if (!paymentRequest.userId) {
       throw new CustomError("User not found", 404);
     }
@@ -547,6 +552,17 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
       // data: updatedPaymentRequest,
     };
   } catch (error: any) {
+     await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: paymentRequestObj.payId,
+        },
+        data: {
+          status: "failed",
+          updatedAt: new Date(),
+        },
+      });
+    });
     throw new CustomError(
       error?.message || "An error occurred while updating the payment request",
       error?.statusCode || 500
@@ -565,6 +581,11 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
 
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
+    }
+
+    // Check if payment request is failed
+    if (paymentRequest.status === "failed") {
+      throw new CustomError("Payment link has been expired", 400);
     }
 
     if (!paymentRequest.userId) {
@@ -688,6 +709,17 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
       // data: updatedPaymentRequest,
     };
   } catch (error: any) {
+    await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: paymentRequestObj.payId,
+        },
+        data: {
+          status: "failed",
+          updatedAt: new Date(),
+        },
+      });
+    });
     throw new CustomError(
       error?.message || "An error occurred while updating the payment request",
       error?.statusCode || 500
@@ -706,6 +738,11 @@ const payUpaisaZindigi = async (paymentRequestObj: any) => {
 
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
+    }
+
+    // Check if payment request is failed
+    if (paymentRequest.status === "failed") {
+      throw new CustomError("Payment link has been expired", 400);
     }
 
     if (!paymentRequest.userId) {
@@ -799,6 +836,11 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
 
     if (!paymentRequest) {
       throw new CustomError("Payment request not found", 404);
+    }
+
+    // Check if payment request is failed
+    if (paymentRequest.status === "failed") {
+      throw new CustomError("Payment link has been expired", 400);
     }
     const credentials = await prisma.merchant.findUnique({
       where: {

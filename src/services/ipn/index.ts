@@ -233,6 +233,16 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
             }
         }
         else {
+            const requestId = (txn?.providerDetails as JsonObject)?.requestId as string | undefined;
+            await prisma.paymentRequest.update({
+                where: {
+                    id: requestId
+                },
+                data: {
+                    status: "failed",
+                    updatedAt: new Date()
+                }
+            });
             await prisma.transaction.updateMany({
                 where: {
                     OR: [
