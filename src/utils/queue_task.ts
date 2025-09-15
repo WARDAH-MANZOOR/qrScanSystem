@@ -103,7 +103,7 @@ async function fetchPendingScheduledTasks(prisma: Omit<PrismaClient<Prisma.Prism
       }
     }
 
-    return allTasks; 
+    return allTasks;
   } catch (error) {
     console.error("Error fetching scheduled tasks for merchant:", error);
     throw error;
@@ -342,21 +342,23 @@ async function processMerchantSettlement(
     //     );
     //   }
 
-    //   // Mark deductions as processed
-    //   for (const txn of originalDeductionSourceTxns) {
-    //     await tx.transaction.updateMany({
-    //       where: { transaction_id: txn.transaction_id },
-    //       data: {
-    //         providerDetails: {
-    //           ...(txn.providerDetails as JsonObject),
-    //           deductionDone: true,
-    //         } as unknown as Prisma.InputJsonValue,
-    //       },
-    //     });
-    //   }
+
     // }
 
     // Upsert SettlementReport for the day
+
+    // Mark deductions as processed
+    for (const txn of originalDeductionSourceTxns) {
+      await tx.transaction.updateMany({
+        where: { transaction_id: txn.transaction_id },
+        data: {
+          providerDetails: {
+            ...(txn.providerDetails as JsonObject),
+            deductionDone: true,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
     await tx.settlementReport.upsert({
       where: {
         merchant_id_settlementDate: {
