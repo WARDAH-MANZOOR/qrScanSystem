@@ -270,6 +270,8 @@ model Transaction {
   callback_response String?
 
   @@index([merchant_transaction_id])
+  @@index([merchant_id, status, date_time], map: "idx_tx_merchant_status_date")  
+
   TransactionLocation TransactionLocation[]
   TransactionStatusHistory TransactionStatusHistory[]
   BlockedStatusChangeLog BlockedStatusChangeLog[]
@@ -308,6 +310,8 @@ model ScheduledTask {
   scheduledAt   DateTime?   @db.Timestamptz
   executedAt    DateTime?   @db.Timestamptz
   transaction   Transaction @relation(fields: [transactionId], references: [transaction_id])
+  // Use the actual index name from Postgres in map:
+  @@index([status, scheduledAt, id], map: "idx_scheduledtask_status_at_id")
 }
 
 model SettlementReport {
