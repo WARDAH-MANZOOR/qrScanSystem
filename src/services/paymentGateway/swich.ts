@@ -7,6 +7,7 @@ import { decrypt, encrypt } from "../../utils/enc_dec.js";
 import { transactionService } from "../../services/index.js";
 import qs from "qs";
 import { PROVIDERS } from "../../constants/providers.js";
+import { Decimal } from "@prisma/client/runtime/library";
 dotenv.config();
 
 const getAuthToken = async (id: number) => {
@@ -64,8 +65,8 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
-    if (findMerchant?.easypaisaLimit != null) {
-      if (payload.amount < findMerchant.easypaisaLimit) {
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(payload.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }
@@ -419,8 +420,8 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
     if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
-    if (findMerchant?.easypaisaLimit != null) {
-      if (payload.amount < findMerchant.easypaisaLimit) {
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(payload.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }
@@ -638,8 +639,8 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
     if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
-    if (findMerchant?.easypaisaLimit != null) {
-      if (payload.amount < findMerchant.easypaisaLimit) {
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(payload.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }

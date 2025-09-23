@@ -1,4 +1,4 @@
-import { JsonObject } from "@prisma/client/runtime/library";
+import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
 import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
@@ -24,8 +24,8 @@ const getApiToken = async (merchantId: string, params: any) => {
     if (!findMerchant || !findMerchant.payFastMerchantId) {
         throw new CustomError("Merchant Not Found", 500);
     }
-    if (findMerchant?.easypaisaLimit != null) {
-        if (params.amount < findMerchant.easypaisaLimit) {
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+        if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
             throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
         }
     }
