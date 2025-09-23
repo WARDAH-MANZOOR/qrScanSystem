@@ -141,7 +141,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       throw new CustomError("Gateway merchant not found", 404);
     }
     if (findMerchant?.easypaisaMinAmtLimit != null) {
-      if (params.amount < findMerchant.easypaisaMinAmtLimit) {
+      if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }
@@ -661,7 +661,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
       throw new CustomError("Gateway merchant not found", 404);
     }
     if (findMerchant?.easypaisaMinAmtLimit != null) {
-      if (params.amount < findMerchant.easypaisaMinAmtLimit) {
+      if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }
@@ -853,7 +853,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
       throw new CustomError("Gateway merchant not found", 404);
     }
     if (findMerchant?.easypaisaMinAmtLimit != null) {
-      if (params.amount < findMerchant.easypaisaMinAmtLimit) {
+      if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }

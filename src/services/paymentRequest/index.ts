@@ -164,7 +164,7 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
 
     // اگر findMerchant یا اس کی easypaisaMinAmtLimit موجود نہ ہو تو ایرر پھینکیں
     if (findMerchant?.easypaisaMinAmtLimit != null) {
-      if (data.amount < findMerchant.easypaisaMinAmtLimit) {
+      if (new Decimal(data.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }
