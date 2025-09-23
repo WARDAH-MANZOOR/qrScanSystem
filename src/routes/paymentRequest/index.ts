@@ -29,6 +29,7 @@ router.get("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestControlle
 router.post("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.createPaymentRequest);
 router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
 router.post("/otp/:merchantId", paymentRequestController.createPaymentRequestWithOtp);
+router.post("/new-otp/:merchantId", paymentRequestController.createPaymentRequestWithOtpClone);
 router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
 // router.post("/new", [isLoggedIn], paymentRequestController.createPaymentRequest);
 router.put(
