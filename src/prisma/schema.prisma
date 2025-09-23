@@ -163,6 +163,7 @@ model Merchant {
   wooMerchant                WoocommerceMerchants?      @relation(fields: [wooMerchantId], references: [id])
 
   easypaisaLimit             Decimal?                   @default(0)
+  easypaisaMinAmtLimit       Decimal?                   @default(0)
   swichLimit                 Decimal?                   @default(0)
   lastSwich                  DateTime                   @default(now())
   @@index([phone_number])
