@@ -162,9 +162,9 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
       }
     })
 
-    // اگر findMerchant یا اس کی easypaisaLimit موجود نہ ہو تو ایرر پھینکیں
-    if (findMerchant?.easypaisaLimit != null) {
-      if (data.amount < findMerchant.easypaisaLimit) {
+    // اگر findMerchant یا اس کی easypaisaMinAmtLimit موجود نہ ہو تو ایرر پھینکیں
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (data.amount < findMerchant.easypaisaMinAmtLimit) {
         throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
       }
     }
