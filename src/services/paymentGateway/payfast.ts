@@ -24,7 +24,11 @@ const getApiToken = async (merchantId: string, params: any) => {
     if (!findMerchant || !findMerchant.payFastMerchantId) {
         throw new CustomError("Merchant Not Found", 500);
     }
-
+    if (findMerchant?.easypaisaLimit != null) {
+        if (data.amount < findMerchant.easypaisaLimit) {
+            throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+        }
+    }
     const payFastMerchant = await prisma.payFastMerchant.findFirst({
         where: {
             id: findMerchant.payFastMerchantId

@@ -161,6 +161,16 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
         commissions: true
       }
     })
+
+    // اگر findMerchant یا اس کی easypaisaLimit موجود نہ ہو تو ایرر پھینکیں
+    if (findMerchant?.easypaisaLimit != null) {
+      if (data.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
+
+    
+
     let commission;
     if (findMerchant?.commissions[0].commissionMode == "SINGLE") {
       commission = +findMerchant?.commissions[0].commissionGST +

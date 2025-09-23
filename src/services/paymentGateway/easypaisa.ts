@@ -140,6 +140,11 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
+    if (findMerchant?.easypaisaLimit != null) {
+      if (data.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     const phone = transactionService.convertPhoneNumber(params.phone)
     let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
@@ -655,6 +660,11 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
+    if (findMerchant?.easypaisaLimit != null) {
+      if (data.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
 
     const phone = transactionService.convertPhoneNumber(params.phone);
     let id2 = params.order_id || id;
@@ -842,7 +852,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
-
+    if (findMerchant?.easypaisaLimit != null) {
+      if (data.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     const phone = transactionService.convertPhoneNumber(params.phone);
     let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
