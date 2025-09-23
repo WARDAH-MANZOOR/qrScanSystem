@@ -25,7 +25,7 @@ const getApiToken = async (merchantId: string, params: any) => {
         throw new CustomError("Merchant Not Found", 500);
     }
     if (findMerchant?.easypaisaLimit != null) {
-        if (data.amount < findMerchant.easypaisaLimit) {
+        if (params.amount < findMerchant.easypaisaLimit) {
             throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
         }
     }
