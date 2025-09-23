@@ -64,7 +64,11 @@ const initiateSwich = async (payload: any, merchantId: string) => {
     if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
-
+    if (findMerchant?.easypaisaLimit != null) {
+      if (payload.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     let id2 = payload.order_id || id;
     let data = JSON.stringify({
       customerTransactionId: id2,
@@ -415,7 +419,11 @@ const initiateSwichAsync = async (payload: any, merchantId: string) => {
     if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
-
+    if (findMerchant?.easypaisaLimit != null) {
+      if (payload.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     const id2 = payload.order_id || id;
     console.log(+findMerchant.commissions[0].commissionGST +
       +(findMerchant.commissions[0]?.easypaisaRate || 0) +
@@ -630,7 +638,11 @@ const initiateSwichAsyncClone = async (payload: any, merchantId: string) => {
     if (!findMerchant || !findMerchant.swichMerchantId) {
       throw new CustomError("Merchant not found", 404);
     }
-
+    if (findMerchant?.easypaisaLimit != null) {
+      if (payload.amount < findMerchant.easypaisaLimit) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     const id2 = payload.order_id || id;
     console.log(+findMerchant.commissions[0].commissionGST +
       +(findMerchant.commissions[0]?.easypaisaRate || 0) +
