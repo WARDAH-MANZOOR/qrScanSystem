@@ -55,6 +55,14 @@ export default function (router: Router) {
   );
 
   router.post(
+    "/initiate-jzcl/:merchantId",
+    validateJazzcashRequest,
+    block_phone_number_middleware.blockPhoneNumber,
+    blockPhoneMiddleware,
+    jazzCashController.initiateJazzCashClone
+  );
+
+  router.post(
     "/initiate-sjz/:merchantId",
     // validateJazzcashRequest,
     block_phone_number_middleware.blockPhoneNumber,

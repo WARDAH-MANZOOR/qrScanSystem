@@ -40,7 +40,7 @@ import instantSettlementCron from 'utils/settle_instant_merchants_cron.js';
 
 var app = express();
 
-// cron.schedule("0 16 * * 1-5", task);
+cron.schedule("30 15 * * 1-5", task);
 // cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("0 * * * *", cleanupCron.cleanupFailedAttempts)
 // cron.schedule("* * * * *", pendingDisburse);

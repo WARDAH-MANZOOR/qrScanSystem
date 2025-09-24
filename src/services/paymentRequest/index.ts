@@ -161,6 +161,16 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
         commissions: true
       }
     })
+
+    // اگر findMerchant یا اس کی easypaisaMinAmtLimit موجود نہ ہو تو ایرر پھینکیں
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(data.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
+
+    
+
     let commission;
     if (findMerchant?.commissions[0].commissionMode == "SINGLE") {
       commission = +findMerchant?.commissions[0].commissionGST +
@@ -262,6 +272,145 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
     return {
       message: "Payment request created successfully",
       data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay-ep/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message || "An error occurred while creating the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
+const createPaymentRequestWithOtpClone = async (data: any, user: any) => {
+  try {
+    if (!user) {
+      throw new CustomError("User Id not given", 404);
+    }
+
+    let user2 = await prisma.merchant.findFirst({
+      where: {
+        uid: user
+      }
+    })
+
+    if (user2?.easypaisaPaymentMethod == "DIRECT" && !user2?.easyPaisaMerchantId) {
+      throw new CustomError("Merchant not Found", 404)
+    }
+
+    if (user2?.easypaisaPaymentMethod == "PAYFAST" && !user2?.payFastMerchantId) {
+      throw new CustomError("Merchant not Found", 404)
+    }
+
+    const findMerchant = await prisma.merchant.findFirst({
+      where: {
+        uid: user as string
+      },
+      include: {
+        commissions: true
+      }
+    })
+
+    let commission;
+    if (findMerchant?.commissions[0].commissionMode == "SINGLE") {
+      commission = +findMerchant?.commissions[0].commissionGST +
+        +findMerchant?.commissions[0].commissionRate +
+        +findMerchant?.commissions[0].commissionWithHoldingTax
+    }
+    else {
+      commission = +(findMerchant?.commissions[0].commissionGST ?? 0) +
+        +(findMerchant?.commissions[0]?.easypaisaRate ?? 0) +
+        +(findMerchant?.commissions[0].commissionWithHoldingTax ?? 0)
+    }
+    let id = transactionService.createTransactionId();
+    let id2 = data?.order_id || id;
+    const transaction = await prisma.transaction.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    })
+    const transaction2 = await prisma.paymentRequest.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    })
+
+    if (transaction || transaction2) {
+      return {
+        message: 'Order Id already exists',
+        data: {},
+        status: 400
+      }
+    }
+    const newPaymentRequest = await prisma.$transaction(async (tx) => {
+      const txn = await transactionService.createTxn({
+        order_id: id2,
+        transaction_id: id,
+        amount: data.amount,
+        status: "pending",
+        type: "wallet",
+        merchant_id: user2?.merchant_id,
+        commission,
+        settlementDuration: findMerchant?.commissions[0].settlementDuration,
+        providerDetails: {
+          id: findMerchant?.easyPaisaMerchantId,
+          name: PROVIDERS.EASYPAISA,
+          msisdn: data.phone,
+        },
+      })
+      const paymentRequest = await tx.paymentRequest.create({
+        data: {
+          userId: user2?.merchant_id,
+          amount: data.amount,
+          status: "pending",
+          email: data.store_name || data.email,
+          description: data.description,
+          transactionId: id,
+          dueDate: data.dueDate,
+          provider: data.provider,
+          link: data.link,
+          metadata: data.metadata || { phone: data.phone },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          merchant_transaction_id: data.order_id,
+        },
+      });
+      await tx.transaction.update({
+        where: {
+          merchant_transaction_id: id2
+        },
+        data: {
+          providerDetails: {
+            ...txn.providerDetails as JsonObject,
+            payId: paymentRequest?.id
+          }
+        }
+      })
+
+      return paymentRequest;
+    });
+
+    // update link with payment request id
+    const updatedPaymentRequest = await prisma.$transaction(async (tx) => {
+      return tx.paymentRequest.update({
+        where: {
+          id: newPaymentRequest.id,
+        },
+        data: {
+          link: `/redirect-payments/${newPaymentRequest.id}`,
+        },
+      });
+    });
+
+    if (!newPaymentRequest) {
+      throw new CustomError(
+        "An error occurred while creating the payment request",
+        500
+      );
+    }
+
+    return {
+      message: "Payment request created successfully",
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/redirect-payments/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -1055,5 +1204,6 @@ export default {
   createPaymentRequestClone,
   createPaymentRequestWithOtp,
   payUpaisaZindigi,
-  payRequestedPaymentForRedirection
+  payRequestedPaymentForRedirection,
+  createPaymentRequestWithOtpClone
 };

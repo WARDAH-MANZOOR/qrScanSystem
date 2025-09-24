@@ -140,6 +140,11 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     const phone = transactionService.convertPhoneNumber(params.phone)
     let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
@@ -655,6 +660,11 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
 
     const phone = transactionService.convertPhoneNumber(params.phone);
     let id2 = params.order_id || id;
@@ -842,7 +852,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     if (!easyPaisaMerchant) {
       throw new CustomError("Gateway merchant not found", 404);
     }
-
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
     const phone = transactionService.convertPhoneNumber(params.phone);
     let id2 = params.order_id || id;
     const easyPaisaTxPayload = {
@@ -1539,7 +1553,7 @@ const updateDisbursement = async (
   merchantId: string
 ) => {
   let balanceDeducted = false;
-  let findMerchant: ({ commissions: { merchant_id: number; createdAt: Date; updatedAt: Date; id: number; commissionMode: $Enums.CommissionMode | null; commissionRate: Prisma.Decimal; easypaisaRate: Prisma.Decimal | null; cardRate: Prisma.Decimal | null; commissionWithHoldingTax: Prisma.Decimal; commissionGST: Prisma.Decimal; disbursementRate: Prisma.Decimal; disbursementWithHoldingTax: Prisma.Decimal; disbursementGST: Prisma.Decimal; settlementDuration: number; }[]; } & { uid: string; merchant_id: number; full_name: string; phone_number: string; company_name: string; company_url: string | null; city: string; payment_volume: string | null; user_id: number; webhook_url: string | null; callback_mode: $Enums.CallbackMode; payout_callback: string | null; jazzCashMerchantId: number | null; easyPaisaMerchantId: number | null; swichMerchantId: number | null; zindigiMerchantId: number | null; payFastMerchantId: number | null; wooMerchantId: number | null; jazzCashCardMerchantId: number | null; encrypted: string | null; createdAt: Date; updatedAt: Date | null; balanceToDisburse: Prisma.Decimal | null; disburseBalancePercent: Prisma.Decimal; easypaisaPaymentMethod: $Enums.EasypaisaPaymentMethodEnum; easypaisaInquiryMethod: $Enums.EasypaisaInquiryMethod; payfastInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashDisburseInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashInquiryMethod: $Enums.EasypaisaInquiryMethod; EasyPaisaDisburseAccountId: number | null; JazzCashDisburseAccountId: number | null; easypaisaLimit: Prisma.Decimal | null; swichLimit: Prisma.Decimal | null; lastSwich: Date; }) | null = null;
+  let findMerchant: ({ commissions: { merchant_id: number; createdAt: Date; updatedAt: Date; id: number; commissionMode: $Enums.CommissionMode | null; commissionRate: Prisma.Decimal; easypaisaRate: Prisma.Decimal | null; cardRate: Prisma.Decimal | null; commissionWithHoldingTax: Prisma.Decimal; commissionGST: Prisma.Decimal; disbursementRate: Prisma.Decimal; disbursementWithHoldingTax: Prisma.Decimal; disbursementGST: Prisma.Decimal; settlementDuration: number; }[]; } & { uid: string; merchant_id: number; full_name: string; phone_number: string; company_name: string; company_url: string | null; city: string; payment_volume: string | null; user_id: number; webhook_url: string | null; callback_mode: $Enums.CallbackMode; payout_callback: string | null; jazzCashMerchantId: number | null; easyPaisaMerchantId: number | null; swichMerchantId: number | null; zindigiMerchantId: number | null; payFastMerchantId: number | null; wooMerchantId: number | null; jazzCashCardMerchantId: number | null; encrypted: string | null; createdAt: Date; updatedAt: Date | null; balanceToDisburse: Prisma.Decimal | null; disburseBalancePercent: Prisma.Decimal; easypaisaPaymentMethod: $Enums.EasypaisaPaymentMethodEnum; easypaisaInquiryMethod: $Enums.EasypaisaInquiryMethod; payfastInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashDisburseInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashInquiryMethod: $Enums.EasypaisaInquiryMethod; EasyPaisaDisburseAccountId: number | null; JazzCashDisburseAccountId: number | null; easypaisaMinAmtLimit: Prisma.Decimal | null; swichLimit: Prisma.Decimal | null; lastSwich: Date; }) | null = null;
   let merchantAmount = new Decimal(+obj.merchantAmount + +obj.commission + +obj.gst + +obj.withholdingTax);
   try {
     // validate Merchant
@@ -2420,7 +2434,7 @@ export const exportDisbursement = async (merchantId: number, params: any) => {
 
 const disburseThroughBankClone = async (obj: any, merchantId: string) => {
   let balanceDeducted = true;
-  let findMerchant: ({ commissions: { id: number; merchant_id: number; createdAt: Date; updatedAt: Date; commissionMode: $Enums.CommissionMode | null; commissionRate: Prisma.Decimal; easypaisaRate: Prisma.Decimal | null; cardRate: Prisma.Decimal | null; commissionWithHoldingTax: Prisma.Decimal; commissionGST: Prisma.Decimal; disbursementRate: Prisma.Decimal; disbursementWithHoldingTax: Prisma.Decimal; disbursementGST: Prisma.Decimal; settlementDuration: number; }[]; } & { merchant_id: number; createdAt: Date; updatedAt: Date | null; uid: string; full_name: string; phone_number: string; company_name: string; company_url: string | null; city: string; payment_volume: string | null; user_id: number; webhook_url: string | null; callback_mode: $Enums.CallbackMode; payout_callback: string | null; jazzCashMerchantId: number | null; easyPaisaMerchantId: number | null; swichMerchantId: number | null; zindigiMerchantId: number | null; payFastMerchantId: number | null; wooMerchantId: number | null; jazzCashCardMerchantId: number | null; encrypted: string | null; balanceToDisburse: Prisma.Decimal | null; disburseBalancePercent: Prisma.Decimal; easypaisaPaymentMethod: $Enums.EasypaisaPaymentMethodEnum; easypaisaInquiryMethod: $Enums.EasypaisaInquiryMethod; payfastInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashDisburseInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashInquiryMethod: $Enums.EasypaisaInquiryMethod; EasyPaisaDisburseAccountId: number | null; JazzCashDisburseAccountId: number | null; easypaisaLimit: Prisma.Decimal | null; swichLimit: Prisma.Decimal | null; lastSwich: Date; }) | null = null;
+  let findMerchant: ({ commissions: { id: number; merchant_id: number; createdAt: Date; updatedAt: Date; commissionMode: $Enums.CommissionMode | null; commissionRate: Prisma.Decimal; easypaisaRate: Prisma.Decimal | null; cardRate: Prisma.Decimal | null; commissionWithHoldingTax: Prisma.Decimal; commissionGST: Prisma.Decimal; disbursementRate: Prisma.Decimal; disbursementWithHoldingTax: Prisma.Decimal; disbursementGST: Prisma.Decimal; settlementDuration: number; }[]; } & { merchant_id: number; createdAt: Date; updatedAt: Date | null; uid: string; full_name: string; phone_number: string; company_name: string; company_url: string | null; city: string; payment_volume: string | null; user_id: number; webhook_url: string | null; callback_mode: $Enums.CallbackMode; payout_callback: string | null; jazzCashMerchantId: number | null; easyPaisaMerchantId: number | null; swichMerchantId: number | null; zindigiMerchantId: number | null; payFastMerchantId: number | null; wooMerchantId: number | null; jazzCashCardMerchantId: number | null; encrypted: string | null; balanceToDisburse: Prisma.Decimal | null; disburseBalancePercent: Prisma.Decimal; easypaisaPaymentMethod: $Enums.EasypaisaPaymentMethodEnum; easypaisaInquiryMethod: $Enums.EasypaisaInquiryMethod; payfastInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashDisburseInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashInquiryMethod: $Enums.EasypaisaInquiryMethod; EasyPaisaDisburseAccountId: number | null; JazzCashDisburseAccountId: number | null; easypaisaMinAmtLimit: Prisma.Decimal | null; swichLimit: Prisma.Decimal | null; lastSwich: Date; }) | null = null;
   let id;
   let merchantAmount: string | number | Decimal = new Decimal(obj.amount);
   try {
@@ -2822,7 +2836,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
 
 const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchantId: string) => {
   let balanceDeducted = false;
-  let findMerchant: ({ commissions: { id: number; merchant_id: number; createdAt: Date; updatedAt: Date; commissionMode: $Enums.CommissionMode | null; commissionRate: Prisma.Decimal; easypaisaRate: Prisma.Decimal | null; cardRate: Prisma.Decimal | null; commissionWithHoldingTax: Prisma.Decimal; commissionGST: Prisma.Decimal; disbursementRate: Prisma.Decimal; disbursementWithHoldingTax: Prisma.Decimal; disbursementGST: Prisma.Decimal; settlementDuration: number; }[]; } & { merchant_id: number; createdAt: Date; updatedAt: Date | null; callback_mode: $Enums.CallbackMode; webhook_url: string | null; uid: string; full_name: string; phone_number: string; company_name: string; company_url: string | null; city: string; payment_volume: string | null; user_id: number; payout_callback: string | null; jazzCashMerchantId: number | null; easyPaisaMerchantId: number | null; swichMerchantId: number | null; zindigiMerchantId: number | null; payFastMerchantId: number | null; wooMerchantId: number | null; jazzCashCardMerchantId: number | null; encrypted: string | null; balanceToDisburse: Prisma.Decimal | null; disburseBalancePercent: Prisma.Decimal; easypaisaPaymentMethod: $Enums.EasypaisaPaymentMethodEnum; easypaisaInquiryMethod: $Enums.EasypaisaInquiryMethod; payfastInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashDisburseInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashInquiryMethod: $Enums.EasypaisaInquiryMethod; EasyPaisaDisburseAccountId: number | null; JazzCashDisburseAccountId: number | null; easypaisaLimit: Prisma.Decimal | null; swichLimit: Prisma.Decimal | null; lastSwich: Date; }) | null = null;
+  let findMerchant: ({ commissions: { id: number; merchant_id: number; createdAt: Date; updatedAt: Date; commissionMode: $Enums.CommissionMode | null; commissionRate: Prisma.Decimal; easypaisaRate: Prisma.Decimal | null; cardRate: Prisma.Decimal | null; commissionWithHoldingTax: Prisma.Decimal; commissionGST: Prisma.Decimal; disbursementRate: Prisma.Decimal; disbursementWithHoldingTax: Prisma.Decimal; disbursementGST: Prisma.Decimal; settlementDuration: number; }[]; } & { merchant_id: number; createdAt: Date; updatedAt: Date | null; callback_mode: $Enums.CallbackMode; webhook_url: string | null; uid: string; full_name: string; phone_number: string; company_name: string; company_url: string | null; city: string; payment_volume: string | null; user_id: number; payout_callback: string | null; jazzCashMerchantId: number | null; easyPaisaMerchantId: number | null; swichMerchantId: number | null; zindigiMerchantId: number | null; payFastMerchantId: number | null; wooMerchantId: number | null; jazzCashCardMerchantId: number | null; encrypted: string | null; balanceToDisburse: Prisma.Decimal | null; disburseBalancePercent: Prisma.Decimal; easypaisaPaymentMethod: $Enums.EasypaisaPaymentMethodEnum; easypaisaInquiryMethod: $Enums.EasypaisaInquiryMethod; payfastInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashDisburseInquiryMethod: $Enums.EasypaisaInquiryMethod; jazzCashInquiryMethod: $Enums.EasypaisaInquiryMethod; EasyPaisaDisburseAccountId: number | null; JazzCashDisburseAccountId: number | null; easypaisaMinAmtLimit: Prisma.Decimal | null; swichLimit: Prisma.Decimal | null; lastSwich: Date; }) | null = null;
   let merchantAmount = new Decimal(+obj.merchantAmount + +obj.commission + +obj.gst + +obj.withholdingTax);
   try {
     // validate Merchant
