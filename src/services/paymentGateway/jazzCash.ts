@@ -412,7 +412,7 @@ const initiateJazzCashPayment = async (
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
-        "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+        "https://stingray-app-2-cxvyc.ondigitalocean.app/forward";
       const headers = {
         "Content-Type": "application/x-www-form-urlencoded",
       };
@@ -1457,7 +1457,7 @@ const processWalletPayment = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+    "https://stingray-app-2-cxvyc.ondigitalocean.app/forward";
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
@@ -1530,7 +1530,7 @@ const processWalletPaymentClone = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+    "https://stingray-app-2-cxvyc.ondigitalocean.app/forward";
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
@@ -1853,8 +1853,8 @@ const statusInquiry = async (payload: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry",
-    //   "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry" 
+    url: "https://stingray-app-2-cxvyc.ondigitalocean.app/inquiry",
+    //   "https://stingray-app-2-cxvyc.ondigitalocean.app/inquiry" 
     headers: {
       "Content-Type": "application/json",
     },
@@ -1986,8 +1986,8 @@ const simpleStatusInquiry = async (payload: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry",
-    //   "https://clownfish-app-rmhgo.ondigitalocean.app/inquiry" 
+    url: "https://stingray-app-2-cxvyc.ondigitalocean.app/inquiry",
+    //   "https://stingray-app-2-cxvyc.ondigitalocean.app/inquiry" 
     headers: {
       "Content-Type": "application/json",
     },
@@ -2159,7 +2159,7 @@ const initiateJazzCashCnicPayment = async (
     // else {
     //   part = "https://payments.jazzcash.com.pk/"
     // }
-    const apiUrl = `https://clownfish-app-rmhgo.ondigitalocean.app/forward-cnic?use_sandbox=${paymentData.use_sandbox}`;
+    const apiUrl = `https://stingray-app-2-cxvyc.ondigitalocean.app/forward-cnic?use_sandbox=${paymentData.use_sandbox}`;
     console.log(apiUrl);
     const response = await axios.post(apiUrl, { ...payload }, { headers });
     const data = response.data;
