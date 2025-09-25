@@ -105,7 +105,7 @@ export default function (router: Router) {
   );
   router.get(
     "/merchant-config-simple",
-    [isLoggedIn, isAdmin],
+    // [isLoggedIn, isAdmin],
     // validateGetJazzcashMerchant,
     jazzCashController.getJazzCashMerchant
   );
