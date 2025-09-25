@@ -52,7 +52,7 @@ const getApiToken = async (merchantId: string, params: any) => {
 
     console.log("Request: ", requestOptions)
 
-    let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/token", requestOptions as RequestInit)
+    let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/token`, requestOptions as RequestInit)
         .then((response) => response.json())
         .then((result) => result)
         .catch((error) => error);
@@ -87,7 +87,7 @@ const validateCustomerInformation = async (merchantId: string, params: any) => {
         redirect: "follow"
     };
     console.log("Request: ", urlencoded)
-    let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/validation", requestOptions as RequestInit)
+    let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/validation`, requestOptions as RequestInit)
         .then((response) => response.json())
         .then((result) => result)
         .catch((error) => error);
@@ -169,7 +169,7 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
             },
         });
 
-        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/validation", requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/validation`, requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -306,7 +306,7 @@ const pay = async (merchantId: string, params: any) => {
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 
 
-        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -466,7 +466,7 @@ const payForRedirection = async (merchantId: string, params: any) => {
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 
 
-        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -621,7 +621,7 @@ const payAsync = async (merchantId: string, params: any) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions as RequestInit)
+                let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -795,7 +795,7 @@ const payAsyncClone = async (merchantId: string, params: any) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions as RequestInit)
+                let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -950,7 +950,7 @@ const payCnic = async (merchantId: string, params: any) => {
 
         // 
         // https://apipxy-cloud.apps.net.pk:8443
-        let result = await fetch("https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/pay", requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -1209,7 +1209,7 @@ const payfastStatusInquiry = async (merchantId: string, transactionId: string, t
             redirect: "follow" as RequestRedirect
         };
 
-        const result = await fetch(`https://sea-turtle-app-bom3q.ondigitalocean.app/payfast/inquiry?transaction_id=${(txn?.providerDetails as JsonObject)?.transactionId}`, requestOptions)
+        const result = await fetch(`${process.env.EASYPAISA_URL}/payfast/inquiry?transaction_id=${(txn?.providerDetails as JsonObject)?.transactionId}`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
