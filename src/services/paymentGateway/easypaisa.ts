@@ -165,7 +165,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: `${process.env.EASYPAISA_URL}/forward`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -338,7 +338,7 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: `${process.env.EASYPAISA_URL}/forward`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -520,7 +520,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: `${process.env.EASYPAISA_URL}/forward`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -686,7 +686,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: `${process.env.EASYPAISA_URL}/forward`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -877,7 +877,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+      url: `${process.env.EASYPAISA_URL}/forward`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -1161,7 +1161,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: "https://sea-turtle-app-bom3q.ondigitalocean.app/inquiry",
+    url: `${process.env.EASYPAISA_URL}/inquiry`,
     headers: {
       Credentials: base64Credentials,
       "Content-Type": "application/json",
@@ -1388,7 +1388,7 @@ const createDisbursement = async (
 
     const ma2ma: any = await axios
       .post(
-        "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma",
+        `${process.env.EASYPAISA_URL}/epd-ma`,
         {
           Amount: obj.amount ? obj.amount : merchantAmount,
           MSISDN: findDisbureMerch.MSISDN,
@@ -1628,7 +1628,7 @@ const updateDisbursement = async (
 
     const ma2ma: any = await axios
       .post(
-        "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma",
+        `${process.env.EASYPAISA_URL}/epd-ma`,
         {
           Amount: obj.merchantAmount ? obj.merchantAmount : merchantAmount,
           MSISDN: findDisbureMerch.MSISDN,
@@ -1934,7 +1934,7 @@ const createDisbursementClone = async (
 
     const ma2ma: any = await axios
       .post(
-        "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma",
+        `${process.env.EASYPAISA_URL}/epd-ma`,
         {
           Amount: obj.amount ? obj.amount : merchantAmount,
           MSISDN: findDisbureMerch.MSISDN,
@@ -2580,7 +2580,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
+      url: `${process.env.EASYPAISA_URL}/epd-ibft-i`,
       headers: headers,
       data: data,
     };
@@ -2676,7 +2676,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
     config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
+      url: `${process.env.EASYPAISA_URL}/epd-ibft-t`,
       headers: headers,
       data: data3,
     };
@@ -2934,7 +2934,7 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
+      url: `${process.env.EASYPAISA_URL}/epd-ibft-i`,
       headers: headers,
       data: data,
     };
@@ -3002,7 +3002,7 @@ const updateDisburseThroughBank = async (obj: UpdateDisbursementPayload, merchan
     config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
+      url: `${process.env.EASYPAISA_URL}/epd-ibft-t`,
       headers: headers,
       data: data3,
     };
@@ -3250,7 +3250,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
+      url: `${process.env.EASYPAISA_URL}/epd-ibft-i`,
       headers: headers,
       data: data,
     };
@@ -3323,7 +3323,7 @@ const disburseThroughBank = async (obj: any, merchantId: string) => {
     config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
+      url: `${process.env.EASYPAISA_URL}/epd-ibft-t`,
       headers: headers,
       data: data3,
     };
