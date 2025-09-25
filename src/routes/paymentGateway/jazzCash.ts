@@ -103,6 +103,12 @@ export default function (router: Router) {
     // validateGetJazzcashMerchant,
     jazzCashController.getJazzCashMerchant
   );
+  router.get(
+    "/merchant-config-simple",
+    [isLoggedIn, isAdmin],
+    // validateGetJazzcashMerchant,
+    jazzCashController.getJazzCashMerchant
+  );
   router.post(
     "/merchant-config",
     [isLoggedIn, isAdmin],
