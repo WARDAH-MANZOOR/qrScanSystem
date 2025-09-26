@@ -23,7 +23,7 @@ const statusInquiry = async (merchantId: string, transactionId: string) => {
         const txn = await prisma.transaction.findFirst({
             where: {
                 merchant_transaction_id: transactionId,
-                merchant_id: merchant?.merchant_id,
+                // merchant_id: merchant?.merchant_id,
             }
         })
 
