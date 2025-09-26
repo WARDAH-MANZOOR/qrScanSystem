@@ -545,7 +545,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
       const jazzCashPayment = await jazzCashService.initiateJazzCashPaymentForRedirection(
         {
-          order_id: paymentRequest.merchant_transaction_id,
+          order_id: paymentRequest.merchant_transaction_id || paymentRequest.transactionId,
           amount: paymentRequest.amount,
           type: "wallet",
           phone: paymentRequestObj.accountNo || (paymentRequest?.metadata as JsonObject)?.phone,
