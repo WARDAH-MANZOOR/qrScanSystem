@@ -941,13 +941,13 @@ const initiateJazzCashPaymentForRedirection = async (
           ); // Call the function to get the next 2 weekdays
           const transaction2 = await prisma.scheduledTask.findUnique({
             where: {
-              transactionId: txnRefNo
+              transactionId: transaction.transaction_id as string
             }
           })
           if (!transaction2) {
             let scheduledTask = await prisma.scheduledTask.create({
               data: {
-                transactionId: txnRefNo,
+                transactionId: transaction.transaction_id,
                 status: "pending",
                 scheduledAt: scheduledAt, // Assign the calculated weekday date
                 executedAt: null, // Assume executedAt is null when scheduling
