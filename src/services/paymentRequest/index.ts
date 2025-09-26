@@ -151,8 +151,6 @@ const createPaymentRequestClone = async (data: any, user: any) => {
         commission,
         settlementDuration: findMerchant?.commissions[0].settlementDuration,
         providerDetails: {
-          id: findMerchant?.easyPaisaMerchantId,
-          name: PROVIDERS.EASYPAISA,
           msisdn: data.phone,
         },
       })
@@ -543,6 +541,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
 
     console.log(paymentRequest.merchant_transaction_id, !paymentRequest.transactionId)
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
+      console.log("Reached")
       const jazzCashPayment = await jazzCashService.initiateJazzCashPaymentForRedirection(
         {
           order_id: paymentRequest.merchant_transaction_id || paymentRequest.transactionId,
