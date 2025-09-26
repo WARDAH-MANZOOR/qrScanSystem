@@ -82,24 +82,110 @@ const createPaymentRequestClone = async (data: any, user: any) => {
         uid: user
       }
     })
+
+    if (user2?.easypaisaPaymentMethod == "DIRECT" && !user2?.easyPaisaMerchantId) {
+      throw new CustomError("Merchant not Found", 404)
+    }
+
+    if (user2?.easypaisaPaymentMethod == "PAYFAST" && !user2?.payFastMerchantId) {
+      throw new CustomError("Merchant not Found", 404)
+    }
+
+    const findMerchant = await prisma.merchant.findFirst({
+      where: {
+        uid: user as string
+      },
+      include: {
+        commissions: true
+      }
+    })
+
+    // اگر findMerchant یا اس کی easypaisaMinAmtLimit موجود نہ ہو تو ایرر پھینکیں
+    if (findMerchant?.easypaisaMinAmtLimit != null) {
+      if (new Decimal(data.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+        throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+      }
+    }
+
+    
+
+    let commission;
+    if (findMerchant?.commissions[0].commissionMode == "SINGLE") {
+      commission = +findMerchant?.commissions[0].commissionGST +
+        +findMerchant?.commissions[0].commissionRate +
+        +findMerchant?.commissions[0].commissionWithHoldingTax
+    }
+    else {
+      commission = +(findMerchant?.commissions[0].commissionGST ?? 0) +
+        +(findMerchant?.commissions[0]?.easypaisaRate ?? 0) +
+        +(findMerchant?.commissions[0].commissionWithHoldingTax ?? 0)
+    }
+    let id = transactionService.createTransactionId();
+    let id2 = data?.order_id || id;
+    const transaction = await prisma.transaction.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    })
+    const transaction2 = await prisma.paymentRequest.findUnique({
+      where: {
+        merchant_transaction_id: id2
+      }
+    })
+
+    if (transaction || transaction2) {
+      return {
+        message: 'Order Id already exists',
+        data: {},
+        status: 400
+      }
+    }
     const newPaymentRequest = await prisma.$transaction(async (tx) => {
-      return tx.paymentRequest.create({
+      const txn = await transactionService.createTxn({
+        order_id: id2,
+        transaction_id: id,
+        amount: data.amount,
+        status: "pending",
+        type: "wallet",
+        merchant_id: user2?.merchant_id,
+        commission,
+        settlementDuration: findMerchant?.commissions[0].settlementDuration,
+        providerDetails: {
+          id: findMerchant?.easyPaisaMerchantId,
+          name: PROVIDERS.EASYPAISA,
+          msisdn: data.phone,
+        },
+      })
+      const paymentRequest = await tx.paymentRequest.create({
         data: {
           userId: user2?.merchant_id,
           amount: data.amount,
           status: "pending",
           email: data.store_name || data.email,
           description: data.description,
-          transactionId: data.transactionId,
+          transactionId: id,
           dueDate: data.dueDate,
           provider: data.provider,
           link: data.link,
-          metadata: data.metadata || {},
+          metadata: data.metadata || { phone: data.phone },
           createdAt: new Date(),
           updatedAt: new Date(),
           merchant_transaction_id: data.order_id,
         },
       });
+      await tx.transaction.update({
+        where: {
+          merchant_transaction_id: id2
+        },
+        data: {
+          providerDetails: {
+            ...txn.providerDetails as JsonObject,
+            payId: paymentRequest?.id
+          }
+        }
+      })
+
+      return paymentRequest;
     });
 
     // update link with payment request id
@@ -352,8 +438,6 @@ const createPaymentRequestWithOtpClone = async (data: any, user: any) => {
         commission,
         settlementDuration: findMerchant?.commissions[0].settlementDuration,
         providerDetails: {
-          id: findMerchant?.easyPaisaMerchantId,
-          name: PROVIDERS.EASYPAISA,
           msisdn: data.phone,
         },
       })
@@ -459,7 +543,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
 
     console.log(paymentRequest.merchant_transaction_id, !paymentRequest.transactionId)
     if (paymentRequestObj.provider?.toLocaleLowerCase() === "jazzcash") {
-      const jazzCashPayment = await jazzCashService.initiateJazzCashPayment(
+      const jazzCashPayment = await jazzCashService.initiateJazzCashPaymentForRedirection(
         {
           order_id: paymentRequest.merchant_transaction_id,
           amount: paymentRequest.amount,
@@ -661,22 +745,6 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           +merchant.commissions[0].commissionWithHoldingTax
       }
       let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
-      await transactionService.createTxn({
-        order_id: id2,
-        transaction_id: paymentRequestObj.transaction_id,
-        amount: paymentRequest.amount,
-        status: "pending",
-        type: "card",
-        merchant_id: merchant.merchant_id,
-        commission,
-        settlementDuration: merchant.commissions[0].settlementDuration,
-        providerDetails: {
-          id: merchant.swichMerchantId as number,
-          name: PROVIDERS.CARD,
-          msisdn: paymentRequestObj.accountNo,
-          requestId: paymentRequestObj.payId
-        }
-      })
     }
 
     let updatedPaymentRequest;
