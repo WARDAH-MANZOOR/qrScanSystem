@@ -1,6 +1,6 @@
 // minimal normalization; replace with libphonenumber if you already use it
 export function normalizeE164(raw: string): string {
-    const digits = raw.replace(/[^\d+]/g, "");
+    const digits = raw?.replace(/[^\d+]/g, "");
     if (digits.startsWith("+")) return digits;
     // default to Pakistan if no +
     if (digits.startsWith("0")) return `+92${digits.slice(1)}`;
