@@ -52,4 +52,6 @@ router.post("/reconcile/:merchantId",
     backOfficeValidator.handleValidationErrors, backOfficeController.calculateFinancials)
 
 router.post("/adjust-disbursement/:merchantId",[isLoggedIn, isAdmin], backOfficeController.adjustMerchantDisbursementBalance)
+
+router.post("/upd-disb", [isLoggedIn, isAdmin], backOfficeController.updateDisbursements)
 export default router;

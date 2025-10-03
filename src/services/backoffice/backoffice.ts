@@ -1520,6 +1520,32 @@ async function adjustMerchantDisbursementBalance(merchantId: number, targetBalan
     }
 }
 
+const updateDisbursements = async () => {
+    try {
+        // updates all pending rows older than 15 minutes from "now"
+        const cutoff = new Date(Date.now() - 15 * 60 * 1000);
+
+        const { count } = await prisma.disbursement.updateMany({
+            where: {
+                status: 'pending',
+                disbursementDate: { lt: cutoff }, // compares in absolute time (UTC)
+            },
+            data: {
+                status: 'failed',
+                response_message: 'System error',
+            },
+        });
+        console.log(`Updated ${count} rows`);
+        return count
+    }
+    catch (err) {
+        throw new CustomError(
+            err instanceof Error ? err.message : 'Failed to update disbursements',
+            500
+        );
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -1543,5 +1569,6 @@ export default {
     calculateFinancials,
     adjustMerchantDisbursementBalance,
     failDisbursementsWithAccountInvalid,
-    settleDisbursements
+    settleDisbursements,
+    updateDisbursements
 }
