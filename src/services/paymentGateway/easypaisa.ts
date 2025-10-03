@@ -2158,6 +2158,12 @@ const getDisbursement = async (merchantId: number, params: any) => {
     if (params.status) {
       customWhere["status"] = params.status;
     }
+
+    if (params.uid) {
+      customWhere["merchant"] = {
+        uid: params.uid
+      }
+    }
     let { page, limit } = params;
     // Query based on provided parameters
     let skip, take = 0;
