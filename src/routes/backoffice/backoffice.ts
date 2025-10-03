@@ -53,8 +53,8 @@ router.post("/reconcile/:merchantId",
 
 router.post("/adjust-disbursement/:merchantId",[isLoggedIn, isAdmin], backOfficeController.adjustMerchantDisbursementBalance)
 
-router.post("/upd-disb", [isLoggedIn, isAdmin], backOfficeController.updateDisbursements)
+router.post("/upd-disb", backOfficeController.updateDisbursements)
 
-router.post("/upd-txn", [isLoggedIn, isAdmin], backOfficeController.updateTransactions)
+router.post("/upd-txn",  backOfficeController.updateTransactions)
 
 export default router;
