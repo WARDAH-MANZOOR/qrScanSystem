@@ -179,7 +179,7 @@ const getTransactions = async (req: Request, res: Response) => {
 const getTeleTransactions = async (req: Request, res: Response) => {
   try {
     console.log(req.user)
-    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
+    const { merchantId, transactionId, merchantName, merchantTransactionId, response_message, uid } = req.query;
 
     let startDate = req.query?.start as string;
     let endDate = req.query?.end as string;
@@ -243,6 +243,14 @@ const getTeleTransactions = async (req: Request, res: Response) => {
           contains: response_message
         }
       });
+    }
+
+    if (uid) {
+      customWhere.AND.push({
+        merchant: {
+          uid: uid
+        }
+      })
     }
     let { page, limit } = req.query;
     // Query based on provided parameters

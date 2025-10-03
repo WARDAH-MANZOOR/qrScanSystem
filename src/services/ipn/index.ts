@@ -182,7 +182,7 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                     response_message: pp_ResponseMessage
                 }
             })
-            const requestId = (txn?.providerDetails as JsonObject)?.requestId as string | undefined;
+            const requestId = (txn?.providerDetails as JsonObject)?.payId as string | undefined;
             if (requestId) {
                 await prisma.paymentRequest.update({
                     where: {
@@ -233,7 +233,7 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
             }
         }
         else {
-            const requestId = (txn?.providerDetails as JsonObject)?.requestId as string | undefined;
+            const requestId = (txn?.providerDetails as JsonObject)?.payId as string | undefined;
             await prisma.paymentRequest.update({
                 where: {
                     id: requestId
