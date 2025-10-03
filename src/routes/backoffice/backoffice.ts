@@ -55,6 +55,6 @@ router.post("/adjust-disbursement/:merchantId",[isLoggedIn, isAdmin], backOffice
 
 router.post("/upd-disb", backOfficeController.updateDisbursements)
 
-router.post("/upd-txn",  backOfficeController.updateTransactions)
+router.post("/upd-txn", backOfficeController.updateTransactions)
 
 export default router;
