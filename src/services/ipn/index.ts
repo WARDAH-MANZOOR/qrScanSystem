@@ -5,6 +5,7 @@ import CustomError from "utils/custom_error.js";
 import { addWeekdays } from "utils/date_method.js";
 import CryptoJS from "crypto-js"
 import axios from "axios";
+import { PROVIDERS } from "constants/providers.js";
 
 // Example of the request body fields
 export interface PaymentRequestBody {
@@ -179,7 +180,11 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                 },
                 data: {
                     status: "completed",
-                    response_message: pp_ResponseMessage
+                    response_message: pp_ResponseMessage,
+                    providerDetails: {
+                        ...(txn.providerDetails as JsonObject),
+                        name: PROVIDERS.CARD
+                    }
                 }
             })
             const requestId = (txn?.providerDetails as JsonObject)?.payId as string | undefined;
@@ -256,7 +261,11 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
                 },
                 data: {
                     status: "failed",
-                    response_message: pp_ResponseMessage
+                    response_message: pp_ResponseMessage,
+                    providerDetails: {
+                        ...(txn.providerDetails as JsonObject),
+                        name: PROVIDERS.CARD
+                    }
                 }
             })
         }
