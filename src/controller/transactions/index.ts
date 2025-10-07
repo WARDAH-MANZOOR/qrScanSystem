@@ -161,7 +161,7 @@ const getTransactions = async (req: Request, res: Response) => {
     const response = {
       transactions: transactions.map((transaction) => ({
         ...transaction,
-        providerDetails: {id: (transaction.providerDetails as JsonObject).id, name: (transaction.providerDetails as JsonObject).name, msisdn: (transaction.providerDetails as JsonObject).msisdn},
+        providerDetails: {id: (transaction.providerDetails as JsonObject).id, name: (transaction.providerDetails as JsonObject).name, msisdn: (transaction.providerDetails as JsonObject).msisdn, transactionId: (transaction.providerDetails as JsonObject)?.transactionId},
         merchant: {username: transaction.merchant.username},
       })),
       meta,
