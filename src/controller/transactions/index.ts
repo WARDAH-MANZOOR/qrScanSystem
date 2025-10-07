@@ -130,21 +130,19 @@ const getTransactions = async (req: Request, res: Response) => {
       orderBy: {
         date_time: "desc",
       },
-      include: {
-        merchant: {
-          include: {
-            groups: {
-              include: {
-                merchant: {
-                  include: {
-                    jazzCashMerchant: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      select: {
+        transaction_id: true,
+        merchant_transaction_id: true,
+        merchant: true,
+        date_time: true,
+        providerDetails: true,
+        original_amount: true,
+        status: true,
+        settlement: true,
+        type: true,
+        callback_sent: true,
+        response_message: true
+      }
     });
 
     const hasMore = transactions.length > take;
@@ -163,7 +161,8 @@ const getTransactions = async (req: Request, res: Response) => {
     const response = {
       transactions: transactions.map((transaction) => ({
         ...transaction,
-        jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
+        providerDetails: {id: (transaction.providerDetails as JsonObject).id, name: (transaction.providerDetails as JsonObject).name, msisdn: (transaction.providerDetails as JsonObject).msisdn},
+        merchant: {username: transaction.merchant.username},
       })),
       meta,
     };

@@ -2183,14 +2183,26 @@ const getDisbursement = async (merchantId: number, params: any) => {
         orderBy: {
           disbursementDate: "desc",
         },
-        include: {
+        select: {
+          transaction_id: true,
           merchant: {
             select: {
-              uid: true,
               full_name: true,
-            },
+              uid: true
+            }
           },
-        },
+          merchant_custom_order_id: true,
+          system_order_id: true,
+          account: true,
+          disbursementDate: true,
+          transactionAmount: true,
+          merchantAmount: true,
+          commission: true,
+          status: true,
+          provider: true,
+          callback_sent: true,
+          response_message: true,
+        }
       })
       .catch((err) => {
         throw new CustomError("Unable to get disbursement history", 500);
