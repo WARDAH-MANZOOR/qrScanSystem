@@ -2202,6 +2202,9 @@ const getDisbursement = async (merchantId: number, params: any) => {
           provider: true,
           callback_sent: true,
           response_message: true,
+          gst: true,
+          withholdingTax: true,
+          platform: true
         }
       })
       .catch((err) => {
