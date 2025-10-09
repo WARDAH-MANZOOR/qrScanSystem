@@ -1,7 +1,9 @@
+import { ProviderEnum } from "@prisma/client";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
 import { PROVIDERS } from "constants/providers.js";
 import prisma from "prisma/client.js";
 import { transactionService } from "services/index.js";
+import { cancelReservations, commitReservations, reserveLimits } from "services/limit/index.js";
 import CustomError from "utils/custom_error.js";
 
 const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -235,6 +237,7 @@ const validateCustomerInformationForCnic = async (merchantId: string, params: an
 const pay = async (merchantId: string, params: any) => {
     console.log(params);
     let saveTxn;
+    let reservations: string[] = [];
     try {
         let id = transactionService.createTransactionId();
         console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: params.order_id, system_order_id: id }))
@@ -287,6 +290,8 @@ const pay = async (merchantId: string, params: any) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax
         }
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
         saveTxn = await transactionService.createTxn({
             order_id: id2,
             transaction_id: id,
@@ -306,7 +311,7 @@ const pay = async (merchantId: string, params: any) => {
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 
 
-        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`, requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -328,6 +333,7 @@ const pay = async (merchantId: string, params: any) => {
                 },
                 findMerchant.commissions[0].settlementDuration
             );
+            await commitReservations(reservations)
             transactionService.sendCallback(
                 findMerchant.webhook_url as string,
                 saveTxn,
@@ -359,6 +365,7 @@ const pay = async (merchantId: string, params: any) => {
                 },
                 findMerchant.commissions[0].settlementDuration
             );
+            await cancelReservations(reservations)
 
             throw new CustomError(
                 result?.status_msg,
@@ -374,6 +381,12 @@ const pay = async (merchantId: string, params: any) => {
                 txnNo: saveTxn?.merchant_transaction_id
             }
         }))
+        if (reservations.length) await cancelReservations(reservations);
+        if (err?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { success: false, message: `Limit exceeded (${String(err.period).toLowerCase()})`, statusCode: 429,
+            txnNo: params.order_id || "" };
+        }
         return {
             message: err?.message || "An error occurred while initiating the transaction",
             statusCode: err?.statusCode || 500,
@@ -385,6 +398,7 @@ const pay = async (merchantId: string, params: any) => {
 const payForRedirection = async (merchantId: string, params: any) => {
     console.log(params);
     let saveTxn;
+    let reservations: string[] = [];
     try {
         let id = transactionService.createTransactionId();
         console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: params.order_id, system_order_id: id }))
@@ -437,6 +451,8 @@ const payForRedirection = async (merchantId: string, params: any) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax
         }
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
         if (params.challengeId) {
             const transactionLocation = await prisma.transactionLocation.findUnique({
                 where: {
@@ -458,6 +474,7 @@ const payForRedirection = async (merchantId: string, params: any) => {
         }
 
         if (saveTxn?.status == 'completed') {
+            await cancelReservations(reservations);
             throw new CustomError(
                 "Transaction already completed",
                 500
@@ -466,7 +483,7 @@ const payForRedirection = async (merchantId: string, params: any) => {
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_order_id: id }))
 
 
-        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`, requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -490,6 +507,7 @@ const payForRedirection = async (merchantId: string, params: any) => {
                 },
                 findMerchant.commissions[0].settlementDuration
             );
+            await commitReservations(reservations)
             transactionService.sendCallback(
                 findMerchant.webhook_url as string,
                 saveTxn,
@@ -523,7 +541,7 @@ const payForRedirection = async (merchantId: string, params: any) => {
                 },
                 findMerchant.commissions[0].settlementDuration
             );
-
+            await cancelReservations(reservations)
             throw new CustomError(
                 result?.status_msg,
                 500
@@ -538,6 +556,12 @@ const payForRedirection = async (merchantId: string, params: any) => {
                 txnNo: saveTxn?.merchant_transaction_id
             }
         }))
+        if (reservations.length) await cancelReservations(reservations);
+        if (err?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { success: false, message: `Limit exceeded (${String(err.period).toLowerCase()})`, statusCode: 429,
+            txnNo: params.order_id || "" };
+        }
         return {
             message: err?.message || "An error occurred while initiating the transaction",
             statusCode: err?.statusCode || 500,
@@ -549,6 +573,7 @@ const payForRedirection = async (merchantId: string, params: any) => {
 const payAsync = async (merchantId: string, params: any) => {
     let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
     let id = transactionService.createTransactionId();
+    let reservations: string[] = [];
     try {
         console.log(JSON.stringify({ event: "PAYFAST_PAYIN_INITIATED", order_id: params.order_id, system_order_id: id }))
         const findMerchant = await prisma.merchant.findFirst({
@@ -602,6 +627,8 @@ const payAsync = async (merchantId: string, params: any) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax
         }
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
         saveTxn = await transactionService.createTxn({
             order_id: id2,
             transaction_id: id,
@@ -621,7 +648,7 @@ const payAsync = async (merchantId: string, params: any) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
+                let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`, requestOptions as RequestInit)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -643,7 +670,7 @@ const payAsync = async (merchantId: string, params: any) => {
                         },
                         findMerchant.commissions[0].settlementDuration
                     );
-
+                    await commitReservations(reservations);
                     transactionService.sendCallback(
                         findMerchant.webhook_url as string,
                         saveTxn,
@@ -671,6 +698,7 @@ const payAsync = async (merchantId: string, params: any) => {
                         },
                         findMerchant.commissions[0].settlementDuration
                     );
+                    await cancelReservations(reservations);
                 }
             } catch (error: any) {
                 console.log(JSON.stringify({
@@ -695,6 +723,7 @@ const payAsync = async (merchantId: string, params: any) => {
                     },
                     findMerchant.commissions[0].settlementDuration
                 );
+                if (reservations.length) await cancelReservations(reservations);
             }
         });
 
@@ -711,6 +740,11 @@ const payAsync = async (merchantId: string, params: any) => {
                 txnNo: saveTxn?.merchant_transaction_id
             }
         }))
+        if (reservations.length) await cancelReservations(reservations);
+        if (error?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { success: false, message: `Limit exceeded (${String(error.period).toLowerCase()})` };
+          }
         return {
             message:
                 error?.message || "An error occurred while initiating the transaction",
@@ -795,7 +829,7 @@ const payAsyncClone = async (merchantId: string, params: any) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
+                let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`, requestOptions as RequestInit)
                     .then((response) => response.json())
                     .then((result) => result)
                     .catch((error) => error);
@@ -950,7 +984,7 @@ const payCnic = async (merchantId: string, params: any) => {
 
         // 
         // https://apipxy-cloud.apps.net.pk:8443
-        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`,requestOptions as RequestInit)
+        let result = await fetch(`${process.env.EASYPAISA_URL}/payfast/pay`, requestOptions as RequestInit)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);

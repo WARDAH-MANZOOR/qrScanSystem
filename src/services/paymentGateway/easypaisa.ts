@@ -30,9 +30,10 @@ import { Parser } from "json2csv";
 import path, { dirname } from "path";
 import { createObjectCsvWriter } from "csv-writer";
 import { fileURLToPath } from "url";
-import { $Enums, Prisma } from "@prisma/client";
+import { $Enums, Prisma, ProviderEnum } from "@prisma/client";
 import fs from "fs"
 import csv from "fast-csv"
+import { cancelReservations, commitReservations, reserveLimits } from "services/limit/index.js";
 
 dotenv.config();
 
@@ -112,6 +113,7 @@ const getTransaction = async (merchantId: string, transactionId: string) => {
 const initiateEasyPaisa = async (merchantId: string, params: any) => {
   let saveTxn;
   let id = transactionService.createTransactionId();
+  let reservations: string[] = [];
   try {
     console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
@@ -184,6 +186,8 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
         +findMerchant.commissions[0].commissionWithHoldingTax
     }
+    const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+    reservations = r.reservationIds;
     saveTxn = await transactionService.createTxn({
       order_id: id2,
       transaction_id: id,
@@ -204,7 +208,6 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }))
 
     // console.log("saveTxn", saveTxn);
-
     const response: any = await axios.request(config);
     console.log("response: ", response.data)
     // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
@@ -226,6 +229,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         },
         findMerchant.commissions[0].settlementDuration
       );
+      await commitReservations(reservations);
       transactionService.sendCallback(
         findMerchant.webhook_url as string,
         saveTxn,
@@ -265,7 +269,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         },
         findMerchant.commissions[0].settlementDuration
       );
-
+      await cancelReservations(reservations);
       throw new CustomError(
         response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
         500
@@ -279,6 +283,11 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
         statusCode: error?.statusCode || error?.response?.status || null,
       }
     }))
+    if (reservations.length) await cancelReservations(reservations);
+    if (error?.code === "LIMIT_EXCEEDED") {
+      // Optional: tell the user which period is exceeded
+      return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+    }
     return {
       message: error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,
@@ -290,6 +299,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
 const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) => {
   let saveTxn;
   let id = transactionService.createTransactionId();
+  let reservations: string[] = []
   try {
     console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
@@ -357,6 +367,8 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
         +findMerchant.commissions[0].commissionWithHoldingTax
     }
+    const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+    reservations = r.reservationIds;
     if (params.challengeId) {
       const transactionLocation = await prisma.transactionLocation.findUnique({
         where: {
@@ -408,6 +420,7 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         },
         findMerchant.commissions[0].settlementDuration
       );
+      await commitReservations(reservations);
       transactionService.sendCallback(
         findMerchant.webhook_url as string,
         saveTxn,
@@ -448,6 +461,7 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         },
         findMerchant.commissions[0].settlementDuration
       );
+      await cancelReservations(reservations);
       throw new CustomError(
         response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
         500
@@ -461,6 +475,11 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
         statusCode: error?.statusCode || error?.response?.status || null,
       }
     }))
+    if (reservations.length) await cancelReservations(reservations);
+    if (error?.code === "LIMIT_EXCEEDED") {
+      // Optional: tell the user which period is exceeded
+      return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+    }
     return {
       message: error?.message || "An error occurred while initiating the transaction",
       statusCode: error?.statusCode || 500,
@@ -631,7 +650,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
 const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
   let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
   let id = transactionService.createTransactionId();
-
+  let reservations: string[] = [];
   try {
     console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
@@ -706,6 +725,8 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
         +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
         +findMerchant.commissions[0].commissionWithHoldingTax
     }
+    const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+    reservations = r.reservationIds;
     saveTxn = await transactionService.createTxn({
       order_id: id2,
       transaction_id: id,
@@ -743,7 +764,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             },
             findMerchant.commissions[0].settlementDuration
           );
-
+          await commitReservations(reservations);
           transactionService.sendCallback(
             findMerchant.webhook_url as string,
             saveTxn,
@@ -769,6 +790,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
             },
             findMerchant.commissions[0].settlementDuration
           );
+          await cancelReservations(reservations)
           throw new CustomError(
             response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
             500
@@ -796,6 +818,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
           },
           findMerchant.commissions[0].settlementDuration
         );
+        await cancelReservations(reservations)
       }
     });
     console.log(JSON.stringify({
@@ -811,6 +834,11 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
       statusCode: "pending",
     };
   } catch (error: any) {
+    if (reservations.length) await cancelReservations(reservations);
+    if (error?.code === "LIMIT_EXCEEDED") {
+      // Optional: tell the user which period is exceeded
+      return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+    }
     return {
       message:
         error?.message || "An error occurred while initiating the transaction",
