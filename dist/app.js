@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import cron from "node-cron";
 import routes from './routes/index.js';
 import cors from 'cors';
 // // dotenv.config();
@@ -19,13 +20,17 @@ import createTransactionRouter from "./routes/transaction/create.js";
 import completeTransactionRouter from "./routes/transaction/complete.js";
 import { errorHandler } from "./utils/middleware.js";
 import { fileURLToPath } from 'url';
+import { expireOldReservations } from 'utils/reverse_reservations.js';
+import task from "./utils/queue_task.js";
+import instantSettlementCron from 'utils/settle_instant_merchants_cron.js';
 var app = express();
-// cron.schedule("0 16 * * 1-5", task);
+cron.schedule("30 15 * * 1-5", task);
 // cron.schedule("*/5 * * * *", pendingDisburse);
 // cron.schedule("0 * * * *", cleanupCron.cleanupFailedAttempts)
 // cron.schedule("* * * * *", pendingDisburse);
-// cron.schedule('5 0,12 * * 1-6', instantSettlementCron);
+cron.schedule('5 0,12 * * 1-6', instantSettlementCron);
 // cron.schedule('* * * * *', instantSettlementCron);
+cron.schedule("*/5 * * * *", expireOldReservations);
 // view engine setup
 app.set('views', "./views");
 app.set('view engine', 'jade');
@@ -41,6 +46,7 @@ app.use(cors({
         'http://localhost:3005',
         'http://localhost:*',
         'https://user.digicore.net.pk',
+        'https://securely-processed-throughverifiedpayment-systems.sahulatpay.com/',
         '*',
     ],
     credentials: true,

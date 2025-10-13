@@ -3,25 +3,35 @@ import prisma from "prisma/client.js";
 import { easyPaisaService } from "services/index.js";
 import { getToken, updateMwTransaction, updateTransactionClone } from "services/paymentGateway/index.js";
 import CustomError from "./custom_error.js";
+import { toZonedTime } from "date-fns-tz";
 const fetchPendingRecords = async (size) => {
     console.log("Disbursement Cron running");
     try {
+        const timeZone = 'Asia/Karachi';
+        const now = new Date();
+        // Calculate PKT-based time range
+        const twentyMinutesAgoInPKT = new Date(now.getTime() - 20 * 60 * 1000);
+        const fiveMinutesAgoInPKT = new Date(now.getTime() - 5 * 60 * 1000);
+        // Convert both to UTC for comparison with UTC-stored disbursementDate
+        const fromUtc = toZonedTime(twentyMinutesAgoInPKT, timeZone);
+        const toUtc = toZonedTime(fiveMinutesAgoInPKT, timeZone);
+        console.log(fromUtc, toUtc);
         return await prisma.$transaction(async (tx) => {
+            // Prisma query to fetch records after the cutoff UTC time
             const transactions = await tx.disbursement.findMany({
                 where: {
-                    status: 'pending', // Filter for pending transactions
-                    // merchant_id: 5,
-                    // to_provider: to_provider
+                    status: 'pending',
+                    disbursementDate: {
+                        gte: fromUtc, // after 12:40 PM PKT
+                        lt: toUtc, // before 12:55 PM PKT
+                    },
                 },
-                orderBy: [{
-                        disbursementDate: 'asc'
-                    }],
-                // select: {
-                //     system_order_id: true,
-                //     merchant_id: true,
-                // },
-                take: size
+                orderBy: [
+                    { disbursementDate: 'asc' }
+                ],
+                take: size,
             });
+            console.log(transactions);
             // await tx.disbursement.deleteMany({
             //     where: {
             //         status: 'pending',

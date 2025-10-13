@@ -539,7 +539,7 @@ const merchantDashboardDetailsClone = async (params, user) => {
                     amount: true,
                 },
                 where: {
-                    merchantId: +merchantId,
+                    merchantId: merchant?.merchant_id,
                     createdAt: chargeback_topup_date,
                 }
             }));
@@ -548,7 +548,7 @@ const merchantDashboardDetailsClone = async (params, user) => {
                     amount: true,
                 },
                 where: {
-                    toMerchantId: +merchantId,
+                    toMerchantId: merchant?.merchant_id,
                     createdAt: chargeback_topup_date,
                 }
             }));

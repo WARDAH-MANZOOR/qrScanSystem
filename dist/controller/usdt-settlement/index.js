@@ -14,7 +14,7 @@ const getUsdtSettlements = async (req, res) => {
 const exportUsdtSettlements = async (req, res, next) => {
     try {
         const { query } = req;
-        const id = req.user?.merchant_id || query.merchant_id;
+        const id = req.user?.merchant_id || query.merchantId;
         const merchant = await usdtSettlementService.exportUsdtSettlements(id, query);
         res.send(merchant);
     }

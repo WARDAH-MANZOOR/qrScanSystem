@@ -15,9 +15,10 @@ import { format, toZonedTime } from "date-fns-tz";
 import path, { dirname } from "path";
 import { createObjectCsvWriter } from "csv-writer";
 import { fileURLToPath } from "url";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProviderEnum } from "@prisma/client";
 import fs from "fs";
 import csv from "fast-csv";
+import { cancelReservations, commitReservations, reserveLimits } from "services/limit/index.js";
 dotenv.config();
 function stringToBoolean(value) {
     return value.toLowerCase() === "true";
@@ -91,6 +92,166 @@ const getTransaction = async (merchantId, transactionId) => {
 const initiateEasyPaisa = async (merchantId, params) => {
     let saveTxn;
     let id = transactionService.createTransactionId();
+    let reservations = [];
+    try {
+        console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id, body: params }));
+        if (!merchantId) {
+            throw new CustomError("Merchant ID is required", 400);
+        }
+        const findMerchant = await prisma.merchant.findFirst({
+            where: {
+                uid: merchantId,
+            },
+            include: {
+                commissions: true,
+            },
+        });
+        if (!findMerchant || !findMerchant.easyPaisaMerchantId) {
+            throw new CustomError("Merchant not found", 404);
+        }
+        const easyPaisaMerchant = await prisma.easyPaisaMerchant.findMany({
+            where: {
+                id: findMerchant.easyPaisaMerchantId,
+            },
+        });
+        if (!easyPaisaMerchant) {
+            throw new CustomError("Gateway merchant not found", 404);
+        }
+        if (findMerchant?.easypaisaMinAmtLimit != null) {
+            if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+                throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+            }
+        }
+        const phone = transactionService.convertPhoneNumber(params.phone);
+        let id2 = params.order_id || id;
+        const easyPaisaTxPayload = {
+            orderId: id2,
+            storeId: easyPaisaMerchant[0].storeId,
+            transactionAmount: params.amount,
+            transactionType: "MA",
+            mobileAccountNo: phone,
+            emailAddress: params.email,
+        };
+        console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`);
+        const base64Credentials = Buffer.from(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`).toString("base64");
+        let data = JSON.stringify(easyPaisaTxPayload);
+        let config = {
+            method: "post",
+            maxBodyLength: Infinity,
+            url: `${process.env.EASYPAISA_URL}/forward`,
+            headers: {
+                Credentials: `${base64Credentials}`,
+                "Content-Type": "application/json",
+            },
+            data: data,
+        };
+        let commission;
+        if (findMerchant.commissions[0].commissionMode == "SINGLE") {
+            commission = +findMerchant.commissions[0].commissionGST +
+                +findMerchant.commissions[0].commissionRate +
+                +findMerchant.commissions[0].commissionWithHoldingTax;
+        }
+        else {
+            commission = +findMerchant.commissions[0].commissionGST +
+                +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
+                +findMerchant.commissions[0].commissionWithHoldingTax;
+        }
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
+        saveTxn = await transactionService.createTxn({
+            order_id: id2,
+            transaction_id: id,
+            amount: params.amount,
+            status: "pending",
+            type: params.type,
+            merchant_id: findMerchant.merchant_id,
+            commission,
+            settlementDuration: findMerchant.commissions[0].settlementDuration,
+            providerDetails: {
+                id: easyPaisaMerchant[0].id,
+                name: PROVIDERS.EASYPAISA,
+                msisdn: phone,
+                deduction: params.attempts * 2,
+                deductionDone: false
+            },
+        });
+        console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }));
+        // console.log("saveTxn", saveTxn);
+        const response = await axios.request(config);
+        console.log("response: ", response.data);
+        // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
+        if (response?.data.responseCode == "0000") {
+            console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_SUCCESS", order_id: params.order_id, system_id: id, response: response?.data }));
+            const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
+                status: "completed",
+                response_message: response.data.responseDesc,
+                providerDetails: {
+                    id: easyPaisaMerchant[0].id,
+                    name: PROVIDERS.EASYPAISA,
+                    msisdn: phone,
+                    transactionId: response?.data?.transactionId,
+                    deduction: params.attempts * 2,
+                    deductionDone: false
+                },
+            }, findMerchant.commissions[0].settlementDuration);
+            await commitReservations(reservations);
+            transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", findMerchant.encrypted == "True" ? true : false, true);
+            console.log(JSON.stringify({
+                event: "EASYPAISA_PAYIN_RESPONSE", order_id: params.order_id, system_id: id, response: {
+                    txnNo: saveTxn.merchant_transaction_id,
+                    txnDateTime: saveTxn.date_time,
+                    statusCode: response?.data.responseCode
+                }
+            }));
+            return {
+                txnNo: saveTxn.merchant_transaction_id,
+                txnDateTime: saveTxn.date_time,
+                statusCode: response?.data.responseCode
+            };
+        }
+        else {
+            console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_FAILED", order_id: params.order_id, system_id: id, response: response?.data }));
+            const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
+                status: "failed",
+                response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
+                providerDetails: {
+                    id: easyPaisaMerchant[0].id,
+                    name: PROVIDERS.EASYPAISA,
+                    msisdn: phone,
+                    transactionId: response?.data?.transactionId,
+                    deduction: params.attempts * 2,
+                    deductionDone: false
+                },
+            }, findMerchant.commissions[0].settlementDuration);
+            await cancelReservations(reservations);
+            throw new CustomError(response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc, 500);
+        }
+    }
+    catch (error) {
+        console.log(JSON.stringify({
+            event: "EASYPAISA_PAYIN_ERROR", order_id: params.order_id, system_id: id, error: {
+                message: error?.message,
+                response: error?.response?.data || null,
+                statusCode: error?.statusCode || error?.response?.status || null,
+            }
+        }));
+        if (reservations.length)
+            await cancelReservations(reservations);
+        if (error?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+        }
+        return {
+            message: error?.message || "An error occurred while initiating the transaction",
+            statusCode: error?.statusCode || 500,
+            txnNo: saveTxn?.merchant_transaction_id
+        };
+    }
+};
+const initiateEasyPaisaForRedirection = async (merchantId, params) => {
+    let saveTxn;
+    let id = transactionService.createTransactionId();
+    let reservations = [];
     try {
         console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_INITIATED", order_id: params.order_id, system_id: id, body: params }));
         if (!merchantId) {
@@ -131,7 +292,7 @@ const initiateEasyPaisa = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: `${process.env.EASYPAISA_URL}/forward`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -149,21 +310,30 @@ const initiateEasyPaisa = async (merchantId, params) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax;
         }
-        saveTxn = await transactionService.createTxn({
-            order_id: id2,
-            transaction_id: id,
-            amount: params.amount,
-            status: "pending",
-            type: params.type,
-            merchant_id: findMerchant.merchant_id,
-            commission,
-            settlementDuration: findMerchant.commissions[0].settlementDuration,
-            providerDetails: {
-                id: easyPaisaMerchant[0].id,
-                name: PROVIDERS.EASYPAISA,
-                msisdn: phone
-            },
-        });
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
+        if (params.challengeId) {
+            const transactionLocation = await prisma.transactionLocation.findUnique({
+                where: {
+                    challengeId: params.challengeId
+                }
+            });
+            saveTxn = await prisma.transaction.findUnique({
+                where: {
+                    transaction_id: transactionLocation?.transactionId
+                }
+            });
+        }
+        else {
+            saveTxn = await prisma.transaction.findUnique({
+                where: {
+                    merchant_transaction_id: params.order_id
+                }
+            });
+        }
+        if (saveTxn?.status == 'completed') {
+            throw new CustomError("Transaction already completed", 500);
+        }
         console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: params.order_id, system_id: id }));
         // console.log("saveTxn", saveTxn);
         const response = await axios.request(config);
@@ -171,42 +341,49 @@ const initiateEasyPaisa = async (merchantId, params) => {
         // console.log("🚀 ~ initiateEasyPaisa ~ response:", response.data);
         if (response?.data.responseCode == "0000") {
             console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_SUCCESS", order_id: params.order_id, system_id: id, response: response?.data }));
-            const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
+            const updateTxn = await transactionService.updateTxn(saveTxn?.transaction_id, {
                 status: "completed",
                 response_message: response.data.responseDesc,
                 providerDetails: {
                     id: easyPaisaMerchant[0].id,
                     name: PROVIDERS.EASYPAISA,
                     msisdn: phone,
-                    transactionId: response?.data?.transactionId
+                    transactionId: response?.data?.transactionId,
+                    deduction: params.attempts * 2,
+                    deductionDone: false
                 },
             }, findMerchant.commissions[0].settlementDuration);
+            await commitReservations(reservations);
             transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", findMerchant.encrypted == "True" ? true : false, true);
             console.log(JSON.stringify({
                 event: "EASYPAISA_PAYIN_RESPONSE", order_id: params.order_id, system_id: id, response: {
-                    txnNo: saveTxn.merchant_transaction_id,
-                    txnDateTime: saveTxn.date_time,
+                    txnNo: saveTxn?.merchant_transaction_id,
+                    txnDateTime: saveTxn?.date_time,
                     statusCode: response?.data.responseCode
                 }
             }));
             return {
-                txnNo: saveTxn.merchant_transaction_id,
-                txnDateTime: saveTxn.date_time,
-                statusCode: response?.data.responseCode
+                txnNo: saveTxn?.merchant_transaction_id,
+                txnDateTime: saveTxn?.date_time,
+                statusCode: response?.data.responseCode,
+                transaction_id: saveTxn?.transaction_id
             };
         }
         else {
             console.log(JSON.stringify({ event: "EASYPAISA_PAYIN_FAILED", order_id: params.order_id, system_id: id, response: response?.data }));
-            const updateTxn = await transactionService.updateTxn(saveTxn.transaction_id, {
+            const updateTxn = await transactionService.updateTxn(saveTxn?.transaction_id, {
                 status: "failed",
                 response_message: response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc,
                 providerDetails: {
                     id: easyPaisaMerchant[0].id,
                     name: PROVIDERS.EASYPAISA,
                     msisdn: phone,
-                    transactionId: response?.data?.transactionId
+                    transactionId: response?.data?.transactionId,
+                    deduction: params.attempts * 2,
+                    deductionDone: false
                 },
             }, findMerchant.commissions[0].settlementDuration);
+            await cancelReservations(reservations);
             throw new CustomError(response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc, 500);
         }
     }
@@ -218,6 +395,12 @@ const initiateEasyPaisa = async (merchantId, params) => {
                 statusCode: error?.statusCode || error?.response?.status || null,
             }
         }));
+        if (reservations.length)
+            await cancelReservations(reservations);
+        if (error?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+        }
         return {
             message: error?.message || "An error occurred while initiating the transaction",
             statusCode: error?.statusCode || 500,
@@ -268,7 +451,7 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: `${process.env.EASYPAISA_URL}/forward`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -358,6 +541,7 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
 const initiateEasyPaisaAsync = async (merchantId, params) => {
     let saveTxn;
     let id = transactionService.createTransactionId();
+    let reservations = [];
     try {
         console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }));
         if (!merchantId) {
@@ -382,6 +566,11 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
         if (!easyPaisaMerchant) {
             throw new CustomError("Gateway merchant not found", 404);
         }
+        if (findMerchant?.easypaisaMinAmtLimit != null) {
+            if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+                throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+            }
+        }
         const phone = transactionService.convertPhoneNumber(params.phone);
         let id2 = params.order_id || id;
         const easyPaisaTxPayload = {
@@ -397,7 +586,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: `${process.env.EASYPAISA_URL}/forward`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -416,6 +605,8 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax;
         }
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
         saveTxn = await transactionService.createTxn({
             order_id: id2,
             transaction_id: id,
@@ -448,6 +639,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                             transactionId: response?.data?.transactionId
                         },
                     }, findMerchant.commissions[0].settlementDuration);
+                    await commitReservations(reservations);
                     transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", findMerchant?.encrypted?.toLowerCase() == "true" ? true : false, true);
                 }
                 else {
@@ -462,6 +654,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                             transactionId: response?.data?.transactionId
                         },
                     }, findMerchant.commissions[0].settlementDuration);
+                    await cancelReservations(reservations);
                     throw new CustomError(response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc, 500);
                 }
             }
@@ -483,6 +676,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                         transactionId: error?.response?.data?.transactionId
                     },
                 }, findMerchant.commissions[0].settlementDuration);
+                await cancelReservations(reservations);
             }
         });
         console.log(JSON.stringify({
@@ -499,6 +693,12 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
         };
     }
     catch (error) {
+        if (reservations.length)
+            await cancelReservations(reservations);
+        if (error?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+        }
         return {
             message: error?.message || "An error occurred while initiating the transaction",
             statusCode: error?.statusCode || 500,
@@ -533,6 +733,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
         if (!easyPaisaMerchant) {
             throw new CustomError("Gateway merchant not found", 404);
         }
+        if (findMerchant?.easypaisaMinAmtLimit != null) {
+            if (new Decimal(params.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
+                throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
+            }
+        }
         const phone = transactionService.convertPhoneNumber(params.phone);
         let id2 = params.order_id || id;
         const easyPaisaTxPayload = {
@@ -548,7 +753,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/forward",
+            url: `${process.env.EASYPAISA_URL}/forward`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -772,7 +977,7 @@ const easypaisainquiry = async (param, merchantId) => {
     let config = {
         method: "post",
         maxBodyLength: Infinity,
-        url: "https://sea-turtle-app-bom3q.ondigitalocean.app/inquiry",
+        url: `${process.env.EASYPAISA_URL}/inquiry`,
         headers: {
             Credentials: base64Credentials,
             "Content-Type": "application/json",
@@ -961,7 +1166,7 @@ const createDisbursement = async (obj, merchantId) => {
         const getTimeStamp = await corporateLogin(findDisbureMerch);
         const creatHashKey = await createRSAEncryptedPayload(`${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`);
         const ma2ma = await axios
-            .post("https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma", {
+            .post(`${process.env.EASYPAISA_URL}/epd-ma`, {
             Amount: obj.amount ? obj.amount : merchantAmount,
             MSISDN: findDisbureMerch.MSISDN,
             ReceiverMSISDN: obj.phone,
@@ -1164,7 +1369,7 @@ const updateDisbursement = async (obj, merchantId) => {
         const getTimeStamp = await corporateLogin(findDisbureMerch);
         const creatHashKey = await createRSAEncryptedPayload(`${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`);
         const ma2ma = await axios
-            .post("https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma", {
+            .post(`${process.env.EASYPAISA_URL}/epd-ma`, {
             Amount: obj.merchantAmount ? obj.merchantAmount : merchantAmount,
             MSISDN: findDisbureMerch.MSISDN,
             ReceiverMSISDN: obj.account,
@@ -1430,7 +1635,7 @@ const createDisbursementClone = async (obj, merchantId) => {
         const getTimeStamp = await corporateLogin(findDisbureMerch);
         const creatHashKey = await createRSAEncryptedPayload(`${findDisbureMerch.MSISDN}~${getTimeStamp.Timestamp}`);
         const ma2ma = await axios
-            .post("https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ma", {
+            .post(`${process.env.EASYPAISA_URL}/epd-ma`, {
             Amount: obj.amount ? obj.amount : merchantAmount,
             MSISDN: findDisbureMerch.MSISDN,
             ReceiverMSISDN: obj.phone,
@@ -1625,6 +1830,11 @@ const getDisbursement = async (merchantId, params) => {
         if (params.status) {
             customWhere["status"] = params.status;
         }
+        if (params.uid) {
+            customWhere["merchant"] = {
+                uid: params.uid
+            };
+        }
         let { page, limit } = params;
         // Query based on provided parameters
         let skip, take = 0;
@@ -1642,14 +1852,29 @@ const getDisbursement = async (merchantId, params) => {
             orderBy: {
                 disbursementDate: "desc",
             },
-            include: {
+            select: {
+                transaction_id: true,
                 merchant: {
                     select: {
-                        uid: true,
                         full_name: true,
-                    },
+                        uid: true
+                    }
                 },
-            },
+                merchant_custom_order_id: true,
+                system_order_id: true,
+                account: true,
+                disbursementDate: true,
+                transactionAmount: true,
+                merchantAmount: true,
+                commission: true,
+                status: true,
+                provider: true,
+                callback_sent: true,
+                response_message: true,
+                gst: true,
+                withholdingTax: true,
+                platform: true
+            }
         })
             .catch((err) => {
             throw new CustomError("Unable to get disbursement history", 500);
@@ -2003,7 +2228,7 @@ const disburseThroughBankClone = async (obj, merchantId) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
+            url: `${process.env.EASYPAISA_URL}/epd-ibft-i`,
             headers: headers,
             data: data,
         };
@@ -2094,7 +2319,7 @@ const disburseThroughBankClone = async (obj, merchantId) => {
         config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
+            url: `${process.env.EASYPAISA_URL}/epd-ibft-t`,
             headers: headers,
             data: data3,
         };
@@ -2321,7 +2546,7 @@ const updateDisburseThroughBank = async (obj, merchantId) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
+            url: `${process.env.EASYPAISA_URL}/epd-ibft-i`,
             headers: headers,
             data: data,
         };
@@ -2385,7 +2610,7 @@ const updateDisburseThroughBank = async (obj, merchantId) => {
         config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
+            url: `${process.env.EASYPAISA_URL}/epd-ibft-t`,
             headers: headers,
             data: data3,
         };
@@ -2593,7 +2818,7 @@ const disburseThroughBank = async (obj, merchantId) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-i",
+            url: `${process.env.EASYPAISA_URL}/epd-ibft-i`,
             headers: headers,
             data: data,
         };
@@ -2662,7 +2887,7 @@ const disburseThroughBank = async (obj, merchantId) => {
         config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: "https://sea-turtle-app-bom3q.ondigitalocean.app/epd-ibft-t",
+            url: `${process.env.EASYPAISA_URL}/epd-ibft-t`,
             headers: headers,
             data: data3,
         };
@@ -2924,4 +3149,5 @@ export default {
     saveToCsv,
     exportDisbursement,
     updateDisburseThroughBank,
+    initiateEasyPaisaForRedirection
 };

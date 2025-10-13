@@ -10,15 +10,15 @@ const pay = async (req, res, next) => {
         }
         const validation = await payfast.validateCustomerInformation(req.params.merchantId, {
             token: token?.token,
-            bankCode: '13',
+            bankCode: '32',
             ...req.body
         });
         if (!validation?.transaction_id) {
-            throw new CustomError("No Transaction ID Recieved", 500);
+            throw new CustomError(validation?.response_message, 500);
         }
         const payment = await payfast.pay(req.params.merchantId, {
             token: token?.token,
-            bankCode: '13',
+            bankCode: '32',
             transaction_id: validation?.transaction_id,
             ...req.body
         });

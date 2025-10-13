@@ -4,6 +4,7 @@ import CustomError from "utils/custom_error.js";
 import { addWeekdays } from "utils/date_method.js";
 import CryptoJS from "crypto-js";
 import axios from "axios";
+import { PROVIDERS } from "constants/providers.js";
 const processIPN = async (requestBody) => {
     try {
         console.log(JSON.stringify({ event: "IPN_RECIEVED", order_id: requestBody.pp_TxnRefNo, requestBody }));
@@ -50,14 +51,21 @@ const processIPN = async (requestBody) => {
                 });
                 const scheduledAt = addWeekdays(new Date(), findMerchant?.commissions[0].settlementDuration); // Call the function to get the next 2 weekdays
                 console.log(scheduledAt);
-                let scheduledTask = await prisma.scheduledTask.create({
-                    data: {
-                        transactionId: txn?.transaction_id,
-                        status: 'pending',
-                        scheduledAt: scheduledAt, // Assign the calculated weekday date
-                        executedAt: null, // Assume executedAt is null when scheduling
+                const transaction = await prisma.scheduledTask.findUnique({
+                    where: {
+                        transactionId: txn?.transaction_id
                     }
                 });
+                if (!transaction) {
+                    let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                            transactionId: txn?.transaction_id,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
                 setTimeout(async () => {
                     transactionService.sendCallback(findMerchant?.webhook_url, txn, txn?.providerDetails?.account, "payin", findMerchant?.encrypted == "True" ? true : false, false);
                 }, 30000);
@@ -136,10 +144,14 @@ const processCardIPN = async (requestBody) => {
                 },
                 data: {
                     status: "completed",
-                    response_message: pp_ResponseMessage
+                    response_message: pp_ResponseMessage,
+                    providerDetails: {
+                        ...txn.providerDetails,
+                        name: PROVIDERS.CARD
+                    }
                 }
             });
-            const requestId = txn?.providerDetails?.requestId;
+            const requestId = txn?.providerDetails?.payId;
             if (requestId) {
                 await prisma.paymentRequest.update({
                     where: {
@@ -162,20 +174,37 @@ const processCardIPN = async (requestBody) => {
                 });
                 const scheduledAt = addWeekdays(new Date(), findMerchant?.commissions[0].settlementDuration); // Call the function to get the next 2 weekdays
                 console.log(scheduledAt);
-                let scheduledTask = await prisma.scheduledTask.create({
-                    data: {
-                        transactionId: txn?.transaction_id,
-                        status: 'pending',
-                        scheduledAt: scheduledAt, // Assign the calculated weekday date
-                        executedAt: null, // Assume executedAt is null when scheduling
+                const transaction = await prisma.scheduledTask.findUnique({
+                    where: {
+                        transactionId: txn.transaction_id
                     }
                 });
+                if (!transaction) {
+                    let scheduledTask = await prisma.scheduledTask.create({
+                        data: {
+                            transactionId: txn.transaction_id,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
                 setTimeout(async () => {
                     transactionService.sendCallback(findMerchant?.webhook_url, txn, txn?.providerDetails?.account, "payin", findMerchant?.encrypted == "True" ? true : false, false);
                 }, 30000);
             }
         }
         else {
+            const requestId = txn?.providerDetails?.payId;
+            await prisma.paymentRequest.update({
+                where: {
+                    id: requestId
+                },
+                data: {
+                    status: "failed",
+                    updatedAt: new Date()
+                }
+            });
             await prisma.transaction.updateMany({
                 where: {
                     OR: [
@@ -189,7 +218,11 @@ const processCardIPN = async (requestBody) => {
                 },
                 data: {
                     status: "failed",
-                    response_message: pp_ResponseMessage
+                    response_message: pp_ResponseMessage,
+                    providerDetails: {
+                        ...txn.providerDetails,
+                        name: PROVIDERS.CARD
+                    }
                 }
             });
         }

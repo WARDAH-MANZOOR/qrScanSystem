@@ -1275,7 +1275,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
             : merchantAmount.toString(),
           order_id: disbursement.merchant_custom_order_id,
           externalApiResponse: {
-            TransactionReference: disbursement.merchant_custom_order_id,
+            TransactionReference: res.transactionID || data2.transaction_id,
             TransactionStatus: "success",
           },
         };

@@ -2,7 +2,6 @@ import { isLoggedIn, isAdmin, authorize, blockPhoneMiddleware } from "../../util
 import { easyPaisaController } from "../../controller/index.js";
 import { apiKeyAuth } from "../../middleware/auth.js";
 import { validateEasypaisaTxn, validateCreateMerchant, validateUpdateMerchant, validateInquiry, } from "../../validators/paymentGateway/easypaisa.js";
-import decryptionEasypaisa from "utils/decryptionEasypaisa.js";
 import block_phone_number_middleware from "utils/block_phone_number_middleware.js";
 export default function (router) {
     router.post("/ep-disburse/:merchantId", [apiKeyAuth], easyPaisaController.createDisbursementClone);
@@ -12,11 +11,13 @@ export default function (router) {
     router.get("/ep-bal/:merchantId", [isLoggedIn, isAdmin], easyPaisaController.accountBalance);
     router.post("/epd-inquiry/:merchantId", [apiKeyAuth], easyPaisaController.transactionInquiry);
     router.post("/sepd-inquiry/:merchantId", easyPaisaController.transactionInquiry);
-    router.post("/initiate-ep/:merchantId", validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, easyPaisaController.initiateEasyPaisa);
-    router.post("/initiate-epa/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber], blockPhoneMiddleware, easyPaisaController.initiateEasyPaisaAsync);
+    router.post("/initiate-ep-v2/:merchantId", validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, easyPaisaController.initiateEasyPaisa);
+    router.post("/initiate-epa-v2/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn, block_phone_number_middleware.blockPhoneNumber], blockPhoneMiddleware, easyPaisaController.initiateEasyPaisaAsync);
     router.post("/initiate-epc/:merchantId", validateEasypaisaTxn, easyPaisaController.initiateEasyPaisa);
-    router.post("/initiate-epc-new/:merchantId", decryptionEasypaisa.decryptionNewFlowEasypaisa, validateEasypaisaTxn, easyPaisaController.initiateEasyPaisaNewFlow);
-    router.post("/initiate-epa-mntx/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn], blockPhoneMiddleware, easyPaisaController.initiateEasyPaisaAsyncClone);
+    router.post("/initiate-epc-new/:merchantId", block_phone_number_middleware.blockPhoneNumberNew, 
+    // validateEasypaisaTxn,
+    easyPaisaController.initiateEasyPaisaNewFlow);
+    router.post("/initiate-epa-mntx-v2/:merchantId", [apiKeyAuth, ...validateEasypaisaTxn], blockPhoneMiddleware, easyPaisaController.initiateEasyPaisaAsyncClone);
     router.post("/ep-merchant", [isLoggedIn, isAdmin, ...validateCreateMerchant], easyPaisaController.createEasyPaisaMerchant);
     router.get("/ep-merchant", [isLoggedIn, isAdmin], easyPaisaController.getEasyPaisaMerchant);
     router.put("/ep-merchant/:merchantId", [isLoggedIn, isAdmin, ...validateUpdateMerchant], easyPaisaController.updateEasyPaisaMerchant);

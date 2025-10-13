@@ -256,6 +256,24 @@ const adjustMerchantDisbursementBalance = async (req, res) => {
         res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
     }
 };
+const updateDisbursements = async (req, res) => {
+    try {
+        const result = await backofficeService.updateDisbursements();
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+const updateTransactions = async (req, res) => {
+    try {
+        const result = await backofficeService.updateTransactions();
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -278,5 +296,7 @@ export default {
     calculateFinancials,
     adjustMerchantDisbursementBalance,
     failDisbursementsWithAccountInvalidForTelegram,
-    settleDisbursementsForTelegram
+    settleDisbursementsForTelegram,
+    updateDisbursements,
+    updateTransactions
 };

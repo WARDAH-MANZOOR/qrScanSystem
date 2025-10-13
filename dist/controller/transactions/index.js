@@ -104,21 +104,19 @@ const getTransactions = async (req, res) => {
             orderBy: {
                 date_time: "desc",
             },
-            include: {
-                merchant: {
-                    include: {
-                        groups: {
-                            include: {
-                                merchant: {
-                                    include: {
-                                        jazzCashMerchant: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            select: {
+                transaction_id: true,
+                merchant_transaction_id: true,
+                merchant: true,
+                date_time: true,
+                providerDetails: true,
+                original_amount: true,
+                status: true,
+                settlement: true,
+                type: true,
+                callback_sent: true,
+                response_message: true
+            }
         });
         const hasMore = transactions.length > take;
         console.log(hasMore, take, transactions.length);
@@ -134,7 +132,8 @@ const getTransactions = async (req, res) => {
         const response = {
             transactions: transactions.map((transaction) => ({
                 ...transaction,
-                jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
+                providerDetails: { id: transaction.providerDetails.id, name: transaction.providerDetails.name, msisdn: transaction.providerDetails.msisdn, transactionId: transaction.providerDetails?.transactionId },
+                merchant: { username: transaction.merchant.username },
             })),
             meta,
         };
@@ -149,7 +148,7 @@ const getTransactions = async (req, res) => {
 const getTeleTransactions = async (req, res) => {
     try {
         console.log(req.user);
-        const { merchantId, transactionId, merchantName, merchantTransactionId, response_message } = req.query;
+        const { merchantId, transactionId, merchantName, merchantTransactionId, response_message, uid } = req.query;
         let startDate = req.query?.start;
         let endDate = req.query?.end;
         const status = req.query?.status;
@@ -202,6 +201,13 @@ const getTeleTransactions = async (req, res) => {
             customWhere.AND.push({
                 response_message: {
                     contains: response_message
+                }
+            });
+        }
+        if (uid) {
+            customWhere.AND.push({
+                merchant: {
+                    uid: uid
                 }
             });
         }

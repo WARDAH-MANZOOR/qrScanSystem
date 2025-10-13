@@ -130,7 +130,7 @@ const exportUsdtSettlements = async (merchantId, params) => {
         console.log(`✅ USDT CSV saved at: ${filePath}`);
         return {
             filePath,
-            downloadUrl: `/exports/${fileName}`,
+            downloadUrl: `https://server2.sahulatpay.com/files/${fileName}`,
             totalRecords: processedCount,
             totalUsdtAmount: totalUsdtAmount.toFixed(2),
         };

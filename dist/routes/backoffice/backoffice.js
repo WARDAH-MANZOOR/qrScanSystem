@@ -28,4 +28,6 @@ router.post("/reconcile/:merchantId",
 // [isLoggedIn, isAdmin], 
 backOfficeValidator.handleValidationErrors, backOfficeController.calculateFinancials);
 router.post("/adjust-disbursement/:merchantId", [isLoggedIn, isAdmin], backOfficeController.adjustMerchantDisbursementBalance);
+router.post("/upd-disb", backOfficeController.updateDisbursements);
+router.post("/upd-txn", backOfficeController.updateTransactions);
 export default router;

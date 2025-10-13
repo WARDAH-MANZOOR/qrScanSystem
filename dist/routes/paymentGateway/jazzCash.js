@@ -19,12 +19,20 @@ export default function (router) {
     router.post("/spjz-disburse/:merchantId", jazzCashController.initiateProductionDisbursmentClone);
     router.post("/jzc-disburse/:merchantId", [apiKeyAuth], jazzCashController.initiateDisbursmentClone);
     router.post("/initiate-jz/:merchantId", validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, jazzCashController.initiateJazzCash);
+    router.post("/initiate-jzcl/:merchantId", validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, jazzCashController.initiateJazzCashClone);
+    router.post("/initiate-sjz/:merchantId", 
+    // validateJazzcashRequest,
+    block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, jazzCashController.initiateSandboxJazzCash);
     router.post("/initiate-jz-new/:merchantId", validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumberNew, jazzCashController.initiateJazzCashNewFlow);
     router.post("/initiate-jzc/:merchantId", validateJazzcashCnicRequest, block_phone_number_middleware.blockPhoneNumber, jazzCashController.initiateJazzCashCnic);
     router.post("/initiate-jza/:merchantId", [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber], blockPhoneMiddleware, jazzCashController.initiateJazzCashAsync);
     router.post("/initiate-jza-mntx/:merchantId", [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber], blockPhoneMiddleware, jazzCashController.initiateJazzCashAsyncClone);
     // Merchant Config
     router.get("/merchant-config", [isLoggedIn, isAdmin], 
+    // validateGetJazzcashMerchant,
+    jazzCashController.getJazzCashMerchant);
+    router.get("/merchant-config-simple", 
+    // [isLoggedIn, isAdmin],
     // validateGetJazzcashMerchant,
     jazzCashController.getJazzCashMerchant);
     router.post("/merchant-config", [isLoggedIn, isAdmin], validateCreateJazzcashMerchant, jazzCashController.createJazzCashMerchant);

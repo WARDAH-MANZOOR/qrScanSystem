@@ -45,7 +45,7 @@ async function getToken(merchantId) {
             body: urlencoded,
             // redirect: "follow"
         };
-        const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
+        const token = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-token`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -87,7 +87,7 @@ async function simpleSandboxGetToken(merchantId) {
             body: urlencoded,
             // redirect: "follow"
         };
-        const token = await fetch(`https://gateway-sandbox.jazzcash.com.pk/token`, requestOptions)
+        const token = await fetch(`https://jazz-sandbox.sahulatpay.com/sjzd-token`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -112,7 +112,7 @@ async function simpleGetToken(merchantId) {
             body: urlencoded,
             // redirect: "follow"
         };
-        const token = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-token`, requestOptions)
+        const token = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-token`, requestOptions)
             .then((response) => response.json())
             .then((result) => result)
             .catch((error) => error);
@@ -241,7 +241,7 @@ async function simpleGetToken(merchantId) {
 //     (async () => {
 //       await delay(1000); // Wait for 1 second
 //     })();
-//     let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+//     let response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-i`, {
 //       method: 'POST',
 //       headers: {
 //         'Accept': 'application/json',
@@ -313,7 +313,7 @@ async function simpleGetToken(merchantId) {
 //     (async () => {
 //       await delay(1000); // Wait for 1 second
 //     })();
-//     response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+//     response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-t`, {
 //       method: "POST",
 //       headers: {
 //         'Accept': 'application/json',
@@ -576,7 +576,7 @@ async function initiateTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+        let response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -660,7 +660,7 @@ async function initiateTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+        response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -908,7 +908,7 @@ async function initiateTransactionClone(token, body, merchantId) {
             bankAccountNumber: body.iban,
             bankCode: body.bankCode,
             amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-            receiverMSISDN: body.phone,
+            receiverMSISDN: "00000000000",
             referenceId: id
         }, findDisbureMerch.key, findDisbureMerch.initialVector);
         let db_id = id;
@@ -920,7 +920,7 @@ async function initiateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+        let response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1014,7 +1014,7 @@ async function initiateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+        response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -1158,7 +1158,7 @@ async function initiateTransactionClone(token, body, merchantId) {
                     : merchantAmount.toString(),
                 order_id: disbursement.merchant_custom_order_id,
                 externalApiResponse: {
-                    TransactionReference: disbursement.merchant_custom_order_id,
+                    TransactionReference: res.transactionID || data2.transaction_id,
                     TransactionStatus: "success",
                 },
             };
@@ -1243,7 +1243,7 @@ async function simpleSandboxinitiateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://gateway-sandbox.jazzcash.com.pk/jazzcash/third-party-integration/srv2/api/wso2/ibft/inquiry`, {
+        let response = await fetch(`https://jazz-sandbox.sahulatpay.com/sjzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1307,7 +1307,7 @@ async function simpleSandboxinitiateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://gateway-sandbox.jazzcash.com.pk/jazzcash/third-party-integration/srv3/api/wso2/ibft/payment`, {
+        response = await fetch(`https://jazz-sandbox.sahulatpay.com/sjzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -1424,7 +1424,7 @@ async function simpleProductionInitiateTransactionClone(token, body, merchantId)
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+        let response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1488,7 +1488,7 @@ async function simpleProductionInitiateTransactionClone(token, body, merchantId)
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+        response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -1638,7 +1638,7 @@ async function updateTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+        let response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1696,7 +1696,7 @@ async function updateTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+        response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -1901,7 +1901,7 @@ async function updateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        let response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-i`, {
+        let response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-i`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -1963,7 +1963,7 @@ async function updateTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ibft-t`, {
+        response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ibft-t`, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -2207,7 +2207,7 @@ async function updateTransactionClone(token, body, merchantId) {
 //     (async () => {
 //       await delay(1000); // Wait for 1 second
 //     })();
-//     const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
+//     const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
 //       method: 'POST',
 //       headers: {
 //         'Accept': 'application/json',
@@ -2473,7 +2473,7 @@ async function mwTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
+        const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -2748,7 +2748,7 @@ async function mwTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
+        const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -2922,7 +2922,7 @@ async function simpleProductionMwTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
+        const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -3024,7 +3024,7 @@ async function simpleSandboxMwTransactionClone(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://gateway-sandbox.jazzcash.com.pk/jazzcash/third-party-integration/srv6/api/wso2/mw/payment`, {
+        const response = await fetch(`https://jazz-sandbox.sahulatpay.com/sjzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -3176,7 +3176,7 @@ async function updateMwTransaction(token, body, merchantId) {
         (async () => {
             await delay(1000); // Wait for 1 second
         })();
-        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-ma`, {
+        const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -3327,7 +3327,7 @@ async function checkTransactionStatus(token, body, merchantId) {
         };
         console.log(requestData);
         try {
-            const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
+            const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-inquiry`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -3374,7 +3374,7 @@ async function simpleCheckTransactionStatus(token, body, merchantId) {
     console.log("API Payload: ", requestData);
     let jsonResponse;
     try {
-        const response = await fetch(`https://clownfish-app-rmhgo.ondigitalocean.app/jzd-inquiry`, {
+        const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-inquiry`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -3476,7 +3476,7 @@ async function simpleSandboxCheckTransactionStatus(token, body, merchantId) {
         };
         console.log(requestData);
         try {
-            const response = await fetch(`https://gateway-sandbox.jazzcash.com.pk/jazzcash/third-party-integration/srv1/api/wso2/transactionStatus`, {
+            const response = await fetch(`https://jazz-sandbox.sahulatpay.com/sjzd-inquiry`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

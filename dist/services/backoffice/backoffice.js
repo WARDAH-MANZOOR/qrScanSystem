@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { endOfDay, format, subDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { dashboardService, transactionService } from '../../services/index.js';
-import { getWalletBalance } from '../../services/paymentGateway/disbursement.js';
+import { backofficeService, dashboardService, transactionService } from '../../services/index.js';
+import { calculateWalletBalanceWithTx, getWalletBalance } from '../../services/paymentGateway/disbursement.js';
 import CustomError from '../../utils/custom_error.js';
 import { addWeekdays } from '../../utils/date_method.js';
 const prisma = new PrismaClient();
@@ -143,7 +143,13 @@ async function adjustMerchantWalletBalanceithTx(merchantId, targetBalance, recor
         // Get current balance
         let walletBalance;
         // if (!wb) {
-        const balance = await getWalletBalance(merchantId);
+        let balance;
+        if (tx) {
+            balance = await calculateWalletBalanceWithTx(merchantId, tx);
+        }
+        else {
+            balance = await getWalletBalance(merchantId);
+        }
         walletBalance = balance.walletBalance;
         // targetBalance += walletBalance;
         // }
@@ -461,14 +467,21 @@ async function settleTransactions(transactionIds, settlement = true) {
                 console.log(txn?.transaction_id);
                 if (!settlement) {
                     const scheduledAt = addWeekdays(new Date(), findMerchant?.commissions[0].settlementDuration); // Call the function to get the next 2 weekdays
-                    let scheduledTask = await prisma.scheduledTask.create({
-                        data: {
-                            transactionId: txn.transaction_id,
-                            status: "pending",
-                            scheduledAt: scheduledAt, // Assign the calculated weekday date
-                            executedAt: null, // Assume executedAt is null when scheduling
-                        },
+                    const transaction = await prisma.scheduledTask.findUnique({
+                        where: {
+                            transactionId: txn.transaction_id
+                        }
                     });
+                    if (!transaction) {
+                        let scheduledTask = await prisma.scheduledTask.create({
+                            data: {
+                                transactionId: txn.transaction_id,
+                                status: "pending",
+                                scheduledAt: scheduledAt, // Assign the calculated weekday date
+                                executedAt: null, // Assume executedAt is null when scheduling
+                            },
+                        });
+                    }
                 }
                 await transactionService.sendCallback(findMerchant?.webhook_url, txn, txn.providerDetails?.account, "payin", findMerchant?.encrypted == "True" ? true : false, false);
             }
@@ -607,6 +620,33 @@ async function settleAllMerchantTransactions(merchantId) {
                 status: 'completed',
             },
         });
+        // Sum provider deduction from completed and failed transactions, then deduct equally from balances
+        let totalProviderDeduction = new Decimal(0);
+        let deductionSourceTxns = await prisma.transaction.findMany({
+            where: {
+                merchant_id: merchantId,
+                status: { in: ['completed', 'failed'] },
+                settlement: false,
+                balance: { gt: 0 },
+                providerDetails: {
+                    path: ["deductionDone"],
+                    equals: false
+                }
+            },
+            select: { providerDetails: true, transaction_id: true },
+        });
+        deductionSourceTxns = deductionSourceTxns.filter(txn => txn.providerDetails.deduction != null || txn.providerDetails.deduction != undefined);
+        for (const t of deductionSourceTxns) {
+            const pd = t.providerDetails || {};
+            const raw = pd?.deduction;
+            if (typeof raw === 'number') {
+                totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+            }
+            else if (typeof raw === 'string' && raw.trim() !== '' && !Number.isNaN(Number(raw))) {
+                totalProviderDeduction = totalProviderDeduction.plus(new Decimal(raw));
+            }
+        }
+        console.log("OTP Deduction: ", totalProviderDeduction);
         // Step 2: Perform per-transaction calculations
         let transactionAmount = new Decimal(0);
         let totalCommission = new Decimal(0);
@@ -635,6 +675,7 @@ async function settleAllMerchantTransactions(merchantId) {
             .minus(totalCommission)
             .minus(totalGST)
             .minus(totalWithholdingTax);
+        console.log(merchantAmount);
         // Step 3: Mark transactions as settled
         await prisma.transaction.updateMany({
             where: {
@@ -647,6 +688,29 @@ async function settleAllMerchantTransactions(merchantId) {
                 settlement: true,
             },
         });
+        console.log("Amount to minus: ", merchantAmount, totalProviderDeduction);
+        // getWalletBalance سے واپس آنے والا object کسی خاص type کا نہیں ہے، اس لیے اسے typecast کریں
+        const walletBalanceObj = await getWalletBalance(merchantId);
+        // اگر walletBalance property موجود ہے تو اسے استعمال کریں، ورنہ 0 رکھیں
+        const walletBalance = walletBalanceObj?.walletBalance ?? 0;
+        // اگر walletBalance ایک number نہیں ہے تو اسے Decimal میں convert کریں
+        const walletBalanceDecimal = walletBalance instanceof Decimal ? walletBalance : new Decimal(walletBalance);
+        // merchantAmount ایک Decimal object ہے، اور adjustMerchantWalletBalance کو number چاہیے۔
+        // اس لیے اسے number میں convert کریں۔
+        await backofficeService.adjustMerchantWalletBalance(merchantId, new Decimal(walletBalance).minus(totalProviderDeduction).toNumber(), false);
+        for (const txn of deductionSourceTxns) {
+            await prisma.transaction.updateMany({
+                where: {
+                    transaction_id: txn.transaction_id
+                },
+                data: {
+                    providerDetails: {
+                        ...txn.providerDetails,
+                        deductionDone: true
+                    }
+                }
+            });
+        }
         // Step 4: Insert into settlementReport
         const timeZone = 'Asia/Karachi';
         const today = toZonedTime(new Date(), timeZone);
@@ -660,7 +724,8 @@ async function settleAllMerchantTransactions(merchantId) {
                 commission: totalCommission,
                 gst: totalGST,
                 withholdingTax: totalWithholdingTax,
-                merchantAmount: merchantAmount,
+                merchantAmount: merchantAmount.minus(totalProviderDeduction),
+                otpDeduction: totalProviderDeduction
             },
         });
         // Batching logic for scheduledTask updates
@@ -801,18 +866,26 @@ const createTransactionService = async (body, merchant_id) => {
                         msisdn: body.provider_account,
                     },
                     response_message: "success",
+                    settled_amount: merchantAmount
                 },
             });
             if (!body.settlement) {
                 const scheduledAt = addWeekdays(new Date(), merchant?.settlementDuration); // Call the function to get the next 2 weekdays
-                let scheduledTask = await tx.scheduledTask.create({
-                    data: {
-                        transactionId: txnRefNo,
-                        status: "pending",
-                        scheduledAt: scheduledAt, // Assign the calculated weekday date
-                        executedAt: null, // Assume executedAt is null when scheduling
-                    },
+                const transaction = await tx.scheduledTask.findUnique({
+                    where: {
+                        transactionId: txnRefNo
+                    }
                 });
+                if (!transaction) {
+                    let scheduledTask = await tx.scheduledTask.create({
+                        data: {
+                            transactionId: txnRefNo,
+                            status: "pending",
+                            scheduledAt: scheduledAt, // Assign the calculated weekday date
+                            executedAt: null, // Assume executedAt is null when scheduling
+                        },
+                    });
+                }
                 return { transaction };
             }
             const settlement = await tx.settlementReport.upsert({
@@ -1115,6 +1188,9 @@ async function calculateFinancials(merchant_id) {
         const payinCommission = new Decimal((await prisma.$queryRawUnsafe(`
         SELECT SUM(commission + gst + "withholdingTax") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
       `))[0]?.total || 0);
+        const otpDeduction = new Decimal((await prisma.$queryRawUnsafe(`
+    SELECT SUM("otpDeduction") as total FROM "SettlementReport" where merchant_id = ${merchant_id};
+  `))[0]?.total || 0);
         const settled = new Decimal((await prisma.$queryRawUnsafe(`
             SELECT 
                 COALESCE((
@@ -1148,7 +1224,8 @@ async function calculateFinancials(merchant_id) {
             .plus(totalDisbursement)
             .plus(totalUsdtSettlement)
             .plus(totalRefund)
-            .plus(chargebackSum);
+            .plus(chargebackSum)
+            .plus(otpDeduction);
         const difference = disbursementSum.minus(collectionSum);
         const differenceInSettlements = new Decimal(remainingSettlements || 0)
             .plus(settled)
@@ -1164,13 +1241,15 @@ async function calculateFinancials(merchant_id) {
             settled,
             payinCommission,
             settledBalance,
+            topupSum,
+            collectionSum,
             payoutCommission,
             totalDisbursement,
-            disbursementSum,
-            difference,
-            differenceInSettlements,
             chargebackSum,
-            topupSum
+            disbursementSum,
+            differenceInSettlements,
+            difference,
+            otpDeduction
         };
     }
     catch (err) {
@@ -1229,6 +1308,48 @@ async function adjustMerchantDisbursementBalance(merchantId, targetBalance, reco
         throw new CustomError(error instanceof Error ? error.message : 'Failed to adjust wallet balance', 500);
     }
 }
+const updateDisbursements = async () => {
+    try {
+        // updates all pending rows older than 15 minutes from "now"
+        const cutoff = new Date(Date.now() - 15 * 60 * 1000);
+        const { count } = await prisma.disbursement.updateMany({
+            where: {
+                status: 'pending',
+                disbursementDate: { lt: cutoff }, // compares in absolute time (UTC)
+            },
+            data: {
+                status: 'failed',
+                response_message: 'System error',
+            },
+        });
+        console.log(`Updated ${count} rows`);
+        return count;
+    }
+    catch (err) {
+        throw new CustomError(err instanceof Error ? err.message : 'Failed to update disbursements', 500);
+    }
+};
+const updateTransactions = async () => {
+    try {
+        // updates all pending rows older than 15 minutes from "now"
+        const cutoff = new Date(Date.now() - 15 * 60 * 1000);
+        const { count } = await prisma.transaction.updateMany({
+            where: {
+                status: 'pending',
+                date_time: { lt: cutoff }, // compares in absolute time (UTC)
+            },
+            data: {
+                status: 'failed',
+                response_message: 'System error',
+            },
+        });
+        console.log(`Updated ${count} rows`);
+        return count;
+    }
+    catch (err) {
+        throw new CustomError(err instanceof Error ? err.message : 'Failed to update disbursements', 500);
+    }
+};
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -1252,5 +1373,7 @@ export default {
     calculateFinancials,
     adjustMerchantDisbursementBalance,
     failDisbursementsWithAccountInvalid,
-    settleDisbursements
+    settleDisbursements,
+    updateDisbursements,
+    updateTransactions
 };

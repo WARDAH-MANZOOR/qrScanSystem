@@ -5,11 +5,29 @@ import { decryptAESGCM, deriveKeys, generateHMACSignature } from "./dec_with_sig
 const blockPhoneNumberNew = async (req, res, next) => {
     try {
         const { userId, timestamp, encrypted_data, iv, tag, signature, master_secret_key } = req.body;
-        if (!userId || !timestamp || !encrypted_data || !iv || !tag || !signature || !master_secret_key) {
+        const { merchantId } = req.params;
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Missing merchant id"));
+            return;
+        }
+        if (!userId || !timestamp || !encrypted_data || !iv || !tag || !signature) {
             res.status(400).json(ApiResponse.error("Missing encryption fields or master_secret_key"));
             return;
         }
-        const masterKey = Buffer.from(master_secret_key, 'utf8');
+        let user;
+        if (!master_secret_key) {
+            const merchant = await prisma.merchant.findFirst({
+                where: {
+                    uid: merchantId
+                }
+            });
+            user = await prisma.user.findUnique({
+                where: {
+                    id: merchant?.merchant_id
+                }
+            });
+        }
+        const masterKey = Buffer.from(master_secret_key || user?.decryptionKey, 'utf8');
         const { hmacKey, aesKey } = deriveKeys(masterKey);
         const expectedSignature = generateHMACSignature(userId + timestamp + encrypted_data, hmacKey);
         if (signature !== expectedSignature) {
@@ -109,6 +127,7 @@ const blockPhoneNumber = async (req, res, next) => {
         return next();
     }
     catch (error) {
+        console.log(error);
         res.status(401).json(ApiResponse.error("Number is Blocked for Fraud Transaction", 401));
     }
 };

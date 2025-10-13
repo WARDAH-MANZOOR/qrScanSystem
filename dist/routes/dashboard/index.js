@@ -1,20 +1,13 @@
 import { Router } from "express";
 import { dashboardController } from "../../controller/index.js";
-import { isLoggedIn } from "../../utils/middleware.js";
-import { merchantDashboardValidation, } from "../../validators/dashboard/index.js";
+import { isLoggedIn, isAdmin, authorize } from "../../utils/middleware.js";
+import { adminDashboardValidation, merchantDashboardValidation, } from "../../validators/dashboard/index.js";
 import { uidAuth } from "middleware/auth.js";
 const router = Router();
 // Define routes using arrow functions
-router.get("/merchant", 
-// [isLoggedIn, ...merchantDashboardValidation],
-// authorize("Dashboard"),
-dashboardController.merchantDashboardDetails);
-router.get("/merchant-details/:merchantId", [uidAuth, ...merchantDashboardValidation], 
-// authorize("Dashboard"),
-dashboardController.merchantDashboardDetailsClone);
-router.get("/admin", 
-// [isLoggedIn, isAdmin, ...adminDashboardValidation],
-dashboardController.adminDashboardDetails);
+router.get("/merchant", [isLoggedIn, ...merchantDashboardValidation], authorize("Dashboard"), dashboardController.merchantDashboardDetails);
+router.get("/merchant-details/:merchantId", [uidAuth, ...merchantDashboardValidation], authorize("Dashboard"), dashboardController.merchantDashboardDetailsClone);
+router.get("/admin", [isLoggedIn, isAdmin, ...adminDashboardValidation], dashboardController.adminDashboardDetails);
 // Globally apply middleware to all routes
 router.use(isLoggedIn);
 /**
