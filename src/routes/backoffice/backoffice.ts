@@ -45,7 +45,13 @@ router.post("/div-settlements",[isLoggedIn, isAdmin], backOfficeController.divid
 
 router.get("/process-today",[isLoggedIn, isAdmin], backOfficeController.processTodaySettlements)
 
-router.post("/usdt-settlement",[isLoggedIn, isAdmin, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, backOfficeController.createUSDTSettlement)
+router.post("/usdt-settlement",
+    [isLoggedIn, isAdmin, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, 
+    backOfficeController.createUSDTSettlement)
+
+router.post("/usdt-settlement-new",
+        [isLoggedIn, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, 
+        backOfficeController.createUSDTSettlementNew)
 
 router.post("/reconcile/:merchantId",
     // [isLoggedIn, isAdmin], 

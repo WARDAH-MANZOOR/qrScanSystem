@@ -254,6 +254,15 @@ const createUSDTSettlement = async (req: Request, res: Response, next: NextFunct
     }
 }
 
+const createUSDTSettlementNew = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const record = await backofficeService.createUSDTSettlementNew(req.body);
+        res.status(201).json({ record });
+    } catch (error) {
+        next(error)
+    }
+}
+
 const calculateFinancials = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const record = await backofficeService.calculateFinancials(+req.params.merchantId);
@@ -322,5 +331,6 @@ export default {
     failDisbursementsWithAccountInvalidForTelegram,
     settleDisbursementsForTelegram,
     updateDisbursements,
-    updateTransactions
+    updateTransactions,
+    createUSDTSettlementNew
 }

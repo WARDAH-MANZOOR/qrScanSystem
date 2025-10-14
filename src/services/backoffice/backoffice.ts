@@ -1358,6 +1358,67 @@ async function createUSDTSettlement(body: any) {
     }
 }
 
+async function createUSDTSettlementNew(body: any) {
+    try {
+        const merchant = await prisma.merchant.findUnique({
+            where: {
+                merchant_id: body.merchant_id
+            },
+            select: {
+                commissions: {
+                    select: {
+                        usdtPercentage: true,
+                        usdtRate: true
+                    }
+                }
+            }
+        })
+        const chargebackAmount = Number(body.pkr_amount);
+        if (!chargebackAmount || chargebackAmount <= 0) {
+            throw new CustomError("Invalid chargeback amount", 400);
+        }
+
+        // Get balances
+        const financials = await backofficeService.calculateFinancials(body.merchant_id as number);
+        const availableBalance = Number(financials.availableBalance || 0);
+
+        let deductedFrom: 'disbursement' | 'available' | null = null;
+        // Try to deduct from disbursement balance first
+
+        if (availableBalance >= chargebackAmount) {
+            await backofficeService.adjustMerchantWalletBalance(body?.merchant_id as number, availableBalance - chargebackAmount, false);
+            deductedFrom = 'available';
+        } else {
+            throw new CustomError("Insufficient funds in both disbursement and available balances", 400);
+        }
+
+        let usdt;
+        if (+(merchant?.commissions?.[0]?.usdtRate ?? 0) <= 0) {
+            throw new CustomError("USDT Settlement Rate Not Available")
+        }
+        else {
+            usdt = body.pkr_amount / +(merchant?.commissions?.[0]?.usdtRate ?? 1)
+        }
+        let final_usdt = usdt - (usdt * +(merchant?.commissions[0].usdtPercentage ?? 0))
+        const settlement = await prisma.uSDTSettlement.create({
+            data: {
+                merchant_id: body.merchant_id,
+                date: toZonedTime(new Date(body.date), 'Asia/Karachi'),
+                pkr_amount: Number(body.pkr_amount),
+                usdt_amount: usdt,
+                usdt_pkr_rate: +(merchant?.commissions?.[0]?.usdtRate ?? 0),
+                conversion_charges: `${+(merchant?.commissions[0].usdtPercentage ?? 0)}%`,
+                total_usdt: final_usdt,
+                wallet_address: body.wallet_address,
+            },
+        });
+        return settlement;
+    }
+    catch (err: any) {
+        throw new CustomError(err?.message, 500)
+    }
+}
+
 async function calculateFinancials(merchant_id: number): Promise<CalculatedFinancials> {
     try {
         let merchant = await prisma.merchantFinancialTerms.findUnique({
@@ -1597,5 +1658,6 @@ export default {
     failDisbursementsWithAccountInvalid,
     settleDisbursements,
     updateDisbursements,
-    updateTransactions
+    updateTransactions,
+    createUSDTSettlementNew
 }
