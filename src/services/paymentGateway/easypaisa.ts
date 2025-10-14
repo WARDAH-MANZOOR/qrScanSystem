@@ -2123,7 +2123,7 @@ const createDisbursementClone = async (
             : merchantAmount.toString(),
           order_id: disbursement.merchant_custom_order_id,
           externalApiResponse: {
-            TransactionReference: disbursement.merchant_custom_order_id,
+            TransactionReference: disbursement.transaction_id,
             TransactionStatus: ma2ma.TransactionStatus,
           },
         };
@@ -2863,7 +2863,7 @@ const disburseThroughBankClone = async (obj: any, merchantId: string) => {
             : merchantAmount.toString(),
           order_id: disbursement.merchant_custom_order_id,
           externalApiResponse: {
-            TransactionReference: disbursement.merchant_custom_order_id,
+            TransactionReference: disbursement.transaction_id,
             TransactionStatus: res2.data.TransactionStatus,
           },
         };
