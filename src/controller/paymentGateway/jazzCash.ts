@@ -373,6 +373,22 @@ const initiateMWDisbursement = async (req: Request, res: Response, next: NextFun
   }
 }
 
+function isValidPhone(number: string) {
+  // Remove spaces, dashes, etc.
+  const cleaned = number.replace(/\D/g, "");
+
+  if (cleaned.startsWith("92")) {
+    return cleaned.length <= 12;
+  }
+
+  if (cleaned.startsWith("0")) {
+    return cleaned.length <= 11;
+  }
+
+  // If it doesn't start with 92 or 0, consider invalid
+  return true;
+}
+
 const initiateDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log("IBFT Called")
@@ -383,6 +399,9 @@ const initiateDisbursmentClone = async (req: Request, res: Response, next: NextF
     console.log(req.body.iban.length)
     if (req.body.iban.length < 10) {
       throw new CustomError("IBAN Should be atleast 10 digits", 400);
+    }
+    if (!isValidPhone(req.body.iban)) {
+      throw new CustomError("Invalid Phone Number", 400);
     }
     const token = await getToken(req.params.merchantId);
     const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
