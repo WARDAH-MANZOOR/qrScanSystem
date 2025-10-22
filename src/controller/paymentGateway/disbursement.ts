@@ -233,6 +233,8 @@ const disburseTransactions = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  try {
+
   // Validate request data
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -252,7 +254,6 @@ const disburseTransactions = async (
     return;
   }
 
-  try {
 
     // Get eligible transactions
     const transactions = await getEligibleTransactions(merchantId, prisma);

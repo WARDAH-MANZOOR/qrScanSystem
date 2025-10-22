@@ -28,12 +28,12 @@ const sendOtp = async (req: Request, res: Response, next: NextFunction) => {
                 id: payId
             }
         });
-        
+
         const otp = generateOTP(); // Generate the OTP
         const salt = makeSalt();
         const otpHash = hashOtp(otp, salt);
         await prisma.otpChallenge.update({ where: { id: challengeId }, data: { otpHash, otpSalt: salt } })
-        await prisma.transactionLocation.update({where: {challengeId: challengeId}, data: {transactionId: paymentRequest?.transactionId}})
+        await prisma.transactionLocation.update({ where: { challengeId: challengeId }, data: { transactionId: paymentRequest?.transactionId } })
         const { attempt, chargeRs } = await computeAttemptAndCharge(c.sendCount, c);
 
         await recordMicroChargeAndResend({
@@ -60,7 +60,9 @@ const sendOtp = async (req: Request, res: Response, next: NextFunction) => {
         })
         res.json({ success: true, response: result });
     } catch (error: any) {
-        await prisma.otpChallenge.update({ where: { id: req.body.challengeId }, data: { status: 'blocked' } })
+        if (req.body.challengeId) {
+            await prisma.otpChallenge.update({ where: { id: req.body.challengeId }, data: { status: 'blocked' } })
+        }
         // res.status(500).json({ success: false, error: error.message });
         next(error)
     }
