@@ -2698,7 +2698,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     })
     const payload = encryptData(
       {
-        receiverCNIC: body.cnic,
+        receiverCNIC: body.cnic || "0000000000000",
         receiverMSISDN: body.phone,
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
         referenceId: id
