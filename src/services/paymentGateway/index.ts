@@ -1001,7 +1001,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
         bankAccountNumber: body.iban,
         bankCode: body.bankCode,
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-        receiverMSISDN: "00000000000",
+        receiverMSISDN: body.phone,
         referenceId: id
       }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
