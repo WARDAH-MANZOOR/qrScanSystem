@@ -2713,7 +2713,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-
+ 
     const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
       method: 'POST',
       headers: {
