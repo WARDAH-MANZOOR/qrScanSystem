@@ -1492,7 +1492,6 @@ async function calculateFinancials(merchant_id: number): Promise<CalculatedFinan
             .plus(totalUsdtSettlement)
             .plus(totalRefund)
             .plus(chargebackSum)
-            .plus(otpDeduction);
         const difference = disbursementSum.minus(collectionSum);
 
         const differenceInSettlements = new Decimal(remainingSettlements || 0)
