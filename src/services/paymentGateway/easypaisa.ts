@@ -851,7 +851,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
 const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
   let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
   let id = transactionService.createTransactionId();
-
+  let reservations: string[] = [];
   try {
     console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
@@ -940,6 +940,8 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
         msisdn: phone,
       },
     });
+    const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+    reservations = r.reservationIds;
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", system_id: id, order_id: params.order_id }))
     // Return pending status and transaction ID immediately
     setImmediate(async () => {
@@ -962,6 +964,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             },
             findMerchant.commissions[0].settlementDuration
           );
+          await commitReservations(reservations)
 
           transactionService.sendCallbackClone(
             findMerchant.webhook_url as string,
@@ -988,6 +991,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
             },
             findMerchant.commissions[0].settlementDuration
           );
+          await cancelReservations(reservations)
         }
       } catch (error: any) {
         console.log(JSON.stringify({
@@ -1010,6 +1014,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
           },
           findMerchant.commissions[0].settlementDuration
         );
+        await cancelReservations(reservations)
       }
     });
     console.log(JSON.stringify({
@@ -1025,6 +1030,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
       statusCode: "pending",
     };
   } catch (error: any) {
+    if (reservations.length) await cancelReservations(reservations);
+    if (error?.code === "LIMIT_EXCEEDED") {
+      // Optional: tell the user which period is exceeded
+      return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+    }
     return {
       message:
         error?.message || "An error occurred while initiating the transaction",

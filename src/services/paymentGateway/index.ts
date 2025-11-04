@@ -1001,7 +1001,7 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
         bankAccountNumber: body.iban,
         bankCode: body.bankCode,
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-        receiverMSISDN: "00000000000",
+        receiverMSISDN: "03123456789",
         referenceId: id
       }
       , findDisbureMerch.key, findDisbureMerch.initialVector)
@@ -2698,7 +2698,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     })
     const payload = encryptData(
       {
-        receiverCNIC: body.cnic,
+        receiverCNIC: body.cnic || "0000000000000",
         receiverMSISDN: body.phone,
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
         referenceId: id
@@ -2713,7 +2713,7 @@ async function mwTransaction(token: string, body: any, merchantId: string) {
     (async () => {
       await delay(1000); // Wait for 1 second
     })();
-
+ 
     const response = await fetch(`${process.env.JAZZCASH_PAYOUT_URL}/jzd-ma`, {
       method: 'POST',
       headers: {
