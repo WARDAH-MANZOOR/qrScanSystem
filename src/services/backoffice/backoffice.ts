@@ -1207,6 +1207,37 @@ async function payoutCallback(orderIds: string[]) {
     }
 }
 
+/**
+ * Bulk update USDT rate and percentage for all merchants that currently have the given usdtPercentage.
+ * If usdtPercentage is 0, it will apply to merchants with 0% as well.
+ */
+async function bulkUpdateUsdtTermsByPercentage(usdtPercentage: number, usdtRate: number) {
+    try {
+        if (usdtPercentage == null || usdtRate == null) {
+            throw new CustomError("usdtPercentage and usdtRate are required", 400);
+        }
+        if (Number.isNaN(Number(usdtPercentage)) || Number.isNaN(Number(usdtRate))) {
+            throw new CustomError("usdtPercentage and usdtRate must be numbers", 400);
+        }
+        const percentage = Number(usdtPercentage);
+        const rate = Number(usdtRate);
+
+        const result = await prisma.merchantFinancialTerms.updateMany({
+            where: {
+                usdtPercentage: percentage as unknown as any,
+            },
+            data: {
+                usdtPercentage: percentage as unknown as any,
+                usdtRate: rate as unknown as any,
+            }
+        });
+
+        return { updatedCount: result.count };
+    } catch (error: any) {
+        throw new CustomError(error?.message || 'Failed to bulk update USDT terms', error?.statusCode || 500);
+    }
+}
+
 async function divideSettlementRecords(ids: number[], factor: number) {
     if (ids.length == 0 || factor <= 0) {
         throw new CustomError("Invalid Body Values", 404);
@@ -1658,5 +1689,6 @@ export default {
     settleDisbursements,
     updateDisbursements,
     updateTransactions,
-    createUSDTSettlementNew
+    createUSDTSettlementNew,
+    bulkUpdateUsdtTermsByPercentage
 }

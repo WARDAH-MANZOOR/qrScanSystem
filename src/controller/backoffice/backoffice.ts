@@ -307,6 +307,19 @@ const updateTransactions = async (req: Request, res: Response) => {
     }
 };
 
+const bulkUpdateUsdtTermsByPercentage = async (req: Request, res: Response) => {
+    try {
+        const { usdtPercentage, usdtRate } = req.body;
+        if (usdtPercentage == undefined || usdtRate == undefined) {
+            throw new CustomError("usdtPercentage and usdtRate must be provided", 400);
+        }
+        const result = await backofficeService.bulkUpdateUsdtTermsByPercentage(Number(usdtPercentage), Number(usdtRate));
+        res.status(200).json(ApiResponse.success(result));
+    } catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -332,5 +345,6 @@ export default {
     settleDisbursementsForTelegram,
     updateDisbursements,
     updateTransactions,
-    createUSDTSettlementNew
+    createUSDTSettlementNew,
+    bulkUpdateUsdtTermsByPercentage
 }
