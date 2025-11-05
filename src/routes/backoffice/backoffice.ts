@@ -52,7 +52,7 @@ router.post("/usdt-settlement",
     backOfficeController.createUSDTSettlement)
 
 router.post("/usdt-settlement-new",
-        [isLoggedIn, ...backOfficeValidator.validateSettlement], backOfficeValidator.handleValidationErrors, 
+        [isLoggedIn], 
         backOfficeController.createUSDTSettlementNew)
 
 router.post("/reconcile/:merchantId",
