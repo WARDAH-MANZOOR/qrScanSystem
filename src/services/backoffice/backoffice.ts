@@ -62,11 +62,48 @@ async function removeMerchantFinanceData(merchantId: number) {
         // Delete from Disbursement
         await prisma.disbursement.deleteMany({ where: { merchant_id: merchantId } });
 
+        await prisma.transactionStatusHistory.deleteMany({
+            where: {
+                transaction: {
+                    merchant_id: merchantId
+                }
+            }
+        })
+
+        await prisma.blockedStatusChangeLog.deleteMany({
+            where: {
+                transaction: {
+                    merchant_id: merchantId
+                }
+            }
+        })
+
+        await prisma.merchant.update({
+            where: {
+                merchant_id: merchantId
+            },
+            data: {
+                balanceToDisburse: 0
+            }
+        })
+
+        await prisma.uSDTSettlement.deleteMany({
+            where: {
+                merchant_id: merchantId
+            }
+        })
+
+        await prisma.refund.deleteMany({
+            where: {
+                merchant_id: merchantId
+            }
+        })
         // Delete Transactions
         await prisma.transaction.deleteMany({ where: { merchant_id: merchantId } });
 
         return 'Merchant finance data removed successfully.';
     } catch (error) {
+        console.log(error)
         throw new CustomError('Error removing merchant finance data', 500);
     }
 }

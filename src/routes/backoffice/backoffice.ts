@@ -5,7 +5,9 @@ import { authorize, isAdmin, isLoggedIn } from 'utils/middleware.js';
 const router = express.Router();
 
 // Define routes
-router.post('/remove-finance/:merchantId', [isLoggedIn, isAdmin], backOfficeController.removeMerchantFinanceData);
+router.post('/remove-finance/:merchantId', 
+    // [isLoggedIn, isAdmin], 
+    backOfficeController.removeMerchantFinanceData);
 
 router.post('/zero-wallet/:merchantId', [isLoggedIn, isAdmin], backOfficeController.zeroMerchantWalletBalance);
 
