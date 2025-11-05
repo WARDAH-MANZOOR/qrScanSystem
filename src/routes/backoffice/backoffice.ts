@@ -65,4 +65,10 @@ router.post("/upd-disb", backOfficeController.updateDisbursements)
 
 router.post("/upd-txn", backOfficeController.updateTransactions)
 
+router.post(
+    "/usdt-config/bulk-update",
+    // [isLoggedIn, isAdmin],
+    backOfficeController.bulkUpdateUsdtTermsByPercentage
+)
+
 export default router;
