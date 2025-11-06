@@ -838,7 +838,7 @@ const initiateJazzCashPaymentForRedirection = async (
     } else if (paymentType === "WALLET") {
       // Send the request to JazzCash
       const paymentUrl =
-        "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+        `${process.env.JAZZCASH_PAYIN_URL}/forward`;
       const headers = {
         "Content-Type": "application/x-www-form-urlencoded",
       };
