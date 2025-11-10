@@ -167,7 +167,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward`,
+      url: `${process.env.EASYPAISA_URL}/forward-ep`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -348,7 +348,7 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward`,
+      url: `${process.env.EASYPAISA_URL}/forward-ep`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -539,7 +539,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward`,
+      url: `${process.env.EASYPAISA_URL}/forward-ep`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -705,7 +705,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward`,
+      url: `${process.env.EASYPAISA_URL}/forward-ep`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -905,7 +905,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward`,
+      url: `${process.env.EASYPAISA_URL}/forward-ep`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -1199,7 +1199,7 @@ const easypaisainquiry = async (param: any, merchantId: string) => {
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: `${process.env.EASYPAISA_URL}/inquiry`,
+    url: `${process.env.EASYPAISA_URL}/inquiry-ep`,
     headers: {
       Credentials: base64Credentials,
       "Content-Type": "application/json",
