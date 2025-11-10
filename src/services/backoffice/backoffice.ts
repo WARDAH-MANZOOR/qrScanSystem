@@ -1430,7 +1430,8 @@ async function createUSDTSettlementNew(body: any) {
         else {
             usdt = body.pkr_amount / +(merchant?.commissions?.[0]?.usdtRate ?? 1)
         }
-        let final_usdt = usdt - (usdt * +(merchant?.commissions[0].usdtPercentage ?? 0))
+        let final_usdt = usdt - (usdt * (+(merchant?.commissions[0].usdtPercentage ?? 0) / 100))
+        console.log(final_usdt)
         const settlement = await prisma.uSDTSettlement.create({
             data: {
                 merchant_id: body.merchant_id,
