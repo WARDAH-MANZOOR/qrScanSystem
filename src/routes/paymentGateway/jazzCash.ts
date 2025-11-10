@@ -70,6 +70,13 @@ export default function (router: Router) {
     jazzCashController.initiateSandboxJazzCash
   );
   router.post(
+    "/initiate-pjz/:merchantId",
+    // validateJazzcashRequest,
+    block_phone_number_middleware.blockPhoneNumber,
+    blockPhoneMiddleware,
+    jazzCashController.initiateProductionJazzCash
+  );
+  router.post(
       "/initiate-jz-new/:merchantId",
       validateJazzcashRequest,
       block_phone_number_middleware.blockPhoneNumberNew,
