@@ -1480,6 +1480,12 @@ async function createUSDTSettlement(body: any) {
 
 async function createUSDTSettlementNew(body: any) {
     try {
+        console.log(`[USDT] createUSDTSettlementNew:start`, {
+            merchant_id: body?.merchant_id,
+            pkr_amount: body?.pkr_amount,
+            date: body?.date,
+            wallet_address: body?.wallet_address
+        })
         const merchant = await prisma.merchant.findUnique({
             where: {
                 merchant_id: body.merchant_id
@@ -1493,23 +1499,90 @@ async function createUSDTSettlementNew(body: any) {
                 }
             }
         })
+        console.log(`[USDT] merchant terms`, {
+            usdtRate: merchant?.commissions?.[0]?.usdtRate,
+            usdtPercentage: merchant?.commissions?.[0]?.usdtPercentage
+        })
         const chargebackAmount = Number(body.pkr_amount);
         if (!chargebackAmount || chargebackAmount <= 0) {
             throw new CustomError("Invalid chargeback amount", 400);
         }
 
-        // Get balances
+        // Get balances and deduct from available/disbursement or both
         const financials = await backofficeService.calculateFinancials(body.merchant_id as number);
         const availableBalance = Number(financials.availableBalance || 0);
+        const disbursementBalance = Number(financials.disbursementBalance || 0);
+        let remainingToDeduct = chargebackAmount;
+        console.log(`[USDT] balances`, { availableBalance, disbursementBalance, chargebackAmount });
 
-        let deductedFrom: 'disbursement' | 'available' | null = null;
-        // Try to deduct from disbursement balance first
+        // 1) Try to deduct fully from available balance
+        if (availableBalance >= remainingToDeduct) {
+            console.log(`[USDT] deducting fully from available`, {
+                previousAvailable: availableBalance,
+                deduct: remainingToDeduct,
+                newAvailable: availableBalance - remainingToDeduct
+            });
+            await backofficeService.adjustMerchantWalletBalance(
+                body?.merchant_id as number,
+                availableBalance - remainingToDeduct,
+                false
+            );
+            remainingToDeduct = 0;
+        }
 
-        if (availableBalance >= chargebackAmount) {
-            await backofficeService.adjustMerchantWalletBalance(body?.merchant_id as number, availableBalance - chargebackAmount, false);
-            deductedFrom = 'available';
-        } else {
-            throw new CustomError("Insufficient funds in both disbursement and available balances", 400);
+        // 2) If still remaining, split across available + disbursement
+        if (remainingToDeduct > 0 && (availableBalance + disbursementBalance) >= chargebackAmount) {
+            // Deduct all available first (set available to zero)
+            if (availableBalance > 0) {
+                console.log(`[USDT] split deduction: emptying available`, {
+                    previousAvailable: availableBalance,
+                    deduct: availableBalance,
+                    newAvailable: 0
+                });
+                await backofficeService.adjustMerchantWalletBalance(
+                    body?.merchant_id as number,
+                    0,
+                    false
+                );
+                remainingToDeduct -= availableBalance;
+            }
+            // Deduct remaining from disbursement
+            if (remainingToDeduct > 0) {
+                console.log(`[USDT] split deduction: deducting from disbursement`, {
+                    previousDisbursement: disbursementBalance,
+                    deduct: remainingToDeduct
+                });
+                await backofficeService.adjustMerchantDisbursementBalance(
+                    body?.merchant_id as number,
+                    remainingToDeduct,
+                    false,
+                    "de"
+                );
+                remainingToDeduct = 0;
+            }
+        }
+
+        // // 3) If still remaining, try to deduct fully from disbursement balance
+        // if (remainingToDeduct > 0 && disbursementBalance >= remainingToDeduct) {
+        //     await backofficeService.adjustMerchantDisbursementBalance(
+        //         body?.merchant_id as number,
+        //         remainingToDeduct,
+        //         false,
+        //         "de"
+        //     );
+        //     remainingToDeduct = 0;
+        // }
+
+        
+
+        if (remainingToDeduct > 0) {
+            console.log(`[USDT] insufficient funds`, {
+                chargebackAmount,
+                availableBalance,
+                disbursementBalance,
+                remainingToDeduct
+            });
+            throw new CustomError("Insufficient funds in both available and disbursement balances", 400);
         }
 
         let usdt;
@@ -1520,7 +1593,13 @@ async function createUSDTSettlementNew(body: any) {
             usdt = parseFloat((body.pkr_amount / +(merchant?.commissions?.[0]?.usdtRate ?? 1)).toFixed(2))
         }
         let final_usdt = usdt - (usdt * (+(merchant?.commissions[0].usdtPercentage ?? 0) / 100))
-        console.log(final_usdt)
+        console.log(`[USDT] computed amounts`, {
+            pkr_amount: Number(body.pkr_amount),
+            rate: +(merchant?.commissions?.[0]?.usdtRate ?? 0),
+            percentage: +(merchant?.commissions?.[0]?.usdtPercentage ?? 0),
+            usdt_amount: usdt,
+            final_usdt
+        })
         const settlement = await prisma.uSDTSettlement.create({
             data: {
                 merchant_id: body.merchant_id,
@@ -1533,9 +1612,17 @@ async function createUSDTSettlementNew(body: any) {
                 wallet_address: body.wallet_address,
             },
         });
+        console.log(`[USDT] settlement created`, {
+            id: settlement?.id,
+            merchant_id: settlement?.merchant_id,
+            pkr_amount: settlement?.pkr_amount,
+            usdt_amount: settlement?.usdt_amount,
+            total_usdt: settlement?.total_usdt
+        })
         return settlement;
     }
     catch (err: any) {
+        console.log(`[USDT] createUSDTSettlementNew:error`, err?.message || err)
         throw new CustomError(err?.message, 500)
     }
 }
