@@ -320,6 +320,33 @@ const bulkUpdateUsdtTermsByPercentage = async (req: Request, res: Response) => {
     }
 };
 
+const setMerchantUsdtWalletAddress = async (req: Request, res: Response) => {
+    try {
+        const merchantId = Number(req.params.merchantId);
+        const { walletAddress } = req.body;
+        if (!merchantId || !walletAddress) {
+            throw new CustomError("merchantId (param) and walletAddress (body) are required", 400);
+        }
+        const result = await backofficeService.setMerchantUsdtWalletAddress(merchantId, walletAddress);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
+const getMerchantUsdtWalletAddress = async (req: Request, res: Response) => {
+    try {
+        const merchantId = Number(req.params.merchantId);
+        if (!merchantId) {
+            throw new CustomError("merchantId is required in params", 400);
+        }
+        const result = await backofficeService.getMerchantUsdtWalletAddress(merchantId);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (err: any) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -346,5 +373,7 @@ export default {
     updateDisbursements,
     updateTransactions,
     createUSDTSettlementNew,
-    bulkUpdateUsdtTermsByPercentage
+    bulkUpdateUsdtTermsByPercentage,
+    setMerchantUsdtWalletAddress,
+    getMerchantUsdtWalletAddress
 }

@@ -215,6 +215,7 @@ model MerchantFinancialTerms {
   settlementDuration         Int // Number of days for settlement
   usdtPercentage             Decimal  @default(0)
   usdtRate                   Decimal  @default(0)
+  usdtWalletAddress          String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

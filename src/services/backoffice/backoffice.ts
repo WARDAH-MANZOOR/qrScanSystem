@@ -1275,6 +1275,58 @@ async function bulkUpdateUsdtTermsByPercentage(usdtPercentage: number, usdtRate:
     }
 }
 
+/**
+ * Set merchant USDT wallet address in MerchantFinancialTerms
+ */
+async function setMerchantUsdtWalletAddress(merchantId: number, walletAddress: string) {
+    try {
+        if (!merchantId || !walletAddress) {
+            throw new CustomError("merchantId and walletAddress are required", 400);
+        }
+        const updated = await prisma.merchantFinancialTerms.upsert({
+            where: { merchant_id: Number(merchantId) },
+            update: { usdtWalletAddress: walletAddress } as any,
+            create: {
+                merchant_id: Number(merchantId),
+                commissionRate: new Decimal(0),
+                commissionWithHoldingTax: new Decimal(0),
+                commissionGST: new Decimal(0),
+                disbursementRate: new Decimal(0),
+                disbursementWithHoldingTax: new Decimal(0),
+                disbursementGST: new Decimal(0),
+                settlementDuration: 0,
+                usdtPercentage: new Decimal(0),
+                usdtRate: new Decimal(0),
+                usdtWalletAddress: walletAddress
+            } as any
+        });
+        return { merchant_id: merchantId, usdtWalletAddress: walletAddress };
+    } catch (error: any) {
+        throw new CustomError(error?.message || 'Failed to set USDT wallet address', error?.statusCode || 500);
+    }
+}
+
+/**
+ * Get merchant USDT wallet address from MerchantFinancialTerms
+ */
+async function getMerchantUsdtWalletAddress(merchantId: number) {
+    try {
+        if (!merchantId) {
+            throw new CustomError("merchantId is required", 400);
+        }
+        const result = await prisma.$queryRawUnsafe<{ usdtWalletAddress: string | null }[]>(`
+            SELECT "usdtWalletAddress" 
+            FROM "MerchantFinancialTerms" 
+            WHERE "merchant_id" = ${Number(merchantId)}
+            LIMIT 1;
+        `);
+        const addr = result?.[0]?.usdtWalletAddress ?? null;
+        return { merchant_id: merchantId, usdtWalletAddress: addr };
+    } catch (error: any) {
+        throw new CustomError(error?.message || 'Failed to get USDT wallet address', error?.statusCode || 500);
+    }
+}
+
 async function divideSettlementRecords(ids: number[], factor: number) {
     if (ids.length == 0 || factor <= 0) {
         throw new CustomError("Invalid Body Values", 404);
@@ -1465,7 +1517,7 @@ async function createUSDTSettlementNew(body: any) {
             throw new CustomError("USDT Settlement Rate Not Available")
         }
         else {
-            usdt = body.pkr_amount / +(merchant?.commissions?.[0]?.usdtRate ?? 1)
+            usdt = parseFloat((body.pkr_amount / +(merchant?.commissions?.[0]?.usdtRate ?? 1)).toFixed(2))
         }
         let final_usdt = usdt - (usdt * (+(merchant?.commissions[0].usdtPercentage ?? 0) / 100))
         console.log(final_usdt)
@@ -1728,5 +1780,7 @@ export default {
     updateDisbursements,
     updateTransactions,
     createUSDTSettlementNew,
-    bulkUpdateUsdtTermsByPercentage
+    bulkUpdateUsdtTermsByPercentage,
+    setMerchantUsdtWalletAddress,
+    getMerchantUsdtWalletAddress
 }

@@ -2052,6 +2052,7 @@ const initiateProductionJazzCashPayment = async (
       pp_BillReference: refNo,
       pp_Description: `Payment via ${paymentType}`,
       pp_ReturnURL: jazzCashCredentials.pp_ReturnURL,
+      ppmpf_1: phone
     };
 
     const txnDateTime = formattedDate;
@@ -2112,6 +2113,7 @@ const initiateProductionJazzCashPayment = async (
         txnDateTime,
         statusCode: r.pp_ResponseCode,
         response: r,
+        request: sendData
       };
     } else {
       throw new CustomError("Invalid Payment method selected!", 400);

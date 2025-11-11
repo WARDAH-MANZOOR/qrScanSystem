@@ -71,4 +71,16 @@ router.post(
     backOfficeController.bulkUpdateUsdtTermsByPercentage
 )
 
+router.get(
+    "/usdt-wallet/:merchantId",
+    [isLoggedIn, isAdmin],
+    backOfficeController.getMerchantUsdtWalletAddress
+)
+
+router.post(
+    "/usdt-wallet/:merchantId",
+    [isLoggedIn, isAdmin],
+    backOfficeController.setMerchantUsdtWalletAddress
+)
+
 export default router;
