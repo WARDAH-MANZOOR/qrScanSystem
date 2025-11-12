@@ -894,7 +894,9 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
       transactionType: "MA",
       mobileAccountNo: phone,
       emailAddress: params.email,
+      merchantId: JSON.stringify(findMerchant.merchant_id)
     };
+    console.log(easyPaisaTxPayload)
 
     const base64Credentials = Buffer.from(
       `${easyPaisaMerchant.username}:${easyPaisaMerchant.credentials}`
@@ -905,7 +907,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward-ep`,
+      url: `${process.env.MONETIX_EASYPAISA_URL}/initiate-payment`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -959,7 +961,9 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
-                transactionId: response?.data?.transactionId
+                transactionId: response?.data?.transactionId,
+                merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
               },
             },
             findMerchant.commissions[0].settlementDuration
