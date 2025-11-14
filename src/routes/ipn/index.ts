@@ -15,5 +15,6 @@ router.post("/xtransfer", ipnController.handleIPN);
 router.post("/8hexa", ipnController.handleIPN);
 router.post("/card", ipnController.handleCardIPN);
 router.post("/bdt", ipnController.handlebdtIPN);
+router.post("/shurjopay", ipnController.handleShurjoPayIPN);
 
 export default router;
