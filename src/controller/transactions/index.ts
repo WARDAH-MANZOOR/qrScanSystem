@@ -163,7 +163,8 @@ const getTransactions = async (req: Request, res: Response) => {
         ...transaction,
         providerDetails: {
           id: (transaction.providerDetails as JsonObject).id,
-          name: (transaction.providerDetails as JsonObject).merchant,
+          name: (transaction.providerDetails as JsonObject).name,
+          merchant: (transaction.providerDetails as JsonObject)?.merchant,
           msisdn: (transaction.providerDetails as JsonObject).msisdn,
           transactionId: (transaction.providerDetails as JsonObject)?.transactionId
         },

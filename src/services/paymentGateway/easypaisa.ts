@@ -990,7 +990,9 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
-                transactionId: response?.data?.transactionId
+                transactionId: response?.data?.transactionId,
+                merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
               },
             },
             findMerchant.commissions[0].settlementDuration
