@@ -1457,10 +1457,9 @@ export const payinPerWalletService = async (params: any) => {
 
         return {
             jazzCashTransactions,
-            easyPaisaTransactions: easyPaisaTransactionsMerged,
+            easyPaisaTransactions: easyPaisaUnifiedTransactionsMerged,
             swichTransactions,
             payfastTransactions,
-            easyPaisaUnifiedTransactions: easyPaisaUnifiedTransactionsMerged,
         };
     } catch (error) {
         console.error(JSON.stringify({ event: 'PAYIN_PER_WALLET', phase: 'error', message: (error as any)?.message }));
