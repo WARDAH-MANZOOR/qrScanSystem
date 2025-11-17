@@ -951,6 +951,8 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
         +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
         +findMerchant.commissions[0].commissionWithHoldingTax
     }
+    const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+    reservations = r.reservationIds;
     saveTxn = await transactionService.createTxn({
       order_id: id2,
       transaction_id: id,
@@ -966,8 +968,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
         msisdn: phone,
       },
     });
-    const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
-    reservations = r.reservationIds;
+    
     console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", system_id: id, order_id: params.order_id }))
     // Return pending status and transaction ID immediately
     setImmediate(async () => {
