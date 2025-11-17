@@ -168,7 +168,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward-ep`,
+      url: `${process.env.EASYPAISA_PAYIN_URL}/`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -354,7 +354,7 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward-ep`,
+      url: `${process.env.EASYPAISA_PAYIN_URL}/`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -550,7 +550,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward-ep`,
+      url: `${process.env.EASYPAISA_PAYIN_URL}/`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
@@ -722,7 +722,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: `${process.env.EASYPAISA_URL}/forward-ep`,
+      url: `${process.env.EASYPAISA_PAYIN_URL}/`,
       headers: {
         Credentials: `${base64Credentials}`,
         "Content-Type": "application/json",
