@@ -29,7 +29,8 @@ const createDisbursementRequest = async (requested_amount: number, merchant_id: 
         },
             {
                 timeout: 300000,
-                maxWait: 300000
+                maxWait: 300000,
+                isolationLevel: "Serializable"
             })
     }
     catch (err: any) {

@@ -11,7 +11,10 @@ router.post("/monic-tech", ipnController.handleIPN);
 router.post("/think-tech", ipnController.handleIPN);
 router.post("/digicore", ipnController.handleIPN);
 router.post("/evolvica", ipnController.handleIPN);
+router.post("/xtransfer", ipnController.handleIPN);
+router.post("/8hexa", ipnController.handleIPN);
 router.post("/card", ipnController.handleCardIPN);
 router.post("/bdt", ipnController.handlebdtIPN);
+router.post("/shurjopay", ipnController.handleShurjoPayIPN);
 
 export default router;
