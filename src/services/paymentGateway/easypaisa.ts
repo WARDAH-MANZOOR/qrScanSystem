@@ -156,6 +156,7 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
       transactionType: "MA",
       mobileAccountNo: phone,
       emailAddress: params.email,
+      merchantId: JSON.stringify(findMerchant.merchant_id)
     };
     console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`)
     const base64Credentials = Buffer.from(
@@ -224,7 +225,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
             msisdn: phone,
             transactionId: response?.data?.transactionId,
             deduction: params.attempts * 2,
-            deductionDone: false
+            deductionDone: false,
+            merchant: response?.data?.mainCategoryName,
+            sub_merchant: response?.data?.accountName,
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -264,7 +267,9 @@ const initiateEasyPaisa = async (merchantId: string, params: any) => {
             msisdn: phone,
             transactionId: response?.data?.transactionId,
             deduction: params.attempts * 2,
-            deductionDone: false
+            deductionDone: false,
+            merchant: response?.data?.mainCategoryName,
+            sub_merchant: response?.data?.accountName,
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -337,6 +342,7 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
       transactionType: "MA",
       mobileAccountNo: phone,
       emailAddress: params.email,
+      merchantId: JSON.stringify(findMerchant?.merchant_id)
     };
     console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`)
     const base64Credentials = Buffer.from(
@@ -415,7 +421,9 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
             msisdn: phone,
             transactionId: response?.data?.transactionId,
             deduction: params.attempts * 2,
-            deductionDone: false
+            deductionDone: false,
+            merchant: response?.data?.mainCategoryName,
+            sub_merchant: response?.data?.accountName,
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -456,7 +464,9 @@ const initiateEasyPaisaForRedirection = async (merchantId: string, params: any) 
             msisdn: phone,
             transactionId: response?.data?.transactionId,
             deduction: params.attempts * 2,
-            deductionDone: false
+            deductionDone: false,
+            merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -528,6 +538,7 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
       transactionType: "MA",
       mobileAccountNo: phone,
       emailAddress: params.email,
+      merchantId: JSON.stringify(findMerchant?.merchant_id)
     };
     console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`)
     const base64Credentials = Buffer.from(
@@ -591,7 +602,9 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
             id: easyPaisaMerchant[0].id,
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
-            transactionId: response?.data?.transactionId
+            transactionId: response?.data?.transactionId,
+            merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -620,7 +633,9 @@ const initiateEasyPaisaClone = async (merchantId: string, params: any) => {
             id: easyPaisaMerchant[0].id,
             name: PROVIDERS.EASYPAISA,
             msisdn: phone,
-            transactionId: response?.data?.transactionId
+            transactionId: response?.data?.transactionId,
+            merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
           },
         },
         findMerchant.commissions[0].settlementDuration
@@ -651,6 +666,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
   let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
   let id = transactionService.createTransactionId();
   let reservations: string[] = [];
+  let response: any;
   try {
     console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
@@ -694,6 +710,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
       transactionType: "MA",
       mobileAccountNo: phone,
       emailAddress: params.email,
+      merchantId: JSON.stringify(findMerchant.merchant_id)
     };
 
     const base64Credentials = Buffer.from(
@@ -746,7 +763,7 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
     // Return pending status and transaction ID immediately
     setImmediate(async () => {
       try {
-        const response: any = await axios.request(config);
+        response = await axios.request(config);
 
         if (response?.data.responseCode === "0000") {
           console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_SUCCESS", order_id: params.order_id, system_id: id, response: response?.data }))
@@ -759,7 +776,9 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
-                transactionId: response?.data?.transactionId
+                transactionId: response?.data?.transactionId,
+                merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
               },
             },
             findMerchant.commissions[0].settlementDuration
@@ -785,7 +804,9 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
-                transactionId: response?.data?.transactionId
+                transactionId: response?.data?.transactionId,
+                merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
               },
             },
             findMerchant.commissions[0].settlementDuration
@@ -813,7 +834,9 @@ const initiateEasyPaisaAsync = async (merchantId: string, params: any) => {
               id: easyPaisaMerchant.id,
               name: PROVIDERS.EASYPAISA,
               msisdn: phone,
-              transactionId: error?.response?.data?.transactionId
+              transactionId: error?.response?.data?.transactionId,
+              merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
             },
           },
           findMerchant.commissions[0].settlementDuration
@@ -852,6 +875,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
   let saveTxn: Awaited<ReturnType<typeof transactionService.createTxn>> | undefined;
   let id = transactionService.createTransactionId();
   let reservations: string[] = [];
+  let response: any;
   try {
     console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }))
     if (!merchantId) {
@@ -948,7 +972,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
     // Return pending status and transaction ID immediately
     setImmediate(async () => {
       try {
-        const response: any = await axios.request(config);
+        response = await axios.request(config);
 
         if (response?.data.responseCode === "0000") {
           console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_SUCCESS", order_id: params.order_id, system_id: id, response: response?.data }))
@@ -990,7 +1014,9 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
                 id: easyPaisaMerchant.id,
                 name: PROVIDERS.EASYPAISA,
                 msisdn: phone,
-                transactionId: response?.data?.transactionId
+                transactionId: response?.data?.transactionId,
+                merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
               },
             },
             findMerchant.commissions[0].settlementDuration
@@ -1014,6 +1040,8 @@ const initiateEasyPaisaAsyncClone = async (merchantId: string, params: any) => {
               id: easyPaisaMerchant.id,
               name: PROVIDERS.EASYPAISA,
               msisdn: phone,
+              merchant: response?.data?.mainCategoryName,
+                sub_merchant: response?.data?.accountName,
             },
           },
           findMerchant.commissions[0].settlementDuration
