@@ -20,6 +20,7 @@ export interface Merchant {
   easyPaisaMerchantId: number;
   swichMerchantId: number;
   webhook_url: string;
+  easypaisaMinAmtLimit?: number;
   uid?: string;
   EasyPaisaDisburseAccountId?: number | null;
   easypaisaPaymentMethod: "DIRECT" | "SWITCH" | "PAYFAST";

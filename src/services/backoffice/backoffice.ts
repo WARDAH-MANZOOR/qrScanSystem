@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ProviderEnum, LimitPeriod } from '@prisma/client';
 import { Decimal, JsonObject } from '@prisma/client/runtime/library';
 import { endOfDay, format, subDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -7,6 +7,16 @@ import { calculateWalletBalanceWithKey, calculateWalletBalanceWithTx, getWalletB
 import CustomError from '../../utils/custom_error.js';
 import { addWeekdays } from '../../utils/date_method.js';
 const prisma = new PrismaClient();
+type PolicyInput = {
+    merchant_id: number;
+    provider: ProviderEnum;
+    period: LimitPeriod;
+    timezone?: string;
+    weekStartDow?: number;
+    maxAmount?: Decimal | number | null;
+    maxTxn?: number | null;
+    active?: boolean;
+};
 
 interface CalculatedFinancials {
     totalIncome: number | Decimal;
@@ -1633,6 +1643,89 @@ const updateTransactions = async () => {
     }
 }
 
+const upsertLimitPolicy = async (body: PolicyInput) => {
+    const { merchant_id, provider, period, timezone, weekStartDow, maxAmount, maxTxn, active } = body;
+
+    const merchant = await prisma.merchant.findUnique({ where: { merchant_id } });
+    if (!merchant) {
+        throw new CustomError("Merchant not found", 404);
+    }
+
+    const data = {
+        merchant_id,
+        provider,
+        period,
+        timezone: timezone ?? "Asia/Karachi",
+        weekStartDow: weekStartDow ?? 1,
+        maxAmount: maxAmount ?? null,
+        maxTxn: maxTxn ?? null,
+        active: active ?? true,
+    };
+
+    return prisma.merchantLimitPolicy.upsert({
+        where: {
+            merchant_id_provider_period: {
+                merchant_id,
+                provider,
+                period,
+            },
+        },
+        create: data,
+        update: data,
+    });
+}
+
+const updateLimitPolicy = async (id: number, body: Partial<PolicyInput>) => {
+    const existing = await prisma.merchantLimitPolicy.findUnique({ where: { id } });
+    if (!existing) {
+        throw new CustomError("Policy not found", 404);
+    }
+
+    const data: any = {};
+    if (body.timezone !== undefined) data.timezone = body.timezone;
+    if (body.weekStartDow !== undefined) data.weekStartDow = body.weekStartDow;
+    if (body.maxAmount !== undefined) data.maxAmount = body.maxAmount;
+    if (body.maxTxn !== undefined) data.maxTxn = body.maxTxn;
+    if (body.active !== undefined) data.active = body.active;
+
+    if (Object.keys(data).length === 0) {
+        throw new CustomError("No fields to update", 400);
+    }
+
+    return prisma.merchantLimitPolicy.update({
+        where: { id },
+        data,
+    });
+}
+
+const listLimitPolicies = async (filter: { merchant_id?: number; provider?: ProviderEnum; active?: boolean }) => {
+    return prisma.merchantLimitPolicy.findMany({
+        where: {
+            merchant_id: filter.merchant_id,
+            provider: filter.provider,
+            active: filter.active,
+        },
+        include: {
+            merchant: {
+                select: {
+                    full_name: true,
+                    company_name: true
+                }
+            }
+        },
+        orderBy: { createdAt: "desc" },
+    });
+}
+
+const deleteLimitPolicy = async (id: number) => {
+    const existing = await prisma.merchantLimitPolicy.findUnique({ where: { id } });
+    if (!existing) {
+        throw new CustomError("Policy not found", 404);
+    }
+    await prisma.merchantLimitPolicy.delete({ where: { id } });
+    return true;
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -1659,5 +1752,9 @@ export default {
     settleDisbursements,
     updateDisbursements,
     updateTransactions,
-    createUSDTSettlementNew
+    createUSDTSettlementNew,
+    upsertLimitPolicy,
+    updateLimitPolicy,
+    listLimitPolicies,
+    deleteLimitPolicy
 }
