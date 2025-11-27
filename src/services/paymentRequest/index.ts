@@ -33,7 +33,7 @@ const createPaymentRequest = async (data: any, user: any) => {
           dueDate: data.dueDate,
           provider: data.provider,
           link: data.link,
-          metadata: data.metadata || {},
+          metadata: data.metadata || {return_url: data.link},
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -61,7 +61,7 @@ const createPaymentRequest = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}` },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, return_url: (newPaymentRequest.metadata as JsonObject)?.return_url },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -199,7 +199,7 @@ const createPaymentRequestClone = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id, return_url: (newPaymentRequest.metadata as JsonObject)?.return_url },
     };
   } catch (error: any) {
     throw new CustomError(
@@ -347,7 +347,7 @@ const createPaymentRequestWithOtp = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay-ep/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay-ep/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id, return_url: (newPaymentRequest.metadata as JsonObject)?.return_url },
     };
   } catch (error: any) {
     throw new CustomError(
