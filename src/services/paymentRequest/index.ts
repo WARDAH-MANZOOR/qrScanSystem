@@ -442,7 +442,7 @@ const createPaymentRequestWithOtpClone = async (data: any, user: any) => {
           dueDate: data.dueDate,
           provider: data.provider,
           link: data.link,
-          metadata: data.metadata || { phone: data.phone },
+          metadata: data.metadata || { phone: data.phone, return_url: data.link },
           createdAt: new Date(),
           updatedAt: new Date(),
           merchant_transaction_id: data.order_id,
@@ -484,7 +484,7 @@ const createPaymentRequestWithOtpClone = async (data: any, user: any) => {
 
     return {
       message: "Payment request created successfully",
-      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/redirect-payments/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+      data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/redirect-payments/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id, return_url: (newPaymentRequest.metadata as JsonObject).return_url },
     };
   } catch (error: any) {
     throw new CustomError(
