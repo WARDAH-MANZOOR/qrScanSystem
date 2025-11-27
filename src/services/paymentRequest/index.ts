@@ -1074,7 +1074,8 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
       message: "Payment request retrieved successfully",
       data: {
         ...paymentRequest,
-        credentials: creds
+        credentials: creds,
+        return_url: (paymentRequest.metadata as JsonObject)?.return_url
       },
     };
   } catch (error: any) {
