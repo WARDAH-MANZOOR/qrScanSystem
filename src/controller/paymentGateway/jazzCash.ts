@@ -406,20 +406,22 @@ const initiateMWDisbursement = async (req: Request, res: Response, next: NextFun
   }
 }
 
-function isValidPhone(number: string) {
-  // Remove spaces, dashes, etc.
+function isValidPhone(number: string): boolean {
+  // keep digits only
   const cleaned = number.replace(/\D/g, "");
 
   if (cleaned.startsWith("92")) {
-    return cleaned.length < 12;
+    // must be AT LEAST 12 digits
+    return cleaned.length >= 12;
   }
 
   if (cleaned.startsWith("0")) {
-    return cleaned.length < 11;
+    // must be AT LEAST 11 digits
+    return cleaned.length >= 11;
   }
 
-  // If it doesn't start with 92 or 0, consider invalid
-  return true;
+  // anything else is invalid
+  return false;
 }
 
 const initiateDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
