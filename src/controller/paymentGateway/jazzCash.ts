@@ -411,11 +411,11 @@ function isValidPhone(number: string) {
   const cleaned = number.replace(/\D/g, "");
 
   if (cleaned.startsWith("92")) {
-    return cleaned.length <= 12;
+    return cleaned.length < 12;
   }
 
   if (cleaned.startsWith("0")) {
-    return cleaned.length <= 11;
+    return cleaned.length < 11;
   }
 
   // If it doesn't start with 92 or 0, consider invalid
