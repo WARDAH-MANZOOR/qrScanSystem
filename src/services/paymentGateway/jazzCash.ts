@@ -2630,7 +2630,7 @@ const processWalletPaymentClone = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    `${process.env.JAZZCASH_PAYIN_URL}/forward`;
+    `${process.env.MNTX_JAZZCASH_PAYIN_URL}/`;
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
 
   const response = await axios.post(
