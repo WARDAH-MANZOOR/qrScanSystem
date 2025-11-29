@@ -2632,12 +2632,12 @@ const processWalletPaymentClone = async (
   jazzCashMerchant: any
 ) => {
   const paymentUrl =
-    `${process.env.MNTX_JAZZCASH_PAYIN_URL}/`;
+    `${process.env.MNTX_JAZZCASH_PAYIN_URL}?merchantId=${merchant?.merchant_id}`;
   const headers = { "Content-Type": "application/x-www-form-urlencoded" };
-
+  console.log()
   const response = await axios.post(
     paymentUrl,
-    new URLSearchParams({...sendData, pp_Amount: Number(sendData.pp_Amount),merchantId: merchant?.merchant_id}).toString(),
+    new URLSearchParams(sendData).toString(),
     { headers }
   );
 
