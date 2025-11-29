@@ -2395,6 +2395,7 @@ const initiateJazzCashPaymentAsyncClone = async (
           throw new CustomError("Invalid payment type", 400);
         }
       } catch (error: any) {
+        console.log(error)
         console.log(JSON.stringify({
           event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error: {
             message: error?.message || "An Error Occurred",
@@ -2436,6 +2437,7 @@ const initiateJazzCashPaymentAsyncClone = async (
       message: "Transaction is being processed",
     };
   } catch (error: any) {
+    console.log(error)
     console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error }))
     return {
       message: error?.message || "An Error Occurred",
@@ -2635,11 +2637,12 @@ const processWalletPaymentClone = async (
 
   const response = await axios.post(
     paymentUrl,
-    new URLSearchParams(sendData).toString(),
+    new URLSearchParams({...sendData, pp_Amount: Number(sendData.pp_Amount),merchantId: merchant?.merchant_id}).toString(),
     { headers }
   );
 
   const r = response.data;
+  console.log(r)
   if (!r) {
     throw new CustomError("JazzCash Wallet Payment failed", 500);
   }
@@ -2654,7 +2657,8 @@ const processWalletPaymentClone = async (
         id: jazzCashMerchant.id,
         name: PROVIDERS.JAZZ_CASH,
         msisdn: phone,
-        transactionId: r.pp_RetreivalReferenceNo
+        transactionId: r.pp_RetreivalReferenceNo,
+        merchant: r.mainCategoryName
       },
     },
   });
