@@ -417,7 +417,7 @@ export default {
     createUSDTSettlementNew,
     bulkUpdateUsdtTermsByPercentage,
     setMerchantUsdtWalletAddress,
-    getMerchantUsdtWalletAddress
+    getMerchantUsdtWalletAddress,
     upsertLimitPolicy,
     updateLimitPolicy,
     listLimitPolicies,

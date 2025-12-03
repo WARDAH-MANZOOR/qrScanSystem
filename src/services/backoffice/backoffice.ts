@@ -1963,5 +1963,8 @@ export default {
     upsertLimitPolicy,
     updateLimitPolicy,
     listLimitPolicies,
-    deleteLimitPolicy
+    deleteLimitPolicy,
+    bulkUpdateUsdtTermsByPercentage,
+    setMerchantUsdtWalletAddress,
+    getMerchantUsdtWalletAddress
 }
