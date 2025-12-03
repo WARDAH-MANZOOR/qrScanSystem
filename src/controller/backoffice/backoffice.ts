@@ -382,7 +382,8 @@ const listLimitPolicies = async (req: Request, res: Response, next: NextFunction
 const deleteLimitPolicy = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const id = Number(req.params.id);
-        const result = await backofficeService.deleteLimitPolicy(id);
+        const {provider} = req.body;
+        const result = await backofficeService.deleteLimitPolicy(id, provider);
         res.status(200).json(ApiResponse.success(result));
     } catch (error) {
         next(error);

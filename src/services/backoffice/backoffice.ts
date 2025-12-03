@@ -1924,12 +1924,12 @@ const listLimitPolicies = async (filter: { merchant_id?: number; provider?: Prov
     });
 }
 
-const deleteLimitPolicy = async (id: number) => {
-    const existing = await prisma.merchantLimitPolicy.findUnique({ where: { id } });
+const deleteLimitPolicy = async (id: number, provider: ProviderEnum) => {
+    const existing = await prisma.merchantLimitPolicy.findUnique({ where: { id, provider } });
     if (!existing) {
         throw new CustomError("Policy not found", 404);
     }
-    await prisma.merchantLimitPolicy.delete({ where: { id } });
+    await prisma.merchantLimitPolicy.delete({ where: { id, provider } });
     return true;
 }
 
