@@ -26,6 +26,7 @@ const updateMerchant = async (payload: Merchant) => {
     easyPaisaMerchantId,
     swichMerchantId,
     webhook_url,
+    easypaisaMinAmtLimit,
     EasyPaisaDisburseAccountId,
     easypaisaPaymentMethod,
     easypaisaInquiryMethod,
@@ -66,6 +67,7 @@ const updateMerchant = async (payload: Merchant) => {
           easyPaisaMerchantId,
           swichMerchantId,
           webhook_url,
+          ...(easypaisaMinAmtLimit !== undefined ? { easypaisaMinAmtLimit } : {}),
           EasyPaisaDisburseAccountId,
           easypaisaPaymentMethod: method,
           easypaisaInquiryMethod,
@@ -179,6 +181,7 @@ const addMerchant = async (payload: Merchant) => {
     easyPaisaMerchantId,
     swichMerchantId,
     webhook_url,
+    easypaisaMinAmtLimit,
     easypaisaPaymentMethod,
     easypaisaInquiryMethod,
     JazzCashDisburseAccountId,
@@ -200,6 +203,9 @@ const addMerchant = async (payload: Merchant) => {
 
   if (settlementDuration == undefined) {
     settlementDuration = 0;
+  }
+  if (easypaisaMinAmtLimit == undefined) {
+    easypaisaMinAmtLimit = 0;
   }
 
   try {
@@ -232,6 +238,7 @@ const addMerchant = async (payload: Merchant) => {
           swichMerchantId,
           payFastMerchantId,
           webhook_url,
+          easypaisaMinAmtLimit,
           easypaisaPaymentMethod: easypaisaPaymentMethod,
           easypaisaInquiryMethod,
           JazzCashDisburseAccountId,

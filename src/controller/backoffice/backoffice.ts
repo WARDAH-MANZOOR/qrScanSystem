@@ -347,6 +347,48 @@ const getMerchantUsdtWalletAddress = async (req: Request, res: Response) => {
     }
 };
 
+const upsertLimitPolicy = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await backofficeService.upsertLimitPolicy(req.body);
+        res.status(200).json(ApiResponse.success(result, "Policy saved"));
+    } catch (error) {
+        next(error);
+    }
+}
+
+const updateLimitPolicy = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = Number(req.params.id);
+        const result = await backofficeService.updateLimitPolicy(id, req.body);
+        res.status(200).json(ApiResponse.success(result, "Policy updated"));
+    } catch (error) {
+        next(error);
+    }
+}
+
+const listLimitPolicies = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await backofficeService.listLimitPolicies({
+            merchant_id: req.query.merchant_id ? Number(req.query.merchant_id) : undefined,
+            provider: req.query.provider as any,
+            active: req.query.active !== undefined ? req.query.active === "true" : undefined,
+        });
+        res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        next(error);
+    }
+}
+
+const deleteLimitPolicy = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = Number(req.params.id);
+        const result = await backofficeService.deleteLimitPolicy(id);
+        res.status(200).json(ApiResponse.success(result));
+    } catch (error) {
+        next(error);
+    }
+}
+
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -376,4 +418,8 @@ export default {
     bulkUpdateUsdtTermsByPercentage,
     setMerchantUsdtWalletAddress,
     getMerchantUsdtWalletAddress
+    upsertLimitPolicy,
+    updateLimitPolicy,
+    listLimitPolicies,
+    deleteLimitPolicy
 }

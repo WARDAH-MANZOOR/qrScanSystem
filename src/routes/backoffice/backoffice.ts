@@ -83,4 +83,32 @@ router.post(
     backOfficeController.setMerchantUsdtWalletAddress
 )
 
+router.post(
+    "/merchant-limit-policy",
+    [isLoggedIn, isAdmin, ...backOfficeValidator.validateLimitCreate],
+    backOfficeValidator.handleValidationErrors,
+    backOfficeController.upsertLimitPolicy
+);
+
+router.put(
+    "/merchant-limit-policy/:id",
+    [isLoggedIn, isAdmin, ...backOfficeValidator.validateLimitUpdate],
+    backOfficeValidator.handleValidationErrors,
+    backOfficeController.updateLimitPolicy
+);
+
+router.get(
+    "/merchant-limit-policy",
+    [isLoggedIn, isAdmin, ...backOfficeValidator.validateLimitList],
+    backOfficeValidator.handleValidationErrors,
+    backOfficeController.listLimitPolicies
+);
+
+router.delete(
+    "/merchant-limit-policy/:id",
+    [isLoggedIn, isAdmin, ...backOfficeValidator.validateLimitUpdate],
+    backOfficeValidator.handleValidationErrors,
+    backOfficeController.deleteLimitPolicy
+);
+
 export default router;
