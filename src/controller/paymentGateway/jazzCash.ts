@@ -435,7 +435,7 @@ const initiateDisbursmentClone = async (req: Request, res: Response, next: NextF
     if (req.body.iban.length < 10) {
       throw new CustomError("IBAN Should be atleast 10 digits", 400);
     }
-    if (!isValidPhone(req.body.iban)) {
+    if (!isValidPhone(req.body.phone)) {
       throw new CustomError("Invalid Phone Number", 400);
     }
     const token = await getToken(req.params.merchantId);
