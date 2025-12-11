@@ -323,6 +323,7 @@ export const updateWooOrderStatus = async (wooId: number, orderId: string, respo
         if (!orderId) {
             throw new CustomError("Woo Commerce Merchant Not Assigned", 500);
         }
+        console.log(responseCode == "000" ? "completed" : "failed")
         const res = await axios.put(`${wooMerchant?.baseUrl}/wp-json/wc/v3/orders/${orderId}`, {
             status: responseCode == "000" ? "completed" : "failed"
         },
@@ -340,7 +341,7 @@ export const updateWooOrderStatus = async (wooId: number, orderId: string, respo
 }
 
 function extractOrderNumberFromTxnId(txnId: string) {
-    const wpIndex = txnId.indexOf('WP');
+    const wpIndex = txnId.indexOf('W');
     if (wpIndex === -1) return null; // WP not found
 
     // Extract everything before 'WP'
