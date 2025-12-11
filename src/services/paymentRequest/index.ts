@@ -751,7 +751,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           await updateWooOrderStatus(
             merchant.wooMerchantId as number,
             paymentRequest.merchant_transaction_id as string || paymentRequest.transactionId as string,
-            "completed"
+            "000"
           );
         }
       } catch (e) {
@@ -784,7 +784,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           await updateWooOrderStatus(
             m.wooMerchantId as number,
             pr.merchant_transaction_id || (pr.transactionId as string),
-            "failed"
+            "999"
           );
         }
       }
@@ -934,7 +934,7 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
           await updateWooOrderStatus(
             merchant.wooMerchantId as number,
             paymentRequest.merchant_transaction_id as string || paymentRequest.transactionId as string,
-            "completed"
+            "000"
           );
         }
       } catch (e) {
@@ -967,7 +967,7 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
           await updateWooOrderStatus(
             m.wooMerchantId as number,
             pr.merchant_transaction_id as string || (pr.transactionId as string),
-            "failed"
+            "999"
           );
         }
       }

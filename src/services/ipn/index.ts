@@ -331,6 +331,7 @@ export const updateWooOrderStatus = async (wooId: number, orderId: string, respo
                     Authorization: `Basic ${toBase64(`${wooMerchant?.username}:${wooMerchant?.password}`)}`
                 }
             })
+        console.log(res)
         return res;
     }
     catch (err: any) {
@@ -342,8 +343,8 @@ function extractOrderNumberFromTxnId(txnId: string) {
     const wpIndex = txnId.indexOf('WP');
     if (wpIndex === -1) return null; // WP not found
 
-    // Extract everything after 'WP'
-    return txnId.substring(wpIndex + 2);
+    // Extract everything before 'WP'
+    return txnId.substring(0, wpIndex);
 }
 
 function toBase64(str: string) {
