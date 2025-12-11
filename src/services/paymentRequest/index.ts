@@ -730,6 +730,14 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           +merchant.commissions[0].commissionWithHoldingTax
       }
       let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
+      await prisma.transaction.update({
+        where: {
+          merchant_transaction_id: id2
+        },
+        data: {
+          type: "card"
+        }
+      })
     }
 
     let updatedPaymentRequest;
@@ -746,6 +754,7 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           },
         });
       });
+
       try {
         if (merchant?.wooMerchantId) {
           await updateWooOrderStatus(
