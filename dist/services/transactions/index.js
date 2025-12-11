@@ -404,57 +404,70 @@ const sendCallback = async (webhook_url, payload, msisdn, type, doEncryption, ch
                 data: data
             };
             let res = await axios.request(config);
-            if (res.data == "success") {
-                console.log(`${payload?.merchant_transaction_id} Callback sent successfully`);
-                if (type == "payin") {
-                    await prisma.transaction.update({
-                        where: {
-                            merchant_transaction_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: true,
-                            callback_response: res.data
-                        }
-                    });
+            const txn = await prisma.transaction.findUnique({
+                where: {
+                    merchant_transaction_id: payload?.merchant_transaction_id
                 }
-                else {
-                    await prisma.disbursement.update({
-                        where: {
-                            merchant_custom_order_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: true,
-                            callback_response: res.data
+            });
+            // if (res.data == "success") {
+            console.log(`${payload?.merchant_transaction_id} Callback sent successfully`);
+            if (type == "payin") {
+                await prisma.transaction.update({
+                    where: {
+                        merchant_transaction_id: payload?.merchant_transaction_id
+                    },
+                    data: {
+                        callback_sent: true,
+                        callback_response: res.data,
+                        providerDetails: {
+                            ...txn?.providerDetails,
+                            callback_url: webhook_url
                         }
-                    });
-                }
+                    }
+                });
             }
             else {
-                console.log("Error sending callback");
-                console.log(JSON.stringify({ event: "CALLBACK_ERROR", order_id: payload?.merchant_transaction_id, data: res?.data }));
-                if (type == "payin") {
-                    await prisma.transaction.update({
-                        where: {
-                            merchant_transaction_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: false,
-                            callback_response: res?.data
+                await prisma.disbursement.update({
+                    where: {
+                        merchant_custom_order_id: payload?.merchant_transaction_id
+                    },
+                    data: {
+                        callback_sent: true,
+                        callback_response: res.data,
+                        providerDetails: {
+                            ...txn?.providerDetails,
+                            callback_url: webhook_url
                         }
-                    });
-                }
-                else {
-                    await prisma.disbursement.update({
-                        where: {
-                            merchant_custom_order_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: false,
-                            callback_response: res?.data
-                        }
-                    });
-                }
+                    }
+                });
             }
+            // }
+            // else {
+            //   console.log("Error sending callback")
+            //   console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload?.merchant_transaction_id, data: res?.data}))
+            //   if (type == "payin") {
+            //     await prisma.transaction.update({
+            //       where: {
+            //         merchant_transaction_id: payload?.merchant_transaction_id
+            //       },
+            //       data: {
+            //         callback_sent: false,
+            //         callback_response: res?.data
+            //       }      
+            //     })
+            //   }
+            //   else {
+            //     await prisma.disbursement.update({
+            //       where: {
+            //         merchant_custom_order_id: payload?.merchant_transaction_id
+            //       },
+            //       data: {
+            //         callback_sent: false,
+            //         callback_response: res?.data
+            //       }      
+            //     })
+            //   }
+            // }
             if (checkLimit) {
                 console.log(await switchPaymentProvider(payload.merchant_id, payload?.merchant_transaction_id));
             }
@@ -484,6 +497,7 @@ const sendCallbackClone = async (webhook_url, payload, msisdn, type, doEncryptio
                 data = JSON.stringify({ ...data2, order_id: payload?.merchant_transaction_id });
             }
             console.log(`Data (${payload?.merchant_transaction_id}): ${data}`);
+            console.log(`Data (${payload?.merchant_transaction_id}): ${data}`);
             let config = {
                 method: 'post',
                 maxBodyLength: Infinity,
@@ -494,57 +508,70 @@ const sendCallbackClone = async (webhook_url, payload, msisdn, type, doEncryptio
                 data: data
             };
             let res = await axios.request(config);
-            if (res.data == "success") {
-                console.log(`${payload?.merchant_transaction_id} Callback sent successfully`);
-                if (type == "payin") {
-                    await prisma.transaction.update({
-                        where: {
-                            merchant_transaction_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: true,
-                            callback_response: res.data
-                        }
-                    });
+            const txn = await prisma.transaction.findUnique({
+                where: {
+                    merchant_transaction_id: payload?.merchant_transaction_id
                 }
-                else {
-                    await prisma.disbursement.update({
-                        where: {
-                            merchant_custom_order_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: true,
-                            callback_response: res.data
+            });
+            // if (res.data == "success") {
+            console.log(`${payload?.merchant_transaction_id} Callback sent successfully`);
+            if (type == "payin") {
+                await prisma.transaction.update({
+                    where: {
+                        merchant_transaction_id: payload?.merchant_transaction_id
+                    },
+                    data: {
+                        callback_sent: true,
+                        callback_response: res?.data,
+                        providerDetails: {
+                            ...txn?.providerDetails,
+                            callback_url: webhook_url
                         }
-                    });
-                }
+                    }
+                });
             }
             else {
-                console.log("Error sending callback");
-                console.log(JSON.stringify({ event: "CALLBACK_ERROR", order_id: payload?.merchant_transaction_id, data: res.data }));
-                if (type == "payin") {
-                    await prisma.transaction.update({
-                        where: {
-                            merchant_transaction_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: false,
-                            callback_response: res?.data
+                await prisma.disbursement.update({
+                    where: {
+                        merchant_custom_order_id: payload?.merchant_transaction_id
+                    },
+                    data: {
+                        callback_sent: true,
+                        callback_response: res?.data,
+                        providerDetails: {
+                            ...txn?.providerDetails,
+                            callback_url: webhook_url
                         }
-                    });
-                }
-                else {
-                    await prisma.disbursement.update({
-                        where: {
-                            merchant_custom_order_id: payload?.merchant_transaction_id
-                        },
-                        data: {
-                            callback_sent: false,
-                            callback_response: res?.data
-                        }
-                    });
-                }
+                    }
+                });
             }
+            // }
+            // else {
+            //   console.log("Error sending callback")
+            //   console.log(JSON.stringify({event: "CALLBACK_ERROR", order_id: payload?.merchant_transaction_id, data: res?.data}))
+            //   if (type == "payin") {
+            //     await prisma.transaction.update({
+            //       where: {
+            //         merchant_transaction_id: payload?.merchant_transaction_id
+            //       },
+            //       data: {
+            //         callback_sent: false,
+            //         callback_response: res?.data
+            //       }      
+            //     })
+            //   }
+            //   else {
+            //     await prisma.disbursement.update({
+            //       where: {
+            //         merchant_custom_order_id: payload?.merchant_transaction_id
+            //       },
+            //       data: {
+            //         callback_sent: false,
+            //         callback_response: res?.data
+            //       }      
+            //     })
+            //   }
+            // }
             if (checkLimit) {
                 console.log(await switchPaymentProvider(payload.merchant_id, payload?.merchant_transaction_id));
             }

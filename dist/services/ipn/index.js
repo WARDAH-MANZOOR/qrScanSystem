@@ -89,7 +89,23 @@ const processIPN = async (requestBody) => {
                 }
             });
         }
-        // Example: If pp_TxnType === "MWALLET", return success response
+        // Forward IPN to upstream JazzCash IPN endpoint (AssanPay)
+        try {
+            const newStatus = requestBody.pp_ResponseCode === "121" ? "000" : requestBody.pp_ResponseCode;
+            const forwardRes = await axios.post("https://easypaisa-server-setup.assanpay.com/api/jazzcash/transactions/ipn", {
+                order_id: requestBody.pp_TxnRefNo,
+                status: newStatus,
+                response_message: requestBody.pp_ResponseMessage || null,
+            }, {
+                headers: { "Content-Type": "application/json" },
+                timeout: 15000,
+            });
+            console.log(JSON.stringify({ event: "JAZZCASH_IPN_FORWARDED", upstream: forwardRes?.data }));
+        }
+        catch (forwardErr) {
+            console.log(JSON.stringify({ event: "JAZZCASH_IPN_FORWARD_FAILED", error: forwardErr?.message }));
+        }
+        // Return existing success response to caller
         return {
             pp_ResponseCode: '000',
             pp_ResponseMessage: 'IPN received successfully',
@@ -242,7 +258,7 @@ const processCardIPN = async (requestBody) => {
         throw new CustomError(error.message, 500);
     }
 };
-const updateWooOrderStatus = async (wooId, orderId, responseCode) => {
+export const updateWooOrderStatus = async (wooId, orderId, responseCode) => {
     try {
         console.log("Update Method");
         const wooMerchant = await prisma.woocommerceMerchants.findUnique({

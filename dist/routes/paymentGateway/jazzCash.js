@@ -23,6 +23,9 @@ export default function (router) {
     router.post("/initiate-sjz/:merchantId", 
     // validateJazzcashRequest,
     block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, jazzCashController.initiateSandboxJazzCash);
+    router.post("/initiate-pjz/:merchantId", 
+    // validateJazzcashRequest,
+    block_phone_number_middleware.blockPhoneNumber, blockPhoneMiddleware, jazzCashController.initiateProductionJazzCash);
     router.post("/initiate-jz-new/:merchantId", validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumberNew, jazzCashController.initiateJazzCashNewFlow);
     router.post("/initiate-jzc/:merchantId", validateJazzcashCnicRequest, block_phone_number_middleware.blockPhoneNumber, jazzCashController.initiateJazzCashCnic);
     router.post("/initiate-jza/:merchantId", [apiKeyAuth, ...validateJazzcashRequest, block_phone_number_middleware.blockPhoneNumber], blockPhoneMiddleware, jazzCashController.initiateJazzCashAsync);

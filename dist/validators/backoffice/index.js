@@ -1,4 +1,5 @@
-import { body, validationResult } from "express-validator";
+import { body, param, query, validationResult } from "express-validator";
+import { ProviderEnum, LimitPeriod } from "@prisma/client";
 import prisma from "prisma/client.js";
 import CustomError from "utils/custom_error.js";
 const validateSettlement = [
@@ -30,7 +31,32 @@ const handleValidationErrors = (req, res, next) => {
     }
     next();
 };
+const limitRequired = [
+    body("merchant_id").isInt().withMessage("merchant_id is required"),
+    body("provider").isString().isIn(Object.keys(ProviderEnum)).withMessage("provider must be ProviderEnum"),
+    body("period").isString().isIn(Object.keys(LimitPeriod)).withMessage("period must be LimitPeriod"),
+];
+const limitOptional = [
+    body("timezone").optional().isString(),
+    body("weekStartDow").optional().isInt({ min: 1, max: 7 }),
+    body("maxAmount").optional().isFloat({ min: 0 }),
+    body("maxTxn").optional().isInt({ min: 0 }),
+    body("active").optional().isBoolean(),
+];
+const validateLimitCreate = [...limitRequired, ...limitOptional];
+const validateLimitUpdate = [
+    param("id").isInt().withMessage("id is required"),
+    ...limitOptional,
+];
+const validateLimitList = [
+    query("merchant_id").optional().isInt(),
+    query("provider").optional().isString().isIn(Object.keys(ProviderEnum)),
+    query("active").optional().isBoolean(),
+];
 export default {
     validateSettlement,
-    handleValidationErrors
+    handleValidationErrors,
+    validateLimitCreate,
+    validateLimitUpdate,
+    validateLimitList
 };

@@ -1,6 +1,7 @@
 import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { jazzCashService, easyPaisaService, swichService, transactionService, payfast, } from "../../services/index.js";
+import { updateWooOrderStatus } from "../ipn/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
 import { PROVIDERS } from "constants/providers.js";
 import { Decimal } from "@prisma/client/runtime/library";
@@ -24,7 +25,7 @@ const createPaymentRequest = async (data, user) => {
                     dueDate: data.dueDate,
                     provider: data.provider,
                     link: data.link,
-                    metadata: data.metadata || {},
+                    metadata: data.metadata || { return_url: data.link },
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 },
@@ -46,7 +47,7 @@ const createPaymentRequest = async (data, user) => {
         }
         return {
             message: "Payment request created successfully",
-            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}` },
+            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, return_url: newPaymentRequest.metadata?.return_url },
         };
     }
     catch (error) {
@@ -63,12 +64,6 @@ const createPaymentRequestClone = async (data, user) => {
                 uid: user
             }
         });
-        if (user2?.easypaisaPaymentMethod == "DIRECT" && !user2?.easyPaisaMerchantId) {
-            throw new CustomError("Merchant not Found", 404);
-        }
-        if (user2?.easypaisaPaymentMethod == "PAYFAST" && !user2?.payFastMerchantId) {
-            throw new CustomError("Merchant not Found", 404);
-        }
         const findMerchant = await prisma.merchant.findFirst({
             where: {
                 uid: user
@@ -77,12 +72,6 @@ const createPaymentRequestClone = async (data, user) => {
                 commissions: true
             }
         });
-        // اگر findMerchant یا اس کی easypaisaMinAmtLimit موجود نہ ہو تو ایرر پھینکیں
-        if (findMerchant?.easypaisaMinAmtLimit != null) {
-            if (new Decimal(data.amount).lt(findMerchant.easypaisaMinAmtLimit)) {
-                throw new CustomError("Amount is less than merchant's easypaisa limit", 400);
-            }
-        }
         let commission;
         if (findMerchant?.commissions[0].commissionMode == "SINGLE") {
             commission = +findMerchant?.commissions[0].commissionGST +
@@ -173,7 +162,7 @@ const createPaymentRequestClone = async (data, user) => {
         }
         return {
             message: "Payment request created successfully",
-            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id, return_url: newPaymentRequest.metadata?.return_url },
         };
     }
     catch (error) {
@@ -302,7 +291,7 @@ const createPaymentRequestWithOtp = async (data, user) => {
         }
         return {
             message: "Payment request created successfully",
-            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay-ep/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/pay-ep/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id, return_url: newPaymentRequest.metadata?.return_url },
         };
     }
     catch (error) {
@@ -388,7 +377,7 @@ const createPaymentRequestWithOtpClone = async (data, user) => {
                     dueDate: data.dueDate,
                     provider: data.provider,
                     link: data.link,
-                    metadata: data.metadata || { phone: data.phone },
+                    metadata: data.metadata || { phone: data.phone, return_url: data.link },
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     merchant_transaction_id: data.order_id,
@@ -423,7 +412,7 @@ const createPaymentRequestWithOtpClone = async (data, user) => {
         }
         return {
             message: "Payment request created successfully",
-            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/redirect-payments/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id },
+            data: { ...updatedPaymentRequest, completeLink: `https://merchant.sahulatpay.com/redirect-payments/${newPaymentRequest.id}`, storeName: data.storeName, order_id: data.order_id, return_url: newPaymentRequest.metadata.return_url },
         };
     }
     catch (error) {
@@ -656,6 +645,13 @@ const payRequestedPayment = async (paymentRequestObj) => {
                     },
                 });
             });
+            try {
+                if (merchant?.wooMerchantId) {
+                    await updateWooOrderStatus(merchant.wooMerchantId, paymentRequest.merchant_transaction_id || paymentRequest.transactionId, "000");
+                }
+            }
+            catch (e) {
+            }
         }
         return {
             message: "Payment request paid successfully",
@@ -675,6 +671,18 @@ const payRequestedPayment = async (paymentRequestObj) => {
                 },
             });
         });
+        try {
+            const pr = await prisma.paymentRequest.findFirst({ where: { id: paymentRequestObj.payId } });
+            if (pr?.userId) {
+                const m = await prisma.merchant.findFirst({ where: { merchant_id: pr.userId } });
+                if (m?.wooMerchantId) {
+                    await updateWooOrderStatus(m.wooMerchantId, pr.merchant_transaction_id || pr.transactionId, "999");
+                }
+            }
+        }
+        catch (e) {
+            // noop
+        }
         throw new CustomError(error?.message || "An error occurred while updating the payment request", error?.statusCode || 500);
     }
 };
@@ -791,6 +799,13 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj) => {
                     },
                 });
             });
+            try {
+                if (merchant?.wooMerchantId) {
+                    await updateWooOrderStatus(merchant.wooMerchantId, paymentRequest.merchant_transaction_id || paymentRequest.transactionId, "000");
+                }
+            }
+            catch (e) {
+            }
         }
         return {
             message: "Payment request paid successfully",
@@ -810,6 +825,18 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj) => {
                 },
             });
         });
+        try {
+            const pr = await prisma.paymentRequest.findFirst({ where: { id: paymentRequestObj.payId } });
+            if (pr?.userId) {
+                const m = await prisma.merchant.findFirst({ where: { merchant_id: pr.userId } });
+                if (m?.wooMerchantId) {
+                    await updateWooOrderStatus(m.wooMerchantId, pr.merchant_transaction_id || pr.transactionId, "999");
+                }
+            }
+        }
+        catch (e) {
+            // noop
+        }
         throw new CustomError(error?.message || "An error occurred while updating the payment request", error?.statusCode || 500);
     }
 };
@@ -935,7 +962,8 @@ const getPaymentRequestbyId = async (paymentRequestId) => {
             message: "Payment request retrieved successfully",
             data: {
                 ...paymentRequest,
-                credentials: creds
+                credentials: creds,
+                return_url: paymentRequest.metadata?.return_url
             },
         };
     }

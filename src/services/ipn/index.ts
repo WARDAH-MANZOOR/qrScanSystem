@@ -306,7 +306,7 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
     }
 }
 
-const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode: string) => {
+export const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode: string) => {
     try {
         console.log("Update Method")
         const wooMerchant = await prisma.woocommerceMerchants.findUnique({

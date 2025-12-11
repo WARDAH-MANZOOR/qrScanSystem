@@ -233,6 +233,15 @@ const createUSDTSettlement = async (req, res, next) => {
         next(error);
     }
 };
+const createUSDTSettlementNew = async (req, res, next) => {
+    try {
+        const record = await backofficeService.createUSDTSettlementNew(req.body);
+        res.status(201).json({ record });
+    }
+    catch (error) {
+        next(error);
+    }
+};
 const calculateFinancials = async (req, res, next) => {
     try {
         const record = await backofficeService.calculateFinancials(+req.params.merchantId);
@@ -274,6 +283,89 @@ const updateTransactions = async (req, res) => {
         res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
     }
 };
+const bulkUpdateUsdtTermsByPercentage = async (req, res) => {
+    try {
+        const { usdtPercentage, usdtRate } = req.body;
+        if (usdtPercentage == undefined || usdtRate == undefined) {
+            throw new CustomError("usdtPercentage and usdtRate must be provided", 400);
+        }
+        const result = await backofficeService.bulkUpdateUsdtTermsByPercentage(Number(usdtPercentage), Number(usdtRate));
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+const setMerchantUsdtWalletAddress = async (req, res) => {
+    try {
+        const merchantId = Number(req.params.merchantId);
+        const { walletAddress } = req.body;
+        if (!merchantId || !walletAddress) {
+            throw new CustomError("merchantId (param) and walletAddress (body) are required", 400);
+        }
+        const result = await backofficeService.setMerchantUsdtWalletAddress(merchantId, walletAddress);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+const getMerchantUsdtWalletAddress = async (req, res) => {
+    try {
+        const merchantId = Number(req.params.merchantId);
+        if (!merchantId) {
+            throw new CustomError("merchantId is required in params", 400);
+        }
+        const result = await backofficeService.getMerchantUsdtWalletAddress(merchantId);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (err) {
+        res.status(err.statusCode || 500).send(ApiResponse.error(err.message, err.statusCode || 500));
+    }
+};
+const upsertLimitPolicy = async (req, res, next) => {
+    try {
+        const result = await backofficeService.upsertLimitPolicy(req.body);
+        res.status(200).json(ApiResponse.success(result, "Policy saved"));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+const updateLimitPolicy = async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        const result = await backofficeService.updateLimitPolicy(id, req.body);
+        res.status(200).json(ApiResponse.success(result, "Policy updated"));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+const listLimitPolicies = async (req, res, next) => {
+    try {
+        const result = await backofficeService.listLimitPolicies({
+            merchant_id: req.query.merchant_id ? Number(req.query.merchant_id) : undefined,
+            provider: req.query.provider,
+            active: req.query.active !== undefined ? req.query.active === "true" : undefined,
+        });
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
+const deleteLimitPolicy = async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        const { provider } = req.body;
+        const result = await backofficeService.deleteLimitPolicy(id, provider);
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -298,5 +390,13 @@ export default {
     failDisbursementsWithAccountInvalidForTelegram,
     settleDisbursementsForTelegram,
     updateDisbursements,
-    updateTransactions
+    updateTransactions,
+    createUSDTSettlementNew,
+    bulkUpdateUsdtTermsByPercentage,
+    setMerchantUsdtWalletAddress,
+    getMerchantUsdtWalletAddress,
+    upsertLimitPolicy,
+    updateLimitPolicy,
+    listLimitPolicies,
+    deleteLimitPolicy
 };

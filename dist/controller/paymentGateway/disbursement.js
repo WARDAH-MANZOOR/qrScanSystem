@@ -178,24 +178,24 @@ const getDisbursementBalanceControllerWithKey = async (req, res, next) => {
     }
 };
 const disburseTransactions = async (req, res, next) => {
-    // Validate request data
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        // Return validation errors
-        res
-            .status(400)
-            .json(ApiResponse.error(errors.array()[0]));
-        return;
-    }
-    const merchantId = req.user?.id;
-    let { amount } = req.body;
-    let rate = await getMerchantRate(prisma, merchantId);
-    amount *= (1 - +rate);
-    if (!merchantId) {
-        res.status(401).json({ message: 'Unauthorized' });
-        return;
-    }
     try {
+        // Validate request data
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            // Return validation errors
+            res
+                .status(400)
+                .json(ApiResponse.error(errors.array()[0]));
+            return;
+        }
+        const merchantId = req.user?.id;
+        let { amount } = req.body;
+        let rate = await getMerchantRate(prisma, merchantId);
+        amount *= (1 - +rate);
+        if (!merchantId) {
+            res.status(401).json({ message: 'Unauthorized' });
+            return;
+        }
         // Get eligible transactions
         const transactions = await getEligibleTransactions(merchantId, prisma);
         if (transactions.length === 0) {

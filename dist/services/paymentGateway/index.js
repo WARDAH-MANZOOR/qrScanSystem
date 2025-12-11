@@ -908,7 +908,7 @@ async function initiateTransactionClone(token, body, merchantId) {
             bankAccountNumber: body.iban,
             bankCode: body.bankCode,
             amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-            receiverMSISDN: "00000000000",
+            receiverMSISDN: "03123456789",
             referenceId: id
         }, findDisbureMerch.key, findDisbureMerch.initialVector);
         let db_id = id;
@@ -2459,7 +2459,7 @@ async function mwTransaction(token, body, merchantId) {
             timeout: 60000,
         });
         const payload = encryptData({
-            receiverCNIC: body.cnic,
+            receiverCNIC: body.cnic || "0000000000000",
             receiverMSISDN: body.phone,
             amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
             referenceId: id

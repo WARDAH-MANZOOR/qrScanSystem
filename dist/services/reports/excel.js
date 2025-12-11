@@ -1014,118 +1014,253 @@ export const payoutPerWalletService = async (params) => {
 };
 export const payinPerWalletService = async (params) => {
     try {
+        const t0 = Date.now();
         const { startDate, endDate } = params;
         let start_date, end_date;
         if (startDate && endDate) {
             start_date = new Date(format(toZonedTime(startDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
             end_date = new Date(format(toZonedTime(endDate, "Asia/Karachi"), 'yyyy-MM-dd HH:mm:ss', { timeZone: "Asia/Karachi" }));
         }
-        // 🧠 Let DB do the aggregation
+        const log = (payload) => {
+            try {
+                console.log(JSON.stringify({ event: 'PAYIN_PER_WALLET', ...payload }));
+            }
+            catch { /* noop */ }
+        };
+        log({ phase: 'params', startDate, endDate, start_date, end_date });
+        // Build date filter only when provided (avoids undefined filters)
+        const dateFilter = start_date && end_date ? { date_time: { gte: start_date, lt: end_date } } : {};
+        // Fetch completed transactions by provider
         const [jazzCashAgg, easypaisaAgg] = await Promise.all([
             prisma.transaction.findMany({
                 where: {
                     status: 'completed',
-                    date_time: {
-                        gte: start_date,
-                        lt: end_date,
-                    },
-                    providerDetails: {
-                        path: ['name'],
-                        equals: 'JazzCash',
-                    },
+                    ...dateFilter,
+                    providerDetails: { path: ['name'], equals: 'JazzCash' },
                 },
-                select: {
-                    providerDetails: true,
-                    original_amount: true,
-                },
+                select: { providerDetails: true, original_amount: true },
             }),
             prisma.transaction.findMany({
                 where: {
                     status: 'completed',
-                    date_time: { gte: start_date, lt: end_date },
+                    ...dateFilter,
                     providerDetails: { path: ['name'], equals: 'Easypaisa' },
                 },
-                select: {
-                    providerDetails: true,
-                    original_amount: true,
-                    merchant_id: true,
-                },
+                select: { providerDetails: true, original_amount: true },
             }),
         ]);
+        log({ phase: 'fetch', jazzCashCount: jazzCashAgg.length, easypaisaCount: easypaisaAgg.length });
+        // JazzCash aggregation (unchanged)
         const jazzCashAggregation = jazzCashAgg.reduce((acc, t) => {
             const merchantId = Number(t.providerDetails?.id);
             if (Number.isNaN(merchantId))
                 return acc;
-            acc[merchantId] = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
-            acc[merchantId].total_amount += Number(t.original_amount);
+            const row = acc[merchantId] || { total_amount: 0, provider_name: 'JazzCash' };
+            row.total_amount += Number(t.original_amount);
+            acc[merchantId] = row;
             return acc;
         }, {});
-        // 🎯 Aggregate Easypaisa + Swich + PayFast
-        const easypaisaAggMap = {};
-        const swichAggMap = {};
-        const payfastAggMap = {};
+        log({ phase: 'jazzcash_agg', keys: Object.keys(jazzCashAggregation).length });
+        const classifyEP = (providerId, subName) => {
+            const sn = (subName || '').toLowerCase();
+            if ([2, 3].includes(providerId) || sn.includes('swich'))
+                return 'SWICH';
+            if (providerId === 5 || sn.includes('payfast'))
+                return 'PAYFAST';
+            return 'DIRECT';
+        };
+        const addAmountNum = (map, key, amt) => {
+            map[key] = (map[key] || 0) + amt;
+        };
+        const addAmountStr = (map, key, amt) => {
+            if (!key)
+                return;
+            map[key] = (map[key] || 0) + amt;
+        };
+        // Aggregate Easypaisa by provider id and by merchant name (providerDetails.merchant)
+        const idAgg = { DIRECT: {}, SWICH: {}, PAYFAST: {} };
+        const nameAgg = { DIRECT: {}, SWICH: {}, PAYFAST: {} };
         for (const t of easypaisaAgg) {
             const provider = t.providerDetails;
             const providerId = Number(provider?.id);
-            const subName = String(provider?.sub_name || '').toLowerCase();
-            if (Number.isNaN(providerId))
+            const subName = String(provider?.sub_name || '');
+            const merchantName = String(provider?.merchant || '').trim();
+            const bucket = classifyEP(providerId, subName);
+            const amount = Number(t.original_amount);
+            // Priority: use merchant full name when available; fallback to provider id
+            if (merchantName)
+                addAmountStr(nameAgg[bucket], merchantName, amount);
+            else if (!Number.isNaN(providerId))
+                addAmountNum(idAgg[bucket], providerId, amount);
+        }
+        log({ phase: 'easypaisa_agg', idCounts: { DIRECT: Object.keys(idAgg.DIRECT).length, SWICH: Object.keys(idAgg.SWICH).length, PAYFAST: Object.keys(idAgg.PAYFAST).length }, nameCounts: { DIRECT: Object.keys(nameAgg.DIRECT).length, SWICH: Object.keys(nameAgg.SWICH).length, PAYFAST: Object.keys(nameAgg.PAYFAST).length } });
+        // Collect ids and names for lookups
+        const jcIds = Object.keys(jazzCashAggregation).map(Number);
+        const epIds = Object.keys(idAgg.DIRECT).map(Number);
+        const swIds = Object.keys(idAgg.SWICH).map(Number);
+        const pfIds = Object.keys(idAgg.PAYFAST).map(Number);
+        const nameSet = new Set([
+            ...Object.keys(nameAgg.DIRECT),
+            ...Object.keys(nameAgg.SWICH),
+            ...Object.keys(nameAgg.PAYFAST),
+        ]);
+        const epNames = Array.from(nameSet);
+        // Fetch provider tables and merchant mappings
+        const [jazzCashMerchants, easyPaisaMerchants, swichMerchants, payfastMerchants, jcIdMapRows, epIdMapRows, swIdMapRows, pfIdMapRows, nameMapRows,] = await Promise.all([
+            prisma.jazzCashMerchant.findMany({ where: { id: { in: jcIds } }, select: { id: true, returnUrl: true } }),
+            prisma.easyPaisaMerchant.findMany({ where: { id: { in: epIds } }, select: { id: true, username: true } }),
+            prisma.swichMerchant.findMany({ where: { id: { in: swIds } }, select: { id: true } }),
+            prisma.payFastMerchant.findMany({ where: { id: { in: pfIds } }, select: { id: true, name: true } }),
+            prisma.merchant.findMany({ where: { jazzCashMerchantId: { in: jcIds.length ? jcIds : [-1] } }, select: { merchant_id: true, full_name: true, company_name: true, jazzCashMerchantId: true } }),
+            prisma.merchant.findMany({ where: { easyPaisaMerchantId: { in: epIds.length ? epIds : [-1] } }, select: { merchant_id: true, full_name: true, company_name: true, easyPaisaMerchantId: true } }),
+            prisma.merchant.findMany({ where: { swichMerchantId: { in: swIds.length ? swIds : [-1] } }, select: { merchant_id: true, full_name: true, company_name: true, swichMerchantId: true } }),
+            prisma.merchant.findMany({ where: { payFastMerchantId: { in: pfIds.length ? pfIds : [-1] } }, select: { merchant_id: true, full_name: true, company_name: true, payFastMerchantId: true } }),
+            prisma.merchant.findMany({ where: { full_name: { in: epNames.length ? epNames : ['__none__'] } }, select: { merchant_id: true, full_name: true, company_name: true, easyPaisaMerchantId: true } }),
+        ]);
+        log({ phase: 'lookups_fetched', counts: { jc: jazzCashMerchants.length, ep: easyPaisaMerchants.length, sw: swichMerchants.length, pf: payfastMerchants.length, jcMap: jcIdMapRows.length, epMap: epIdMapRows.length, swMap: swIdMapRows.length, pfMap: pfIdMapRows.length, nameMap: nameMapRows.length } });
+        // Build lookup maps (provider id -> Merchant) and (name -> Merchant)
+        const jcIdToMerchant = new Map();
+        const epIdToMerchant = new Map();
+        const swIdToMerchant = new Map();
+        const pfIdToMerchant = new Map();
+        const nameToMerchant = new Map();
+        for (const r of jcIdMapRows)
+            jcIdToMerchant.set(r.jazzCashMerchantId, { merchant_id: r.merchant_id, name: r.company_name || r.full_name || null });
+        for (const r of epIdMapRows)
+            epIdToMerchant.set(r.easyPaisaMerchantId, { merchant_id: r.merchant_id, name: r.company_name || r.full_name || null });
+        for (const r of swIdMapRows)
+            swIdToMerchant.set(r.swichMerchantId, { merchant_id: r.merchant_id, name: r.company_name || r.full_name || null });
+        for (const r of pfIdMapRows)
+            pfIdToMerchant.set(r.payFastMerchantId, { merchant_id: r.merchant_id, name: r.company_name || r.full_name || null });
+        for (const r of nameMapRows)
+            nameToMerchant.set(r.full_name, { merchant_id: r.merchant_id, name: r.company_name || r.full_name || null, ep_id: r.easyPaisaMerchantId ?? null });
+        // Provider arrays (JazzCash unchanged; EP/Swich/Payfast enriched with merchant mapping when available)
+        const mapNotNull = (arr) => arr.filter((x) => x !== null);
+        const jazzCashTransactions = jazzCashMerchants.map((m) => {
+            const mapped = jcIdToMerchant.get(m.id);
+            return {
+                returnUrl: m.returnUrl,
+                total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
+                provider_name: 'JazzCash',
+                merchant_id: mapped?.merchant_id ?? null,
+                merchant_name: mapped?.name ?? null,
+            };
+        });
+        const easyPaisaTransactions = easyPaisaMerchants.map((m) => {
+            const mapped = epIdToMerchant.get(m.id);
+            return {
+                username: m.username,
+                total_amount: (idAgg.DIRECT[m.id] || 0),
+                provider_name: 'Easypaisa',
+                merchant_id: mapped?.merchant_id ?? null,
+                merchant_name: mapped?.name ?? null,
+            };
+        });
+        const swichTransactions = swichMerchants.map((m) => {
+            const mapped = swIdToMerchant.get(m.id);
+            return {
+                id: m.id,
+                total_amount: (idAgg.SWICH[m.id] || 0),
+                provider_name: 'Swich',
+                merchant_id: mapped?.merchant_id ?? null,
+                merchant_name: mapped?.name ?? null,
+            };
+        });
+        const payfastTransactions = payfastMerchants.map((m) => {
+            const mapped = pfIdToMerchant.get(m.id);
+            return {
+                name: m.name,
+                total_amount: (idAgg.PAYFAST[m.id] || 0),
+                provider_name: 'PayFast',
+                merchant_id: mapped?.merchant_id ?? null,
+                merchant_name: mapped?.name ?? null,
+            };
+        });
+        log({ phase: 'arrays_built', counts: { jc: jazzCashTransactions.length, ep: easyPaisaTransactions.length, sw: swichTransactions.length, pf: payfastTransactions.length } });
+        // Unified Easypaisa DIRECT accounts aggregated by account username (from providerDetails.sub_merchant)
+        // merchant_name is taken directly from providerDetails.merchant; merchant_id is ignored (null)
+        const unifiedAccounts = new Map();
+        for (const t of easypaisaAgg) {
+            const provider = t.providerDetails;
+            const providerId = Number(provider?.id);
+            const subName = String(provider?.sub_name || '');
+            const bucket = classifyEP(providerId, subName);
+            if (bucket !== 'DIRECT')
+                continue; // only direct accounts
+            const username = String(provider?.sub_merchant || '').trim();
+            if (!username)
                 continue;
-            if ([2, 3].includes(providerId) || subName.includes("swich")) {
-                swichAggMap[providerId] = swichAggMap[providerId] || { total_amount: 0, provider_name: 'Swich' };
-                swichAggMap[providerId].total_amount += Number(t.original_amount);
-            }
-            else if (providerId === 5 || subName.includes("payfast")) {
-                payfastAggMap[providerId] = payfastAggMap[providerId] || { total_amount: 0, provider_name: 'PayFast' };
-                payfastAggMap[providerId].total_amount += Number(t.original_amount);
+            const merchantName = String(provider?.merchant || '').trim() || null;
+            const amt = Number(t.original_amount);
+            const prev = unifiedAccounts.get(username) || { username, merchant_name: null, total_amount: 0 };
+            prev.total_amount += amt;
+            if (!prev.merchant_name && merchantName)
+                prev.merchant_name = merchantName;
+            unifiedAccounts.set(username, prev);
+        }
+        const easyPaisaUnifiedTransactions = Array.from(unifiedAccounts.values()).map((v) => ({
+            username: v.username,
+            total_amount: v.total_amount,
+            provider_name: 'Easypaisa',
+            merchant_id: null,
+            merchant_name: v.merchant_name,
+        }));
+        // Merge collections between easyPaisaTransactions and easyPaisaUnifiedTransactions based on username
+        const etMap = new Map();
+        for (const e of easyPaisaTransactions) {
+            if (e?.username)
+                etMap.set(e.username, e);
+        }
+        const euMap = new Map();
+        for (const u of easyPaisaUnifiedTransactions) {
+            if (u?.username)
+                euMap.set(u.username, u);
+        }
+        const allUsernames = new Set([...etMap.keys(), ...euMap.keys()]);
+        const easyPaisaTransactionsMerged = [];
+        const easyPaisaUnifiedTransactionsMerged = [];
+        for (const uname of allUsernames) {
+            const et = etMap.get(uname);
+            const eu = euMap.get(uname);
+            const total = (et?.total_amount || 0) + (eu?.total_amount || 0);
+            // Update or append to easyPaisaTransactions
+            if (et) {
+                easyPaisaTransactionsMerged.push({ ...et, total_amount: total });
             }
             else {
-                easypaisaAggMap[providerId] = easypaisaAggMap[providerId] || { total_amount: 0, provider_name: 'Easypaisa' };
-                easypaisaAggMap[providerId].total_amount += Number(t.original_amount);
+                easyPaisaTransactionsMerged.push({
+                    username: uname,
+                    total_amount: total,
+                    provider_name: 'Easypaisa',
+                    merchant_id: null,
+                    merchant_name: eu?.merchant_name ?? null,
+                });
+            }
+            // Update or append to easyPaisaUnifiedTransactions
+            if (eu) {
+                easyPaisaUnifiedTransactionsMerged.push({ ...eu, total_amount: total });
+            }
+            else {
+                easyPaisaUnifiedTransactionsMerged.push({
+                    username: uname,
+                    total_amount: total,
+                    provider_name: 'Easypaisa',
+                    merchant_id: null,
+                    merchant_name: et?.merchant_name ?? null,
+                });
             }
         }
-        // 🧾 Prepare merchant ID arrays
-        const jazzCashIds = Object.keys(jazzCashAggregation).map(Number);
-        const easypaisaIds = Object.keys(easypaisaAggMap).map(Number);
-        const swichIds = Object.keys(swichAggMap).map(Number);
-        const payfastIds = Object.keys(payfastAggMap).map(Number);
-        console.log(swichAggMap);
-        // 🧵 Fetch all merchants in parallel
-        const [jazzCashMerchants, easypaisaMerchants, swichMerchants, payfastMerchants] = await Promise.all([
-            prisma.jazzCashMerchant.findMany({ where: { id: { in: jazzCashIds } }, select: { id: true, returnUrl: true } }),
-            prisma.easyPaisaMerchant.findMany({ where: { id: { in: easypaisaIds } }, select: { id: true, username: true } }),
-            prisma.swichMerchant.findMany({ where: { id: { in: swichIds } }, select: { id: true } }),
-            prisma.payFastMerchant.findMany({ where: { id: { in: payfastIds } }, select: { id: true, name: true } }),
-        ]);
-        // 🧱 Format results
-        const jazzCashResult = jazzCashMerchants.map((m) => ({
-            returnUrl: m.returnUrl,
-            total_amount: jazzCashAggregation[m.id]?.total_amount || 0,
-            provider_name: 'JazzCash',
-        }));
-        const easyPaisaResult = easypaisaMerchants.map((m) => ({
-            username: m.username,
-            total_amount: easypaisaAggMap[m.id]?.total_amount || 0,
-            provider_name: 'Easypaisa',
-        }));
-        const swichResult = swichMerchants.map((m) => ({
-            id: m.id,
-            total_amount: swichAggMap[m.id]?.total_amount || 0,
-            provider_name: 'Swich',
-        }));
-        const payfastResult = payfastMerchants.map((m) => ({
-            name: m.name,
-            total_amount: payfastAggMap[m.id]?.total_amount || 0,
-            provider_name: 'PayFast',
-        }));
+        const elapsed = Date.now() - t0;
+        log({ phase: 'done', elapsed_ms: elapsed, merged_usernames: easyPaisaUnifiedTransactionsMerged.length });
         return {
-            jazzCashTransactions: jazzCashResult,
-            easyPaisaTransactions: easyPaisaResult,
-            swichTransactions: swichResult,
-            payfastTransactions: payfastResult,
+            jazzCashTransactions,
+            easyPaisaTransactions: easyPaisaUnifiedTransactionsMerged,
+            swichTransactions,
+            payfastTransactions,
         };
     }
     catch (error) {
-        console.error(error);
+        console.error(JSON.stringify({ event: 'PAYIN_PER_WALLET', phase: 'error', message: error?.message }));
         throw new CustomError("Internal Server Error", 400);
     }
 };

@@ -690,7 +690,7 @@ const initiateJazzCashPaymentForRedirection = async (paymentData, merchant_uid) 
         }
         else if (paymentType === "WALLET") {
             // Send the request to JazzCash
-            const paymentUrl = "https://clownfish-app-rmhgo.ondigitalocean.app/forward";
+            const paymentUrl = `${process.env.JAZZCASH_PAYIN_URL}/forward`;
             const headers = {
                 "Content-Type": "application/x-www-form-urlencoded",
             };
@@ -1580,6 +1580,211 @@ const initiateSandboxJazzCashPayment = async (paymentData, merchant_uid) => {
         };
     }
 };
+const initiateProductionJazzCashPayment = async (paymentData, merchant_uid) => {
+    // Clone of initiateSandboxJazzCashPayment with wallet URL pointing to pgw host
+    let refNo = "";
+    try {
+        console.log(JSON.stringify({ event: "JASSCASH_PAYIN_INITIATED", orderId: paymentData.order_id, body: paymentData }));
+        var JAZZ_CASH_MERCHANT_ID = null;
+        const date2 = new Date();
+        const date3 = new Date(Date.now() + (60 * 60 * 1000));
+        const timeZone = 'Asia/Karachi';
+        const zonedDate = toZonedTime(date2, timeZone);
+        const zonedDate2 = toZonedTime(date3, timeZone);
+        const formattedDate = format(zonedDate, 'yyyyMMddHHmmss', { timeZone });
+        const expiryDate = format(zonedDate2, 'yyyyMMddHHmmss', { timeZone });
+        console.log(formattedDate);
+        let jazzCashMerchantIntegritySalt = "";
+        const jazzCashCredentials = {
+            pp_MerchantID: "",
+            pp_Password: "",
+            pp_ReturnURL: "",
+        };
+        if (!paymentData.amount || !paymentData.phone) {
+            throw new CustomError("Amount and phone are required", 400);
+        }
+        if (!paymentData.type) {
+            throw new CustomError("Payment type is required", 400);
+        }
+        const phone = transactionService.convertPhoneNumber(paymentData.phone);
+        const paymentType = paymentData.type?.toUpperCase();
+        const currentTime = Date.now();
+        const fractionalMilliseconds = Math.floor((currentTime - Math.floor(currentTime)) * 1000);
+        let txnRefNo;
+        let transactionCreated = false;
+        const result = await prisma.$transaction(async (tx) => {
+            let merchant;
+            if (merchant_uid) {
+                merchant = await tx.merchant.findFirst({
+                    where: { uid: merchant_uid },
+                    include: { commissions: true },
+                });
+                if (!merchant) {
+                    throw new CustomError("Merchant not found", 404);
+                }
+                const jazzCashMerchant = await tx.jazzCashMerchant.findFirst({
+                    where: { id: merchant.jazzCashMerchantId },
+                });
+                if (!jazzCashMerchant) {
+                    throw new CustomError("Payment Merchant not found", 404);
+                }
+                jazzCashCredentials.pp_MerchantID = jazzCashMerchant.jazzMerchantId;
+                jazzCashCredentials.pp_Password = jazzCashMerchant.password;
+                jazzCashMerchantIntegritySalt = jazzCashMerchant.integritySalt;
+                jazzCashCredentials.pp_ReturnURL = jazzCashMerchant.returnUrl;
+                JAZZ_CASH_MERCHANT_ID = jazzCashMerchant.id;
+                paymentData.merchantId = merchant.merchant_id;
+            }
+            else {
+                throw new CustomError("Merchant UID is required", 400);
+            }
+            let data = {};
+            if (paymentData.transaction_id) {
+                const transactionExists = await tx.transaction.findUnique({
+                    where: {
+                        transaction_id: paymentData.transaction_id,
+                        status: "pending",
+                    },
+                });
+                if (transactionExists) {
+                    txnRefNo = paymentData.transaction_id;
+                    transactionCreated = true;
+                }
+                else {
+                    throw new CustomError("Transaction with Transaction ID not found", 404);
+                }
+            }
+            else {
+                txnRefNo = `T${formattedDate}${fractionalMilliseconds.toString()}${Math.random().toString(36).substr(2, 4)}`;
+                if (paymentData.order_id) {
+                    data["merchant_transaction_id"] = paymentData.order_id;
+                }
+                else {
+                    data["merchant_transaction_id"] = txnRefNo;
+                }
+                data["transaction_id"] = txnRefNo;
+                const settled_amount = parseFloat(paymentData.amount) * (1 - (+merchant.commissions[0].commissionRate + +merchant.commissions[0].commissionGST + +merchant.commissions[0].commissionWithHoldingTax));
+                try {
+                    await tx.transaction.create({
+                        data: {
+                            ...data,
+                            date_time: new Date(),
+                            original_amount: paymentData.amount,
+                            type: paymentData.type.toLowerCase(),
+                            status: "pending",
+                            merchant_id: merchant.merchant_id,
+                            settled_amount,
+                            balance: settled_amount,
+                            providerDetails: {
+                                id: JAZZ_CASH_MERCHANT_ID,
+                                name: PROVIDERS.JAZZ_CASH,
+                                msisdn: phone,
+                            },
+                        },
+                    });
+                    console.log(JSON.stringify({ event: "PENDING_TXN_CREATED", order_id: paymentData.order_id, system_id: data.transaction_id }));
+                    transactionCreated = true;
+                }
+                catch (err) {
+                    throw new CustomError("Transaction not Created", 400);
+                }
+            }
+            return {
+                merchant,
+                integritySalt: jazzCashMerchantIntegritySalt,
+                refNo: data.merchant_transaction_id,
+                txnRefNo: data.transaction_id
+            };
+        }, {
+            maxWait: 5000,
+            timeout: 20000
+        });
+        const { merchant, integritySalt } = result;
+        refNo = result.refNo;
+        txnRefNo = result.txnRefNo;
+        jazzCashMerchantIntegritySalt = integritySalt;
+        const amount = paymentData.amount;
+        const date = format(new Date(Date.now() + 60 * 60 * 1000), "yyyyMMddHHmmss");
+        const sendData = {
+            pp_Version: "1.1",
+            pp_TxnType: "MWALLET",
+            pp_Language: "EN",
+            pp_MerchantID: jazzCashCredentials.pp_MerchantID,
+            pp_Password: jazzCashCredentials.pp_Password,
+            pp_TxnRefNo: txnRefNo,
+            pp_Amount: `${parseFloat(amount).toFixed(2).replace('.', '')}`,
+            pp_TxnCurrency: "PKR",
+            pp_TxnDateTime: formattedDate,
+            pp_TxnExpiryDateTime: expiryDate,
+            pp_BillReference: refNo,
+            pp_Description: `Payment via ${paymentType}`,
+            pp_ReturnURL: jazzCashCredentials.pp_ReturnURL,
+            ppmpf_1: phone
+        };
+        const txnDateTime = formattedDate;
+        // Generate the secure hash
+        sendData.pp_SecureHash = getSecureHash(sendData, jazzCashMerchantIntegritySalt);
+        if (paymentType === "CARD") {
+            const paymentUrl = "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/Purchase/PAY";
+            const headers = { "Content-Type": "application/json" };
+            const response = await axios.post(paymentUrl, {}, { headers });
+            return response.data;
+        }
+        else if (paymentType === "WALLET") {
+            const paymentUrl = "https://pgw.jazzcash.com.pk/api/payment/DoTransaction";
+            const headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+            };
+            const response = await axios.post(paymentUrl, new URLSearchParams(sendData).toString(), { headers });
+            const r = response.data;
+            if (!r) {
+                throw new CustomError(response.statusText, 500);
+            }
+            let status = "completed";
+            if (r.pp_ResponseCode !== "000") {
+                status = "failed";
+            }
+            await prisma.$transaction(async (tx) => {
+                if (status != "completed" &&
+                    status != "pending" &&
+                    status != "failed") {
+                    return;
+                }
+                await tx.transaction.update({
+                    where: { merchant_transaction_id: refNo },
+                    data: {
+                        status,
+                        response_message: r.pp_ResponseMessage,
+                        providerDetails: {
+                            id: JAZZ_CASH_MERCHANT_ID,
+                            name: PROVIDERS.JAZZ_CASH,
+                            msisdn: phone,
+                            transactionId: r.pp_RetreivalReferenceNo
+                        },
+                    },
+                });
+            });
+            return {
+                txnNo: refNo,
+                txnDateTime,
+                statusCode: r.pp_ResponseCode,
+                response: r,
+                request: sendData
+            };
+        }
+        else {
+            throw new CustomError("Invalid Payment method selected!", 400);
+        }
+    }
+    catch (error) {
+        console.log(JSON.stringify({ event: "JASSCASH_PAYIN_ERROR", order_id: paymentData.order_id, error }));
+        return {
+            message: error?.message || "An Error Occured",
+            statusCode: error?.statusCode || 500,
+            txnNo: refNo
+        };
+    }
+};
 const initiateJazzCashPaymentAsync = async (paymentData, merchant_uid) => {
     console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_INITIATED", order_id: paymentData.order_id, body: paymentData }));
     let txnRefNo;
@@ -1803,6 +2008,7 @@ const initiateJazzCashPaymentAsyncClone = async (paymentData, merchant_uid) => {
                 }
             }
             catch (error) {
+                console.log(error);
                 console.log(JSON.stringify({
                     event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error: {
                         message: error?.message || "An Error Occurred",
@@ -1844,6 +2050,7 @@ const initiateJazzCashPaymentAsyncClone = async (paymentData, merchant_uid) => {
         };
     }
     catch (error) {
+        console.log(error);
         console.log(JSON.stringify({ event: "JAZZCASH_ASYNC_ERROR", order_id: paymentData.order_id, error }));
         return {
             message: error?.message || "An Error Occurred",
@@ -1976,10 +2183,12 @@ const processWalletPayment = async (sendData, refNo, merchant, phone, date, txnR
     }
 };
 const processWalletPaymentClone = async (sendData, refNo, merchant, phone, date, txnRefNo, jazzCashMerchant) => {
-    const paymentUrl = `${process.env.JAZZCASH_PAYIN_URL}/forward`;
+    const paymentUrl = `${process.env.MNTX_JAZZCASH_PAYIN_URL}?merchantId=${merchant?.merchant_id}`;
     const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+    console.log();
     const response = await axios.post(paymentUrl, new URLSearchParams(sendData).toString(), { headers });
     const r = response.data;
+    console.log(r);
     if (!r) {
         throw new CustomError("JazzCash Wallet Payment failed", 500);
     }
@@ -1993,7 +2202,9 @@ const processWalletPaymentClone = async (sendData, refNo, merchant, phone, date,
                 id: jazzCashMerchant.id,
                 name: PROVIDERS.JAZZ_CASH,
                 msisdn: phone,
-                transactionId: r.pp_RetreivalReferenceNo
+                transactionId: r.pp_RetreivalReferenceNo,
+                merchant: r.mainCategoryName,
+                sub_merchant: r?.accountName,
             },
         },
     });
@@ -2700,6 +2911,7 @@ export default {
     getJazzCashInquiryChannel,
     databaseStatusInquiry,
     initiateSandboxJazzCashPayment,
+    initiateProductionJazzCashPayment,
     initiateJazzCashPaymentClone,
     initiateJazzCashPaymentForRedirection
 };
