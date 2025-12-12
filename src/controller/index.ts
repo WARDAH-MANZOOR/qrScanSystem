@@ -10,6 +10,7 @@ import paymentRequestController from "./paymentRequest/index.js";
 import zindigiController from "./paymentGateway/zindigi.js"
 import reportController from "./reports/excel.js"
 import ipnController from "./ipn/index.js"
+import raastController from "./ipn/raastController.js"
 import groupController from "./group/index.js"
 import permissionController from "./permissions/index.js"
 import usdtSettlementController from "./usdt-settlement/index.js"
@@ -42,6 +43,7 @@ export {
   zindigiController,
   reportController,
   ipnController,
+  raastController,
   groupController,
   permissionController,
   usdtSettlementController,

@@ -7,7 +7,15 @@ import CryptoJS from "crypto-js"
 import axios from "axios";
 import { PROVIDERS } from "constants/providers.js";
 
-// Example of the request body fields
+// Interface for Raast QR IPN request body with custom field names
+export interface RaastQRRequestBody {
+    order_id: string;
+    'Transection Id': string;
+    status?: string;
+    response_message?: string;
+}
+
+// Example of the request body fields from other payment gateways
 export interface PaymentRequestBody {
     pp_Version: string;
     pp_TxnType: string;
@@ -356,4 +364,128 @@ const bdtIPN = (body: any) => {
     console.log("Body: ",body);
     return body;
 }
-export default { processIPN, processCardIPN, bdtIPN };
+
+// Raast QR IPN Processing
+const processRaastQRIPN = async (requestBody: RaastQRRequestBody): Promise<any> => {
+    try {
+        // Log the incoming IPN
+        console.log(JSON.stringify({
+            event: "RAAST_QR_IPN_RECEIVED",
+            requestBody
+        }));
+
+        // Extract the required fields
+        const { order_id, 'Transection Id': transaction_id, status, response_message } = requestBody;
+
+        // Validate required fields
+        if (!order_id || !transaction_id) {
+            throw new CustomError("Missing required fields: order_id or Transection Id", 400);
+        }
+
+        // Find the transaction in the database
+        const txn = await prisma.transaction.findFirst({
+            where: {
+                OR: [
+                    {
+                        merchant_transaction_id: order_id
+                    },
+                    {
+                        transaction_id: order_id
+                    }
+                ]
+            }
+        });
+
+        if (!txn) {
+            throw new CustomError("Transaction Not Found", 500);
+        }
+
+        // Determine the status based on the status field (if provided) or fallback to transaction_id logic
+        const finalStatus = status || "completed"; // For now, we'll keep it simple
+
+        // Update the transaction status based on the IPN status
+        if (finalStatus === "completed") {
+            await prisma.transaction.updateMany({
+                where: {
+                    OR: [
+                        {
+                            merchant_transaction_id: order_id
+                        },
+                        {
+                            transaction_id: order_id
+                        }
+                    ]
+                },
+                data: {
+                    status: "completed",
+                    response_message: response_message || "Payment completed successfully",
+                    providerDetails: {
+                        ...(txn.providerDetails as JsonObject),
+                        transactionId: transaction_id
+                    }
+                }
+            });
+
+            // Handle scheduled tasks if needed
+            if (txn?.status !== "completed") {
+                // Send callback notification to merchant
+                const findMerchant = await prisma.merchant.findUnique({
+                    where: {
+                        merchant_id: txn?.merchant_id
+                    },
+                    include: {
+                        commissions: true
+                    }
+                });
+
+                if (findMerchant && findMerchant.webhook_url) {
+                    setTimeout(async () => {
+                        transactionService.sendCallback(
+                            findMerchant?.webhook_url as string,
+                            txn,
+                            (txn?.providerDetails as JsonObject)?.account as string,
+                            "payin",
+                            findMerchant?.encrypted == "True" ? true : false,
+                            false
+                        );
+                    }, 30000); // Delay 30 seconds to ensure all processing is complete
+                }
+            }
+        } else {
+            // For failed or pending status, update accordingly
+            await prisma.transaction.updateMany({
+                where: {
+                    OR: [
+                        {
+                            merchant_transaction_id: order_id
+                        },
+                        {
+                            transaction_id: order_id
+                        }
+                    ]
+                },
+                data: {
+                    status: finalStatus === "failed" ? "failed" : "pending",
+                    response_message: response_message || "Payment status updated",
+                    providerDetails: {
+                        ...(txn.providerDetails as JsonObject),
+                        transactionId: transaction_id
+                    }
+                }
+            });
+        }
+
+        // Return success response
+        return {
+            status: "success",
+            message: "Raast QR IPN processed successfully",
+            order_id: order_id,
+            transaction_id: transaction_id
+        };
+    } catch (error: any) {
+        console.error("Raast QR IPN Processing Error:", error);
+        throw new CustomError(error.message, 500);
+    }
+};
+
+export default { processIPN, processCardIPN, bdtIPN, processRaastQRIPN };

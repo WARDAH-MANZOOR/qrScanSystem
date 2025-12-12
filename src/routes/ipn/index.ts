@@ -1,4 +1,5 @@
 import { ipnController } from "controller/index.js";
+import { raastController } from "controller/index.js";
 import express from "express";
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.post("/8hexa", ipnController.handleIPN);
 router.post("/card", ipnController.handleCardIPN);
 router.post("/bdt", ipnController.handlebdtIPN);
 router.post("/shurjopay", ipnController.handleShurjoPayIPN);
+router.post("/raast", raastController.handleRaastQRIPN);
 
 export default router;

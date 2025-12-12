@@ -20,6 +20,7 @@ enum TransactionType {
   wallet // Wallet-based payment
   card // Card-based payment
   bank // Bank transfer
+  qr
 }
 
 enum ProviderEnum {

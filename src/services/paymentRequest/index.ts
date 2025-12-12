@@ -653,6 +653,12 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
     if (!merchant || !merchant.uid) {
       throw new CustomError("Merchant not found", 404);
     }
+
+    const txn = await prisma.transaction.findUnique({
+      where: {
+        merchant_transaction_id: paymentRequest.merchant_transaction_id as string
+      }
+    })
     console.log(merchant?.easypaisaPaymentMethod)
     let response;
 
@@ -870,6 +876,32 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         }
       })
     }
+    else if (paymentRequestObj.provider?.toLocaleLowerCase() === "qr") {
+      let commission;
+      if (+(merchant?.commissions[0].cardRate as Decimal) != 0) {
+        commission = +merchant?.commissions[0].commissionGST +
+          +(merchant?.commissions[0].cardRate as Decimal) +
+          +merchant.commissions[0].commissionWithHoldingTax
+      }
+      else {
+        commission = +merchant?.commissions[0].commissionGST +
+          +merchant.commissions[0].commissionRate +
+          +merchant.commissions[0].commissionWithHoldingTax
+      }
+      let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
+      await prisma.transaction.update({
+        where: {
+          merchant_transaction_id: id2
+        },
+        data: {
+          type: "qr",
+          providerDetails: {
+            ...(txn?.providerDetails as JsonObject),
+            name: "qr"
+          }
+        }
+      })
+    }
 
     let updatedPaymentRequest;
     if (paymentRequestObj?.provider.toLowerCase() == "jazzcash" || paymentRequestObj?.provider.toLowerCase() == "easypaisa") {
@@ -1054,6 +1086,18 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
         }
       }
     }
+    else if (paymentRequestObj.provider?.toLocaleLowerCase() === "qr") {
+      let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
+      await prisma.transaction.update({
+        where: {
+          merchant_transaction_id: id2
+        },
+        data: {
+          type: "qr"
+        }
+      })
+    }
+
 
     let updatedPaymentRequest;
     if (paymentRequestObj?.provider.toLowerCase() == "jazzcash" || paymentRequestObj?.provider.toLowerCase() == "easypaisa") {
