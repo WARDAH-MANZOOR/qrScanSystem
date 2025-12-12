@@ -40,6 +40,22 @@ const createPaymentRequestClone = async (
   }
 };
 
+const createPaymentRequestForQR = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await paymentRequestService.createPaymentRequestForQR(
+      req.body,
+      req.params.merchantId
+    );
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createPaymentRequestWithOtp = async (
   req: Request,
   res: Response,
@@ -291,5 +307,6 @@ export default {
   payUpaisaZindigi,
   preRequest,
   payRequestedPaymentForRedirection,
-  createPaymentRequestWithOtpClone
+  createPaymentRequestWithOtpClone,
+  createPaymentRequestForQR
 };

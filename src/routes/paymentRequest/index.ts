@@ -31,6 +31,7 @@ router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
 router.post("/otp/:merchantId", paymentRequestController.createPaymentRequestWithOtp);
 router.post("/new-otp/:merchantId", paymentRequestController.createPaymentRequestWithOtpClone);
 router.post("/:merchantId", paymentRequestController.createPaymentRequestClone);
+router.post("/qr/:merchantId", paymentRequestController.createPaymentRequestForQR);
 // router.post("/new", [isLoggedIn], paymentRequestController.createPaymentRequest);
 router.put(
   "/:paymentRequestId",
