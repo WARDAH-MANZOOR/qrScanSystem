@@ -2,7 +2,7 @@ import prisma from "../../prisma/client.js";
 import CustomError from "../../utils/custom_error.js";
 import { hashPassword } from "../../services/authentication/index.js";
 const updateMerchant = async (payload) => {
-    const { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, merchantId, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, EasyPaisaDisburseAccountId, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId, payfastInquiryMethod, jazzCashCardMerchantId, jazzCashDisburseInquiryMethod, jazzCashInquiryMethod, wooMerchantId, cardRate } = payload;
+    const { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, merchantId, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaMinAmtLimit, EasyPaisaDisburseAccountId, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId, payfastInquiryMethod, jazzCashCardMerchantId, jazzCashDisburseInquiryMethod, jazzCashInquiryMethod, wooMerchantId, cardRate } = payload;
     try {
         // let enc = stringToBoolean(encrypted);
         let result = await prisma.$transaction(async (tx) => {
@@ -24,6 +24,7 @@ const updateMerchant = async (payload) => {
                     easyPaisaMerchantId,
                     swichMerchantId,
                     webhook_url,
+                    ...(easypaisaMinAmtLimit !== undefined ? { easypaisaMinAmtLimit } : {}),
                     EasyPaisaDisburseAccountId,
                     easypaisaPaymentMethod: method,
                     easypaisaInquiryMethod,
@@ -109,9 +110,12 @@ const findOne = async (params) => {
     }
 };
 const addMerchant = async (payload) => {
-    let { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId, payfastInquiryMethod, jazzCashCardMerchantId, jazzCashDisburseInquiryMethod, jazzCashInquiryMethod, wooMerchantId, cardRate } = payload;
+    let { username, email, password, phone_number, company_name, company_url, city, payment_volume, commission, commissionGST, commissionWithHoldingTax, disbursementGST, disbursementRate, disbursementWithHoldingTax, settlementDuration, jazzCashMerchantId, easyPaisaMerchantId, swichMerchantId, webhook_url, easypaisaMinAmtLimit, easypaisaPaymentMethod, easypaisaInquiryMethod, JazzCashDisburseAccountId, encrypted, callback_mode, payout_callback, easypaisaLimit, swichLimit, commissionMode, easypaisaRate, payFastMerchantId, payfastInquiryMethod, jazzCashCardMerchantId, jazzCashDisburseInquiryMethod, jazzCashInquiryMethod, wooMerchantId, cardRate } = payload;
     if (settlementDuration == undefined) {
         settlementDuration = 0;
+    }
+    if (easypaisaMinAmtLimit == undefined) {
+        easypaisaMinAmtLimit = 0;
     }
     try {
         const hashedPassword = await hashPassword(password);
@@ -142,6 +146,7 @@ const addMerchant = async (payload) => {
                     swichMerchantId,
                     payFastMerchantId,
                     webhook_url,
+                    easypaisaMinAmtLimit,
                     easypaisaPaymentMethod: easypaisaPaymentMethod,
                     easypaisaInquiryMethod,
                     JazzCashDisburseAccountId,

@@ -111,7 +111,7 @@ async function refundIBFTTransaction(token, body, merchantId) {
             bankAccountNumber: body.iban,
             bankCode: body.bankCode,
             amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
-            receiverMSISDN: body.phone,
+            receiverMSISDN: "03123456789",
             referenceId: id
         }, findDisbureMerch.key, findDisbureMerch.initialVector);
         let db_id = id;
@@ -403,7 +403,7 @@ async function refundMwTransaction(token, body, merchantId) {
             timeout: 60000,
         });
         const payload = encryptData({
-            receiverCNIC: body.cnic,
+            receiverCNIC: body.cnic || "0000000000000",
             receiverMSISDN: body.phone,
             amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
             referenceId: id

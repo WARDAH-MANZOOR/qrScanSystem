@@ -104,6 +104,31 @@ const initiateSandboxJazzCash = async (req, res, next) => {
         next(error);
     }
 };
+const initiateProductionJazzCash = async (req, res, next) => {
+    try {
+        const paymentData = req.body;
+        console.log("Payment Data: ", paymentData);
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json(ApiResponse.error(errors.array()[0]));
+            return;
+        }
+        let merchantId = req.params?.merchantId;
+        if (!merchantId) {
+            res.status(400).json(ApiResponse.error("Merchant ID is required"));
+            return;
+        }
+        const result = await jazzCashService.initiateProductionJazzCashPayment(paymentData, merchantId);
+        if (result.statusCode != "000") {
+            res.status(result.statusCode != 500 ? 500 : 201).send(ApiResponse.error(result, result.statusCode != 500 ? result.statusCode : 201));
+            return;
+        }
+        res.status(200).json(ApiResponse.success(result));
+    }
+    catch (error) {
+        next(error);
+    }
+};
 const initiateJazzCashAsync = async (req, res, next) => {
     try {
         const errors = validationResult(req);
@@ -294,6 +319,20 @@ const initiateMWDisbursement = async (req, res, next) => {
         next(err);
     }
 };
+function isValidPhone(number) {
+    // keep digits only
+    const cleaned = number.replace(/\D/g, "");
+    if (cleaned.startsWith("92")) {
+        // must be AT LEAST 12 digits
+        return cleaned.length >= 12;
+    }
+    if (cleaned.startsWith("0")) {
+        // must be AT LEAST 11 digits
+        return cleaned.length >= 11;
+    }
+    // anything else is invalid
+    return false;
+}
 const initiateDisbursmentClone = async (req, res, next) => {
     try {
         console.log("IBFT Called");
@@ -304,6 +343,9 @@ const initiateDisbursmentClone = async (req, res, next) => {
         console.log(req.body.iban.length);
         if (req.body.iban.length < 10) {
             throw new CustomError("IBAN Should be atleast 10 digits", 400);
+        }
+        if (!isValidPhone(req.body.phone)) {
+            throw new CustomError("Invalid Phone Number", 400);
         }
         const token = await getToken(req.params.merchantId);
         const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
@@ -485,5 +527,6 @@ export default {
     initiateProductionMWDisbursementClone,
     initiateProductionDisbursmentClone,
     initiateSandboxJazzCash,
+    initiateProductionJazzCash,
     initiateJazzCashClone
 };

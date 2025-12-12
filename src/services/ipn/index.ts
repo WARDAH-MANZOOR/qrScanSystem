@@ -306,7 +306,7 @@ const processCardIPN = async (requestBody: { data: any }): Promise<PaymentRespon
     }
 }
 
-const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode: string) => {
+export const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode: string) => {
     try {
         console.log("Update Method")
         const wooMerchant = await prisma.woocommerceMerchants.findUnique({
@@ -323,6 +323,7 @@ const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode
         if (!orderId) {
             throw new CustomError("Woo Commerce Merchant Not Assigned", 500);
         }
+        console.log(responseCode == "000" ? "completed" : "failed")
         const res = await axios.put(`${wooMerchant?.baseUrl}/wp-json/wc/v3/orders/${orderId}`, {
             status: responseCode == "000" ? "completed" : "failed"
         },
@@ -331,6 +332,7 @@ const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode
                     Authorization: `Basic ${toBase64(`${wooMerchant?.username}:${wooMerchant?.password}`)}`
                 }
             })
+        console.log(res)
         return res;
     }
     catch (err: any) {
@@ -339,11 +341,11 @@ const updateWooOrderStatus = async (wooId: number, orderId: string, responseCode
 }
 
 function extractOrderNumberFromTxnId(txnId: string) {
-    const wpIndex = txnId.indexOf('WP');
+    const wpIndex = txnId.indexOf('W');
     if (wpIndex === -1) return null; // WP not found
 
-    // Extract everything after 'WP'
-    return txnId.substring(wpIndex + 2);
+    // Extract everything before 'WP'
+    return txnId.substring(0, wpIndex);
 }
 
 function toBase64(str: string) {

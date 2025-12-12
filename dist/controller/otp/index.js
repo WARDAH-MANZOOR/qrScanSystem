@@ -49,7 +49,9 @@ const sendOtp = async (req, res, next) => {
         res.json({ success: true, response: result });
     }
     catch (error) {
-        await prisma.otpChallenge.update({ where: { id: req.body.challengeId }, data: { status: 'blocked' } });
+        if (req.body.challengeId) {
+            await prisma.otpChallenge.update({ where: { id: req.body.challengeId }, data: { status: 'blocked' } });
+        }
         // res.status(500).json({ success: false, error: error.message });
         next(error);
     }

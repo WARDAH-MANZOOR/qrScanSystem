@@ -7,6 +7,7 @@ import {
   transactionService,
   payfast,
 } from "../../services/index.js";
+import { updateWooOrderStatus } from "../ipn/index.js";
 import { encryptUtf } from "utils/enc_dec.js";
 import { PROVIDERS } from "constants/providers.js";
 import { Decimal, JsonObject } from "@prisma/client/runtime/library";
@@ -860,6 +861,14 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           +merchant.commissions[0].commissionWithHoldingTax
       }
       let id2 = paymentRequest.merchant_transaction_id || paymentRequestObj.transaction_id;
+      await prisma.transaction.update({
+        where: {
+          merchant_transaction_id: id2
+        },
+        data: {
+          type: "card"
+        }
+      })
     }
 
     let updatedPaymentRequest;
@@ -876,6 +885,18 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
           },
         });
       });
+
+      try {
+        if (merchant?.wooMerchantId) {
+          await updateWooOrderStatus(
+            merchant.wooMerchantId as number,
+            paymentRequest.merchant_transaction_id as string || paymentRequest.transactionId as string,
+            "000"
+          );
+        }
+      } catch (e) {
+
+      }
     }
 
     return {
@@ -895,6 +916,21 @@ const payRequestedPayment = async (paymentRequestObj: any) => {
         },
       });
     });
+    try {
+      const pr = await prisma.paymentRequest.findFirst({ where: { id: paymentRequestObj.payId } });
+      if (pr?.userId) {
+        const m = await prisma.merchant.findFirst({ where: { merchant_id: pr.userId } });
+        if (m?.wooMerchantId) {
+          await updateWooOrderStatus(
+            m.wooMerchantId as number,
+            pr.merchant_transaction_id || (pr.transactionId as string),
+            "999"
+          );
+        }
+      }
+    } catch (e) {
+      // noop
+    }
     throw new CustomError(
       error?.message || "An error occurred while updating the payment request",
       error?.statusCode || 500
@@ -1033,6 +1069,17 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
           },
         });
       });
+      try {
+        if (merchant?.wooMerchantId) {
+          await updateWooOrderStatus(
+            merchant.wooMerchantId as number,
+            paymentRequest.merchant_transaction_id as string || paymentRequest.transactionId as string,
+            "000"
+          );
+        }
+      } catch (e) {
+
+      }
     }
 
     return {
@@ -1052,6 +1099,21 @@ const payRequestedPaymentForRedirection = async (paymentRequestObj: any) => {
         },
       });
     });
+    try {
+      const pr = await prisma.paymentRequest.findFirst({ where: { id: paymentRequestObj.payId } });
+      if (pr?.userId) {
+        const m = await prisma.merchant.findFirst({ where: { merchant_id: pr.userId } });
+        if (m?.wooMerchantId) {
+          await updateWooOrderStatus(
+            m.wooMerchantId as number,
+            pr.merchant_transaction_id as string || (pr.transactionId as string),
+            "999"
+          );
+        }
+      }
+    } catch (e) {
+      // noop
+    }
     throw new CustomError(
       error?.message || "An error occurred while updating the payment request",
       error?.statusCode || 500

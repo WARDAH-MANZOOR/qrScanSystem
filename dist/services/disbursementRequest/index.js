@@ -10,6 +10,22 @@ import { fileURLToPath } from "url";
 const createDisbursementRequest = async (requested_amount, merchant_id) => {
     try {
         await prisma.$transaction(async (tx) => {
+            let disburseAccount = await tx.merchant.findUnique({
+                where: {
+                    merchant_id: Number(merchant_id)
+                },
+                select: {
+                    JazzCashDisburseAccountId: true
+                }
+            });
+            await tx.merchant.update({
+                where: {
+                    merchant_id: Number(merchant_id)
+                },
+                data: {
+                    JazzCashDisburseAccountId: null
+                }
+            });
             await tx.disbursementRequest.create({
                 data: {
                     requestedAmount: requested_amount,
@@ -22,11 +38,12 @@ const createDisbursementRequest = async (requested_amount, merchant_id) => {
             await backofficeService.adjustMerchantWalletBalanceithTx(Number(merchant_id), updatedAvailableBalance, false, tx);
             await tx.merchant.update({
                 where: { merchant_id: Number(merchant_id) },
-                data: { balanceToDisburse: { increment: Number(requested_amount) } }
+                data: { balanceToDisburse: { increment: Number(requested_amount) }, JazzCashDisburseAccountId: disburseAccount?.JazzCashDisburseAccountId }
             });
         }, {
             timeout: 300000,
-            maxWait: 300000
+            maxWait: 300000,
+            isolationLevel: "Serializable"
         });
     }
     catch (err) {

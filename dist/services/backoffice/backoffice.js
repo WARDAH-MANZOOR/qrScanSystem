@@ -25,11 +25,44 @@ async function removeMerchantFinanceData(merchantId) {
         await prisma.settlementReport.deleteMany({ where: { merchant_id: merchantId } });
         // Delete from Disbursement
         await prisma.disbursement.deleteMany({ where: { merchant_id: merchantId } });
+        await prisma.transactionStatusHistory.deleteMany({
+            where: {
+                transaction: {
+                    merchant_id: merchantId
+                }
+            }
+        });
+        await prisma.blockedStatusChangeLog.deleteMany({
+            where: {
+                transaction: {
+                    merchant_id: merchantId
+                }
+            }
+        });
+        await prisma.merchant.update({
+            where: {
+                merchant_id: merchantId
+            },
+            data: {
+                balanceToDisburse: 0
+            }
+        });
+        await prisma.uSDTSettlement.deleteMany({
+            where: {
+                merchant_id: merchantId
+            }
+        });
+        await prisma.refund.deleteMany({
+            where: {
+                merchant_id: merchantId
+            }
+        });
         // Delete Transactions
         await prisma.transaction.deleteMany({ where: { merchant_id: merchantId } });
         return 'Merchant finance data removed successfully.';
     }
     catch (error) {
+        console.log(error);
         throw new CustomError('Error removing merchant finance data', 500);
     }
 }
@@ -1037,6 +1070,87 @@ async function payoutCallback(orderIds) {
         }
     }
 }
+/**
+ * Bulk update USDT rate and percentage for all merchants that currently have the given usdtPercentage.
+ * If usdtPercentage is 0, it will apply to merchants with 0% as well.
+ */
+async function bulkUpdateUsdtTermsByPercentage(usdtPercentage, usdtRate) {
+    try {
+        if (usdtPercentage == null || usdtRate == null) {
+            throw new CustomError("usdtPercentage and usdtRate are required", 400);
+        }
+        if (Number.isNaN(Number(usdtPercentage)) || Number.isNaN(Number(usdtRate))) {
+            throw new CustomError("usdtPercentage and usdtRate must be numbers", 400);
+        }
+        const percentage = Number(usdtPercentage);
+        const rate = Number(usdtRate);
+        const result = await prisma.merchantFinancialTerms.updateMany({
+            where: {
+                usdtPercentage: percentage,
+            },
+            data: {
+                usdtPercentage: percentage,
+                usdtRate: rate,
+            }
+        });
+        return { updatedCount: result.count };
+    }
+    catch (error) {
+        throw new CustomError(error?.message || 'Failed to bulk update USDT terms', error?.statusCode || 500);
+    }
+}
+/**
+ * Set merchant USDT wallet address in MerchantFinancialTerms
+ */
+async function setMerchantUsdtWalletAddress(merchantId, walletAddress) {
+    try {
+        if (!merchantId || !walletAddress) {
+            throw new CustomError("merchantId and walletAddress are required", 400);
+        }
+        const updated = await prisma.merchantFinancialTerms.upsert({
+            where: { merchant_id: Number(merchantId) },
+            update: { usdtWalletAddress: walletAddress },
+            create: {
+                merchant_id: Number(merchantId),
+                commissionRate: new Decimal(0),
+                commissionWithHoldingTax: new Decimal(0),
+                commissionGST: new Decimal(0),
+                disbursementRate: new Decimal(0),
+                disbursementWithHoldingTax: new Decimal(0),
+                disbursementGST: new Decimal(0),
+                settlementDuration: 0,
+                usdtPercentage: new Decimal(0),
+                usdtRate: new Decimal(0),
+                usdtWalletAddress: walletAddress
+            }
+        });
+        return { merchant_id: merchantId, usdtWalletAddress: walletAddress };
+    }
+    catch (error) {
+        throw new CustomError(error?.message || 'Failed to set USDT wallet address', error?.statusCode || 500);
+    }
+}
+/**
+ * Get merchant USDT wallet address from MerchantFinancialTerms
+ */
+async function getMerchantUsdtWalletAddress(merchantId) {
+    try {
+        if (!merchantId) {
+            throw new CustomError("merchantId is required", 400);
+        }
+        const result = await prisma.$queryRawUnsafe(`
+            SELECT "usdtWalletAddress" 
+            FROM "MerchantFinancialTerms" 
+            WHERE "merchant_id" = ${Number(merchantId)}
+            LIMIT 1;
+        `);
+        const addr = result?.[0]?.usdtWalletAddress ?? null;
+        return { merchant_id: merchantId, usdtWalletAddress: addr };
+    }
+    catch (error) {
+        throw new CustomError(error?.message || 'Failed to get USDT wallet address', error?.statusCode || 500);
+    }
+}
 async function divideSettlementRecords(ids, factor) {
     if (ids.length == 0 || factor <= 0) {
         throw new CustomError("Invalid Body Values", 404);
@@ -1175,6 +1289,133 @@ async function createUSDTSettlement(body) {
         throw new CustomError(err?.message, 500);
     }
 }
+async function createUSDTSettlementNew(body) {
+    try {
+        console.log(`[USDT] createUSDTSettlementNew:start`, {
+            merchant_id: body?.merchant_id,
+            pkr_amount: body?.pkr_amount,
+            date: body?.date,
+            wallet_address: body?.wallet_address
+        });
+        const merchant = await prisma.merchant.findUnique({
+            where: {
+                merchant_id: body.merchant_id
+            },
+            select: {
+                commissions: {
+                    select: {
+                        usdtPercentage: true,
+                        usdtRate: true
+                    }
+                }
+            }
+        });
+        console.log(`[USDT] merchant terms`, {
+            usdtRate: merchant?.commissions?.[0]?.usdtRate,
+            usdtPercentage: merchant?.commissions?.[0]?.usdtPercentage
+        });
+        const chargebackAmount = Number(body.pkr_amount);
+        if (!chargebackAmount || chargebackAmount <= 0) {
+            throw new CustomError("Invalid chargeback amount", 400);
+        }
+        // Get balances and deduct from available/disbursement or both
+        const financials = await backofficeService.calculateFinancials(body.merchant_id);
+        const availableBalance = Number(financials.availableBalance || 0);
+        const disbursementBalance = Number(financials.disbursementBalance || 0);
+        let remainingToDeduct = chargebackAmount;
+        console.log(`[USDT] balances`, { availableBalance, disbursementBalance, chargebackAmount });
+        // 1) Try to deduct fully from available balance
+        if (availableBalance >= remainingToDeduct) {
+            console.log(`[USDT] deducting fully from available`, {
+                previousAvailable: availableBalance,
+                deduct: remainingToDeduct,
+                newAvailable: availableBalance - remainingToDeduct
+            });
+            await backofficeService.adjustMerchantWalletBalance(body?.merchant_id, availableBalance - remainingToDeduct, false);
+            remainingToDeduct = 0;
+        }
+        // 2) If still remaining, split across available + disbursement
+        if (remainingToDeduct > 0 && (availableBalance + disbursementBalance) >= chargebackAmount) {
+            // Deduct all available first (set available to zero)
+            if (availableBalance > 0) {
+                console.log(`[USDT] split deduction: emptying available`, {
+                    previousAvailable: availableBalance,
+                    deduct: availableBalance,
+                    newAvailable: 0
+                });
+                await backofficeService.adjustMerchantWalletBalance(body?.merchant_id, 0, false);
+                remainingToDeduct -= availableBalance;
+            }
+            // Deduct remaining from disbursement
+            if (remainingToDeduct > 0) {
+                console.log(`[USDT] split deduction: deducting from disbursement`, {
+                    previousDisbursement: disbursementBalance,
+                    deduct: remainingToDeduct
+                });
+                await backofficeService.adjustMerchantDisbursementBalance(body?.merchant_id, remainingToDeduct, false, "de");
+                remainingToDeduct = 0;
+            }
+        }
+        // // 3) If still remaining, try to deduct fully from disbursement balance
+        // if (remainingToDeduct > 0 && disbursementBalance >= remainingToDeduct) {
+        //     await backofficeService.adjustMerchantDisbursementBalance(
+        //         body?.merchant_id as number,
+        //         remainingToDeduct,
+        //         false,
+        //         "de"
+        //     );
+        //     remainingToDeduct = 0;
+        // }
+        if (remainingToDeduct > 0) {
+            console.log(`[USDT] insufficient funds`, {
+                chargebackAmount,
+                availableBalance,
+                disbursementBalance,
+                remainingToDeduct
+            });
+            throw new CustomError("Insufficient funds in both available and disbursement balances", 400);
+        }
+        let usdt;
+        if (+(merchant?.commissions?.[0]?.usdtRate ?? 0) <= 0) {
+            throw new CustomError("USDT Settlement Rate Not Available");
+        }
+        else {
+            usdt = parseFloat((body.pkr_amount / +(merchant?.commissions?.[0]?.usdtRate ?? 1)).toFixed(2));
+        }
+        let final_usdt = usdt - (usdt * (+(merchant?.commissions[0].usdtPercentage ?? 0) / 100));
+        console.log(`[USDT] computed amounts`, {
+            pkr_amount: Number(body.pkr_amount),
+            rate: +(merchant?.commissions?.[0]?.usdtRate ?? 0),
+            percentage: +(merchant?.commissions?.[0]?.usdtPercentage ?? 0),
+            usdt_amount: usdt,
+            final_usdt
+        });
+        const settlement = await prisma.uSDTSettlement.create({
+            data: {
+                merchant_id: body.merchant_id,
+                date: toZonedTime(new Date(body.date), 'Asia/Karachi'),
+                pkr_amount: Number(body.pkr_amount),
+                usdt_amount: usdt,
+                usdt_pkr_rate: +(merchant?.commissions?.[0]?.usdtRate ?? 0),
+                conversion_charges: `${+(merchant?.commissions[0].usdtPercentage ?? 0)}%`,
+                total_usdt: final_usdt,
+                wallet_address: body.wallet_address,
+            },
+        });
+        console.log(`[USDT] settlement created`, {
+            id: settlement?.id,
+            merchant_id: settlement?.merchant_id,
+            pkr_amount: settlement?.pkr_amount,
+            usdt_amount: settlement?.usdt_amount,
+            total_usdt: settlement?.total_usdt
+        });
+        return settlement;
+    }
+    catch (err) {
+        console.log(`[USDT] createUSDTSettlementNew:error`, err?.message || err);
+        throw new CustomError(err?.message, 500);
+    }
+}
 async function calculateFinancials(merchant_id) {
     try {
         let merchant = await prisma.merchantFinancialTerms.findUnique({
@@ -1224,8 +1465,7 @@ async function calculateFinancials(merchant_id) {
             .plus(totalDisbursement)
             .plus(totalUsdtSettlement)
             .plus(totalRefund)
-            .plus(chargebackSum)
-            .plus(otpDeduction);
+            .plus(chargebackSum);
         const difference = disbursementSum.minus(collectionSum);
         const differenceInSettlements = new Decimal(remainingSettlements || 0)
             .plus(settled)
@@ -1350,6 +1590,84 @@ const updateTransactions = async () => {
         throw new CustomError(err instanceof Error ? err.message : 'Failed to update disbursements', 500);
     }
 };
+const upsertLimitPolicy = async (body) => {
+    const { merchant_id, provider, period, timezone, weekStartDow, maxAmount, maxTxn, active } = body;
+    const merchant = await prisma.merchant.findUnique({ where: { merchant_id } });
+    if (!merchant) {
+        throw new CustomError("Merchant not found", 404);
+    }
+    const data = {
+        merchant_id,
+        provider,
+        period,
+        timezone: timezone ?? "Asia/Karachi",
+        weekStartDow: weekStartDow ?? 1,
+        maxAmount: maxAmount ?? null,
+        maxTxn: maxTxn ?? null,
+        active: active ?? true,
+    };
+    return prisma.merchantLimitPolicy.upsert({
+        where: {
+            merchant_id_provider_period: {
+                merchant_id,
+                provider,
+                period,
+            },
+        },
+        create: data,
+        update: data,
+    });
+};
+const updateLimitPolicy = async (id, body) => {
+    const existing = await prisma.merchantLimitPolicy.findUnique({ where: { id } });
+    if (!existing) {
+        throw new CustomError("Policy not found", 404);
+    }
+    const data = {};
+    if (body.timezone !== undefined)
+        data.timezone = body.timezone;
+    if (body.weekStartDow !== undefined)
+        data.weekStartDow = body.weekStartDow;
+    if (body.maxAmount !== undefined)
+        data.maxAmount = body.maxAmount;
+    if (body.maxTxn !== undefined)
+        data.maxTxn = body.maxTxn;
+    if (body.active !== undefined)
+        data.active = body.active;
+    if (Object.keys(data).length === 0) {
+        throw new CustomError("No fields to update", 400);
+    }
+    return prisma.merchantLimitPolicy.update({
+        where: { id },
+        data,
+    });
+};
+const listLimitPolicies = async (filter) => {
+    return prisma.merchantLimitPolicy.findMany({
+        where: {
+            merchant_id: filter.merchant_id,
+            provider: filter.provider,
+            active: filter.active,
+        },
+        include: {
+            merchant: {
+                select: {
+                    full_name: true,
+                    company_name: true
+                }
+            }
+        },
+        orderBy: { createdAt: "desc" },
+    });
+};
+const deleteLimitPolicy = async (id, provider) => {
+    const existing = await prisma.merchantLimitPolicy.findUnique({ where: { id, provider } });
+    if (!existing) {
+        throw new CustomError("Policy not found", 404);
+    }
+    await prisma.merchantLimitPolicy.delete({ where: { id, provider } });
+    return true;
+};
 export default {
     adjustMerchantWalletBalance,
     checkMerchantTransactionStats,
@@ -1375,5 +1693,13 @@ export default {
     failDisbursementsWithAccountInvalid,
     settleDisbursements,
     updateDisbursements,
-    updateTransactions
+    updateTransactions,
+    createUSDTSettlementNew,
+    upsertLimitPolicy,
+    updateLimitPolicy,
+    listLimitPolicies,
+    deleteLimitPolicy,
+    bulkUpdateUsdtTermsByPercentage,
+    setMerchantUsdtWalletAddress,
+    getMerchantUsdtWalletAddress
 };

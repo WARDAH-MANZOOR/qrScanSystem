@@ -1,12 +1,10 @@
 import { ipnService } from "../../services/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import axios from "axios";
 const handleIPN = async (req, res) => {
     try {
-        // Extract the relevant fields from the request body
         const requestBody = req.body;
-        // Call the service to process
         const responseData = await ipnService.processIPN(requestBody);
-        // Return response
         res.json(responseData);
     }
     catch (error) {
@@ -15,11 +13,8 @@ const handleIPN = async (req, res) => {
 };
 const handleCardIPN = async (req, res) => {
     try {
-        // Extract the relevant fields from the request body
         const requestBody = req.body;
-        // Call the service to process
         const responseData = await ipnService.processCardIPN(requestBody);
-        // Return response
         res.json(responseData);
     }
     catch (error) {
@@ -28,15 +23,29 @@ const handleCardIPN = async (req, res) => {
 };
 const handlebdtIPN = async (req, res) => {
     try {
-        // Extract the relevant fields from the request body
         const requestBody = req.body;
-        // Call the service to process
         const responseData = await ipnService.bdtIPN(requestBody);
-        // Return response
         res.json(responseData);
     }
     catch (error) {
         res.status(500).json(ApiResponse.error(error.message, 500));
     }
 };
-export default { handleIPN, handleCardIPN, handlebdtIPN };
+const handleShurjoPayIPN = async (req, res) => {
+    try {
+        const url = "https://api5.assanpay.com/api/ipn/shurjopay";
+        const headers = {};
+        if (req.headers['content-type'])
+            headers['Content-Type'] = String(req.headers['content-type']);
+        const upstream = await axios.post(url, req.body, { headers, timeout: 15000 });
+        res.status(upstream.status).send(upstream.data);
+    }
+    catch (error) {
+        if (error.response) {
+            res.status(error.response.status || 502).send(error.response.data);
+            return;
+        }
+        res.status(500).json(ApiResponse.error(error.message, 500));
+    }
+};
+export default { handleIPN, handleCardIPN, handlebdtIPN, handleShurjoPayIPN };

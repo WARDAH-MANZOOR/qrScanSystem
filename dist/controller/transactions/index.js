@@ -132,7 +132,13 @@ const getTransactions = async (req, res) => {
         const response = {
             transactions: transactions.map((transaction) => ({
                 ...transaction,
-                providerDetails: { id: transaction.providerDetails.id, name: transaction.providerDetails.name, msisdn: transaction.providerDetails.msisdn, transactionId: transaction.providerDetails?.transactionId },
+                providerDetails: {
+                    id: transaction.providerDetails.id,
+                    name: transaction.providerDetails.name,
+                    merchant: transaction.providerDetails?.merchant,
+                    msisdn: transaction.providerDetails.msisdn,
+                    transactionId: transaction.providerDetails?.transactionId
+                },
                 merchant: { username: transaction.merchant.username },
             })),
             meta,
@@ -234,20 +240,18 @@ const getTeleTransactions = async (req, res) => {
             orderBy: {
                 date_time: "desc",
             },
-            include: {
-                merchant: {
-                    include: {
-                        groups: {
-                            include: {
-                                merchant: {
-                                    include: {
-                                        jazzCashMerchant: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+            select: {
+                transaction_id: true,
+                merchant_transaction_id: true,
+                merchant: true,
+                date_time: true,
+                providerDetails: true,
+                original_amount: true,
+                status: true,
+                settlement: true,
+                type: true,
+                callback_sent: true,
+                response_message: true
             },
         });
         let meta = {};
@@ -277,7 +281,15 @@ const getTeleTransactions = async (req, res) => {
         const response = {
             transactions: transactions.map((transaction) => ({
                 ...transaction,
-                jazzCashMerchant: transaction.merchant.groups[0]?.merchant?.jazzCashMerchant,
+                providerDetails: {
+                    id: transaction.providerDetails.id,
+                    name: transaction.providerDetails.name,
+                    merchant: transaction.providerDetails?.merchant,
+                    sub_merchant: transaction.providerDetails?.sub_merchant,
+                    msisdn: transaction.providerDetails.msisdn,
+                    transactionId: transaction.providerDetails?.transactionId
+                },
+                merchant: { username: transaction.merchant.username },
             })),
             meta,
         };

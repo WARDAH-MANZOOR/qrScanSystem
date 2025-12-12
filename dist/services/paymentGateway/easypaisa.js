@@ -131,6 +131,7 @@ const initiateEasyPaisa = async (merchantId, params) => {
             transactionType: "MA",
             mobileAccountNo: phone,
             emailAddress: params.email,
+            merchantId: JSON.stringify(findMerchant.merchant_id)
         };
         console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`);
         const base64Credentials = Buffer.from(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`).toString("base64");
@@ -138,7 +139,7 @@ const initiateEasyPaisa = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: `${process.env.EASYPAISA_URL}/forward`,
+            url: `${process.env.EASYPAISA_PAYIN_URL}/`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -191,7 +192,9 @@ const initiateEasyPaisa = async (merchantId, params) => {
                     msisdn: phone,
                     transactionId: response?.data?.transactionId,
                     deduction: params.attempts * 2,
-                    deductionDone: false
+                    deductionDone: false,
+                    merchant: response?.data?.mainCategoryName,
+                    sub_merchant: response?.data?.accountName,
                 },
             }, findMerchant.commissions[0].settlementDuration);
             await commitReservations(reservations);
@@ -220,7 +223,9 @@ const initiateEasyPaisa = async (merchantId, params) => {
                     msisdn: phone,
                     transactionId: response?.data?.transactionId,
                     deduction: params.attempts * 2,
-                    deductionDone: false
+                    deductionDone: false,
+                    merchant: response?.data?.mainCategoryName,
+                    sub_merchant: response?.data?.accountName,
                 },
             }, findMerchant.commissions[0].settlementDuration);
             await cancelReservations(reservations);
@@ -285,6 +290,7 @@ const initiateEasyPaisaForRedirection = async (merchantId, params) => {
             transactionType: "MA",
             mobileAccountNo: phone,
             emailAddress: params.email,
+            merchantId: JSON.stringify(findMerchant?.merchant_id)
         };
         console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`);
         const base64Credentials = Buffer.from(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`).toString("base64");
@@ -292,7 +298,7 @@ const initiateEasyPaisaForRedirection = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: `${process.env.EASYPAISA_URL}/forward`,
+            url: `${process.env.EASYPAISA_PAYIN_URL}/`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -350,7 +356,9 @@ const initiateEasyPaisaForRedirection = async (merchantId, params) => {
                     msisdn: phone,
                     transactionId: response?.data?.transactionId,
                     deduction: params.attempts * 2,
-                    deductionDone: false
+                    deductionDone: false,
+                    merchant: response?.data?.mainCategoryName,
+                    sub_merchant: response?.data?.accountName,
                 },
             }, findMerchant.commissions[0].settlementDuration);
             await commitReservations(reservations);
@@ -380,7 +388,9 @@ const initiateEasyPaisaForRedirection = async (merchantId, params) => {
                     msisdn: phone,
                     transactionId: response?.data?.transactionId,
                     deduction: params.attempts * 2,
-                    deductionDone: false
+                    deductionDone: false,
+                    merchant: response?.data?.mainCategoryName,
+                    sub_merchant: response?.data?.accountName,
                 },
             }, findMerchant.commissions[0].settlementDuration);
             await cancelReservations(reservations);
@@ -444,6 +454,7 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
             transactionType: "MA",
             mobileAccountNo: phone,
             emailAddress: params.email,
+            merchantId: JSON.stringify(findMerchant?.merchant_id)
         };
         console.log(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`);
         const base64Credentials = Buffer.from(`${easyPaisaMerchant[0].username}:${easyPaisaMerchant[0].credentials}`).toString("base64");
@@ -451,7 +462,7 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: `${process.env.EASYPAISA_URL}/forward`,
+            url: `${process.env.EASYPAISA_PAYIN_URL}/`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -498,7 +509,9 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
                     id: easyPaisaMerchant[0].id,
                     name: PROVIDERS.EASYPAISA,
                     msisdn: phone,
-                    transactionId: response?.data?.transactionId
+                    transactionId: response?.data?.transactionId,
+                    merchant: response?.data?.mainCategoryName,
+                    sub_merchant: response?.data?.accountName,
                 },
             }, findMerchant.commissions[0].settlementDuration);
             transactionService.sendCallback(findMerchant.webhook_url, saveTxn, phone, "payin", findMerchant.encrypted == "True" ? true : false, true);
@@ -517,7 +530,9 @@ const initiateEasyPaisaClone = async (merchantId, params) => {
                     id: easyPaisaMerchant[0].id,
                     name: PROVIDERS.EASYPAISA,
                     msisdn: phone,
-                    transactionId: response?.data?.transactionId
+                    transactionId: response?.data?.transactionId,
+                    merchant: response?.data?.mainCategoryName,
+                    sub_merchant: response?.data?.accountName,
                 },
             }, findMerchant.commissions[0].settlementDuration);
             throw new CustomError(response.data?.responseDesc == "SYSTEM ERROR" ? "User did not respond" : response.data?.responseDesc, 500);
@@ -542,6 +557,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
     let saveTxn;
     let id = transactionService.createTransactionId();
     let reservations = [];
+    let response;
     try {
         console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }));
         if (!merchantId) {
@@ -580,13 +596,14 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
             transactionType: "MA",
             mobileAccountNo: phone,
             emailAddress: params.email,
+            merchantId: JSON.stringify(findMerchant.merchant_id)
         };
         const base64Credentials = Buffer.from(`${easyPaisaMerchant.username}:${easyPaisaMerchant.credentials}`).toString("base64");
         let data = JSON.stringify(easyPaisaTxPayload);
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: `${process.env.EASYPAISA_URL}/forward`,
+            url: `${process.env.EASYPAISA_PAYIN_URL}/`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -626,7 +643,7 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                const response = await axios.request(config);
+                response = await axios.request(config);
                 if (response?.data.responseCode === "0000") {
                     console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_SUCCESS", order_id: params.order_id, system_id: id, response: response?.data }));
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
@@ -636,7 +653,9 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                             id: easyPaisaMerchant.id,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
-                            transactionId: response?.data?.transactionId
+                            transactionId: response?.data?.transactionId,
+                            merchant: response?.data?.mainCategoryName,
+                            sub_merchant: response?.data?.accountName,
                         },
                     }, findMerchant.commissions[0].settlementDuration);
                     await commitReservations(reservations);
@@ -651,7 +670,9 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                             id: easyPaisaMerchant.id,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
-                            transactionId: response?.data?.transactionId
+                            transactionId: response?.data?.transactionId,
+                            merchant: response?.data?.mainCategoryName,
+                            sub_merchant: response?.data?.accountName,
                         },
                     }, findMerchant.commissions[0].settlementDuration);
                     await cancelReservations(reservations);
@@ -673,7 +694,9 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
                         id: easyPaisaMerchant.id,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
-                        transactionId: error?.response?.data?.transactionId
+                        transactionId: error?.response?.data?.transactionId,
+                        merchant: response?.data?.mainCategoryName,
+                        sub_merchant: response?.data?.accountName,
                     },
                 }, findMerchant.commissions[0].settlementDuration);
                 await cancelReservations(reservations);
@@ -709,6 +732,8 @@ const initiateEasyPaisaAsync = async (merchantId, params) => {
 const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
     let saveTxn;
     let id = transactionService.createTransactionId();
+    let reservations = [];
+    let response;
     try {
         console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_INITIATED", order_id: params.order_id, system_id: id, body: params }));
         if (!merchantId) {
@@ -747,13 +772,15 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
             transactionType: "MA",
             mobileAccountNo: phone,
             emailAddress: params.email,
+            merchantId: JSON.stringify(findMerchant.merchant_id)
         };
+        console.log(easyPaisaTxPayload);
         const base64Credentials = Buffer.from(`${easyPaisaMerchant.username}:${easyPaisaMerchant.credentials}`).toString("base64");
         let data = JSON.stringify(easyPaisaTxPayload);
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: `${process.env.EASYPAISA_URL}/forward`,
+            url: `${process.env.MONETIX_EASYPAISA_URL}/initiate-payment`,
             headers: {
                 Credentials: `${base64Credentials}`,
                 "Content-Type": "application/json",
@@ -772,6 +799,8 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                 +(findMerchant.commissions[0]?.easypaisaRate ?? 0) +
                 +findMerchant.commissions[0].commissionWithHoldingTax;
         }
+        const r = await reserveLimits({ merchantId: findMerchant.merchant_id, provider: ProviderEnum.EASYPAISA, amount: params.amount, merchantTxnId: params.order_id });
+        reservations = r.reservationIds;
         saveTxn = await transactionService.createTxn({
             order_id: id2,
             transaction_id: id,
@@ -791,7 +820,7 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
         // Return pending status and transaction ID immediately
         setImmediate(async () => {
             try {
-                const response = await axios.request(config);
+                response = await axios.request(config);
                 if (response?.data.responseCode === "0000") {
                     console.log(JSON.stringify({ event: "EASYPAISA_ASYNC_SUCCESS", order_id: params.order_id, system_id: id, response: response?.data }));
                     await transactionService.updateTxn(saveTxn?.transaction_id, {
@@ -801,9 +830,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                             id: easyPaisaMerchant.id,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
-                            transactionId: response?.data?.transactionId
+                            transactionId: response?.data?.transactionId,
+                            merchant: response?.data?.mainCategoryName,
+                            sub_merchant: response?.data?.accountName,
                         },
                     }, findMerchant.commissions[0].settlementDuration);
+                    await commitReservations(reservations);
                     transactionService.sendCallbackClone(findMerchant.webhook_url, saveTxn, phone, "payin", findMerchant?.encrypted?.toLowerCase() == "true" ? true : false, true);
                 }
                 else {
@@ -815,9 +847,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                             id: easyPaisaMerchant.id,
                             name: PROVIDERS.EASYPAISA,
                             msisdn: phone,
-                            transactionId: response?.data?.transactionId
+                            transactionId: response?.data?.transactionId,
+                            merchant: response?.data?.mainCategoryName,
+                            sub_merchant: response?.data?.accountName,
                         },
                     }, findMerchant.commissions[0].settlementDuration);
+                    await cancelReservations(reservations);
                 }
             }
             catch (error) {
@@ -835,8 +870,11 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
                         id: easyPaisaMerchant.id,
                         name: PROVIDERS.EASYPAISA,
                         msisdn: phone,
+                        merchant: response?.data?.mainCategoryName,
+                        sub_merchant: response?.data?.accountName,
                     },
                 }, findMerchant.commissions[0].settlementDuration);
+                await cancelReservations(reservations);
             }
         });
         console.log(JSON.stringify({
@@ -853,6 +891,12 @@ const initiateEasyPaisaAsyncClone = async (merchantId, params) => {
         };
     }
     catch (error) {
+        if (reservations.length)
+            await cancelReservations(reservations);
+        if (error?.code === "LIMIT_EXCEEDED") {
+            // Optional: tell the user which period is exceeded
+            return { message: `Limit exceeded (${String(error.period).toLowerCase()})`, statusCode: 429, txnNo: params.order_id || "" };
+        }
         return {
             message: error?.message || "An error occurred while initiating the transaction",
             statusCode: error?.statusCode || 500,
@@ -977,7 +1021,7 @@ const easypaisainquiry = async (param, merchantId) => {
     let config = {
         method: "post",
         maxBodyLength: Infinity,
-        url: `${process.env.EASYPAISA_URL}/inquiry`,
+        url: `${process.env.EASYPAISA_URL}/inquiry-ep`,
         headers: {
             Credentials: base64Credentials,
             "Content-Type": "application/json",
@@ -1017,7 +1061,7 @@ const easypaisainquiry = async (param, merchantId) => {
         };
     }
 };
-const createRSAEncryptedPayload = async (url) => {
+export const createRSAEncryptedPayload = async (url) => {
     const inputEnc = url;
     try {
         const publicKeyPath = "src/keys/publickey.pem";
@@ -1778,7 +1822,7 @@ const createDisbursementClone = async (obj, merchantId) => {
                     : merchantAmount.toString(),
                 order_id: disbursement.merchant_custom_order_id,
                 externalApiResponse: {
-                    TransactionReference: disbursement.merchant_custom_order_id,
+                    TransactionReference: disbursement.transaction_id,
                     TransactionStatus: ma2ma.TransactionStatus,
                 },
             };
@@ -2443,7 +2487,7 @@ const disburseThroughBankClone = async (obj, merchantId) => {
                     : merchantAmount.toString(),
                 order_id: disbursement.merchant_custom_order_id,
                 externalApiResponse: {
-                    TransactionReference: disbursement.merchant_custom_order_id,
+                    TransactionReference: disbursement.transaction_id,
                     TransactionStatus: res2.data.TransactionStatus,
                 },
             };
