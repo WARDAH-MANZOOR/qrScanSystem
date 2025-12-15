@@ -2658,8 +2658,8 @@ const processWalletPaymentClone = async (
         name: PROVIDERS.JAZZ_CASH,
         msisdn: phone,
         transactionId: r.pp_RetreivalReferenceNo,
-        merchant: r.mainCategoryName,
-        sub_merchant: r?.accountName,
+        merchant: r?.accountName,
+        sub_merchant: r?.mainCategoryName,
       },
     },
   });
