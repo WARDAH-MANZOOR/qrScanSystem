@@ -24,6 +24,7 @@ router.post(
   paymentRequestController.payUpaisaZindigi
 );
 router.get("/:id", paymentRequestController.getPaymentRequestbyId);
+router.get("/txn/:id", paymentRequestController.getPaymentRequestbyTxnId);
 
 router.get("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.getPaymentRequest);
 router.post("/", [isLoggedIn], authorize("Invoice Link"), paymentRequestController.createPaymentRequest);

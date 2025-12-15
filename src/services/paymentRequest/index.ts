@@ -1317,6 +1317,40 @@ const getPaymentRequestbyId = async (paymentRequestId: string) => {
   }
 };
 
+const getPaymentRequestbyTxnId = async (transactionId: string) => {
+  try {
+    const paymentRequest = await prisma.paymentRequest.findFirst({
+      where: {
+        merchant_transaction_id: transactionId,
+        deletedAt: null,
+      },
+    });
+
+    console.log("Payment Request", paymentRequest)
+
+    if (!(paymentRequest?.merchant_transaction_id == transactionId)) {
+      throw new CustomError("Payment request not found", 404);
+    }
+
+    // Check if payment request is failed
+    if (paymentRequest.status === "failed") {
+      throw new CustomError("Payment link has been expired", 400);
+    }
+    return {
+      message: "Payment request retrieved successfully",
+      data: {
+        return_url: (paymentRequest.metadata as JsonObject)?.return_url
+      },
+    };
+  } catch (error: any) {
+    throw new CustomError(
+      error?.message ||
+      "An error occurred while retrieving the payment request",
+      error?.statusCode || 500
+    );
+  }
+};
+
 const getPaymentRequest = async (obj: any) => {
   try {
     if (!obj.user.merchant_id) {
@@ -1496,5 +1530,6 @@ export default {
   payUpaisaZindigi,
   payRequestedPaymentForRedirection,
   createPaymentRequestWithOtpClone,
-  createPaymentRequestForQR
+  createPaymentRequestForQR,
+  getPaymentRequestbyTxnId
 };

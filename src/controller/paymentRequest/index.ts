@@ -161,6 +161,28 @@ const getPaymentRequestbyId = async (
   }
 };
 
+const getPaymentRequestbyTxnId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.params?.id;
+
+    if (!id) {
+      throw new CustomError("Payment request ID is required", 400);
+
+    }
+
+    const result = await paymentRequestService.getPaymentRequestbyTxnId(
+      id as string
+    );
+    res.status(200).json(ApiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deletePaymentRequest = async (
   req: Request,
   res: Response,
@@ -308,5 +330,6 @@ export default {
   preRequest,
   payRequestedPaymentForRedirection,
   createPaymentRequestWithOtpClone,
-  createPaymentRequestForQR
+  createPaymentRequestForQR,
+  getPaymentRequestbyTxnId
 };
