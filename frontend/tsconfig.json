@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",        // Set to ESNext for latest JS features
+    "module": "NodeNext",      // CommonJS for Node.js module system
+    "rootDir": "./src",        // Source folder where your TS files will reside
+    "outDir": "./dist",
+            // Where to output compiled JS files
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "strict": true,            // Enable all strict type-checking options
+    "esModuleInterop": true,   // Ensure compatibility with CommonJS modules
+    "skipLibCheck": true,      // Skip type checking of declaration files
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./src",               // Set the base URL to your source directory
+    "paths": {
+      "*": ["*"]                      // Allow all paths to resolve from baseUrl
+    },
+    "resolveJsonModule": true
+  },
+  "include": ["src"],          // Include the "src" folder for TypeScript compilation
+  "exclude": ["node_modules"]  // Exclude node_modules from compilation
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Payout System</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+<h2>Scan QR for IBAN</h2>
+
+<div id="reader" style="width:300px"></div>
+
+<br/>
+
+<label>IBAN</label>
+<input type="text" id="iban" readonly /><br/><br/>
+
+<label>Bank Code</label>
+<input type="text" id="bankCode" readonly /><br/><br/>
+
+<label>Amount</label>
+<input type="number" id="amount" /><br/><br/>
+
+<label>Phone</label>
+<input type="text" id="phone" /><br/><br/>
+
+<button onclick="sendPayout()">Send Payout</button>
+
+<script type="module" src="dist/app.js"></script>
+</body>
+</html>
