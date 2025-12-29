@@ -5,6 +5,8 @@ import { jazzCashService, transactionService } from "services/index.js";
 import { checkTransactionStatus, getToken, initiateTransaction,simpleProductionMwTransactionClone, simpleProductionInitiateTransactionClone,initiateTransactionClone, mwTransaction, mwTransactionClone, simpleCheckTransactionStatus, simpleGetToken, simpleSandboxCheckTransactionStatus, simpleSandboxGetToken, simpleSandboxinitiateTransactionClone, simpleSandboxMwTransactionClone, getMerchantJazzCashDisburseInquiryMethod, databaseCheckTransactionStatus } from "../../services/paymentGateway/index.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import CustomError from "../../utils/custom_error.js";
+import { mapBankCode } from "../../utils/bankCodeMapper.js";
+
 
 export const initiateJazzCashNewFlow = async (
   req: Request,
@@ -424,22 +426,61 @@ function isValidPhone(number: string): boolean {
   return false;
 }
 
+// const initiateDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     console.log("IBFT Called")
+//     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+    
+//     if (Number(req.body.amount) <= 1) {
+//       throw new CustomError("Amount should be greater than 0", 400);
+//     }
+//     console.log(req.body.iban.length)
+//     if (req.body.iban.length < 10) {
+//       throw new CustomError("IBAN Should be atleast 10 digits", 400);
+//     }
+//     if (!isValidPhone(req.body.phone)) {
+//       throw new CustomError("Invalid Phone Number", 400);
+//     }
+//     const token = await getToken(req.params.merchantId);
+//     const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+//     res.status(200).json(ApiResponse.success(initTransaction));
+//   }
+//   catch (err) {
+//     next(err)
+//   }
+// }
+
 const initiateDisbursmentClone = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log("IBFT Called")
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+
     if (Number(req.body.amount) <= 1) {
       throw new CustomError("Amount should be greater than 0", 400);
     }
-    console.log(req.body.iban.length)
+
     if (req.body.iban.length < 10) {
       throw new CustomError("IBAN Should be atleast 10 digits", 400);
     }
+
     if (!isValidPhone(req.body.phone)) {
       throw new CustomError("Invalid Phone Number", 400);
     }
+
+    // ✅ BANK CODE VALIDATION & MAPPING
+    const { bankCode, bankName } = mapBankCode(req.body.bankCode);
+    console.log("Mapped Bank Code:", bankCode, "Bank Name:", bankName);
+    // body me overwrite kar diya taake service me same rahe
+    req.body.bankCode = bankCode;
+    req.body.bankName = bankName;
+
     const token = await getToken(req.params.merchantId);
-    const initTransaction = await initiateTransactionClone(token?.access_token, req.body, req.params.merchantId);
+    const initTransaction = await initiateTransactionClone(
+      token?.access_token,
+      req.body,
+      req.params.merchantId
+    );
+
     res.status(200).json(ApiResponse.success(initTransaction));
   }
   catch (err) {

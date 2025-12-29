@@ -978,8 +978,13 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
                 status: "pending",
                 response_message: "pending",
                 to_provider: body.bankCode,
+                // providerDetails: {
+                //   id: findMerchant?.JazzCashDisburseAccountId
+                // }
                 providerDetails: {
-                  id: findMerchant?.JazzCashDisburseAccountId
+                  id: findMerchant?.JazzCashDisburseAccountId,
+                  bank_name: body.bankName,
+                  sub_name: PROVIDERS.JAZZ_CASH
                 }
               },
             });
@@ -996,15 +1001,27 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
     })
 
 
+    // let payload = encryptData(
+    //   {
+    //     bankAccountNumber: body.iban,
+    //     bankCode: body.bankCode,
+    //     amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
+    //     receiverMSISDN: "03123456789",
+    //     referenceId: id
+    //   }
+    //   , findDisbureMerch.key, findDisbureMerch.initialVector)
     let payload = encryptData(
       {
         bankAccountNumber: body.iban,
-        bankCode: body.bankCode,
+        bankCode: body.bankCode, // ✅ verified & mapped
         amount: body.amount ? formatAmount(+body.amount) : formatAmount(+merchantAmount),
         receiverMSISDN: "03123456789",
         referenceId: id
-      }
-      , findDisbureMerch.key, findDisbureMerch.initialVector)
+      },
+      findDisbureMerch.key,
+      findDisbureMerch.initialVector
+    );
+
 
     let db_id = id;
     let requestData = {
@@ -1048,8 +1065,13 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           status: "pending",
           response_message: "pending",
           to_provider: body.bankCode,
+          // providerDetails: {
+          //   id: findMerchant?.JazzCashDisburseAccountId
+          // }
           providerDetails: {
-            id: findMerchant?.JazzCashDisburseAccountId
+            id: findMerchant?.JazzCashDisburseAccountId,
+            bank_name: body.bankName,
+            sub_name: PROVIDERS.JAZZ_CASH
           }
         },
       });
@@ -1087,8 +1109,13 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           provider: PROVIDERS.BANK,
           status: "failed",
           response_message: data.responseDescription,
+          // providerDetails: {
+          //   id: findMerchant?.JazzCashDisburseAccountId,
+          //   sub_name: PROVIDERS.JAZZ_CASH
+          // }
           providerDetails: {
             id: findMerchant?.JazzCashDisburseAccountId,
+            bank_name: body.bankName,
             sub_name: PROVIDERS.JAZZ_CASH
           }
         },
@@ -1146,9 +1173,15 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           status: "pending",
           response_message: "pending",
           to_provider: body.bankCode,
+          // providerDetails: {
+          //   id: findMerchant?.JazzCashDisburseAccountId,
+          // }
           providerDetails: {
             id: findMerchant?.JazzCashDisburseAccountId,
+            bank_name: body.bankName,
+            sub_name: PROVIDERS.JAZZ_CASH
           }
+
         },
       });
       balanceDeducted = false;
@@ -1186,11 +1219,17 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
           provider: PROVIDERS.BANK,
           status: "failed",
           response_message: res.responseDescription,
-          providerDetails: {
+          // providerDetails: {
+          //   id: findMerchant?.JazzCashDisburseAccountId,
+          //   sub_name: PROVIDERS.JAZZ_CASH
+
+
+          // }
+        to_provider: body.bankCode,
+         providerDetails: {
             id: findMerchant?.JazzCashDisburseAccountId,
+            bank_name: body.bankName,
             sub_name: PROVIDERS.JAZZ_CASH
-
-
           }
         },
       });
@@ -1229,10 +1268,17 @@ async function initiateTransactionClone(token: string, body: any, merchantId: st
             provider: PROVIDERS.BANK,
             status: "completed",
             response_message: "success",
+            // providerDetails: {
+            //   id: findMerchant?.JazzCashDisburseAccountId,
+            //   sub_name: PROVIDERS.JAZZ_CASH
+            // }
+            to_provider: body.bankCode,
             providerDetails: {
               id: findMerchant?.JazzCashDisburseAccountId,
+              bank_name: body.bankName,
               sub_name: PROVIDERS.JAZZ_CASH
             }
+
           },
         });
         let webhook_url: string;

@@ -70,6 +70,9 @@ app.use(cors({
     '*',
   ],
   credentials: true,
+  allowedHeaders: ["Content-Type", "x-api-key"],
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
+
 }));
 // app.use(cors())
 // await backup()
