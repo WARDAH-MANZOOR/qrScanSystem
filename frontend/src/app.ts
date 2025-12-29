@@ -2,6 +2,7 @@
 interface QRData {
   iban: string;
   bankCode: string | null;
+  amount?: string | null;
 }
 
 // HTML Elements
@@ -17,22 +18,45 @@ html5QrCode.start(
   { facingMode: "environment" },
   { fps: 10, qrbox: 300 }, // increased qrbox for better detection
   (decodedText: string) => {
+    // const qrData = extractQRData(decodedText);
+
+    // if (!qrData || !qrData.iban) {
+    //   console.log("Unsupported QR code: " + decodedText);
+    //   return;
+    // }
+
+    // // Auto-fill IBAN
+    // ibanInput.value = qrData.iban;
+
+    // // Auto-fill Bank Code
+    // bankCodeInput.value = qrData.bankCode
+    //   ? qrData.bankCode
+    //   : getBankCodeFromIBAN(qrData.iban);
+
+    // html5QrCode.stop();
     const qrData = extractQRData(decodedText);
 
-    if (!qrData || !qrData.iban) {
-      console.log("Unsupported QR code: " + decodedText);
-      return;
-    }
+    if (!qrData || !qrData.iban) return;
 
-    // Auto-fill IBAN
+    // IBAN
     ibanInput.value = qrData.iban;
 
-    // Auto-fill Bank Code
+    // Bank Code
     bankCodeInput.value = qrData.bankCode
       ? qrData.bankCode
       : getBankCodeFromIBAN(qrData.iban);
 
+    // 🔥 Amount logic
+    if (qrData.amount) {
+      amountInput.value = qrData.amount;
+      amountInput.disabled = true;   // static QR
+    } else {
+      amountInput.value = "";
+      amountInput.disabled = false;  // dynamic QR
+    }
+
     html5QrCode.stop();
+
   },
   (errorMessage: string) => {
     console.log("QR scan error:", errorMessage);
@@ -40,22 +64,51 @@ html5QrCode.start(
 );
 
 // Function to handle multiple QR formats
+// function extractQRData(qrText: string): QRData | null {
+//   try {
+//     const data = JSON.parse(qrText);
+//     if (data.iban) return { iban: data.iban, bankCode: data.bankCode ?? null };
+//   } catch {}
+
+//   if (qrText.includes("iban=")) {
+//     const params = new URLSearchParams(qrText);
+//     return {
+//       iban: params.get("iban") || "",
+//       bankCode: params.get("bankCode") || null
+//     };
+//   }
+
+//   if (qrText.startsWith("PK")) {
+//     return { iban: qrText, bankCode: null };
+//   }
+
+//   return null;
+// }
 function extractQRData(qrText: string): QRData | null {
   try {
     const data = JSON.parse(qrText);
-    if (data.iban) return { iban: data.iban, bankCode: data.bankCode ?? null };
+
+    if (data.iban) {
+      return {
+        iban: data.iban,
+        bankCode: data.bankCode ?? null,
+        amount: data.amount ?? null
+      };
+    }
   } catch {}
 
   if (qrText.includes("iban=")) {
     const params = new URLSearchParams(qrText);
+
     return {
       iban: params.get("iban") || "",
-      bankCode: params.get("bankCode") || null
+      bankCode: params.get("bankCode"),
+      amount: params.get("amount")
     };
   }
 
   if (qrText.startsWith("PK")) {
-    return { iban: qrText, bankCode: null };
+    return { iban: qrText, bankCode: null, amount: null };
   }
 
   return null;
@@ -99,10 +152,10 @@ function sendPayout(): void {
   }
 
   // Replace 'YOUR_API_KEY_HERE' with the actual API key required by your backend
-  const apiKey = "YOUR_API_KEY_HERE";
+  const apiKey = "SPAY-8135-fa66-aa06-51ed";
 
   fetch(
-    "http://localhost:3001/payment/jz-disburse/6707ced3-e584-4d8c-9166-297d56bc425f",
+    "http://localhost:3001/payment/jz-disburse/8f471fb6-0657-4152-b8c0-599d365877c1",
     {
       method: "POST",
       headers: {
